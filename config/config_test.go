@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/bluemedora/log-agent/plugin"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -33,9 +32,7 @@ plugins:
 	v.ReadConfig(bytes.NewReader(rawConfig))
 
 	var config Config
-	err := v.Unmarshal(&config, func(c *mapstructure.DecoderConfig) {
-		c.DecodeHook = plugin.PluginConfigToStructHookFunc()
-	})
+	err := v.UnmarshalExact(&config, UnmarshalHook)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedConfig, config)
