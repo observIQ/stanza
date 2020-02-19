@@ -6,9 +6,7 @@ import (
 )
 
 type Config struct {
-	LogLevel string
-	LogPath  string
-	Plugins  []plugin.PluginConfig
+	Plugins []plugin.PluginConfig
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {
