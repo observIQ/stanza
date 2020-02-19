@@ -5,31 +5,38 @@ import (
 	"testing"
 
 	"github.com/bluemedora/log-agent/plugin"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUnmarshalPluginConfig(t *testing.T) {
-	a := []byte(`
+	rawConfig := []byte(`
 plugins:
-	- type: generator
-		rate: 100
-		message: test
-	`)
+- type: generate
+  rate: 1000
+  message: test
+`)
 
 	expectedConfig := Config{
-		Plugins: []PluginConfig{
+		Plugins: []plugin.PluginConfig{
 			&plugin.GenerateSourceConfig{
-				Rate:    100,
+				Rate:    1000,
 				Message: "test",
 			},
 		},
 	}
-	viper.ReadConfig(bytes.NewReader(a))
+
+	v := viper.New()
+	v.SetConfigType("yaml")
+	v.ReadConfig(bytes.NewReader(rawConfig))
 
 	var config Config
-	err := viper.UnmarshalExact(&config)
-	assert.NoError(t, err)
+	err := v.Unmarshal(&config, func(c *mapstructure.DecoderConfig) {
+		c.DecodeHook = plugin.PluginConfigToStructHookFunc()
+	})
 
+	assert.NoError(t, err)
+	assert.Equal(t, expectedConfig, config)
 }

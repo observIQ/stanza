@@ -1,9 +1,9 @@
 package config
 
-import "github.com/BlueMedora/log-agent/plugin"
+import "github.com/bluemedora/log-agent/plugin"
 
 type Config struct {
 	LogLevel string
 	LogPath  string
-	Plugins  []plugin.PluginConfig
+	Plugins  []plugin.PluginConfig `mapstructure:"plugins"`
 }
