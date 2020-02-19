@@ -1,7 +1,11 @@
 package plugin
 
+import (
+	"github.com/bluemedora/log-agent/config"
+)
+
 func init() {
-	registerConfig("generate", &GenerateSourceConfig{})
+	config.RegisterConfig("generate", &GenerateSourceConfig{})
 }
 
 type GenerateSourceConfig struct {

@@ -1,5 +1,9 @@
-module github.com/bindplane/log-agent
+module github.com/bluemedora/log-agent
 
 go 1.13
 
-require go.uber.org/zap v1.13.0
+require (
+	github.com/spf13/viper v1.6.2
+	github.com/stretchr/testify v1.4.0
+	go.uber.org/zap v1.13.0
+)

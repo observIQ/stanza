@@ -8,7 +8,7 @@ import (
 )
 
 type LogCollector struct {
-	Config Config
+	Config config.Config
 
 	*zap.SugaredLogger
 }

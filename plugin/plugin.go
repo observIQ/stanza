@@ -1,16 +1,14 @@
 package plugin
 
-import (
-	"reflect"
+import "reflect"
 
-	"github.com/bluemedora/log-agent/config"
-)
+type PluginConfig interface{}
 
-var ConfigDefinitions = make(map[string]func() interface{})
+var PluginConfigDefinitions = make(map[string]func() interface{})
 
-func registerConfig(name string, configExample interface{}) {
-	if _, ok := configExample.(config.PluginConfig); ok {
-		ConfigDefinitions[name] = func() interface{} {
+func RegisterConfig(name string, config interface{}) {
+	if _, ok := config.(PluginConfig); ok {
+		PluginConfigDefinitions[name] = func() interface{} {
 			return reflect.ValueOf(config).Interface()
 		}
 	}
