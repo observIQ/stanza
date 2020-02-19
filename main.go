@@ -3,34 +3,15 @@ package main
 import (
 	"time"
 
-	"github.com/bluemedora/log-agent/config"
+	"github.com/bluemedora/log-agent/agent"
 	"go.uber.org/zap"
 )
-
-type LogCollector struct {
-	Config config.Config
-
-	*zap.SugaredLogger
-}
-
-func (l *LogCollector) Start() error {
-	l.Info("Starting log collector")
-	return nil
-}
-
-func (l *LogCollector) Stop() {
-	l.Info("Stopping log collector")
-}
-
-func (l *LogCollector) Status() struct{} {
-	return struct{}{}
-}
 
 func main() {
 	baseLogger, _ := zap.NewProduction()
 	logger := baseLogger.Sugar()
 
-	collector := LogCollector{
+	collector := agent.LogAgent{
 		SugaredLogger: logger,
 	}
 
