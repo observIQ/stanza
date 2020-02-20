@@ -16,6 +16,7 @@ type GenerateConfig struct {
 	Output  string
 	Message map[string]interface{}
 	Rate    float64
+	Count   int
 }
 
 type GeneratePlugin struct {
@@ -30,24 +31,45 @@ func (p *GeneratePlugin) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
-	go func() {
-		ticker := time.NewTicker(time.Duration(1.0/p.config.Rate) * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case t := <-ticker.C:
-				p.output <- bpla.Entry{
-					Timestamp: t,
-					Record:    copyMap(p.config.Message),
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	if p.config.Rate == 0 {
+		go p.untimedGenerator(ctx)
+	} else {
+		go p.timedGenerator(ctx)
+	}
 
 	return nil
+}
+
+func (p *GeneratePlugin) timedGenerator(ctx context.Context) {
+	ticker := time.NewTicker(time.Duration(1.0/p.config.Rate) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case t := <-ticker.C:
+			p.output <- bpla.Entry{
+				Timestamp: t,
+				Record:    copyMap(p.config.Message),
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (p *GeneratePlugin) untimedGenerator(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		p.output <- bpla.Entry{
+			Timestamp: time.Now(),
+			Record:    copyMap(p.config.Message),
+		}
+	}
 }
 
 func (p *GeneratePlugin) Stop() {
