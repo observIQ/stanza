@@ -13,10 +13,10 @@ func init() {
 }
 
 type GenerateConfig struct {
-	Output  string
-	Message map[string]interface{}
-	Rate    float64
-	Count   int
+	Output   string
+	Message  map[string]interface{}
+	Interval float64
+	Count    int
 }
 
 type GeneratePlugin struct {
@@ -31,7 +31,7 @@ func (p *GeneratePlugin) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
-	if p.config.Rate == 0 {
+	if p.config.Interval == 0 {
 		go p.untimedGenerator(ctx)
 	} else {
 		go p.timedGenerator(ctx)
@@ -41,7 +41,7 @@ func (p *GeneratePlugin) Start() error {
 }
 
 func (p *GeneratePlugin) timedGenerator(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(1.0/p.config.Rate) * time.Second)
+	ticker := time.NewTicker(time.Duration(p.config.Interval) * time.Second)
 	defer ticker.Stop()
 
 	for {
