@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"go.bluemedora.com/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"

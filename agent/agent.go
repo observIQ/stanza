@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"go.bluemedora.com/bplogagent/config"
+	"github.com/bluemedora/bplogagent/config"
 	"go.uber.org/zap"
 )
 

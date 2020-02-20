@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"go.bluemedora.com/bplogagent/agent"
+	"github.com/bluemedora/bplogagent/agent"
 	"go.uber.org/zap"
 )
 
