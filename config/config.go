@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/bluemedora/log-agent/plugin"
 	"github.com/mitchellh/mapstructure"
+	"go.bluemedora.com/bplogagent/plugin"
 )
 
 type Config struct {
