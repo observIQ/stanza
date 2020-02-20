@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/bluemedora/bplogagent/agent"
+	bpla "github.com/bluemedora/bplogagent"
 	"go.uber.org/zap"
 )
 
@@ -11,7 +11,7 @@ func main() {
 	baseLogger, _ := zap.NewProduction()
 	logger := baseLogger.Sugar()
 
-	collector := agent.LogAgent{
+	collector := bpla.LogAgent{
 		SugaredLogger: logger,
 	}
 

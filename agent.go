@@ -1,12 +1,11 @@
-package agent
+package bplogagent
 
 import (
-	"github.com/bluemedora/bplogagent/config"
 	"go.uber.org/zap"
 )
 
 type LogAgent struct {
-	Config config.Config
+	Config Config
 
 	*zap.SugaredLogger
 }

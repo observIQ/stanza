@@ -1,4 +1,4 @@
-package config
+package bplogagent
 
 import (
 	"bytes"
@@ -15,14 +15,15 @@ func TestUnmarshalPluginConfig(t *testing.T) {
 plugins:
 - type: generate
   rate: 1000
-  message: test
+  message:
+    test: asdf
 `)
 
 	expectedConfig := Config{
 		Plugins: []plugin.PluginConfig{
-			&plugin.GenerateSourceConfig{
+			&plugin.GenerateConfig{
 				Rate:    1000,
-				Message: "test",
+				Message: map[string]interface{}{"test": "asdf"},
 			},
 		},
 	}
