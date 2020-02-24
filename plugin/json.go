@@ -21,7 +21,7 @@ func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 	plugin := &JSONPlugin{
 		DefaultProcessor: c.DefaultProcessorConfig.Build(),
 		config:           c,
-		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.DefaultProcessorConfig.ID),
+		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.DefaultProcessorConfig.ID()),
 	}
 
 	return &SimpleProcessorAdapter{plugin}, nil
@@ -53,4 +53,8 @@ func (p *JSONPlugin) ProcessEntry(entry e.Entry) (e.Entry, error) {
 	entry.Record[p.config.Field] = parsedMessage
 
 	return entry, nil
+}
+
+func (p *JSONPlugin) Logger() *zap.SugaredLogger {
+	return p.SugaredLogger
 }

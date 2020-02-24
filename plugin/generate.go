@@ -18,7 +18,6 @@ func init() {
 type GenerateConfig struct {
 	DefaultSourceConfig `mapstructure:",squash"`
 	Record              map[string]interface{}
-	Interval            float64
 	Count               int
 }
 
@@ -48,14 +47,26 @@ func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
-	p.Infow("Starting generate plugin")
 	go func() {
 		defer wg.Done()
-		defer p.Infow("Stopping generate plugin")
-		if p.config.Interval == 0 {
-			p.untimedGenerator(ctx)
-		} else {
-			p.timedGenerator(ctx)
+
+		i := 0
+		for {
+			entry := entry.Entry{
+				Timestamp: time.Now(),
+				Record:    copyMap(p.config.Record),
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case p.output <- entry:
+			}
+
+			i += 1
+			if i == p.config.Count {
+				return
+			}
 
 		}
 	}()
@@ -66,38 +77,6 @@ func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
 func (p *GeneratePlugin) Stop() {
 	// TODO should this block until exit?
 	p.cancel()
-}
-
-func (p *GeneratePlugin) timedGenerator(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(p.config.Interval) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case t := <-ticker.C:
-			p.output <- entry.Entry{
-				Timestamp: t,
-				Record:    copyMap(p.config.Record),
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (p *GeneratePlugin) untimedGenerator(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		p.output <- entry.Entry{
-			Timestamp: time.Now(),
-			Record:    copyMap(p.config.Record),
-		}
-	}
 }
 
 // TODO should this do something different wiht pointers or arrays?

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"time"
+	"os"
+	"os/signal"
 
 	bpla "github.com/bluemedora/bplogagent"
 	"github.com/bluemedora/bplogagent/config"
@@ -14,28 +14,17 @@ import (
 func main() {
 	logCfg := zap.NewDevelopmentConfig()
 	logCfg.EncoderConfig.TimeKey = ""
+	logCfg.EncoderConfig.CallerKey = ""
 	baseLogger, _ := logCfg.Build()
 	logger := baseLogger.Sugar()
-
-	rawConfig := []byte(`
-plugins:
-- id: fdsa
-  type: generate
-  interval: 1
-  output: myjson
-  record:
-    test: asdf
-- id: myjson
-  type: json
-  output: mylogger
-- id: mylogger
-  type: logger
-`)
+	defer func() {
+		_ = logger.Sync()
+	}()
 
 	var cfg config.Config
 	v := viper.New()
-	v.SetConfigType("yaml")
-	err := v.ReadConfig(bytes.NewReader(rawConfig))
+	v.SetConfigFile("./config.yml")
+	err := v.ReadInConfig()
 	if err != nil {
 		logger.Errorw("Failed to read the config", "error", err)
 		return
@@ -59,6 +48,9 @@ plugins:
 		return
 	}
 
-	time.Sleep(1 * time.Second)
+	// Wait for interrupt to exit
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	<-interrupt
 	agent.Stop()
 }

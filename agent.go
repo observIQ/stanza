@@ -13,15 +13,15 @@ import (
 type LogAgent struct {
 	Config config.Config
 
-	plugins []pg.Plugin
-	wg      *sync.WaitGroup
+	plugins  []pg.Plugin
+	pluginWg *sync.WaitGroup
 	*zap.SugaredLogger
 }
 
 func (a *LogAgent) Start() error {
 	// TODO protect against duplicate starts
 	a.Info("Starting log collector")
-	a.wg = new(sync.WaitGroup)
+	a.pluginWg = new(sync.WaitGroup)
 
 	plugins, err := pg.BuildPlugins(a.Config.Plugins, a.SugaredLogger)
 	if err != nil {
@@ -44,7 +44,7 @@ func (a *LogAgent) Stop() {
 		}
 	}
 	a.Info("Waiting for plugins to exit cleanly")
-	a.wg.Wait()
+	a.pluginWg.Wait()
 	a.Info("Log agent stopped cleanly")
 }
 
@@ -53,28 +53,36 @@ func (a *LogAgent) Status() struct{} {
 }
 
 func (a *LogAgent) startPlugins() error {
-	inputChannelWaitGroups := &inputChannelCloser{
-		waitGroupMap: make(map[chan<- entry.Entry]*sync.WaitGroup),
+	closer := &inputChannelCloser{
+		waitGroupMap:  make(map[chan<- entry.Entry]*sync.WaitGroup),
+		SugaredLogger: a.SugaredLogger,
 	}
-	defer inputChannelWaitGroups.StartChannelClosers()
+	defer closer.StartChannelClosers()
 
 	for _, plugin := range a.plugins {
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
+		a.Debugw("Starting plugin", "id", plugin.ID())
 		err := plugin.Start(wg)
 		if err != nil {
 			return fmt.Errorf("failed to start plugin with ID '%s': %s", plugin.ID(), err)
 		}
 
+		a.pluginWg.Add(1)
+		go func(plugin pg.Plugin, wg *sync.WaitGroup) {
+			wg.Wait()
+			a.Debugw("Plugin stopped", "id", plugin.ID())
+			a.pluginWg.Done()
+		}(plugin, wg)
+
 		if outputter, ok := plugin.(pg.Outputter); ok {
-			a.wg.Add(1)
-			inputChannelWaitGroups.Add(outputter.Outputs())
-			go func() {
+			closer.Add(outputter)
+			go func(wg *sync.WaitGroup, outputter pg.Outputter) {
 				wg.Wait()
-				a.wg.Done()
-				inputChannelWaitGroups.Done(outputter.Outputs())
-			}()
+				closer.Done(outputter)
+			}(wg, outputter)
 		}
+
 	}
 
 	return nil
@@ -83,11 +91,12 @@ func (a *LogAgent) startPlugins() error {
 type inputChannelCloser struct {
 	waitGroupMap map[chan<- entry.Entry]*sync.WaitGroup
 	sync.Mutex
+	*zap.SugaredLogger
 }
 
-func (i *inputChannelCloser) Add(channels []chan<- entry.Entry) {
+func (i *inputChannelCloser) Add(outputter pg.Outputter) {
 	i.Lock()
-	for _, channel := range channels {
+	for _, channel := range outputter.Outputs() {
 		wg, ok := i.waitGroupMap[channel]
 		if ok {
 			wg.Add(1)
@@ -100,12 +109,14 @@ func (i *inputChannelCloser) Add(channels []chan<- entry.Entry) {
 	i.Unlock()
 }
 
-func (i *inputChannelCloser) Done(channels []chan<- entry.Entry) {
+func (i *inputChannelCloser) Done(outputter pg.Outputter) {
 	i.Lock()
-	for _, channel := range channels {
+	for _, channel := range outputter.Outputs() {
 		wg, ok := i.waitGroupMap[channel]
 		if ok {
 			wg.Done()
+		} else {
+			panic("called Done() for a channel that doesn't exist")
 		}
 	}
 	i.Unlock()
@@ -114,8 +125,8 @@ func (i *inputChannelCloser) Done(channels []chan<- entry.Entry) {
 func (i *inputChannelCloser) StartChannelClosers() {
 	i.Lock()
 	for channel, waitGroup := range i.waitGroupMap {
-		go func(channel chan<- entry.Entry, waitGroup *sync.WaitGroup) {
-			waitGroup.Wait()
+		go func(channel chan<- entry.Entry, wg *sync.WaitGroup) {
+			wg.Wait()
 			close(channel)
 		}(channel, waitGroup)
 	}

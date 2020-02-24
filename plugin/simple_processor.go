@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"go.uber.org/zap"
 )
 
 type SimpleProcessor interface {
@@ -12,6 +13,7 @@ type SimpleProcessor interface {
 	Output() chan<- entry.Entry
 	SetOutputs(map[string]chan<- entry.Entry) error
 	ProcessEntry(entry.Entry) (entry.Entry, error)
+	Logger() *zap.SugaredLogger
 }
 
 type SimpleProcessorAdapter struct {
@@ -19,7 +21,6 @@ type SimpleProcessorAdapter struct {
 }
 
 func (s *SimpleProcessorAdapter) Start(wg *sync.WaitGroup) error {
-	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
@@ -30,7 +31,7 @@ func (s *SimpleProcessorAdapter) Start(wg *sync.WaitGroup) error {
 
 			newEntry, err := s.ProcessEntry(entry)
 			if err != nil {
-				// TODO handle processing errors
+				s.Logger().Warnw("Failed to process entry", "error", err)
 				continue
 			}
 
