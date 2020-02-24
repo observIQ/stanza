@@ -1,4 +1,4 @@
-package bplogagent
+package config
 
 import (
 	"bytes"
@@ -14,16 +14,16 @@ func TestUnmarshalPluginConfig(t *testing.T) {
 	rawConfig := []byte(`
 plugins:
 - type: generate
-  rate: 1000
-  message:
+  interval: 1
+  record:
     test: asdf
 `)
 
 	expectedConfig := Config{
 		Plugins: []plugin.PluginConfig{
 			&plugin.GenerateConfig{
-				Rate:    1000,
-				Message: map[string]interface{}{"test": "asdf"},
+				Interval: 1,
+				Record:   map[string]interface{}{"test": "asdf"},
 			},
 		},
 	}
@@ -33,7 +33,7 @@ plugins:
 	v.ReadConfig(bytes.NewReader(rawConfig))
 
 	var config Config
-	err := v.UnmarshalExact(&config, UnmarshalHook)
+	err := v.UnmarshalExact(&config, plugin.UnmarshalHook)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedConfig, config)

@@ -1,28 +1,30 @@
-package bplogagent
+package plugin
 
 import (
 	"fmt"
 	"reflect"
 
 	"github.com/mitchellh/mapstructure"
+	"go.uber.org/zap"
 )
 
-type Config struct {
-	Plugins []PluginConfig
-}
-
-type PluginConfig interface{}
-
-var PluginConfigDefinitions = make(map[string]func() interface{})
+var PluginConfigDefinitions = make(map[string]func() PluginConfig)
 
 // RegisterConfig will register a config struct by name in the packages config registry
 // during package load time.
 func RegisterConfig(name string, config interface{}) {
 	if _, ok := config.(PluginConfig); ok {
-		PluginConfigDefinitions[name] = func() interface{} {
-			return reflect.ValueOf(config).Interface()
+		PluginConfigDefinitions[name] = func() PluginConfig {
+			return reflect.ValueOf(config).Interface().(PluginConfig)
 		}
+	} else {
+		panic(fmt.Sprintf("plugin type %v does not implement the plugin.PluginConfig interface", name))
 	}
+}
+
+type PluginConfig interface {
+	Build(*zap.SugaredLogger) (Plugin, error)
+	ID() string
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {

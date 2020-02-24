@@ -2,42 +2,70 @@ package plugin
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
-	bpla "github.com/bluemedora/bplogagent"
+	"github.com/bluemedora/bplogagent/entry"
 	"go.uber.org/zap"
 )
 
 func init() {
-	bpla.RegisterConfig("generate", &GenerateConfig{})
+	RegisterConfig("generate", &GenerateConfig{})
 }
 
+// TODO should this be split into a generator and a rate limiter to be more orthogonal?
 type GenerateConfig struct {
-	Output   string
-	Message  map[string]interface{}
-	Interval float64
-	Count    int
+	DefaultSourceConfig `mapstructure:",squash"`
+	Record              map[string]interface{}
+	Interval            float64
+	Count               int
+}
+
+func (c GenerateConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+	defaultSource, err := c.DefaultSourceConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default source: %s", err)
+	}
+
+	plugin := &GeneratePlugin{
+		config:        c,
+		SugaredLogger: logger.With("plugin_type", "generate", "plugin_id", c.ID()),
+		DefaultSource: defaultSource,
+	}
+	return plugin, nil
 }
 
 type GeneratePlugin struct {
+	DefaultSource
 	config GenerateConfig
-	output chan<- bpla.Entry
 
 	cancel context.CancelFunc
 	*zap.SugaredLogger
 }
 
-func (p *GeneratePlugin) Start() error {
+func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
-	if p.config.Interval == 0 {
-		go p.untimedGenerator(ctx)
-	} else {
-		go p.timedGenerator(ctx)
-	}
+	p.Infow("Starting generate plugin")
+	go func() {
+		defer wg.Done()
+		defer p.Infow("Stopping generate plugin")
+		if p.config.Interval == 0 {
+			p.untimedGenerator(ctx)
+		} else {
+			p.timedGenerator(ctx)
+
+		}
+	}()
 
 	return nil
+}
+
+func (p *GeneratePlugin) Stop() {
+	// TODO should this block until exit?
+	p.cancel()
 }
 
 func (p *GeneratePlugin) timedGenerator(ctx context.Context) {
@@ -47,9 +75,9 @@ func (p *GeneratePlugin) timedGenerator(ctx context.Context) {
 	for {
 		select {
 		case t := <-ticker.C:
-			p.output <- bpla.Entry{
+			p.output <- entry.Entry{
 				Timestamp: t,
-				Record:    copyMap(p.config.Message),
+				Record:    copyMap(p.config.Record),
 			}
 		case <-ctx.Done():
 			return
@@ -65,15 +93,11 @@ func (p *GeneratePlugin) untimedGenerator(ctx context.Context) {
 		default:
 		}
 
-		p.output <- bpla.Entry{
+		p.output <- entry.Entry{
 			Timestamp: time.Now(),
-			Record:    copyMap(p.config.Message),
+			Record:    copyMap(p.config.Record),
 		}
 	}
-}
-
-func (p *GeneratePlugin) Stop() {
-	p.cancel()
 }
 
 // TODO should this do something different wiht pointers or arrays?

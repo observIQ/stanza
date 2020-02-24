@@ -1,4 +1,4 @@
-package bplogagent
+package entry
 
 import "time"
 

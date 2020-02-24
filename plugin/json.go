@@ -4,48 +4,53 @@ import (
 	"encoding/json"
 	"fmt"
 
-	bpla "github.com/bluemedora/bplogagent"
+	e "github.com/bluemedora/bplogagent/entry"
+	"go.uber.org/zap"
 )
 
 func init() {
-	bpla.RegisterConfig("json", &JSONConfig{})
+	RegisterConfig("json", &JSONConfig{})
 }
 
 type JSONConfig struct {
-	Output string
-	Field  string
+	DefaultProcessorConfig `mapstructure:",squash"`
+	Field                  string
+}
+
+func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+	plugin := &JSONPlugin{
+		DefaultProcessor: c.DefaultProcessorConfig.Build(),
+		config:           c,
+		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.DefaultProcessorConfig.ID),
+	}
+
+	return &SimpleProcessorAdapter{plugin}, nil
 }
 
 type JSONPlugin struct {
+	DefaultProcessor
 	config JSONConfig
-	output EntryProcessor
+	*zap.SugaredLogger
 }
 
-func (p *JSONPlugin) ProcessEntry(entry bpla.Entry) ([]EntryProcessStep, error) {
+func (p *JSONPlugin) ProcessEntry(entry e.Entry) (e.Entry, error) {
 	message, ok := entry.Record[p.config.Field]
 	if !ok {
-		return nil, fmt.Errorf("field %s does not exist on the record", p.config.Field)
+		return e.Entry{}, fmt.Errorf("field %s does not exist on the record", p.config.Field)
 	}
 
 	messageString, ok := message.(string)
 	if !ok {
-		return nil, fmt.Errorf("field %s can not be parsed as JSON because it is of type %T", p.config.Field, message)
+		return e.Entry{}, fmt.Errorf("field %s can not be parsed as JSON because it is of type %T", p.config.Field, message)
 	}
 
 	var parsedMessage map[string]interface{}
 	err := json.Unmarshal([]byte(messageString), &parsedMessage)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse field %s as JSON: %w", p.config.Field, err)
+		return e.Entry{}, fmt.Errorf("failed to parse field %s as JSON: %w", p.config.Field, err)
 	}
 
 	entry.Record[p.config.Field] = parsedMessage
-	returnStates := []EntryProcessStep{
-		{
-			Entry:     entry,
-			Processor: p.output,
-		},
-	}
 
-	return returnStates, nil
-
+	return entry, nil
 }
