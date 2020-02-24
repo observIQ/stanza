@@ -12,7 +12,9 @@ import (
 )
 
 func main() {
-	baseLogger, _ := zap.NewDevelopment()
+	logCfg := zap.NewDevelopmentConfig()
+	logCfg.EncoderConfig.TimeKey = ""
+	baseLogger, _ := logCfg.Build()
 	logger := baseLogger.Sugar()
 
 	rawConfig := []byte(`
