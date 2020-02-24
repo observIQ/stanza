@@ -7,9 +7,9 @@ import (
 )
 
 type DefaultProcessorConfig struct {
-	PluginID   string `json:"id" yaml:"id" mapstructure:"id"`
+	PluginID   string `mapstructure:"id"`
 	Output     string
-	BufferSize uint
+	BufferSize uint `mapstructure:"buffer_size"`
 }
 
 func (c DefaultProcessorConfig) Build() DefaultProcessor {

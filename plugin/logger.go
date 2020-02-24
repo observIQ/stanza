@@ -1,9 +1,11 @@
 package plugin
 
 import (
+	"fmt"
 	"sync"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func init() {
@@ -12,14 +14,41 @@ func init() {
 
 type LoggerConfig struct {
 	DefaultDestinationConfig `mapstructure:",squash"`
-	Field                    string
+	Level                    string
 }
 
 func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+	newLogger := logger.With("plugin_type", "logger", "plugin_id", c.DefaultDestinationConfig.ID())
+
+	if c.Level == "" {
+		c.Level = "debug"
+	}
+
+	level := new(zapcore.Level)
+	err := level.UnmarshalText([]byte(c.Level))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse level: %s", err)
+	}
+
+	var logFunc func(string, ...interface{})
+	switch *level {
+	case zapcore.DebugLevel:
+		logFunc = newLogger.Debugw
+	case zapcore.InfoLevel:
+		logFunc = newLogger.Infow
+	case zapcore.WarnLevel:
+		logFunc = newLogger.Warnw
+	case zapcore.ErrorLevel:
+		logFunc = newLogger.Errorw
+	default:
+		return nil, fmt.Errorf("log level '%s' is unsupported", level)
+	}
+
 	plugin := &LoggerPlugin{
 		DefaultDestination: c.DefaultDestinationConfig.Build(),
 		config:             c,
-		SugaredLogger:      logger.With("plugin_type", "logger", "plugin_id", c.DefaultDestinationConfig.ID()),
+		SugaredLogger:      newLogger,
+		logFunc:            logFunc,
 	}
 
 	return plugin, nil
@@ -27,7 +56,8 @@ func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 
 type LoggerPlugin struct {
 	DefaultDestination
-	config LoggerConfig
+	config  LoggerConfig
+	logFunc func(string, ...interface{})
 	*zap.SugaredLogger
 }
 
@@ -42,7 +72,7 @@ func (p *LoggerPlugin) Start(wg *sync.WaitGroup) error {
 				return
 			}
 
-			p.Infow("Received log", "entry", entry)
+			p.logFunc("Received log", "entry", entry)
 		}
 	}()
 

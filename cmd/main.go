@@ -9,12 +9,14 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
 	logCfg := zap.NewDevelopmentConfig()
 	logCfg.EncoderConfig.TimeKey = ""
 	logCfg.EncoderConfig.CallerKey = ""
+	logCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	baseLogger, _ := logCfg.Build()
 	logger := baseLogger.Sugar()
 	defer func() {

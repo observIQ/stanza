@@ -7,9 +7,8 @@ import (
 )
 
 type DefaultSourceConfig struct {
-	PluginID   string `json:"id" yaml:"id" mapstructure:"id"`
-	Output     string
-	BufferSize uint
+	PluginID string `json:"id" yaml:"id" mapstructure:"id"`
+	Output   string
 }
 
 func (c DefaultSourceConfig) ID() string {
@@ -23,11 +22,6 @@ func (c DefaultSourceConfig) Build() (DefaultSource, error) {
 
 	if c.Output == "" {
 		return DefaultSource{}, fmt.Errorf("required field ID is missing")
-	}
-
-	if c.BufferSize == 0 {
-		// TODO is this where we should be setting defaults?
-		c.BufferSize = 100 // TODO is this a sane default?
 	}
 
 	return DefaultSource{
