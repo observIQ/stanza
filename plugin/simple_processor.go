@@ -9,6 +9,7 @@ import (
 
 type SimpleProcessor interface {
 	ID() string
+	Type() string
 	Input() chan entry.Entry
 	Output() chan<- entry.Entry
 	SetOutputs(map[string]chan<- entry.Entry) error

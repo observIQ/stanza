@@ -9,6 +9,7 @@ import (
 type DefaultProcessorConfig struct {
 	PluginID   string `mapstructure:"id"`
 	Output     string
+	Type       string
 	BufferSize uint `mapstructure:"buffer_size"`
 }
 
@@ -57,4 +58,8 @@ func (s *DefaultProcessor) Output() chan<- entry.Entry {
 
 func (s *DefaultProcessor) ID() string {
 	return s.config.ID()
+}
+
+func (s *DefaultProcessor) Type() string {
+	return s.config.Type
 }

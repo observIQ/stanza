@@ -6,7 +6,8 @@ import (
 
 type DefaultDestinationConfig struct {
 	PluginID   string `mapstructure:"id"`
-	BufferSize uint   `mapstructure:"buffer_size"`
+	Type       string
+	BufferSize uint `mapstructure:"buffer_size"`
 }
 
 func (c DefaultDestinationConfig) Build() DefaultDestination {
@@ -35,4 +36,8 @@ func (s *DefaultDestination) Input() chan entry.Entry {
 
 func (s *DefaultDestination) ID() string {
 	return s.config.ID()
+}
+
+func (s *DefaultDestination) Type() string {
+	return s.config.Type
 }

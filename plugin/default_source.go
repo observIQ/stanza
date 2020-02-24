@@ -9,6 +9,7 @@ import (
 type DefaultSourceConfig struct {
 	PluginID string `json:"id" yaml:"id" mapstructure:"id"`
 	Output   string
+	Type     string
 }
 
 func (c DefaultSourceConfig) ID() string {
@@ -50,4 +51,8 @@ func (s *DefaultSource) Outputs() []chan<- entry.Entry {
 
 func (s *DefaultSource) ID() string {
 	return s.config.ID()
+}
+
+func (s *DefaultSource) Type() string {
+	return s.config.Type
 }
