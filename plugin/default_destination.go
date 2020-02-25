@@ -13,7 +13,7 @@ type DefaultDestinationConfig struct {
 func (c DefaultDestinationConfig) Build() DefaultDestination {
 	bufferSize := c.BufferSize
 	if bufferSize == 0 {
-		bufferSize = 100
+		bufferSize = 10
 	}
 	return DefaultDestination{
 		config: c,

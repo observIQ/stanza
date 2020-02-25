@@ -16,7 +16,7 @@ type DefaultProcessorConfig struct {
 func (c DefaultProcessorConfig) Build() DefaultProcessor {
 	bufferSize := c.BufferSize
 	if bufferSize == 0 {
-		bufferSize = 100
+		bufferSize = 10
 	}
 	return DefaultProcessor{
 		config: c,
