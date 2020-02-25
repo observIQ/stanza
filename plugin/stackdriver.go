@@ -47,6 +47,7 @@ func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logging client: %w", err)
 	}
+	// TODO client.Ping()
 
 	stackdriverLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 
@@ -84,6 +85,17 @@ func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
 				Severity:  logging.Info, // TODO calculate severity correctly
 			}
 
+			// TODO how do we communicate which logs have been flushed?
+			// It appears that there is no way to inject any sort of callback
+			// or synchronously log multiple at a time with the current API.
+			//
+			// To be guarantee delivery, we either need to periodically flush,
+			// or request a change to the library. Realistically, a periodic
+			// flush is probably pretty practical.
+			//
+			// Ideas for a library change:
+			// - Add a callback to each log entry
+			// - Create a Logger.LogMultipleSync() and do our own bundling
 			p.logger.Log(stackdriverEntry)
 		}
 	}()
