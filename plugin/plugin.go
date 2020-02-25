@@ -12,11 +12,6 @@ type Plugin interface {
 	Start(*sync.WaitGroup) error
 }
 
-type Source interface {
-	Outputter
-	Stop()
-}
-
 type Outputter interface {
 	Plugin
 	SetOutputs(map[string]chan<- entry.Entry) error
@@ -26,4 +21,9 @@ type Outputter interface {
 type Inputter interface {
 	Plugin
 	Input() chan entry.Entry
+}
+
+type Source interface {
+	Outputter
+	Stop()
 }
