@@ -13,7 +13,3 @@ func TestStackdriverImplementsInputter(t *testing.T) {
 func TestStackdriverImplementsPlugin(t *testing.T) {
 	assert.Implements(t, (*Plugin)(nil), new(StackdriverPlugin))
 }
-
-func TestStackdriverImplementsDestination(t *testing.T) {
-	assert.Implements(t, (*Destination)(nil), new(StackdriverPlugin))
-}

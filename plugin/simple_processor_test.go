@@ -7,5 +7,6 @@ import (
 )
 
 func TestSimpleProcessorAdapterImplementsProcessor(t *testing.T) {
-	assert.Implements(t, (*Processor)(nil), new(SimpleProcessorAdapter))
+	assert.Implements(t, (*Outputter)(nil), new(SimpleProcessorAdapter))
+	assert.Implements(t, (*Inputter)(nil), new(SimpleProcessorAdapter))
 }
