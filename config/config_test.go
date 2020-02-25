@@ -14,7 +14,7 @@ func TestUnmarshalPluginConfig(t *testing.T) {
 	rawConfig := []byte(`
 plugins:
 - type: generate
-  interval: 1
+  count: 1
   record:
     test: asdf
 `)
@@ -22,8 +22,11 @@ plugins:
 	expectedConfig := Config{
 		Plugins: []plugin.PluginConfig{
 			&plugin.GenerateConfig{
-				Interval: 1,
-				Record:   map[string]interface{}{"test": "asdf"},
+				DefaultSourceConfig: plugin.DefaultSourceConfig{
+					Type: "generate",
+				},
+				Count:  1,
+				Record: map[string]interface{}{"test": "asdf"},
 			},
 		},
 	}

@@ -6,8 +6,8 @@ import (
 
 type DefaultDestinationConfig struct {
 	PluginID   string `mapstructure:"id"`
-	Type       string
-	BufferSize uint `mapstructure:"buffer_size"`
+	Type       string `mapstructure:"type"`
+	BufferSize uint   `mapstructure:"buffer_size"`
 }
 
 func (c DefaultDestinationConfig) Build() DefaultDestination {

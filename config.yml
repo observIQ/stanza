@@ -2,20 +2,18 @@
 plugins:
   - id: mygenerator
     type: generate
-    count: 100
-    output: mylimiter
+    output: myjson
+    count: 100000
     record:
       test: '{"message":"testmessage"}'
-  - id: mylimiter
-    type: rate_limit
-    rate: 100
-    output: myjson
   - id: myjson
     type: json
-    buffer_size: 1
     field: test
-    output: mylogger
-  - id: mylogger
-    buffer_size: 1
-    type: logger
-    level: info
+    output: mystackdriver
+  - id: mystackdriver
+    type: stackdriver
+    project_id: ***REMOVED***
+    credentials: >-
+      {
+        "sample":"creds"
+      }

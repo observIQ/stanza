@@ -68,7 +68,7 @@ func (p *LoggerPlugin) Start(wg *sync.WaitGroup) error {
 		for {
 			entry, ok := <-p.DefaultDestination.Input()
 			if !ok {
-				// TODO flush logger
+				// TODO flush logger?
 				return
 			}
 
