@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/awalterschulze/gographviz"
 	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
 )
@@ -84,7 +85,7 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 		plugins = append(plugins, plugin)
 	}
 
-	err := setPluginOutputs(plugins)
+	err := setPluginOutputs(plugins, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +93,13 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 	return plugins, nil
 }
 
-func setPluginOutputs(plugins []Plugin) error {
+func setPluginOutputs(plugins []Plugin, logger *zap.SugaredLogger) error {
 	processorInputs := make(map[PluginID]EntryChannel)
+	graphAst, _ := gographviz.ParseString(`digraph G {}`)
+	graph := gographviz.NewGraph()
+	if err := gographviz.Analyse(graphAst, graph); err != nil {
+		panic(err)
+	}
 
 	// Generate the list of input channels
 	for _, plugin := range plugins {
@@ -101,6 +107,7 @@ func setPluginOutputs(plugins []Plugin) error {
 			// TODO check for duplicate IDs
 			processorInputs[plugin.ID()] = inputter.Input()
 		}
+		graph.AddNode("G", string(plugin.ID()), nil)
 	}
 
 	// Set the output channels using the generated lists
@@ -110,8 +117,14 @@ func setPluginOutputs(plugins []Plugin) error {
 			if err != nil {
 				return fmt.Errorf("failed to set outputs for plugin with ID %v: %s", plugin.ID(), err)
 			}
+
+			for id, _ := range outputter.Outputs() {
+				graph.AddEdge(string(plugin.ID()), string(id), true, nil)
+			}
 		}
 	}
+
+	logger.Infof("Generated graphviz chart: %s", graph)
 
 	return nil
 }
