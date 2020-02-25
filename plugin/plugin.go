@@ -18,12 +18,15 @@ type Source interface {
 	Stop()
 }
 
+// TODO do we even need this interface? Might be better to just have source, outputter, and inputter
+// with inputter embedded
 type Processor interface {
 	Plugin
 	Outputter
 	Inputter
 }
 
+// TODO do we even need this interface?
 type Destination interface {
 	Plugin
 	Inputter
