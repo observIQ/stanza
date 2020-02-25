@@ -2,17 +2,15 @@ package plugin
 
 import (
 	"fmt"
-
-	"github.com/bluemedora/bplogagent/entry"
 )
 
 type DefaultSourceConfig struct {
-	PluginID string `json:"id" yaml:"id" mapstructure:"id"`
-	Output   string
+	PluginID PluginID `json:"id" yaml:"id" mapstructure:"id"`
+	Output   PluginID
 	Type     string
 }
 
-func (c DefaultSourceConfig) ID() string {
+func (c DefaultSourceConfig) ID() PluginID {
 	return c.PluginID
 }
 
@@ -31,25 +29,28 @@ func (c DefaultSourceConfig) Build() (DefaultSource, error) {
 }
 
 type DefaultSource struct {
-	config DefaultSourceConfig
-	output chan<- entry.Entry
+	config         DefaultSourceConfig
+	output         EntryChannel
+	outputPluginID PluginID
 }
 
-func (p *DefaultSource) SetOutputs(outputRegistry map[string]chan<- entry.Entry) error {
+func (p *DefaultSource) SetOutputs(outputRegistry map[PluginID]EntryChannel) error {
 	outputChan, ok := outputRegistry[p.config.Output]
 	if !ok {
 		return fmt.Errorf("no plugin with ID %v found", p.config.Output)
 	}
 
 	p.output = outputChan
+	p.outputPluginID = p.config.Output
+
 	return nil
 }
 
-func (s *DefaultSource) Outputs() []chan<- entry.Entry {
-	return []chan<- entry.Entry{s.output}
+func (s *DefaultSource) Outputs() map[PluginID]EntryChannel {
+	return map[PluginID]EntryChannel{s.outputPluginID: s.output}
 }
 
-func (s *DefaultSource) ID() string {
+func (s *DefaultSource) ID() PluginID {
 	return s.config.ID()
 }
 

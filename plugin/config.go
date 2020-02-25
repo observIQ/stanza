@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/bluemedora/bplogagent/entry"
 	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
 )
@@ -25,7 +24,7 @@ func RegisterConfig(name string, config interface{}) {
 
 type PluginConfig interface {
 	Build(*zap.SugaredLogger) (Plugin, error)
-	ID() string
+	ID() PluginID
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {
@@ -94,7 +93,7 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 }
 
 func setPluginOutputs(plugins []Plugin) error {
-	processorInputs := make(map[string]chan<- entry.Entry)
+	processorInputs := make(map[PluginID]EntryChannel)
 
 	// Generate the list of input channels
 	for _, plugin := range plugins {

@@ -7,5 +7,6 @@ import (
 )
 
 func TestJSONImplementsSimpleProcessor(t *testing.T) {
-	assert.Implements(t, (*SimpleProcessor)(nil), new(JSONPlugin))
+	assert.Implements(t, (*Outputter)(nil), new(JSONPlugin))
+	assert.Implements(t, (*Inputter)(nil), new(JSONPlugin))
 }

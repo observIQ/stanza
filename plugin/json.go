@@ -3,6 +3,7 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	e "github.com/bluemedora/bplogagent/entry"
 	"go.uber.org/zap"
@@ -24,7 +25,7 @@ func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.DefaultProcessorConfig.ID()),
 	}
 
-	return &SimpleProcessorAdapter{plugin}, nil
+	return plugin, nil
 }
 
 type JSONPlugin struct {
@@ -33,7 +34,29 @@ type JSONPlugin struct {
 	*zap.SugaredLogger
 }
 
-func (p *JSONPlugin) ProcessEntry(entry e.Entry) (e.Entry, error) {
+func (s *JSONPlugin) Start(wg *sync.WaitGroup) error {
+	go func() {
+		defer wg.Done()
+		for {
+			entry, ok := <-s.Input()
+			if !ok {
+				return
+			}
+
+			newEntry, err := s.processEntry(entry)
+			if err != nil {
+				s.Warnw("Failed to process entry", "error", err)
+				continue
+			}
+
+			s.Output() <- newEntry
+		}
+	}()
+
+	return nil
+}
+
+func (p *JSONPlugin) processEntry(entry e.Entry) (e.Entry, error) {
 	message, ok := entry.Record[p.config.Field]
 	if !ok {
 		return e.Entry{}, fmt.Errorf("field %s does not exist on the record", p.config.Field)
@@ -53,8 +76,4 @@ func (p *JSONPlugin) ProcessEntry(entry e.Entry) (e.Entry, error) {
 	entry.Record[p.config.Field] = parsedMessage
 
 	return entry, nil
-}
-
-func (p *JSONPlugin) Logger() *zap.SugaredLogger {
-	return p.SugaredLogger
 }

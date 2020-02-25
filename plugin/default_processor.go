@@ -7,8 +7,8 @@ import (
 )
 
 type DefaultProcessorConfig struct {
-	PluginID   string `mapstructure:"id"`
-	Output     string
+	PluginID   PluginID `mapstructure:"id"`
+	Output     PluginID
 	Type       string
 	BufferSize uint `mapstructure:"buffer_size"`
 }
@@ -24,39 +24,41 @@ func (c DefaultProcessorConfig) Build() DefaultProcessor {
 	}
 }
 
-func (c DefaultProcessorConfig) ID() string {
+func (c DefaultProcessorConfig) ID() PluginID {
 	return c.PluginID
 }
 
 type DefaultProcessor struct {
-	config DefaultProcessorConfig
-	output chan<- entry.Entry
-	input  chan entry.Entry
+	config         DefaultProcessorConfig
+	output         EntryChannel
+	outputPluginID PluginID
+	input          EntryChannel
 }
 
-func (p *DefaultProcessor) SetOutputs(outputRegistry map[string]chan<- entry.Entry) error {
+func (p *DefaultProcessor) SetOutputs(outputRegistry map[PluginID]EntryChannel) error {
 	outputChan, ok := outputRegistry[p.config.Output]
 	if !ok {
 		return fmt.Errorf("no plugin with ID %v found", p.config.Output)
 	}
 
 	p.output = outputChan
+	p.outputPluginID = p.config.Output
 	return nil
 }
 
-func (s *DefaultProcessor) Outputs() []chan<- entry.Entry {
-	return []chan<- entry.Entry{s.output}
+func (s *DefaultProcessor) Outputs() map[PluginID]EntryChannel {
+	return map[PluginID]EntryChannel{s.outputPluginID: s.output}
 }
 
-func (s *DefaultProcessor) Input() chan entry.Entry {
-	return s.input
-}
-
-func (s *DefaultProcessor) Output() chan<- entry.Entry {
+func (s *DefaultProcessor) Output() EntryChannel {
 	return s.output
 }
 
-func (s *DefaultProcessor) ID() string {
+func (s *DefaultProcessor) Input() EntryChannel {
+	return s.input
+}
+
+func (s *DefaultProcessor) ID() PluginID {
 	return s.config.ID()
 }
 

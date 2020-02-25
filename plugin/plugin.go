@@ -7,23 +7,26 @@ import (
 )
 
 type Plugin interface {
-	ID() string
+	ID() PluginID
 	Type() string
 	Start(*sync.WaitGroup) error
 }
 
 type Outputter interface {
 	Plugin
-	SetOutputs(map[string]chan<- entry.Entry) error
-	Outputs() []chan<- entry.Entry
+	SetOutputs(map[PluginID]EntryChannel) error
+	Outputs() map[PluginID]EntryChannel
 }
 
 type Inputter interface {
 	Plugin
-	Input() chan entry.Entry
+	Input() EntryChannel
 }
 
 type Source interface {
 	Outputter
 	Stop()
 }
+
+type PluginID string
+type EntryChannel chan entry.Entry

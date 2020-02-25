@@ -5,9 +5,9 @@ import (
 )
 
 type DefaultDestinationConfig struct {
-	PluginID   string `mapstructure:"id"`
-	Type       string `mapstructure:"type"`
-	BufferSize uint   `mapstructure:"buffer_size"`
+	PluginID   PluginID `mapstructure:"id"`
+	Type       string   `mapstructure:"type"`
+	BufferSize uint     `mapstructure:"buffer_size"`
 }
 
 func (c DefaultDestinationConfig) Build() DefaultDestination {
@@ -21,20 +21,20 @@ func (c DefaultDestinationConfig) Build() DefaultDestination {
 	}
 }
 
-func (c DefaultDestinationConfig) ID() string {
+func (c DefaultDestinationConfig) ID() PluginID {
 	return c.PluginID
 }
 
 type DefaultDestination struct {
 	config DefaultDestinationConfig
-	input  chan entry.Entry
+	input  EntryChannel
 }
 
-func (s *DefaultDestination) Input() chan entry.Entry {
+func (s *DefaultDestination) Input() EntryChannel {
 	return s.input
 }
 
-func (s *DefaultDestination) ID() string {
+func (s *DefaultDestination) ID() PluginID {
 	return s.config.ID()
 }
 
