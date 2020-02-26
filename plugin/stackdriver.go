@@ -49,7 +49,7 @@ func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logging client: %w", err)
 	}
-	// TODO client.Ping()
+	// TODO client.Ping(). Maybe should be in the Start() method
 
 	stackdriverLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 

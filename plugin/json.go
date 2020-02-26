@@ -72,6 +72,7 @@ func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {
 
 			newEntry, err := p.processEntry(entry)
 			if err != nil {
+				// TODO better error handling
 				p.Warnw("Failed to process entry", "error", err)
 				continue
 			}
