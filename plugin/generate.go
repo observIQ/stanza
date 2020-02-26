@@ -15,27 +15,35 @@ func init() {
 }
 
 type GenerateConfig struct {
-	DefaultSourceConfig `mapstructure:",squash"`
-	Record              map[string]interface{}
-	Count               int
+	DefaultPluginConfig    `mapstructure:",squash"`
+	DefaultOutputterConfig `mapstructure:",squash"`
+	Record                 map[string]interface{}
+	Count                  int
 }
 
 func (c GenerateConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
-	defaultSource, err := c.DefaultSourceConfig.Build()
+	defaultPlugin, err := c.DefaultPluginConfig.Build()
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default source: %s", err)
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
+	defaultOutputter, err := c.DefaultOutputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
 
 	plugin := &GeneratePlugin{
-		config:        c,
-		SugaredLogger: logger.With("plugin_type", "generate", "plugin_id", c.ID()),
-		DefaultSource: defaultSource,
+		config:           c,
+		SugaredLogger:    logger.With("plugin_type", "generate", "plugin_id", c.ID()),
+		DefaultPlugin:    defaultPlugin,
+		DefaultOutputter: defaultOutputter,
 	}
 	return plugin, nil
 }
 
 type GeneratePlugin struct {
-	DefaultSource
+	DefaultPlugin
+	DefaultOutputter
 	config GenerateConfig
 
 	cancel context.CancelFunc

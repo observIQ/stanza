@@ -14,22 +14,44 @@ func init() {
 }
 
 type JSONConfig struct {
-	DefaultProcessorConfig `mapstructure:",squash"`
+	DefaultPluginConfig    `mapstructure:",squash"`
+	DefaultOutputterConfig `mapstructure:",squash"`
+	DefaultInputterConfig  `mapstructure:",squash"`
 	Field                  string
 }
 
 func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
+	defaultInputter, err := c.DefaultInputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default inputter: %s", err)
+	}
+
+	defaultOutputter, err := c.DefaultOutputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default outputter: %s", err)
+	}
+
 	plugin := &JSONPlugin{
-		DefaultProcessor: c.DefaultProcessorConfig.Build(),
+		DefaultPlugin:    defaultPlugin,
+		DefaultInputter:  defaultInputter,
+		DefaultOutputter: defaultOutputter,
 		config:           c,
-		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.DefaultProcessorConfig.ID()),
+		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
 	}
 
 	return plugin, nil
 }
 
 type JSONPlugin struct {
-	DefaultProcessor
+	DefaultPlugin
+	DefaultOutputter
+	DefaultInputter
+
 	config JSONConfig
 	*zap.SugaredLogger
 }

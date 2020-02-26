@@ -18,9 +18,10 @@ func init() {
 }
 
 type StackdriverOutputConfig struct {
-	DefaultDestinationConfig `mapstructure:",squash"`
-	Credentials              string
-	ProjectID                string `mapstructure:"project_id"`
+	DefaultPluginConfig   `mapstructure:",squash"`
+	DefaultInputterConfig `mapstructure:",squash"`
+	Credentials           string
+	ProjectID             string `mapstructure:"project_id"`
 }
 
 func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
@@ -51,18 +52,30 @@ func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, erro
 
 	stackdriverLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 
+	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
+	defaultInputter, err := c.DefaultInputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default inputter: %s", err)
+	}
+
 	dest := &StackdriverPlugin{
-		DefaultDestination: c.DefaultDestinationConfig.Build(),
-		logger:             stackdriverLogger,
-		ProjectID:          c.ProjectID,
-		SugaredLogger:      logger,
+		DefaultPlugin:   defaultPlugin,
+		DefaultInputter: defaultInputter,
+		logger:          stackdriverLogger,
+		ProjectID:       c.ProjectID,
+		SugaredLogger:   logger,
 	}
 
 	return dest, nil
 }
 
 type StackdriverPlugin struct {
-	DefaultDestination
+	DefaultPlugin
+	DefaultInputter
 	logger    *logging.Logger
 	ProjectID string
 	*zap.SugaredLogger
@@ -74,7 +87,7 @@ func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
 		defer p.logger.Flush()
 
 		for {
-			entry, ok := <-p.DefaultDestination.Input()
+			entry, ok := <-p.Input()
 			if !ok {
 				return
 			}

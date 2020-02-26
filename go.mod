@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.38.0
+	github.com/awalterschulze/gographviz v0.0.0-20190522210029-fa59802746ab
 	github.com/boyter/scc v2.11.0+incompatible // indirect
 	github.com/dbaggerman/cuba v0.3.2 // indirect
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect

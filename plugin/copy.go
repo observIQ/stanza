@@ -13,28 +13,38 @@ func init() {
 }
 
 type CopyConfig struct {
-	PluginID   PluginID `mapstructure:"id"`
-	Outputs    []PluginID
-	Type       string
-	BufferSize uint `mapstructure:"buffer_size"`
-	Field      string
-}
-
-func (c CopyConfig) ID() PluginID {
-	return c.PluginID
+	DefaultPluginConfig
+	DefaultInputterConfig
+	Outputs []PluginID
+	Field   string
 }
 
 func (c CopyConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
+	defaultInputter, err := c.DefaultInputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
 	plugin := &CopyPlugin{
-		config:        c,
-		input:         make(EntryChannel, c.BufferSize), // TODO default buffer size
-		SugaredLogger: logger.With("plugin_type", "copy", "plugin_id", c.PluginID),
+		DefaultPlugin:   defaultPlugin,
+		DefaultInputter: defaultInputter,
+		config:          c,
+		input:           make(EntryChannel, c.BufferSize), // TODO default buffer size
+		SugaredLogger:   logger.With("plugin_type", "copy", "plugin_id", c.PluginID),
 	}
 
 	return plugin, nil
 }
 
 type CopyPlugin struct {
+	DefaultPlugin
+	DefaultInputter
+
 	outputs map[PluginID]EntryChannel
 	input   EntryChannel
 	config  CopyConfig
@@ -58,18 +68,6 @@ func (s *CopyPlugin) Start(wg *sync.WaitGroup) error {
 	}()
 
 	return nil
-}
-
-func (s *CopyPlugin) ID() PluginID {
-	return s.config.PluginID
-}
-
-func (s *CopyPlugin) Type() string {
-	return s.config.Type
-}
-
-func (s *CopyPlugin) Input() EntryChannel {
-	return s.input
 }
 
 func (s *CopyPlugin) SetOutputs(inputRegistry map[PluginID]EntryChannel) error {

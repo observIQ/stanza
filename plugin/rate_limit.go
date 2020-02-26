@@ -13,7 +13,9 @@ func init() {
 }
 
 type RateLimitConfig struct {
-	DefaultProcessorConfig `mapstructure:",squash"`
+	DefaultPluginConfig    `mapstructure:",squash"`
+	DefaultOutputterConfig `mapstructure:",squash"`
+	DefaultInputterConfig  `mapstructure:",squash"`
 	Rate                   float64
 	Interval               float64
 	Burst                  uint64
@@ -30,10 +32,27 @@ func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		interval = time.Second / time.Duration(c.Rate)
 	}
 
+	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
+	defaultInputter, err := c.DefaultInputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default inputter: %s", err)
+	}
+
+	defaultOutputter, err := c.DefaultOutputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default outputter: %s", err)
+	}
+
 	plugin := &RateLimitPlugin{
-		DefaultProcessor: c.DefaultProcessorConfig.Build(),
+		DefaultPlugin:    defaultPlugin,
+		DefaultInputter:  defaultInputter,
+		DefaultOutputter: defaultOutputter,
 		config:           c,
-		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.DefaultProcessorConfig.ID()),
+		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
 		interval:         interval,
 	}
 
@@ -41,7 +60,10 @@ func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 }
 
 type RateLimitPlugin struct {
-	DefaultProcessor
+	DefaultPlugin
+	DefaultOutputter
+	DefaultInputter
+
 	config RateLimitConfig
 	*zap.SugaredLogger
 

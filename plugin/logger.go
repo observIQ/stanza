@@ -13,12 +13,13 @@ func init() {
 }
 
 type LoggerConfig struct {
-	DefaultDestinationConfig `mapstructure:",squash"`
-	Level                    string
+	DefaultPluginConfig   `mapstructure:",squash"`
+	DefaultInputterConfig `mapstructure:",squash"`
+	Level                 string
 }
 
 func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
-	newLogger := logger.With("plugin_type", "logger", "plugin_id", c.DefaultDestinationConfig.ID())
+	newLogger := logger.With("plugin_type", "logger", "plugin_id", c.ID())
 
 	if c.Level == "" {
 		c.Level = "debug"
@@ -44,18 +45,31 @@ func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		return nil, fmt.Errorf("log level '%s' is unsupported", level)
 	}
 
+	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+	}
+
+	defaultInputter, err := c.DefaultInputterConfig.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build default inputter: %s", err)
+	}
+
 	plugin := &LoggerPlugin{
-		DefaultDestination: c.DefaultDestinationConfig.Build(),
-		config:             c,
-		SugaredLogger:      newLogger,
-		logFunc:            logFunc,
+		DefaultPlugin:   defaultPlugin,
+		DefaultInputter: defaultInputter,
+		config:          c,
+		SugaredLogger:   newLogger,
+		logFunc:         logFunc,
 	}
 
 	return plugin, nil
 }
 
 type LoggerPlugin struct {
-	DefaultDestination
+	DefaultPlugin
+	DefaultInputter
+
 	config  LoggerConfig
 	logFunc func(string, ...interface{})
 	*zap.SugaredLogger
@@ -66,7 +80,7 @@ func (p *LoggerPlugin) Start(wg *sync.WaitGroup) error {
 		defer wg.Done()
 
 		for {
-			entry, ok := <-p.DefaultDestination.Input()
+			entry, ok := <-p.Input()
 			if !ok {
 				// TODO flush logger?
 				return
