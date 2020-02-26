@@ -14,17 +14,17 @@ import (
 )
 
 func init() {
-	RegisterConfig("stackdriver", &StackdriverOutputConfig{})
+	RegisterConfig("google_cloud_logging", &GoogleCloudLoggingOutputConfig{})
 }
 
-type StackdriverOutputConfig struct {
+type GoogleCloudLoggingOutputConfig struct {
 	DefaultPluginConfig   `mapstructure:",squash"`
 	DefaultInputterConfig `mapstructure:",squash"`
 	Credentials           string
 	ProjectID             string `mapstructure:"project_id"`
 }
 
-func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+func (c *GoogleCloudLoggingOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 	options := make([]option.ClientOption, 0, 2)
 
 	// TODO configure bundle size
@@ -51,7 +51,7 @@ func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, erro
 	}
 	// TODO client.Ping(). Maybe should be in the Start() method
 
-	stackdriverLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
+	GoogleCloudLoggingLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 
 	defaultPlugin, err := c.DefaultPluginConfig.Build()
 	if err != nil {
@@ -63,34 +63,36 @@ func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, erro
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	dest := &StackdriverPlugin{
-		DefaultPlugin:     defaultPlugin,
-		DefaultInputter:   defaultInputter,
-		stackdriverLogger: stackdriverLogger,
-		ProjectID:         c.ProjectID,
+	dest := &GoogleCloudLoggingPlugin{
+		DefaultPlugin:   defaultPlugin,
+		DefaultInputter: defaultInputter,
+
+		googleCloudLogger: GoogleCloudLoggingLogger,
+		projectID:         c.ProjectID,
 		SugaredLogger:     logger,
 	}
 
 	return dest, nil
 }
 
-type StackdriverLogger interface {
+type GoogleCloudLogger interface {
 	Log(logging.Entry)
 	Flush() error
 }
 
-type StackdriverPlugin struct {
+type GoogleCloudLoggingPlugin struct {
 	DefaultPlugin
 	DefaultInputter
-	stackdriverLogger StackdriverLogger
-	ProjectID         string
+
+	googleCloudLogger GoogleCloudLogger
+	projectID         string
 	*zap.SugaredLogger
 }
 
-func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
+func (p *GoogleCloudLoggingPlugin) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
-		defer p.stackdriverLogger.Flush()
+		defer p.googleCloudLogger.Flush()
 
 		for {
 			entry, ok := <-p.Input()
@@ -98,7 +100,7 @@ func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
 				return
 			}
 
-			stackdriverEntry := logging.Entry{
+			googleCloudLoggingEntry := logging.Entry{
 				Timestamp: entry.Timestamp,
 				Payload:   entry.Record,
 				Severity:  logging.Info, // TODO calculate severity correctly
@@ -115,7 +117,7 @@ func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
 			// Ideas for a library change:
 			// - Add a callback to each log entry
 			// - Create a Logger.LogMultipleSync() and do our own bundling
-			p.stackdriverLogger.Log(stackdriverEntry)
+			p.googleCloudLogger.Log(googleCloudLoggingEntry)
 		}
 	}()
 
