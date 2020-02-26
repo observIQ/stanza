@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 	"go.uber.org/zap"
 )
 
@@ -33,6 +34,7 @@ func TestJSONImplementations(t *testing.T) {
 }
 
 func TestJSONExitsOnInputClose(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 	json := NewFakeJSONPlugin()
 	testInputterExitsOnChannelClose(t, json)
 }

@@ -15,6 +15,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.5.1
+	go.uber.org/goleak v1.0.0
 	go.uber.org/zap v1.14.0
 	google.golang.org/api v0.18.0
 	google.golang.org/grpc v1.27.0

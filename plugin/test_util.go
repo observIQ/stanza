@@ -22,6 +22,16 @@ func testInputterExitsOnChannelClose(t *testing.T, inputter Inputter) {
 	err := inputter.Start(wg)
 	assert.NoError(t, err)
 
+	// Close output channels on exit
+	if outputter, ok := inputter.(Outputter); ok {
+		go func() {
+			wg.Wait()
+			for _, channel := range outputter.Outputs() {
+				close(channel)
+			}
+		}()
+	}
+
 	// Signal when the plugin exits
 	exited := make(chan struct{})
 	go func() {

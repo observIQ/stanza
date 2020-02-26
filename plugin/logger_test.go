@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 	"go.uber.org/zap"
 )
 
@@ -29,6 +30,7 @@ func TestLoggerImplementations(t *testing.T) {
 }
 
 func TestLoggerExitsOnInputClose(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 	logger := NewFakeLoggerPlugin()
 	testInputterExitsOnChannelClose(t, logger)
 }

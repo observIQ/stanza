@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 	"go.uber.org/zap"
 )
 
@@ -36,6 +37,7 @@ func TestRateLimitImplementations(t *testing.T) {
 }
 
 func TestRateLimitExitsOnInputClose(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 	rateLimit := NewFakeRateLimitPlugin()
 	testInputterExitsOnChannelClose(t, rateLimit)
 }

@@ -5,6 +5,7 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 	"go.uber.org/zap"
 )
 
@@ -51,6 +52,8 @@ func TestStackdriverImplementations(t *testing.T) {
 }
 
 func TestStackdriverExitsOnInputClose(t *testing.T) {
+	// TODO Remove ignore when this is fixed https://github.com/census-instrumentation/opencensus-go/issues/1191
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 	stackdriver := newFakeStackdriverPlugin()
 	testInputterExitsOnChannelClose(t, stackdriver)
 }

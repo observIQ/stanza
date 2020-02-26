@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 func NewFakeCopyPlugin() *CopyPlugin {
@@ -33,6 +34,7 @@ func TestCopyImplementations(t *testing.T) {
 }
 
 func TestCopyExitsOnChannelClose(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 	copy := NewFakeCopyPlugin()
 	testInputterExitsOnChannelClose(t, copy)
 }
