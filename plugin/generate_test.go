@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateImplementsSource(t *testing.T) {
+func TestGenerateImplementations(t *testing.T) {
 	assert.Implements(t, (*Source)(nil), new(GeneratePlugin))
+	assert.Implements(t, (*Outputter)(nil), new(GeneratePlugin))
+	assert.Implements(t, (*Plugin)(nil), new(GeneratePlugin))
 }

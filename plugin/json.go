@@ -56,22 +56,22 @@ type JSONPlugin struct {
 	*zap.SugaredLogger
 }
 
-func (s *JSONPlugin) Start(wg *sync.WaitGroup) error {
+func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 		for {
-			entry, ok := <-s.Input()
+			entry, ok := <-p.Input()
 			if !ok {
 				return
 			}
 
-			newEntry, err := s.processEntry(entry)
+			newEntry, err := p.processEntry(entry)
 			if err != nil {
-				s.Warnw("Failed to process entry", "error", err)
+				p.Warnw("Failed to process entry", "error", err)
 				continue
 			}
 
-			s.Output() <- newEntry
+			p.Output() <- newEntry
 		}
 	}()
 

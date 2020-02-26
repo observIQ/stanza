@@ -13,10 +13,10 @@ func init() {
 }
 
 type CopyConfig struct {
-	DefaultPluginConfig
-	DefaultInputterConfig
-	Outputs []PluginID
-	Field   string
+	DefaultPluginConfig   `mapstructure:",squash"`
+	DefaultInputterConfig `mapstructure:",squash"`
+	Outputs               []PluginID
+	Field                 string
 }
 
 func (c CopyConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
@@ -34,7 +34,6 @@ func (c CopyConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
 		config:          c,
-		input:           make(EntryChannel, c.BufferSize), // TODO default buffer size
 		SugaredLogger:   logger.With("plugin_type", "copy", "plugin_id", c.PluginID),
 	}
 
@@ -46,21 +45,20 @@ type CopyPlugin struct {
 	DefaultInputter
 
 	outputs map[PluginID]EntryChannel
-	input   EntryChannel
 	config  CopyConfig
 	*zap.SugaredLogger
 }
 
-func (s *CopyPlugin) Start(wg *sync.WaitGroup) error {
+func (p *CopyPlugin) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 		for {
-			entry, ok := <-s.input
+			entry, ok := <-p.Input()
 			if !ok {
 				return
 			}
 
-			for _, output := range s.outputs {
+			for _, output := range p.outputs {
 				// TODO should we block if one output can't keep up?
 				output <- copyEntry(entry)
 			}
@@ -70,9 +68,9 @@ func (s *CopyPlugin) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (s *CopyPlugin) SetOutputs(inputRegistry map[PluginID]EntryChannel) error {
-	outputs := make(map[PluginID]EntryChannel, len(s.config.Outputs))
-	for _, outputID := range s.config.Outputs {
+func (p *CopyPlugin) SetOutputs(inputRegistry map[PluginID]EntryChannel) error {
+	outputs := make(map[PluginID]EntryChannel, len(p.config.Outputs))
+	for _, outputID := range p.config.Outputs {
 		output, ok := inputRegistry[outputID]
 		if !ok {
 			return fmt.Errorf("no plugin with ID %v found", outputID)
@@ -81,12 +79,12 @@ func (s *CopyPlugin) SetOutputs(inputRegistry map[PluginID]EntryChannel) error {
 		outputs[outputID] = output
 	}
 
-	s.outputs = outputs
+	p.outputs = outputs
 	return nil
 }
 
-func (s *CopyPlugin) Outputs() map[PluginID]EntryChannel {
-	return s.outputs
+func (p *CopyPlugin) Outputs() map[PluginID]EntryChannel {
+	return p.outputs
 }
 
 func copyEntry(e entry.Entry) entry.Entry {

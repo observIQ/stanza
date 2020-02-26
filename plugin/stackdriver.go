@@ -27,6 +27,7 @@ type StackdriverOutputConfig struct {
 func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 	options := make([]option.ClientOption, 0, 2)
 
+	// TODO configure bundle size
 	// TODO allow alternate credentials options (file, etc.)
 	if c.Credentials == "" {
 		return nil, errors.New("missing required configuration option credentials")

@@ -97,6 +97,7 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 
 func setPluginOutputs(plugins []Plugin, logger *zap.SugaredLogger) error {
 	processorInputs := make(map[PluginID]EntryChannel)
+
 	graphAst, _ := gographviz.ParseString(`digraph G {}`)
 	graph := gographviz.NewGraph()
 	if err := gographviz.Analyse(graphAst, graph); err != nil {

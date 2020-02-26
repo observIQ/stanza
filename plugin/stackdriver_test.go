@@ -6,10 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStackdriverImplementsInputter(t *testing.T) {
+func TestStackdriverImplementations(t *testing.T) {
 	assert.Implements(t, (*Inputter)(nil), new(StackdriverPlugin))
-}
-
-func TestStackdriverImplementsPlugin(t *testing.T) {
 	assert.Implements(t, (*Plugin)(nil), new(StackdriverPlugin))
 }
