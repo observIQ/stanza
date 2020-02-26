@@ -58,7 +58,6 @@ func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 	plugin := &LoggerPlugin{
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
-		config:          c,
 		SugaredLogger:   newLogger,
 		logFunc:         logFunc,
 	}
@@ -70,7 +69,6 @@ type LoggerPlugin struct {
 	DefaultPlugin
 	DefaultInputter
 
-	config  LoggerConfig
 	logFunc func(string, ...interface{})
 	*zap.SugaredLogger
 }

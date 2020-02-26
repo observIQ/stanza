@@ -64,28 +64,33 @@ func (c *StackdriverOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, erro
 	}
 
 	dest := &StackdriverPlugin{
-		DefaultPlugin:   defaultPlugin,
-		DefaultInputter: defaultInputter,
-		logger:          stackdriverLogger,
-		ProjectID:       c.ProjectID,
-		SugaredLogger:   logger,
+		DefaultPlugin:     defaultPlugin,
+		DefaultInputter:   defaultInputter,
+		stackdriverLogger: stackdriverLogger,
+		ProjectID:         c.ProjectID,
+		SugaredLogger:     logger,
 	}
 
 	return dest, nil
 }
 
+type StackdriverLogger interface {
+	Log(logging.Entry)
+	Flush() error
+}
+
 type StackdriverPlugin struct {
 	DefaultPlugin
 	DefaultInputter
-	logger    *logging.Logger
-	ProjectID string
+	stackdriverLogger StackdriverLogger
+	ProjectID         string
 	*zap.SugaredLogger
 }
 
 func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
-		defer p.logger.Flush()
+		defer p.stackdriverLogger.Flush()
 
 		for {
 			entry, ok := <-p.Input()
@@ -110,7 +115,7 @@ func (p *StackdriverPlugin) Start(wg *sync.WaitGroup) error {
 			// Ideas for a library change:
 			// - Add a callback to each log entry
 			// - Create a Logger.LogMultipleSync() and do our own bundling
-			p.logger.Log(stackdriverEntry)
+			p.stackdriverLogger.Log(stackdriverEntry)
 		}
 	}()
 

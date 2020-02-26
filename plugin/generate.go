@@ -51,6 +51,7 @@ type GeneratePlugin struct {
 }
 
 func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
+	// TODO protect against multiple starts?
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 

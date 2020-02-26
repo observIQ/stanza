@@ -87,12 +87,12 @@ func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {
 func (p *JSONPlugin) processEntry(entry e.Entry) (e.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field %s does not exist on the record", p.field)
+		return e.Entry{}, fmt.Errorf("field '%s' does not exist on the record", p.field)
 	}
 
 	messageString, ok := message.(string)
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field %s can not be parsed as JSON because it is of type %T", p.field, message)
+		return e.Entry{}, fmt.Errorf("field '%s' can not be parsed as JSON because it is of type %T", p.field, message)
 	}
 
 	var parsedMessage map[string]interface{}

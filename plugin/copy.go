@@ -33,7 +33,7 @@ func (c CopyConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 	plugin := &CopyPlugin{
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
-		config:          c,
+		outputIDs:       c.Outputs,
 		SugaredLogger:   logger.With("plugin_type", "copy", "plugin_id", c.PluginID),
 	}
 
@@ -44,8 +44,8 @@ type CopyPlugin struct {
 	DefaultPlugin
 	DefaultInputter
 
-	outputs map[PluginID]EntryChannel
-	config  CopyConfig
+	outputs   map[PluginID]EntryChannel
+	outputIDs []PluginID
 	*zap.SugaredLogger
 }
 
@@ -69,8 +69,8 @@ func (p *CopyPlugin) Start(wg *sync.WaitGroup) error {
 }
 
 func (p *CopyPlugin) SetOutputs(inputRegistry map[PluginID]EntryChannel) error {
-	outputs := make(map[PluginID]EntryChannel, len(p.config.Outputs))
-	for _, outputID := range p.config.Outputs {
+	outputs := make(map[PluginID]EntryChannel, len(p.outputIDs))
+	for _, outputID := range p.outputIDs {
 		output, ok := inputRegistry[outputID]
 		if !ok {
 			return fmt.Errorf("no plugin with ID %v found", outputID)

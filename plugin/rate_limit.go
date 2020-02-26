@@ -51,9 +51,9 @@ func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		DefaultPlugin:    defaultPlugin,
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
-		config:           c,
 		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
 		interval:         interval,
+		burst:            c.Burst,
 	}
 
 	return plugin, nil
@@ -64,10 +64,10 @@ type RateLimitPlugin struct {
 	DefaultOutputter
 	DefaultInputter
 
-	config RateLimitConfig
 	*zap.SugaredLogger
 
 	// Processed fields
+	burst    uint64
 	interval time.Duration
 }
 
@@ -78,7 +78,7 @@ func (p *RateLimitPlugin) Start(wg *sync.WaitGroup) error {
 		defer wg.Done()
 		defer ticker.Stop()
 
-		isReady := make(chan struct{}, p.config.Burst)
+		isReady := make(chan struct{}, p.burst)
 		exitTicker := make(chan struct{})
 		defer close(exitTicker)
 
