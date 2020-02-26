@@ -36,12 +36,17 @@ func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
 
+	if c.Field == "" {
+		return nil, fmt.Errorf("missing required field 'field'")
+	}
+
 	plugin := &JSONPlugin{
 		DefaultPlugin:    defaultPlugin,
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
-		config:           c,
-		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
+
+		field:         c.Field,
+		SugaredLogger: logger.With("plugin_type", "json", "plugin_id", c.ID()),
 	}
 
 	return plugin, nil
@@ -52,7 +57,7 @@ type JSONPlugin struct {
 	DefaultOutputter
 	DefaultInputter
 
-	config JSONConfig
+	field string
 	*zap.SugaredLogger
 }
 
@@ -79,23 +84,23 @@ func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {
 }
 
 func (p *JSONPlugin) processEntry(entry e.Entry) (e.Entry, error) {
-	message, ok := entry.Record[p.config.Field]
+	message, ok := entry.Record[p.field]
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field %s does not exist on the record", p.config.Field)
+		return e.Entry{}, fmt.Errorf("field %s does not exist on the record", p.field)
 	}
 
 	messageString, ok := message.(string)
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field %s can not be parsed as JSON because it is of type %T", p.config.Field, message)
+		return e.Entry{}, fmt.Errorf("field %s can not be parsed as JSON because it is of type %T", p.field, message)
 	}
 
 	var parsedMessage map[string]interface{}
 	err := json.Unmarshal([]byte(messageString), &parsedMessage)
 	if err != nil {
-		return e.Entry{}, fmt.Errorf("failed to parse field %s as JSON: %w", p.config.Field, err)
+		return e.Entry{}, fmt.Errorf("failed to parse field %s as JSON: %w", p.field, err)
 	}
 
-	entry.Record[p.config.Field] = parsedMessage
+	entry.Record[p.field] = parsedMessage
 
 	return entry, nil
 }
