@@ -74,6 +74,8 @@ func PluginConfigToStructHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
+// TODO enforce uniqueness of plugin id
+// TODO fix issue where an inputter with no inputs causes hangs
 func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, error) {
 	plugins := make([]Plugin, 0, len(configs))
 	for _, config := range configs {

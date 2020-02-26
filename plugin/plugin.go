@@ -14,6 +14,8 @@ type Plugin interface {
 
 type Outputter interface {
 	Plugin
+	// TODO these should probably take arrays of inputters rather than maps
+	// Maybe a specific type like PluginRegistry that has a FindByID method
 	SetOutputs(map[PluginID]EntryChannel) error
 	Outputs() map[PluginID]EntryChannel
 }
