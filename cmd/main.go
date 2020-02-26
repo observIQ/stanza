@@ -44,10 +44,7 @@ func main() {
 
 	logger.Infow("Unmarshalled the config", "config", cfg)
 
-	agent := bpla.LogAgent{
-		SugaredLogger: logger,
-		Config:        cfg,
-	}
+	agent := bpla.NewLogAgent(cfg, logger)
 
 	err = agent.Start()
 	if err != nil {

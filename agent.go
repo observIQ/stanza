@@ -10,16 +10,31 @@ import (
 	"go.uber.org/zap"
 )
 
+func NewLogAgent(cfg config.Config, logger *zap.SugaredLogger) *LogAgent {
+	return &LogAgent{
+		Config:        cfg,
+		SugaredLogger: logger,
+		started:       make(chan struct{}, 1),
+	}
+}
+
 type LogAgent struct {
 	Config config.Config
 
 	plugins  []pg.Plugin
 	pluginWg *sync.WaitGroup
+	started  chan struct{}
 	*zap.SugaredLogger
 }
 
 func (a *LogAgent) Start() error {
-	// TODO protect against duplicate starts
+	// TODO abstract this?
+	select {
+	case a.started <- struct{}{}:
+	default:
+		return fmt.Errorf("log agent is already running")
+	}
+
 	a.Info("Starting log collector")
 	a.pluginWg = new(sync.WaitGroup)
 
@@ -45,6 +60,9 @@ func (a *LogAgent) Stop() {
 	}
 	a.Info("Waiting for plugins to exit cleanly")
 	a.pluginWg.Wait()
+	a.plugins = nil
+	a.pluginWg = nil
+	<-a.started
 	a.Info("Log agent stopped cleanly")
 }
 
