@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 
@@ -23,9 +24,13 @@ func main() {
 		_ = logger.Sync()
 	}()
 
+	var configFile string
+	flag.StringVar(&configFile, "config", "/etc/bplogagent/config.yml", "Path to the config file")
+	flag.Parse()
+
 	var cfg config.Config
 	v := viper.New()
-	v.SetConfigFile("./config.yml")
+	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
 	if err != nil {
 		logger.Errorw("Failed to read the config", "error", err)
