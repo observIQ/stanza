@@ -26,6 +26,7 @@ func RegisterConfig(name string, config interface{}) {
 type PluginConfig interface {
 	Build(*zap.SugaredLogger) (Plugin, error)
 	ID() PluginID
+	Type() string
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {

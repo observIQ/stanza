@@ -25,8 +25,8 @@ plugins:
 		Plugins: []plugin.PluginConfig{
 			&plugin.GenerateConfig{
 				DefaultPluginConfig: plugin.DefaultPluginConfig{
-					PluginID: "mygenerate",
-					Type:     "generate",
+					PluginID:   "mygenerate",
+					PluginType: "generate",
 				},
 				DefaultOutputterConfig: plugin.DefaultOutputterConfig{
 					Output: "next",
