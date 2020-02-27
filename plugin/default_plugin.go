@@ -3,8 +3,8 @@ package plugin
 import "fmt"
 
 type DefaultPluginConfig struct {
-	PluginID PluginID `mapstructure:"id"`
-	Type     string
+	PluginID   PluginID `mapstructure:"id"`
+	PluginType string   `mapstructure:"type"`
 }
 
 func (c DefaultPluginConfig) Build() (DefaultPlugin, error) {
@@ -12,13 +12,13 @@ func (c DefaultPluginConfig) Build() (DefaultPlugin, error) {
 		return DefaultPlugin{}, fmt.Errorf("missing required field 'id'")
 	}
 
-	if c.Type == "" {
+	if c.Type() == "" {
 		return DefaultPlugin{}, fmt.Errorf("missing required field 'type'")
 	}
 
 	plugin := DefaultPlugin{
 		id:         c.PluginID,
-		pluginType: c.Type,
+		pluginType: c.Type(),
 	}
 
 	return plugin, nil
@@ -26,6 +26,10 @@ func (c DefaultPluginConfig) Build() (DefaultPlugin, error) {
 
 func (c DefaultPluginConfig) ID() PluginID {
 	return c.PluginID
+}
+
+func (c DefaultPluginConfig) Type() string {
+	return c.Type()
 }
 
 type DefaultPlugin struct {
