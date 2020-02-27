@@ -9,51 +9,51 @@ import (
 	"go.uber.org/zap"
 )
 
-type FakeStackdriverLogger struct {
+type FakeGoogleCloudLogger struct {
 	log   func(logging.Entry)
 	flush func() error
 }
 
-func (l FakeStackdriverLogger) Log(entry logging.Entry) {
+func (l FakeGoogleCloudLogger) Log(entry logging.Entry) {
 	l.log(entry)
 }
 
-func (l FakeStackdriverLogger) Flush() error {
+func (l FakeGoogleCloudLogger) Flush() error {
 	return l.flush()
 }
 
-func newFakeStackdriverLogger() StackdriverLogger {
-	return &FakeStackdriverLogger{
+func newFakeGoogleCloudLogger() GoogleCloudLogger {
+	return &FakeGoogleCloudLogger{
 		log:   func(logging.Entry) {},
 		flush: func() error { return nil },
 	}
 }
 
-func newFakeStackdriverPlugin() *StackdriverPlugin {
+func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
-	return &StackdriverPlugin{
+	return &GoogleCloudLoggingPlugin{
 		DefaultPlugin: DefaultPlugin{
 			id:         "test",
-			pluginType: "stackdriver",
+			pluginType: "GoogleCloudLogging",
 		},
 		DefaultInputter: DefaultInputter{
 			input: make(EntryChannel, 10),
 		},
-		stackdriverLogger: newFakeStackdriverLogger(),
-		ProjectID:         "testproject",
+		googleCloudLogger: newFakeGoogleCloudLogger(),
+		projectID:         "testproject",
 		SugaredLogger:     sugaredLogger,
 	}
 }
 
-func TestStackdriverImplementations(t *testing.T) {
-	assert.Implements(t, (*Inputter)(nil), new(StackdriverPlugin))
-	assert.Implements(t, (*Plugin)(nil), new(StackdriverPlugin))
+func TestGoogleCloudLoggingImplementations(t *testing.T) {
+	assert.Implements(t, (*Inputter)(nil), new(GoogleCloudLoggingPlugin))
+	assert.Implements(t, (*Plugin)(nil), new(GoogleCloudLoggingPlugin))
 }
 
-func TestStackdriverExitsOnInputClose(t *testing.T) {
+func TestGoogleCloudLoggingExitsOnInputClose(t *testing.T) {
 	// TODO Remove ignore when this is fixed https://github.com/census-instrumentation/opencensus-go/issues/1191
 	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
-	stackdriver := newFakeStackdriverPlugin()
-	testInputterExitsOnChannelClose(t, stackdriver)
+	googleCloudLogging := newFakeGoogleCloudLoggingPlugin()
+	testInputterExitsOnChannelClose(t, googleCloudLogging)
 }
