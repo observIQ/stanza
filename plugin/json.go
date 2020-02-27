@@ -17,7 +17,10 @@ type JSONConfig struct {
 	DefaultPluginConfig    `mapstructure:",squash"`
 	DefaultOutputterConfig `mapstructure:",squash"`
 	DefaultInputterConfig  `mapstructure:",squash"`
-	Field                  string
+
+	// TODO design these params better
+	Field            string
+	DestinationField string
 }
 
 func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
@@ -45,8 +48,9 @@ func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
 
-		field:         c.Field,
-		SugaredLogger: logger.With("plugin_type", "json", "plugin_id", c.ID()),
+		field:            c.Field,
+		destinationField: c.DestinationField,
+		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
 	}
 
 	return plugin, nil
@@ -57,7 +61,8 @@ type JSONPlugin struct {
 	DefaultOutputter
 	DefaultInputter
 
-	field string
+	field            string
+	destinationField string
 	*zap.SugaredLogger
 }
 
@@ -95,13 +100,18 @@ func (p *JSONPlugin) processEntry(entry e.Entry) (e.Entry, error) {
 		return e.Entry{}, fmt.Errorf("field '%s' can not be parsed as JSON because it is of type %T", p.field, message)
 	}
 
+	// TODO consider using faster json decoder (fastjson?)
 	var parsedMessage map[string]interface{}
 	err := json.Unmarshal([]byte(messageString), &parsedMessage)
 	if err != nil {
 		return e.Entry{}, fmt.Errorf("failed to parse field %s as JSON: %w", p.field, err)
 	}
 
-	entry.Record[p.field] = parsedMessage
+	if p.destinationField == "" {
+		entry.Record[p.field] = parsedMessage
+	} else {
+		entry.Record[p.destinationField] = parsedMessage
+	}
 
 	return entry, nil
 }

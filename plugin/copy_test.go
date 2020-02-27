@@ -38,3 +38,12 @@ func TestCopyExitsOnChannelClose(t *testing.T) {
 	copy := NewFakeCopyPlugin()
 	testInputterExitsOnChannelClose(t, copy)
 }
+
+func BenchmarkCopy(b *testing.B) {
+	for _, bm := range standardInputterBenchmarks {
+		b.Run(bm.String(), func(b *testing.B) {
+			copyPlugin := NewFakeCopyPlugin()
+			benchmarkInputter(b, copyPlugin, bm, generateRandomNestedMap)
+		})
+	}
+}

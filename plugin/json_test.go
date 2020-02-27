@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,8 +23,9 @@ func NewFakeJSONPlugin() *JSONPlugin {
 			output:         make(EntryChannel, 10),
 			outputPluginID: "testoutput",
 		},
-		SugaredLogger: logger.Sugar(),
-		field:         "testfield",
+		SugaredLogger:    logger.Sugar(),
+		field:            "testfield",
+		destinationField: "testparsed",
 	}
 }
 
@@ -37,4 +39,21 @@ func TestJSONExitsOnInputClose(t *testing.T) {
 	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 	json := NewFakeJSONPlugin()
 	testInputterExitsOnChannelClose(t, json)
+}
+
+// TODO write benchmarks for other plugins
+func BenchmarkJSON(b *testing.B) {
+	for _, bm := range standardInputterBenchmarks {
+		b.Run(bm.String(), func(b *testing.B) {
+			copyPlugin := NewFakeJSONPlugin()
+			benchmarkInputter(b, copyPlugin, bm, generateRandomTestfield)
+		})
+	}
+}
+
+func generateRandomTestfield(fields, depth, length int) map[string]interface{} {
+	marshalled, _ := json.Marshal(generateRandomNestedMap(fields, depth, length))
+	return map[string]interface{}{
+		"testfield": string(marshalled),
+	}
 }

@@ -4,5 +4,6 @@ import "time"
 
 type Entry struct {
 	Timestamp time.Time
-	Record    map[string]interface{}
+	// TODO consider using a more allocation-efficient representation
+	Record map[string]interface{}
 }

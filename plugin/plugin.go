@@ -34,7 +34,7 @@ type Outputter interface {
 	Outputs() map[PluginID]EntryChannel
 }
 
-// Inputter represents a plugin that receives entries
+// Inputter represents a plugin that receives entries as input
 type Inputter interface {
 	Plugin
 	Input() EntryChannel
@@ -46,4 +46,7 @@ type Source interface {
 }
 
 type PluginID string
+
+// TODO consider a more efficient method of copying entries
+// between goroutines than a channel operation every time
 type EntryChannel chan entry.Entry
