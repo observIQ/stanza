@@ -21,6 +21,8 @@ func (c DefaultInputterConfig) Build() (DefaultInputter, error) {
 	}, nil
 }
 
+func (c DefaultInputterConfig) IsInputter() {}
+
 type DefaultInputter struct {
 	input EntryChannel
 }

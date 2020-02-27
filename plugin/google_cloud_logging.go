@@ -24,7 +24,7 @@ type GoogleCloudLoggingOutputConfig struct {
 	ProjectID             string `mapstructure:"project_id"`
 }
 
-func (c *GoogleCloudLoggingOutputConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
+func (c GoogleCloudLoggingOutputConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
 	options := make([]option.ClientOption, 0, 2)
 
 	// TODO configure bundle size

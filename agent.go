@@ -78,6 +78,12 @@ func (a *LogAgent) startPlugins() error {
 	defer closer.StartChannelClosers()
 
 	for _, plugin := range a.plugins {
+		if inputter, ok := plugin.(pg.Inputter); ok {
+			closer.AddInputter(inputter)
+		}
+	}
+
+	for _, plugin := range a.plugins {
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
 		a.Debugw("Starting plugin", "id", plugin.ID())
@@ -94,7 +100,7 @@ func (a *LogAgent) startPlugins() error {
 		}(plugin, wg)
 
 		if outputter, ok := plugin.(pg.Outputter); ok {
-			closer.Add(outputter)
+			closer.AddOutputter(outputter)
 			go func(wg *sync.WaitGroup, outputter pg.Outputter) {
 				wg.Wait()
 				closer.Done(outputter)
@@ -112,16 +118,26 @@ type inputChannelCloser struct {
 	*zap.SugaredLogger
 }
 
-func (i *inputChannelCloser) Add(outputter pg.Outputter) {
+func (i *inputChannelCloser) AddInputter(inputter pg.Inputter) {
+	i.Lock()
+	_, ok := i.waitGroupMap[inputter.Input()]
+	if ok {
+		panic("waitgroup already created for inputter")
+	} else {
+		newWg := new(sync.WaitGroup)
+		i.waitGroupMap[inputter.Input()] = newWg
+	}
+	i.Unlock()
+}
+
+func (i *inputChannelCloser) AddOutputter(outputter pg.Outputter) {
 	i.Lock()
 	for _, inputter := range outputter.Outputs() {
 		wg, ok := i.waitGroupMap[inputter.Input()]
 		if ok {
 			wg.Add(1)
 		} else {
-			newWg := new(sync.WaitGroup)
-			newWg.Add(1)
-			i.waitGroupMap[inputter.Input()] = newWg
+			panic("no waitgroup found for inputter")
 		}
 	}
 	i.Unlock()

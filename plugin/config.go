@@ -17,13 +17,10 @@ var PluginConfigDefinitions = make(map[string]func() PluginConfig)
 
 // RegisterConfig will register a config struct by name in the packages config registry
 // during package load time.
-func RegisterConfig(name string, config interface{}) {
-	if _, ok := config.(PluginConfig); ok {
-		PluginConfigDefinitions[name] = func() PluginConfig {
-			return reflect.ValueOf(config).Interface().(PluginConfig)
-		}
-	} else {
-		panic(fmt.Sprintf("plugin type %v does not implement the plugin.PluginConfig interface", name))
+func RegisterConfig(name string, config PluginConfig) {
+	PluginConfigDefinitions[name] = func() PluginConfig {
+		val := reflect.New(reflect.TypeOf(config).Elem()).Interface()
+		return val.(PluginConfig)
 	}
 }
 
@@ -33,9 +30,14 @@ type PluginConfig interface {
 	Build(map[PluginID]Plugin, *zap.SugaredLogger) (Plugin, error)
 }
 
-type OutputterPluginConfig interface {
+type OutputterConfig interface {
 	PluginConfig
 	Outputs() []PluginID
+}
+
+type InputterConfig interface {
+	PluginConfig
+	IsInputter()
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {
@@ -89,7 +91,7 @@ type pluginConfigNode struct {
 }
 
 func (n pluginConfigNode) OutputIDs() []int64 {
-	outputterConfig, ok := n.config.(OutputterPluginConfig)
+	outputterConfig, ok := n.config.(OutputterConfig)
 	if !ok {
 		return nil
 	}
@@ -145,13 +147,22 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 			panic("a node was found in the graph that is not a pluginConfigNode")
 		}
 
-		logger.Infow("Building plugin ID", "id", configNode.config.ID())
 		plugin, err := configNode.config.Build(plugins, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build plugin with id '%s': %s", configNode.config.ID(), err)
 		}
 
 		plugins[plugin.ID()] = plugin
+	}
+
+	// Warn if there is an inputter that has no outputters sending to it
+	for _, node := range sortedNodes {
+		if _, ok := node.(pluginConfigNode).config.(InputterConfig); ok {
+			outputters := configGraph.To(node.ID())
+			if outputters.Len() == 0 {
+				logger.Warnw("Inputter has no outputs sending to it", "plugin_id", node.(pluginConfigNode).config.ID())
+			}
+		}
 	}
 
 	pluginSlice := make([]Plugin, 0, len(plugins))
