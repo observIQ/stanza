@@ -34,15 +34,15 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
 	sugaredLogger := logger.Sugar()
 	return &GoogleCloudLoggingPlugin{
 		DefaultPlugin: DefaultPlugin{
-			id:         "test",
-			pluginType: "GoogleCloudLogging",
+			id:            "test",
+			pluginType:    "GoogleCloudLogging",
+			SugaredLogger: sugaredLogger,
 		},
 		DefaultInputter: DefaultInputter{
 			input: make(EntryChannel, 10),
 		},
 		googleCloudLogger: newFakeGoogleCloudLogger(),
 		projectID:         "testproject",
-		SugaredLogger:     sugaredLogger,
 	}
 }
 

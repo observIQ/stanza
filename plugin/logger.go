@@ -18,7 +18,7 @@ type LoggerConfig struct {
 	Level                 string
 }
 
-func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+func (c LoggerConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
 	newLogger := logger.With("plugin_type", "logger", "plugin_id", c.ID())
 
 	if c.Level == "" {
@@ -45,7 +45,7 @@ func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		return nil, fmt.Errorf("log level '%s' is unsupported", level)
 	}
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
@@ -58,7 +58,6 @@ func (c LoggerConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 	plugin := &LoggerPlugin{
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
-		SugaredLogger:   newLogger,
 		logFunc:         logFunc,
 	}
 
@@ -70,7 +69,6 @@ type LoggerPlugin struct {
 	DefaultInputter
 
 	logFunc func(string, ...interface{})
-	*zap.SugaredLogger
 }
 
 func (p *LoggerPlugin) Start(wg *sync.WaitGroup) error {

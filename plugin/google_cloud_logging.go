@@ -24,7 +24,7 @@ type GoogleCloudLoggingOutputConfig struct {
 	ProjectID             string `mapstructure:"project_id"`
 }
 
-func (c *GoogleCloudLoggingOutputConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+func (c *GoogleCloudLoggingOutputConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
 	options := make([]option.ClientOption, 0, 2)
 
 	// TODO configure bundle size
@@ -53,7 +53,7 @@ func (c *GoogleCloudLoggingOutputConfig) Build(logger *zap.SugaredLogger) (Plugi
 
 	GoogleCloudLoggingLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
@@ -69,7 +69,6 @@ func (c *GoogleCloudLoggingOutputConfig) Build(logger *zap.SugaredLogger) (Plugi
 
 		googleCloudLogger: GoogleCloudLoggingLogger,
 		projectID:         c.ProjectID,
-		SugaredLogger:     logger,
 	}
 
 	return dest, nil
@@ -86,7 +85,6 @@ type GoogleCloudLoggingPlugin struct {
 
 	googleCloudLogger GoogleCloudLogger
 	projectID         string
-	*zap.SugaredLogger
 }
 
 func (p *GoogleCloudLoggingPlugin) Start(wg *sync.WaitGroup) error {

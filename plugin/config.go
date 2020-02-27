@@ -2,11 +2,15 @@ package plugin
 
 import (
 	"fmt"
+	"hash/fnv"
 	"reflect"
 
-	"github.com/awalterschulze/gographviz"
 	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/encoding/dot"
+	"gonum.org/v1/gonum/graph/simple"
+	"gonum.org/v1/gonum/graph/topo"
 )
 
 var PluginConfigDefinitions = make(map[string]func() PluginConfig)
@@ -24,9 +28,14 @@ func RegisterConfig(name string, config interface{}) {
 }
 
 type PluginConfig interface {
-	Build(*zap.SugaredLogger) (Plugin, error)
 	ID() PluginID
 	Type() string
+	Build(map[PluginID]Plugin, *zap.SugaredLogger) (Plugin, error)
+}
+
+type OutputterPluginConfig interface {
+	PluginConfig
+	Outputs() []PluginID
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {
@@ -75,60 +84,116 @@ func PluginConfigToStructHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-// TODO enforce uniqueness of plugin id
-// TODO fix issue where an inputter with no inputs causes hangs
-func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, error) {
-	plugins := make([]Plugin, 0, len(configs))
-	for _, config := range configs {
-		plugin, err := config.Build(logger)
-		if err != nil {
-			return nil, fmt.Errorf("failed to build plugin with ID '%s': %s", config.ID(), err)
-		}
-
-		plugins = append(plugins, plugin)
-	}
-
-	err := setPluginOutputs(plugins, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	return plugins, nil
+type pluginConfigNode struct {
+	config PluginConfig
 }
 
-func setPluginOutputs(plugins []Plugin, logger *zap.SugaredLogger) error {
-	processorInputs := make(map[PluginID]EntryChannel)
-
-	graphAst, _ := gographviz.ParseString(`digraph G {}`)
-	graph := gographviz.NewGraph()
-	if err := gographviz.Analyse(graphAst, graph); err != nil {
-		panic(err)
+func (n pluginConfigNode) OutputIDs() []int64 {
+	outputterConfig, ok := n.config.(OutputterPluginConfig)
+	if !ok {
+		return nil
 	}
 
-	// Generate the list of input channels
-	for _, plugin := range plugins {
-		if inputter, ok := plugin.(Inputter); ok {
-			// TODO check for duplicate IDs
-			processorInputs[plugin.ID()] = inputter.Input()
+	ids := make([]int64, 0)
+	for _, outputID := range outputterConfig.Outputs() {
+		h := fnv.New64a()
+		h.Write([]byte(outputID))
+		ids = append(ids, int64(h.Sum64()))
+	}
+	return ids
+}
+
+func (n pluginConfigNode) ID() int64 {
+	h := fnv.New64a()
+	h.Write([]byte(n.config.ID()))
+	return int64(h.Sum64())
+}
+
+func (n pluginConfigNode) DOTID() string {
+	return string(n.config.ID())
+}
+
+func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, error) {
+	// Construct the graph from the configs
+	configGraph, err := buildConfigGraph(configs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build config graph: %s", err)
+	}
+
+	marshalled, err := dot.Marshal(configGraph, "G", "", " ")
+	if err != nil {
+		logger.Info("Failed to marshal the config graph: %s", err)
+	}
+	logger.Info("Created a graph:\n", string(marshalled))
+
+	// Sort the configs topologically by outputs
+	// This will fail if the graph is not acyclic
+	sortedNodes, err := topo.Sort(configGraph)
+	if err != nil {
+		return nil, fmt.Errorf("failed to order plugin dependencies: %s", err)
+	}
+
+	// Build the configs in reverse topological order
+	// Plugins contains all the plugins built so far, so building
+	// outputs first, and working backwards should mean all outputs
+	// already exist by the time each plugin is built
+	plugins := make(map[PluginID]Plugin)
+	for i := len(sortedNodes) - 1; i >= 0; i-- { // iterate backwards
+		node := sortedNodes[i]
+		configNode, ok := node.(pluginConfigNode)
+		if !ok {
+			panic("a node was found in the graph that is not a pluginConfigNode")
 		}
-		graph.AddNode("G", string(plugin.ID()), nil)
+
+		logger.Infow("Building plugin ID", "id", configNode.config.ID())
+		plugin, err := configNode.config.Build(plugins, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build plugin with id '%s': %s", configNode.config.ID(), err)
+		}
+
+		plugins[plugin.ID()] = plugin
 	}
 
-	// Set the output channels using the generated lists
+	pluginSlice := make([]Plugin, 0, len(plugins))
 	for _, plugin := range plugins {
-		if outputter, ok := plugin.(Outputter); ok {
-			err := outputter.SetOutputs(processorInputs)
-			if err != nil {
-				return fmt.Errorf("failed to set outputs for plugin with ID %v: %s", plugin.ID(), err)
-			}
+		pluginSlice = append(pluginSlice, plugin)
+	}
 
-			for id, _ := range outputter.Outputs() {
-				graph.AddEdge(string(plugin.ID()), string(id), true, nil)
+	return pluginSlice, nil
+}
+
+func buildConfigGraph(configs []PluginConfig) (graph.Directed, error) {
+	configGraph := simple.NewDirectedGraph()
+
+	// Build nodes
+	configNodes := make([]pluginConfigNode, 0, len(configs))
+	for _, config := range configs {
+		configNodes = append(configNodes, pluginConfigNode{config})
+	}
+
+	// Add nodes to graph
+	seenIDs := make(map[int64]struct{})
+	for _, node := range configNodes {
+		// Check that the node ID is unique
+		if _, ok := seenIDs[node.ID()]; ok {
+			return nil, fmt.Errorf("multiple configs found with id '%s'", node.config.ID())
+		} else {
+			seenIDs[node.ID()] = struct{}{}
+		}
+		configGraph.AddNode(node)
+	}
+
+	// Connect graph
+	for _, node := range configNodes {
+		for _, outputID := range node.OutputIDs() {
+			outputNode := configGraph.Node(outputID)
+			if outputNode == nil {
+				return nil, fmt.Errorf("failed to find node for output ID %s", outputNode.(pluginConfigNode).config.ID())
 			}
+			edge := configGraph.NewEdge(node, outputNode)
+			configGraph.SetEdge(edge)
 		}
 	}
 
-	logger.Infof("Generated graphviz chart: %s", graph)
-
-	return nil
+	return configGraph, nil
 }

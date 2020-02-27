@@ -8,6 +8,11 @@ import (
 )
 
 func NewFakeCopyPlugin() *CopyPlugin {
+	out1 := newFakeNullOutput()
+	out1.id = "out1"
+
+	out2 := newFakeNullOutput()
+	out2.id = "out2"
 	return &CopyPlugin{
 		DefaultPlugin: DefaultPlugin{
 			id:         "test",
@@ -16,13 +21,9 @@ func NewFakeCopyPlugin() *CopyPlugin {
 		DefaultInputter: DefaultInputter{
 			input: make(EntryChannel, 10),
 		},
-		outputs: map[PluginID]EntryChannel{
-			"out1": make(EntryChannel, 10),
-			"out2": make(EntryChannel, 10),
-		},
-		outputIDs: []PluginID{
-			"out1",
-			"out2",
+		outputs: []Inputter{
+			out1,
+			out2,
 		},
 	}
 }

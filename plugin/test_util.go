@@ -16,8 +16,8 @@ import (
 func testInputterExitsOnChannelClose(t *testing.T, inputter Inputter) {
 	// Ensure that the plugin output isn't blocked
 	if outputter, ok := inputter.(Outputter); ok {
-		for _, channel := range outputter.Outputs() {
-			consumeEntries(channel)
+		for _, inputter := range outputter.Outputs() {
+			consumeEntries(inputter.Input())
 		}
 	}
 
@@ -31,8 +31,8 @@ func testInputterExitsOnChannelClose(t *testing.T, inputter Inputter) {
 	if outputter, ok := inputter.(Outputter); ok {
 		go func() {
 			wg.Wait()
-			for _, channel := range outputter.Outputs() {
-				close(channel)
+			for _, inputter := range outputter.Outputs() {
+				close(inputter.Input())
 			}
 		}()
 	}
@@ -104,8 +104,8 @@ var standardInputterBenchmarks = []inputterBenchmark{
 
 func benchmarkInputter(b *testing.B, inputter Inputter, bm inputterBenchmark, generate func(int, int, int) map[string]interface{}) {
 	if outputter, ok := inputter.(Outputter); ok {
-		for _, output := range outputter.Outputs() {
-			consumeEntries(output)
+		for _, inputter := range outputter.Outputs() {
+			consumeEntries(inputter.Input())
 		}
 	}
 
@@ -116,8 +116,8 @@ func benchmarkInputter(b *testing.B, inputter Inputter, bm inputterBenchmark, ge
 	if outputter, ok := inputter.(Outputter); ok {
 		go func() {
 			wg.Wait()
-			for _, output := range outputter.Outputs() {
-				close(output)
+			for _, inputter := range outputter.Outputs() {
+				close(inputter.Input())
 			}
 		}()
 	}

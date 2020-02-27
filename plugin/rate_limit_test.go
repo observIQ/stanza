@@ -14,19 +14,18 @@ func NewFakeRateLimitPlugin() *RateLimitPlugin {
 	sugaredLogger := logger.Sugar()
 	return &RateLimitPlugin{
 		DefaultPlugin: DefaultPlugin{
-			id:         "test",
-			pluginType: "rate_limit",
+			id:            "test",
+			pluginType:    "rate_limit",
+			SugaredLogger: sugaredLogger,
 		},
 		DefaultInputter: DefaultInputter{
 			input: make(EntryChannel, 10),
 		},
 		DefaultOutputter: DefaultOutputter{
-			output:         make(EntryChannel, 10),
-			outputPluginID: "testoutput",
+			outputPlugin: newFakeNullOutput(),
 		},
-		SugaredLogger: sugaredLogger,
-		interval:      time.Millisecond,
-		burst:         10,
+		interval: time.Millisecond,
+		burst:    10,
 	}
 }
 

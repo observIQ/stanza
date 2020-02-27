@@ -21,20 +21,19 @@ type GenerateConfig struct {
 	Count                  int
 }
 
-func (c GenerateConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build()
+func (c GenerateConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
 
-	defaultOutputter, err := c.DefaultOutputterConfig.Build()
+	defaultOutputter, err := c.DefaultOutputterConfig.Build(plugins)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
 
 	plugin := &GeneratePlugin{
 		config:           c,
-		SugaredLogger:    logger.With("plugin_type", "generate", "plugin_id", c.ID()),
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
 	}
@@ -47,7 +46,6 @@ type GeneratePlugin struct {
 	config GenerateConfig
 
 	cancel context.CancelFunc
-	*zap.SugaredLogger
 }
 
 func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
@@ -68,7 +66,7 @@ func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
 			select {
 			case <-ctx.Done():
 				return
-			case p.output <- entry:
+			case p.Output() <- entry:
 			}
 
 			i += 1

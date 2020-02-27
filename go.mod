@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.38.0
-	github.com/awalterschulze/gographviz v0.0.0-20190522210029-fa59802746ab
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
@@ -14,6 +13,7 @@ require (
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/tools v0.0.0-20200226180945-26f6a1b6802d // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
+	gonum.org/v1/gonum v0.6.2
 	google.golang.org/api v0.18.0
 	google.golang.org/grpc v1.27.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect

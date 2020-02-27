@@ -1,43 +1,41 @@
 package plugin
 
-import (
-	"fmt"
-)
+import "fmt"
 
+// DefaultOutputterConfig
 type DefaultOutputterConfig struct {
 	Output PluginID
 }
 
-func (c DefaultOutputterConfig) Build() (DefaultOutputter, error) {
-	if c.Output == "" {
-		return DefaultOutputter{}, fmt.Errorf("required field 'output' is missing")
+func (c DefaultOutputterConfig) Build(plugins map[PluginID]Plugin) (DefaultOutputter, error) {
+	outputPlugin, ok := plugins[c.Output]
+	if !ok {
+		return DefaultOutputter{}, fmt.Errorf("could not find plugin with ID %s", c.Output)
+	}
+
+	inputter, ok := outputPlugin.(Inputter)
+	if !ok {
+		return DefaultOutputter{}, fmt.Errorf("plugin with ID '%s' is not an inputter, so can not be outputted to", inputter.ID())
 	}
 
 	return DefaultOutputter{
-		outputPluginID: c.Output,
+		outputPlugin: inputter,
 	}, nil
 }
 
+func (c DefaultOutputterConfig) Outputs() []PluginID {
+	return []PluginID{c.Output}
+}
+
+// DefaultOutputter
 type DefaultOutputter struct {
-	output         EntryChannel
-	outputPluginID PluginID
+	outputPlugin Inputter
 }
 
-func (p *DefaultOutputter) SetOutputs(outputRegistry map[PluginID]EntryChannel) error {
-	outputChan, ok := outputRegistry[p.outputPluginID]
-	if !ok {
-		return fmt.Errorf("no plugin with ID %v found", p.outputPluginID)
-	}
-
-	p.output = outputChan
-
-	return nil
-}
-
-func (s *DefaultOutputter) Outputs() map[PluginID]EntryChannel {
-	return map[PluginID]EntryChannel{s.outputPluginID: s.output}
+func (s *DefaultOutputter) Outputs() []Inputter {
+	return []Inputter{s.outputPlugin}
 }
 
 func (s *DefaultOutputter) Output() EntryChannel {
-	return s.output
+	return s.outputPlugin.Input()
 }

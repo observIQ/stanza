@@ -21,7 +21,7 @@ type RateLimitConfig struct {
 	Burst                  uint64
 }
 
-func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
+func (c RateLimitConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
 
 	var interval time.Duration
 	if c.Rate != 0 && c.Interval != 0 {
@@ -32,7 +32,7 @@ func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		interval = time.Second / time.Duration(c.Rate)
 	}
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build()
+	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
@@ -42,7 +42,7 @@ func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	defaultOutputter, err := c.DefaultOutputterConfig.Build()
+	defaultOutputter, err := c.DefaultOutputterConfig.Build(plugins)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
@@ -51,7 +51,6 @@ func (c RateLimitConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		DefaultPlugin:    defaultPlugin,
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
-		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
 		interval:         interval,
 		burst:            c.Burst,
 	}
@@ -63,8 +62,6 @@ type RateLimitPlugin struct {
 	DefaultPlugin
 	DefaultOutputter
 	DefaultInputter
-
-	*zap.SugaredLogger
 
 	// Processed fields
 	burst    uint64

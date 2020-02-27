@@ -23,8 +23,8 @@ type JSONConfig struct {
 	DestinationField string
 }
 
-func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build()
+func (c JSONConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
@@ -34,7 +34,7 @@ func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	defaultOutputter, err := c.DefaultOutputterConfig.Build()
+	defaultOutputter, err := c.DefaultOutputterConfig.Build(plugins)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
@@ -50,7 +50,6 @@ func (c JSONConfig) Build(logger *zap.SugaredLogger) (Plugin, error) {
 
 		field:            c.Field,
 		destinationField: c.DestinationField,
-		SugaredLogger:    logger.With("plugin_type", "json", "plugin_id", c.ID()),
 	}
 
 	return plugin, nil
@@ -63,7 +62,6 @@ type JSONPlugin struct {
 
 	field            string
 	destinationField string
-	*zap.SugaredLogger
 }
 
 func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {

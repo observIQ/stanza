@@ -114,14 +114,14 @@ type inputChannelCloser struct {
 
 func (i *inputChannelCloser) Add(outputter pg.Outputter) {
 	i.Lock()
-	for _, channel := range outputter.Outputs() {
-		wg, ok := i.waitGroupMap[channel]
+	for _, inputter := range outputter.Outputs() {
+		wg, ok := i.waitGroupMap[inputter.Input()]
 		if ok {
 			wg.Add(1)
 		} else {
 			newWg := new(sync.WaitGroup)
 			newWg.Add(1)
-			i.waitGroupMap[channel] = newWg
+			i.waitGroupMap[inputter.Input()] = newWg
 		}
 	}
 	i.Unlock()
@@ -129,8 +129,8 @@ func (i *inputChannelCloser) Add(outputter pg.Outputter) {
 
 func (i *inputChannelCloser) Done(outputter pg.Outputter) {
 	i.Lock()
-	for _, channel := range outputter.Outputs() {
-		wg, ok := i.waitGroupMap[channel]
+	for _, inputter := range outputter.Outputs() {
+		wg, ok := i.waitGroupMap[inputter.Input()]
 		if ok {
 			wg.Done()
 		} else {

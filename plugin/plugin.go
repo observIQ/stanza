@@ -28,10 +28,7 @@ type Plugin interface {
 // Outputter represents a plugin that outputs entries
 type Outputter interface {
 	Plugin
-	// TODO these should probably take arrays of inputters rather than maps
-	// Maybe a specific type like PluginRegistry that has a FindByID method
-	SetOutputs(map[PluginID]EntryChannel) error
-	Outputs() map[PluginID]EntryChannel
+	Outputs() []Inputter
 }
 
 // Inputter represents a plugin that receives entries as input
@@ -47,6 +44,6 @@ type Source interface {
 
 type PluginID string
 
-// TODO consider a more efficient method of copying entries
+// TODO consider whethere there is a more efficient method of copying entries
 // between goroutines than a channel operation every time
 type EntryChannel chan entry.Entry

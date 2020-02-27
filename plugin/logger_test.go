@@ -13,14 +13,14 @@ func NewFakeLoggerPlugin() *LoggerPlugin {
 	sugaredLogger := logger.Sugar()
 	return &LoggerPlugin{
 		DefaultPlugin: DefaultPlugin{
-			id:         "test",
-			pluginType: "logger",
+			id:            "test",
+			pluginType:    "logger",
+			SugaredLogger: sugaredLogger,
 		},
 		DefaultInputter: DefaultInputter{
 			input: make(EntryChannel, 10),
 		},
-		SugaredLogger: sugaredLogger,
-		logFunc:       func(string, ...interface{}) {},
+		logFunc: func(string, ...interface{}) {},
 	}
 }
 

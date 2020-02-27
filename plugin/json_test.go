@@ -13,17 +13,16 @@ func NewFakeJSONPlugin() *JSONPlugin {
 	logger, _ := zap.NewProduction()
 	return &JSONPlugin{
 		DefaultPlugin: DefaultPlugin{
-			id:         "test",
-			pluginType: "json",
+			id:            "test",
+			pluginType:    "json",
+			SugaredLogger: logger.Sugar(),
 		},
 		DefaultInputter: DefaultInputter{
 			input: make(EntryChannel, 10),
 		},
 		DefaultOutputter: DefaultOutputter{
-			output:         make(EntryChannel, 10),
-			outputPluginID: "testoutput",
+			outputPlugin: newFakeNullOutput(),
 		},
-		SugaredLogger:    logger.Sugar(),
 		field:            "testfield",
 		destinationField: "testparsed",
 	}
