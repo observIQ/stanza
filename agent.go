@@ -87,7 +87,7 @@ func (a *LogAgent) startPlugins() error {
 		// Start the plugin
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
-		a.Debugw("Starting plugin", "id", plugin.ID())
+		a.Debugw("Starting plugin", "plugin_id", plugin.ID(), "plugin_type", plugin.Type())
 		err := plugin.Start(wg)
 		if err != nil {
 			return fmt.Errorf("failed to start plugin with ID '%s': %s", plugin.ID(), err)
