@@ -90,7 +90,15 @@ type GoogleCloudLoggingPlugin struct {
 func (p *GoogleCloudLoggingPlugin) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
-		defer p.googleCloudLogger.Flush()
+		defer func() {
+			p.Infow("Flushing")
+			// TODO figure out why this seems to randomly block forever
+			err := p.googleCloudLogger.Flush()
+			if err != nil {
+				p.Errorw("Failed to flush to stackdriver", "error", err)
+			}
+			p.Infow("Flushed")
+		}()
 
 		for {
 			entry, ok := <-p.Input()

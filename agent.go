@@ -84,6 +84,7 @@ func (a *LogAgent) startPlugins() error {
 	}
 
 	for _, plugin := range a.plugins {
+		// Start the plugin
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
 		a.Debugw("Starting plugin", "id", plugin.ID())
@@ -92,6 +93,7 @@ func (a *LogAgent) startPlugins() error {
 			return fmt.Errorf("failed to start plugin with ID '%s': %s", plugin.ID(), err)
 		}
 
+		// Register a handler for the global plugin waitgroup
 		a.pluginWg.Add(1)
 		go func(plugin pg.Plugin, wg *sync.WaitGroup) {
 			wg.Wait()
@@ -99,6 +101,7 @@ func (a *LogAgent) startPlugins() error {
 			a.pluginWg.Done()
 		}(plugin, wg)
 
+		// If it's an outputter, close its output channels
 		if outputter, ok := plugin.(pg.Outputter); ok {
 			closer.AddOutputter(outputter)
 			go func(wg *sync.WaitGroup, outputter pg.Outputter) {

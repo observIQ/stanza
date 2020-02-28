@@ -132,6 +132,7 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 	// This will fail if the graph is not acyclic
 	sortedNodes, err := topo.Sort(configGraph)
 	if err != nil {
+		// TODO make this error message more user-readable
 		return nil, fmt.Errorf("failed to order plugin dependencies: %s", err)
 	}
 
