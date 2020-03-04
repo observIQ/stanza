@@ -114,10 +114,13 @@ func ParseBundle(file io.Reader) (*BundleDefinition, error) {
 }
 
 func parseBundleSpec(specReader io.Reader) (*gojsonschema.Schema, error) {
-	jsonLoader, reader := gojsonschema.NewReaderLoader(specReader)
-	_, _ = ioutil.ReadAll(reader)
+	specBytes, err := ioutil.ReadAll(specReader)
+	if err != nil {
+		return &gojsonschema.Schema{}, err
+	}
 
-	schema, err := gojsonschema.NewSchema(jsonLoader)
+	loader := gojsonschema.NewBytesLoader(specBytes)
+	schema, err := gojsonschema.NewSchema(loader)
 	if err != nil {
 		return &gojsonschema.Schema{}, err
 	}
