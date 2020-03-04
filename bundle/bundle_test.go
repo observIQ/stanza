@@ -1,64 +1,61 @@
 package bundle
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
+	"html/template"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
-const simpleSchema = `{
-  "title": "Example Schema",
+func TestBundleDefinitionRender(t *testing.T) {
+
+	tmpl, err := template.New("config").Parse(`
+plugins:
+{{ if .enable }}
+- id: enabled
+  type: test
+{{ end }}
+{{ if .disable }}
+- id: disabled
+  type: test
+{{ end }}`)
+	assert.NoError(t, err)
+
+	schemaLoader := gojsonschema.NewStringLoader(`{
   "type": "object",
   "properties": {
-    "firstName": {
-      "type": "string"
+    "enable": {
+      "type": "boolean"
     },
-    "lastName": {
-      "type": "string"
-    },
-    "age": {
-      "description": "Age in years",
-      "type": "integer",
-      "minimum": 0
+    "disable": {
+      "type": "boolean"
     }
-  },
-  "required": ["firstName", "lastName"]
-}`
-
-func TestParseBundle(t *testing.T) {
-	tmpl := `{{.Test}}`
-	var buf bytes.Buffer
-	gzWriter := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gzWriter)
-	var files = []struct {
-		Name, Body string
-	}{
-		{"spec.json", simpleSchema},
-		{"config.tmpl", tmpl},
-	}
-	for _, file := range files {
-		hdr := &tar.Header{
-			Name: file.Name,
-			Mode: 0600,
-			Size: int64(len(file.Body)),
-		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			assert.NoError(t, err)
-		}
-		if _, err := tw.Write([]byte(file.Body)); err != nil {
-			assert.NoError(t, err)
-		}
-	}
-	if err := tw.Close(); err != nil {
-		assert.NoError(t, err)
-	}
-	err := gzWriter.Close()
+  }}`)
+	schema, err := gojsonschema.NewSchema(schemaLoader)
 	assert.NoError(t, err)
 
-	_, err = ParseBundle(&buf)
+	def := BundleDefinition{
+		spec:     schema,
+		template: tmpl,
+	}
+
+	params := map[string]interface{}{
+		"enable":  true,
+		"disable": false,
+	}
+
+	configReader, err := def.Render(params)
 	assert.NoError(t, err)
+
+	config, err := ioutil.ReadAll(configReader)
+	assert.NoError(t, err)
+
+	expected := `
+plugins:
+- id: enabled
+  type: test`
+	assert.YAMLEq(t, expected, string(config))
 
 }

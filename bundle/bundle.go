@@ -1,8 +1,10 @@
 package bundle
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -13,6 +15,35 @@ import (
 type BundleDefinition struct {
 	spec     *gojsonschema.Schema
 	template *template.Template
+}
+
+func (def *BundleDefinition) Render(params map[string]interface{}) (io.Reader, error) {
+	err := def.Validate(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate params: %s", err)
+	}
+
+	var buf bytes.Buffer
+	err = def.template.Execute(&buf, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render template: %s", err)
+	}
+
+	return &buf, nil
+}
+
+func (def *BundleDefinition) Validate(params map[string]interface{}) error {
+	paramsLoader := gojsonschema.NewGoLoader(params)
+	result, err := def.spec.Validate(paramsLoader)
+	if err != nil {
+		return fmt.Errorf("failed to run schema validation: %s", err)
+	}
+
+	if !result.Valid() {
+		return fmt.Errorf("validation failed with errors: %v", result.Errors())
+	}
+
+	return nil
 }
 
 // TODO find a more elegant way of logging than passing in a logger
