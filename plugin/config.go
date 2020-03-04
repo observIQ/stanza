@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"reflect"
 
+	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
 	"gonum.org/v1/gonum/graph"
@@ -27,7 +28,7 @@ func RegisterConfig(name string, config PluginConfig) {
 type PluginConfig interface {
 	ID() PluginID
 	Type() string
-	Build(map[PluginID]Plugin, *zap.SugaredLogger) (Plugin, error)
+	Build(BuildContext) (Plugin, error)
 }
 
 type OutputterConfig interface {
@@ -38,6 +39,12 @@ type OutputterConfig interface {
 type InputterConfig interface {
 	PluginConfig
 	IsInputter()
+}
+
+type BuildContext struct {
+	Plugins map[PluginID]Plugin
+	Bundles []*bundle.BundleDefinition
+	Logger  *zap.SugaredLogger
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {
@@ -115,7 +122,7 @@ func (n pluginConfigNode) DOTID() string {
 	return string(n.config.ID())
 }
 
-func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, error) {
+func BuildPlugins(configs []PluginConfig, buildContext BuildContext) ([]Plugin, error) {
 	// Construct the graph from the configs
 	configGraph, err := buildConfigGraph(configs)
 	if err != nil {
@@ -124,9 +131,9 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 
 	marshalled, err := dot.Marshal(configGraph, "G", "", " ")
 	if err != nil {
-		logger.Info("Failed to marshal the config graph: %s", err)
+		buildContext.Logger.Info("Failed to marshal the config graph: %s", err)
 	}
-	logger.Info("Created a graph:\n", string(marshalled))
+	buildContext.Logger.Info("Created a graph:\n", string(marshalled))
 
 	// Sort the configs topologically by outputs
 	// This will fail if the graph is not acyclic
@@ -140,7 +147,7 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 	// Plugins contains all the plugins built so far, so building
 	// outputs first, and working backwards should mean all outputs
 	// already exist by the time each plugin is built
-	plugins := make(map[PluginID]Plugin)
+	buildContext.Plugins = make(map[PluginID]Plugin)
 	for i := len(sortedNodes) - 1; i >= 0; i-- { // iterate backwards
 		node := sortedNodes[i]
 		configNode, ok := node.(pluginConfigNode)
@@ -148,12 +155,12 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 			panic("a node was found in the graph that is not a pluginConfigNode")
 		}
 
-		plugin, err := configNode.config.Build(plugins, logger)
+		plugin, err := configNode.config.Build(buildContext)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build plugin with id '%s': %s", configNode.config.ID(), err)
 		}
 
-		plugins[plugin.ID()] = plugin
+		buildContext.Plugins[plugin.ID()] = plugin
 	}
 
 	// Warn if there is an inputter that has no outputters sending to it
@@ -161,13 +168,14 @@ func BuildPlugins(configs []PluginConfig, logger *zap.SugaredLogger) ([]Plugin, 
 		if _, ok := node.(pluginConfigNode).config.(InputterConfig); ok {
 			outputters := configGraph.To(node.ID())
 			if outputters.Len() == 0 {
-				logger.Warnw("Inputter has no outputs sending to it", "plugin_id", node.(pluginConfigNode).config.ID())
+				buildContext.Logger.Warnw("Inputter has no outputs sending to it", "plugin_id", node.(pluginConfigNode).config.ID())
 			}
 		}
 	}
 
-	pluginSlice := make([]Plugin, 0, len(plugins))
-	for _, plugin := range plugins {
+	// Convert from a map to a slice
+	pluginSlice := make([]Plugin, 0, len(buildContext.Plugins))
+	for _, plugin := range buildContext.Plugins {
 		pluginSlice = append(pluginSlice, plugin)
 	}
 

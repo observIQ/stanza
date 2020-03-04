@@ -1,0 +1,9 @@
+plugins:
+{{ if .enable }}
+- id: enabled
+  type: test
+{{ end }}
+{{ if .disable }}
+- id: disabled
+  type: test
+{{ end }}

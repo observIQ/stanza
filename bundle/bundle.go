@@ -47,14 +47,15 @@ func (def *BundleDefinition) Validate(params map[string]interface{}) error {
 }
 
 // TODO find a more elegant way of logging than passing in a logger
-func GetBundleDefinitions(bundleDir string, logger *zap.SugaredLogger) ([]*BundleDefinition, error) {
+func GetBundleDefinitions(bundleDir string, logger *zap.SugaredLogger) []*BundleDefinition {
 	bundleDefinitions := make([]*BundleDefinition, 0)
 	err := filepath.Walk(bundleDir, newBundleWalkFunc(bundleDefinitions, logger))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bundle definitions: %s", err)
+		// TODO do we actually want to be able to throw an error, or should we just log?
+		panic(err)
 	}
 
-	return bundleDefinitions, nil
+	return bundleDefinitions
 }
 
 func newBundleWalkFunc(bundleDefinitions []*BundleDefinition, logger *zap.SugaredLogger) filepath.WalkFunc {
@@ -65,7 +66,13 @@ func newBundleWalkFunc(bundleDefinitions []*BundleDefinition, logger *zap.Sugare
 		}
 
 		if info.IsDir() {
-			return filepath.SkipDir
+			bundle, err := parseUncompressedBundle(path)
+			if err != nil {
+				logger.Warnw("Failed to parse directory in bundle directory as bundle", "error", err, "file", path)
+				return nil
+			}
+			bundleDefinitions = append(bundleDefinitions, bundle)
+			return nil
 		}
 
 		file, err := os.Open(path)
@@ -75,7 +82,7 @@ func newBundleWalkFunc(bundleDefinitions []*BundleDefinition, logger *zap.Sugare
 		}
 		defer file.Close()
 
-		bundle, err := ParseBundle(file)
+		bundle, err := parseCompressedBundle(file)
 		if err != nil {
 			logger.Warnw("Failed to parse file in bundle directory as bundle", "error", err, "file", path)
 			return nil

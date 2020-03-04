@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -18,8 +17,8 @@ type LoggerConfig struct {
 	Level                 string
 }
 
-func (c LoggerConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
-	newLogger := logger.With("plugin_type", "logger", "plugin_id", c.ID())
+func (c LoggerConfig) Build(context BuildContext) (Plugin, error) {
+	newLogger := context.Logger.With("plugin_type", "logger", "plugin_id", c.ID())
 
 	if c.Level == "" {
 		c.Level = "debug"
@@ -45,7 +44,7 @@ func (c LoggerConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogg
 		return nil, fmt.Errorf("log level '%s' is unsupported", level)
 	}
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
+	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}

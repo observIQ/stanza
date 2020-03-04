@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -21,13 +20,13 @@ type GenerateConfig struct {
 	Count                  int
 }
 
-func (c GenerateConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
+func (c GenerateConfig) Build(context BuildContext) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
 
-	defaultOutputter, err := c.DefaultOutputterConfig.Build(plugins)
+	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}

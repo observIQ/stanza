@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ const simpleSchema = `{
   "required": ["firstName", "lastName"]
 }`
 
-func TestParseBundle(t *testing.T) {
+func TestParseCompressedBundle_RoundTrip(t *testing.T) {
 	tmpl := `{{.Test}}`
 	var buf bytes.Buffer
 	gzWriter := gzip.NewWriter(&buf)
@@ -58,7 +59,23 @@ func TestParseBundle(t *testing.T) {
 	err := gzWriter.Close()
 	assert.NoError(t, err)
 
-	_, err = ParseBundle(&buf)
+	_, err = parseCompressedBundle(&buf)
 	assert.NoError(t, err)
 
+}
+
+func TestParseUncompressedBundle(t *testing.T) {
+	// TODO test contents too
+	_, err := parseUncompressedBundle("./test/sample_bundle")
+	assert.NoError(t, err)
+}
+
+func TestParseCompressedBundle(t *testing.T) {
+	// TODO test contents too
+	file, err := os.Open("./test/sample_bundle.tar.gz")
+	assert.NoError(t, err)
+	defer file.Close()
+
+	_, err = parseCompressedBundle(file)
+	assert.NoError(t, err)
 }

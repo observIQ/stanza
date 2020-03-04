@@ -3,8 +3,6 @@ package plugin
 import (
 	"fmt"
 	"sync"
-
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -16,8 +14,8 @@ type NullOutputConfig struct {
 	DefaultInputterConfig `mapstructure:",squash"`
 }
 
-func (c *NullOutputConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
+func (c *NullOutputConfig) Build(context BuildContext) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -21,7 +19,7 @@ type RateLimitConfig struct {
 	Burst                  uint64
 }
 
-func (c RateLimitConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
+func (c RateLimitConfig) Build(context BuildContext) (Plugin, error) {
 
 	var interval time.Duration
 	if c.Rate != 0 && c.Interval != 0 {
@@ -32,7 +30,7 @@ func (c RateLimitConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredL
 		interval = time.Second / time.Duration(c.Rate)
 	}
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
+	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
@@ -42,7 +40,7 @@ func (c RateLimitConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredL
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	defaultOutputter, err := c.DefaultOutputterConfig.Build(plugins)
+	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}

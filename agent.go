@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/config"
 	"github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -38,7 +39,14 @@ func (a *LogAgent) Start() error {
 	a.Info("Starting log collector")
 	a.pluginWg = new(sync.WaitGroup)
 
-	plugins, err := pg.BuildPlugins(a.Config.Plugins, a.SugaredLogger)
+	bundles := bundle.GetBundleDefinitions(a.Config.BundlePath, a.SugaredLogger)
+
+	buildContext := pg.BuildContext{
+		Logger:  a.SugaredLogger,
+		Plugins: make(map[pg.PluginID]pg.Plugin),
+		Bundles: bundles,
+	}
+	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
 		return err
 	}

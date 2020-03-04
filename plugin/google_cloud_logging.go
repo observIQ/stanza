@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"go.uber.org/zap"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 )
@@ -24,7 +23,7 @@ type GoogleCloudLoggingOutputConfig struct {
 	ProjectID             string `mapstructure:"project_id"`
 }
 
-func (c GoogleCloudLoggingOutputConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
+func (c GoogleCloudLoggingOutputConfig) Build(buildContext BuildContext) (Plugin, error) {
 	options := make([]option.ClientOption, 0, 2)
 
 	// TODO configure bundle size
@@ -53,7 +52,7 @@ func (c GoogleCloudLoggingOutputConfig) Build(plugins map[PluginID]Plugin, logge
 
 	GoogleCloudLoggingLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
+	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}

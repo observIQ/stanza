@@ -19,8 +19,8 @@ type CopyConfig struct {
 	Field                 string
 }
 
-func (c CopyConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger) (Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(logger)
+func (c CopyConfig) Build(context BuildContext) (Plugin, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
@@ -32,7 +32,7 @@ func (c CopyConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger
 
 	outputs := make([]Inputter, 0)
 	for _, outputID := range c.PluginOutputs {
-		output, ok := plugins[outputID]
+		output, ok := context.Plugins[outputID]
 		if !ok {
 			return nil, fmt.Errorf("no output found with ID %s", outputID)
 		}
@@ -49,7 +49,7 @@ func (c CopyConfig) Build(plugins map[PluginID]Plugin, logger *zap.SugaredLogger
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
 		outputs:         outputs,
-		SugaredLogger:   logger.With("plugin_type", "copy", "plugin_id", c.PluginID),
+		SugaredLogger:   context.Logger.With("plugin_type", "copy", "plugin_id", c.PluginID),
 	}
 
 	return plugin, nil
