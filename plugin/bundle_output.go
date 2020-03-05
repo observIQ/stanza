@@ -46,7 +46,6 @@ type BundleOutput struct {
 }
 
 func (p *BundleOutput) Start(wg *sync.WaitGroup) error {
-	wg.Done()
 	go func() {
 		defer wg.Done()
 

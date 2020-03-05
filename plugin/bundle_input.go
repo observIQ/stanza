@@ -46,7 +46,6 @@ type BundleInput struct {
 }
 
 func (p *BundleInput) Start(wg *sync.WaitGroup) error {
-	wg.Done()
 	go func() {
 		defer wg.Done()
 

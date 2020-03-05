@@ -39,6 +39,8 @@ type Inputter interface {
 	Input() EntryChannel
 }
 
+// Stopper represents a plugin that should be signalled to stop
+// independently on shutdown. Mostly just for sources
 type Stopper interface {
 	Stop()
 }
@@ -49,6 +51,7 @@ type PluginID string
 // between goroutines than a channel operation every time
 type EntryChannel chan entry.Entry
 
+// TODO put this in its own file?
 func StartPlugins(plugins []Plugin, pluginWg *sync.WaitGroup, logger *zap.SugaredLogger) error {
 	closer := &inputChannelCloser{
 		waitGroupMap:  make(map[chan<- entry.Entry]*sync.WaitGroup),

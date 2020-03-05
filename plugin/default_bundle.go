@@ -52,6 +52,7 @@ func (c DefaultBundleConfig) RenderPluginConfigs(bundles []*bundle.BundleDefinit
 }
 
 func (c DefaultBundleConfig) Build(configs []PluginConfig, context BuildContext) (DefaultBundle, error) {
+	// Clear plugins before build
 	context.Plugins = make(map[PluginID]Plugin)
 	plugins, err := BuildPlugins(configs, context)
 	if err != nil {
@@ -77,8 +78,24 @@ type DefaultBundle struct {
 
 func (b *DefaultBundle) Start(wg *sync.WaitGroup) error {
 	// TODO
+	ready := make(chan error)
 	go func() {
 		defer wg.Done()
+		pluginWg := &sync.WaitGroup{}
+		err := StartPlugins(b.plugins, pluginWg, b.SugaredLogger)
+		if err != nil {
+			ready <- fmt.Errorf("failed to start bundle plugins: %s", err)
+			// TODO stop plugins if errored?
+			return
+		}
+
+		ready <- nil
+		pluginWg.Wait()
 	}()
-	return nil
+
+	return <-ready
+}
+
+func (b *DefaultBundle) Stop() {
+
 }
