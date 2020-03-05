@@ -97,5 +97,9 @@ func (b *DefaultBundle) Start(wg *sync.WaitGroup) error {
 }
 
 func (b *DefaultBundle) Stop() {
-
+	for _, plugin := range b.plugins {
+		if stopper, ok := plugin.(Stopper); ok {
+			stopper.Stop()
+		}
+	}
 }
