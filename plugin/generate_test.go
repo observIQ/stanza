@@ -7,7 +7,7 @@ import (
 )
 
 func TestGenerateImplementations(t *testing.T) {
-	assert.Implements(t, (*Source)(nil), new(GeneratePlugin))
+	assert.Implements(t, (*Stopper)(nil), new(GeneratePlugin))
 	assert.Implements(t, (*Outputter)(nil), new(GeneratePlugin))
 	assert.Implements(t, (*Plugin)(nil), new(GeneratePlugin))
 }

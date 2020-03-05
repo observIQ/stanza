@@ -39,8 +39,7 @@ type Inputter interface {
 	Input() EntryChannel
 }
 
-type Source interface {
-	Outputter
+type Stopper interface {
 	Stop()
 }
 

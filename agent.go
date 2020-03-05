@@ -61,7 +61,7 @@ func (a *LogAgent) Start() error {
 
 func (a *LogAgent) Stop() {
 	for _, plugin := range a.plugins {
-		if source, ok := plugin.(pg.Source); ok {
+		if source, ok := plugin.(pg.Stopper); ok {
 			source.Stop()
 		}
 	}
