@@ -61,8 +61,8 @@ func (a *LogAgent) Start() error {
 
 func (a *LogAgent) Stop() {
 	for _, plugin := range a.plugins {
-		if source, ok := plugin.(pg.Stopper); ok {
-			source.Stop()
+		if stopper, ok := plugin.(pg.Stopper); ok {
+			stopper.Stop()
 		}
 	}
 	a.Info("Waiting for plugins to exit cleanly")
