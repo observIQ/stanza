@@ -11,9 +11,9 @@ func init() {
 }
 
 type RateLimitConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash"`
-	DefaultOutputterConfig `mapstructure:",squash"`
-	DefaultInputterConfig  `mapstructure:",squash"`
+	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 	Rate                   float64
 	Interval               float64
 	Burst                  uint64

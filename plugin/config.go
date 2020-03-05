@@ -8,7 +8,6 @@ import (
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
-	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
@@ -42,72 +41,28 @@ type InputterConfig interface {
 }
 
 type BuildContext struct {
-	Plugins map[PluginID]Plugin
-	Bundles []*bundle.BundleDefinition
-	Logger  *zap.SugaredLogger
-}
-
-func UnmarshalHook(c *mapstructure.DecoderConfig) {
-	c.DecodeHook = PluginConfigToStructHookFunc()
-}
-
-func PluginConfigToStructHookFunc() mapstructure.DecodeHookFunc {
-	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-		var m map[interface{}]interface{}
-		if f != reflect.TypeOf(m) {
-			return data, nil
-		}
-
-		if t.String() != "plugin.PluginConfig" {
-			return data, nil
-		}
-
-		d, ok := data.(map[interface{}]interface{})
-		if !ok {
-			return nil, fmt.Errorf("unexpected data type %T for plugin config", data)
-		}
-
-		typeInterface, ok := d["type"]
-		if !ok {
-			return nil, fmt.Errorf("missing type field for plugin config")
-		}
-
-		typeString, ok := typeInterface.(string)
-		if !ok {
-			return nil, fmt.Errorf("unexpected type %T for plugin config type", typeInterface)
-		}
-
-		configDefinitionFunc, ok := PluginConfigDefinitions[typeString]
-		if !ok {
-			return nil, fmt.Errorf("unknown plugin config type %s", typeString)
-		}
-
-		configDefinition := configDefinitionFunc()
-		// TODO handle unused keys
-		err := mapstructure.Decode(data, &configDefinition)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode plugin definition: %s", err)
-		}
-
-		return configDefinition, nil
-	}
+	Plugins      map[PluginID]Plugin
+	Bundles      []*bundle.BundleDefinition
+	BundleInput  EntryChannel
+	BundleOutput EntryChannel
+	Logger       *zap.SugaredLogger
 }
 
 type pluginConfigNode struct {
 	config PluginConfig
 }
 
-func (n pluginConfigNode) OutputIDs() []int64 {
+func (n pluginConfigNode) OutputIDs() map[PluginID]int64 {
 	outputterConfig, ok := n.config.(OutputterConfig)
 	if !ok {
 		return nil
 	}
 
-	ids := make([]int64, 0)
+	ids := make(map[PluginID]int64, 0)
 	for _, outputID := range outputterConfig.Outputs() {
 		h := fnv.New64a()
 		h.Write([]byte(outputID))
-		ids = append(ids, int64(h.Sum64()))
+		ids[outputID] = int64(h.Sum64())
 	}
 	return ids
 }
@@ -124,7 +79,8 @@ func (n pluginConfigNode) DOTID() string {
 
 func BuildPlugins(configs []PluginConfig, buildContext BuildContext) ([]Plugin, error) {
 	// Construct the graph from the configs
-	configGraph, err := buildConfigGraph(configs)
+	configGraph := simple.NewDirectedGraph()
+	err := addConfigsToGraph(configGraph, configs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build config graph: %s", err)
 	}
@@ -182,9 +138,7 @@ func BuildPlugins(configs []PluginConfig, buildContext BuildContext) ([]Plugin, 
 	return pluginSlice, nil
 }
 
-func buildConfigGraph(configs []PluginConfig) (graph.Directed, error) {
-	configGraph := simple.NewDirectedGraph()
-
+func addConfigsToGraph(configGraph *simple.DirectedGraph, configs []PluginConfig) error {
 	// Build nodes
 	configNodes := make([]pluginConfigNode, 0, len(configs))
 	for _, config := range configs {
@@ -196,7 +150,7 @@ func buildConfigGraph(configs []PluginConfig) (graph.Directed, error) {
 	for _, node := range configNodes {
 		// Check that the node ID is unique
 		if _, ok := seenIDs[node.ID()]; ok {
-			return nil, fmt.Errorf("multiple configs found with id '%s'", node.config.ID())
+			return fmt.Errorf("multiple configs found with id '%s'", node.config.ID())
 		} else {
 			seenIDs[node.ID()] = struct{}{}
 		}
@@ -205,15 +159,61 @@ func buildConfigGraph(configs []PluginConfig) (graph.Directed, error) {
 
 	// Connect graph
 	for _, node := range configNodes {
-		for _, outputID := range node.OutputIDs() {
-			outputNode := configGraph.Node(outputID)
+		for outputID, outputNodeID := range node.OutputIDs() {
+			outputNode := configGraph.Node(outputNodeID)
 			if outputNode == nil {
-				return nil, fmt.Errorf("failed to find node for output ID %s", outputNode.(pluginConfigNode).config.ID())
+				return fmt.Errorf("failed to find node for output ID %s", outputID)
 			}
 			edge := configGraph.NewEdge(node, outputNode)
 			configGraph.SetEdge(edge)
 		}
 	}
 
-	return configGraph, nil
+	return nil
+}
+
+func UnmarshalHook(c *mapstructure.DecoderConfig) {
+	c.DecodeHook = newPluginConfigDecoder()
+}
+
+func newPluginConfigDecoder() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		var m map[interface{}]interface{}
+		if f != reflect.TypeOf(m) {
+			return data, nil
+		}
+
+		if t.String() != "plugin.PluginConfig" {
+			return data, nil
+		}
+
+		d, ok := data.(map[interface{}]interface{})
+		if !ok {
+			return nil, fmt.Errorf("unexpected data type %T for plugin config", data)
+		}
+
+		typeInterface, ok := d["type"]
+		if !ok {
+			return nil, fmt.Errorf("missing type field for plugin config")
+		}
+
+		typeString, ok := typeInterface.(string)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type %T for plugin config type", typeInterface)
+		}
+
+		configDefinitionFunc, ok := PluginConfigDefinitions[typeString]
+		if !ok {
+			return nil, fmt.Errorf("unknown plugin config type %s", typeString)
+		}
+
+		configDefinition := configDefinitionFunc()
+		// TODO handle unused keys
+		err := mapstructure.Decode(data, &configDefinition)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode plugin definition: %s", err)
+		}
+
+		return configDefinition, nil
+	}
 }

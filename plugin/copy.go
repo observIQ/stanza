@@ -13,8 +13,8 @@ func init() {
 }
 
 type CopyConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash"`
-	DefaultInputterConfig `mapstructure:",squash"`
+	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
 	PluginOutputs         []PluginID `mapstructure:"outputs"`
 	Field                 string
 }

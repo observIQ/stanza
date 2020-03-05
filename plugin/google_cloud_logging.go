@@ -9,7 +9,6 @@ import (
 
 	"cloud.google.com/go/logging"
 	"google.golang.org/api/option"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -17,8 +16,8 @@ func init() {
 }
 
 type GoogleCloudLoggingOutputConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash"`
-	DefaultInputterConfig `mapstructure:",squash"`
+	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
 	Credentials           string
 	ProjectID             string `mapstructure:"project_id"`
 }
@@ -36,7 +35,8 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext BuildContext) (Plugin
 	options = append(options, option.WithUserAgent("BindplaneLogAgent/2.0.0"))
 	// TODO WithCompressor is deprecated, and may be removed in favor of UseCompressor
 	// However, I can't seem to get UseCompressor to work, so skipping for now
-	options = append(options, option.WithGRPCDialOption(grpc.WithCompressor(grpc.NewGZIPCompressor())))
+	// This seems to be causing flush to hang.
+	// options = append(options, option.WithGRPCDialOption(grpc.WithCompressor(grpc.NewGZIPCompressor())))
 
 	if c.ProjectID == "" {
 		return nil, errors.New("missing required configuration option project_id")
@@ -92,6 +92,7 @@ func (p *GoogleCloudLoggingPlugin) Start(wg *sync.WaitGroup) error {
 		defer func() {
 			p.Infow("Flushing")
 			// TODO figure out why this seems to randomly block forever
+			// Seems to maybe be associated with compression
 			err := p.googleCloudLogger.Flush()
 			if err != nil {
 				p.Errorw("Failed to flush to stackdriver", "error", err)

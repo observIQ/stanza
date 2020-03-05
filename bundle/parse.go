@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,9 +16,10 @@ import (
 )
 
 func parseUncompressedBundle(dir string) (*BundleDefinition, error) {
-	var spec *gojsonschema.Schema
+	var schema *gojsonschema.Schema
 	var tmpl *template.Template
 
+	var def *BundleDefinition
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, fileError error) error {
 		if path == dir {
 			return nil
@@ -34,14 +36,25 @@ func parseUncompressedBundle(dir string) (*BundleDefinition, error) {
 				return fmt.Errorf("failed to open spec.json: %s", err)
 			}
 			defer file.Close()
-			spec, err = parseBundleSpec(file)
+			def = &BundleDefinition{}
+			err = parseBundleSpec(file, def)
 			if err != nil {
 				return fmt.Errorf("failed to parse spec.json as a bundle spec: %s", err)
+			}
+		case "schema.json":
+			file, err := os.Open(path)
+			if err != nil {
+				return fmt.Errorf("failed to open schema.json: %s", err)
+			}
+			defer file.Close()
+			schema, err = parseBundleSchema(file)
+			if err != nil {
+				return fmt.Errorf("failed to parse schema.json as a bundle spec: %s", err)
 			}
 		case "config.tmpl":
 			file, err := os.Open(path)
 			if err != nil {
-				return fmt.Errorf("failed to open spec.json: %s", err)
+				return fmt.Errorf("failed to open config.json: %s", err)
 			}
 			defer file.Close()
 			tmpl, err = parseBundleTemplate(file)
@@ -58,22 +71,25 @@ func parseUncompressedBundle(dir string) (*BundleDefinition, error) {
 		return nil, err
 	}
 
-	if spec == nil {
-		return nil, fmt.Errorf("no spec.json found in bundle")
+	if schema == nil {
+		return nil, fmt.Errorf("no schema.json found in bundle")
 	}
 
 	if tmpl == nil {
 		return nil, fmt.Errorf("no config.tmpl found in bundle")
 	}
 
-	def := BundleDefinition{
-		spec:     spec,
-		template: tmpl,
+	if def == nil {
+		return nil, fmt.Errorf("no spec.json found in bundle")
 	}
 
-	return &def, nil
+	def.schema = schema
+	def.template = tmpl
+
+	return def, nil
 }
 
+// TODO there is a bunch of repeated code between this and parseUncompressedBundle. Fix that
 func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 	decompressed, err := gzip.NewReader(file)
 	if err != nil {
@@ -82,9 +98,10 @@ func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 
 	tarReader := tar.NewReader(decompressed)
 
-	var spec *gojsonschema.Schema
+	var schema *gojsonschema.Schema
 	var tmpl *template.Template
 
+	var def *BundleDefinition
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -96,11 +113,16 @@ func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 
 		switch header.Name {
 		case "spec.json":
-			spec, err = parseBundleSpec(tarReader)
+			def = &BundleDefinition{}
+			err = parseBundleSpec(tarReader, def)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse spec.json as a bundle spec: %s", err)
 			}
-
+		case "schema.json":
+			schema, err = parseBundleSchema(tarReader)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse schema.json as a bundle spec: %s", err)
+			}
 		case "config.tmpl":
 			tmpl, err = parseBundleTemplate(tarReader)
 			if err != nil {
@@ -111,23 +133,25 @@ func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 		}
 	}
 
-	if spec == nil {
-		return nil, fmt.Errorf("no spec.json found in bundle")
+	if schema == nil {
+		return nil, fmt.Errorf("no schema.json found in bundle")
 	}
 
 	if tmpl == nil {
 		return nil, fmt.Errorf("no config.tmpl found in bundle")
 	}
 
-	def := BundleDefinition{
-		spec:     spec,
-		template: tmpl,
+	if def == nil {
+		return nil, fmt.Errorf("no spec.json found in bundle")
 	}
 
-	return &def, nil
+	def.schema = schema
+	def.template = tmpl
+
+	return def, nil
 }
 
-func parseBundleSpec(specReader io.Reader) (*gojsonschema.Schema, error) {
+func parseBundleSchema(specReader io.Reader) (*gojsonschema.Schema, error) {
 	specBytes, err := ioutil.ReadAll(specReader)
 	if err != nil {
 		return &gojsonschema.Schema{}, err
@@ -151,4 +175,18 @@ func parseBundleTemplate(templateReader io.Reader) (*template.Template, error) {
 	templateString := buf.String()
 	t := template.New("config")
 	return t.Parse(templateString)
+}
+
+func parseBundleSpec(specReader io.Reader, dest *BundleDefinition) error {
+	specJson, err := ioutil.ReadAll(specReader)
+	if err != nil {
+		return fmt.Errorf("failed to read all of spec: %s", err)
+	}
+
+	err = json.Unmarshal(specJson, dest)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal spec: %s", err)
+	}
+
+	return nil
 }

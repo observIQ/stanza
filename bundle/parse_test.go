@@ -4,30 +4,58 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"html/template"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 const simpleSchema = `{
-  "title": "Example Schema",
+  "title": "Simple Schema",
   "type": "object",
   "properties": {
-    "firstName": {
-      "type": "string"
+    "enabled": {
+      "type": "boolean"
     },
-    "lastName": {
+    "value": {
       "type": "string"
-    },
-    "age": {
-      "description": "Age in years",
-      "type": "integer",
-      "minimum": 0
     }
   },
-  "required": ["firstName", "lastName"]
+  "required": ["enabled", "value"]
 }`
+
+const simpleSpec = `{
+  "bundle_type": "simple",
+  "is_inputter": false,
+  "is_outputter": true
+}`
+
+const simpleTemplate = `
+plugins:
+{{if .enabled}}
+- id: mygenerator
+  type: generate
+  count: 3
+  record:
+    testkey: {{.value}}
+{{end}}
+`
+
+func newFakeBundleDefinition() *BundleDefinition {
+	tmpl, _ := template.New("config").Parse(simpleTemplate)
+	schemaLoader := gojsonschema.NewStringLoader(simpleSchema)
+	schema, _ := gojsonschema.NewSchema(schemaLoader)
+	return &BundleDefinition{
+		BundleType:  "simple",
+		InputID:     "",
+		IsOutputter: true,
+
+		schema:   schema,
+		template: tmpl,
+	}
+}
 
 func TestParseCompressedBundle_RoundTrip(t *testing.T) {
 	tmpl := `{{.Test}}`
@@ -37,7 +65,8 @@ func TestParseCompressedBundle_RoundTrip(t *testing.T) {
 	var files = []struct {
 		Name, Body string
 	}{
-		{"spec.json", simpleSchema},
+		{"schema.json", simpleSchema},
+		{"spec.json", simpleSpec},
 		{"config.tmpl", tmpl},
 	}
 	for _, file := range files {

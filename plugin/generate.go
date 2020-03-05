@@ -14,8 +14,8 @@ func init() {
 }
 
 type GenerateConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash"`
-	DefaultOutputterConfig `mapstructure:",squash"`
+	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 	Record                 map[string]interface{}
 	Count                  int
 }

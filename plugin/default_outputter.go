@@ -15,7 +15,7 @@ func (c DefaultOutputterConfig) Build(plugins map[PluginID]Plugin) (DefaultOutpu
 
 	inputter, ok := outputPlugin.(Inputter)
 	if !ok {
-		return DefaultOutputter{}, fmt.Errorf("plugin with ID '%s' is not an inputter, so can not be outputted to", inputter.ID())
+		return DefaultOutputter{}, fmt.Errorf("plugin with ID '%s' is not an inputter, so can not be outputted to", outputPlugin.ID())
 	}
 
 	return DefaultOutputter{

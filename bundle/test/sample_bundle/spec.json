@@ -1,11 +1,5 @@
 {
-  "type": "object",
-  "properties": {
-    "enable": {
-      "type": "boolean"
-    },
-    "disable": {
-      "type": "boolean"
-    }
-  }
+  "bundle_type": "sample",
+  "is_inputter": false,
+  "is_outputter": true
 }

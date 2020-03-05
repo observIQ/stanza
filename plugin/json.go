@@ -13,9 +13,9 @@ func init() {
 }
 
 type JSONConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash"`
-	DefaultOutputterConfig `mapstructure:",squash"`
-	DefaultInputterConfig  `mapstructure:",squash"`
+	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field            string

@@ -7,8 +7,8 @@ import (
 )
 
 type DefaultPluginConfig struct {
-	PluginID   PluginID `mapstructure:"id"`
-	PluginType string   `mapstructure:"type"`
+	PluginID   PluginID `mapstructure:"id" yaml:"id"`
+	PluginType string   `mapstructure:"type" yaml:"type"`
 }
 
 func (c DefaultPluginConfig) Build(logger *zap.SugaredLogger) (DefaultPlugin, error) {

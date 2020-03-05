@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -13,7 +14,12 @@ import (
 )
 
 type BundleDefinition struct {
-	spec     *gojsonschema.Schema
+	// TODO should this be yaml rather than JSON?
+	BundleType  string `json:"bundle_type"`
+	InputID     string `json:"input_id"`
+	IsOutputter bool   `json:"is_outputter"`
+
+	schema   *gojsonschema.Schema
 	template *template.Template
 }
 
@@ -34,7 +40,7 @@ func (def *BundleDefinition) Render(params map[string]interface{}) (io.Reader, e
 
 func (def *BundleDefinition) Validate(params map[string]interface{}) error {
 	paramsLoader := gojsonschema.NewGoLoader(params)
-	result, err := def.spec.Validate(paramsLoader)
+	result, err := def.schema.Validate(paramsLoader)
 	if err != nil {
 		return fmt.Errorf("failed to run schema validation: %s", err)
 	}
@@ -49,46 +55,41 @@ func (def *BundleDefinition) Validate(params map[string]interface{}) error {
 // TODO find a more elegant way of logging than passing in a logger
 func GetBundleDefinitions(bundleDir string, logger *zap.SugaredLogger) []*BundleDefinition {
 	bundleDefinitions := make([]*BundleDefinition, 0)
-	err := filepath.Walk(bundleDir, newBundleWalkFunc(bundleDefinitions, logger))
+	files, err := ioutil.ReadDir(bundleDir)
 	if err != nil {
-		// TODO do we actually want to be able to throw an error, or should we just log?
-		panic(err)
+		logger.Errorw("Failed to get list of files", "error", err, "bundle_dir", bundleDir)
 	}
 
-	return bundleDefinitions
-}
+	for _, file := range files {
+		path := filepath.Join(bundleDir, file.Name())
 
-func newBundleWalkFunc(bundleDefinitions []*BundleDefinition, logger *zap.SugaredLogger) filepath.WalkFunc {
-	return func(path string, info os.FileInfo, fileError error) error {
-		if fileError != nil {
-			logger.Warnw("File walker failed to process file", "error", fileError, "file", path)
-			return nil
-		}
-
-		if info.IsDir() {
+		// If it's a directory, try to parse it uncompressed
+		if file.IsDir() {
 			bundle, err := parseUncompressedBundle(path)
 			if err != nil {
-				logger.Warnw("Failed to parse directory in bundle directory as bundle", "error", err, "file", path)
-				return nil
+				logger.Warnw("Failed to parse directory in bundle directory as bundle", "error", err, "file", file.Name())
+				continue
 			}
 			bundleDefinitions = append(bundleDefinitions, bundle)
-			return nil
+			continue
 		}
 
+		// Otherwise, try to parse it as a .tar.gz
 		file, err := os.Open(path)
 		if err != nil {
 			logger.Warnw("Failed to open bundle file", "error", err, "file", path)
-			return nil
+			continue
 		}
 		defer file.Close()
 
 		bundle, err := parseCompressedBundle(file)
 		if err != nil {
 			logger.Warnw("Failed to parse file in bundle directory as bundle", "error", err, "file", path)
-			return nil
+			continue
 		}
 
 		bundleDefinitions = append(bundleDefinitions, bundle)
-		return nil
 	}
+
+	return bundleDefinitions
 }

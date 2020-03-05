@@ -12,8 +12,8 @@ func init() {
 }
 
 type LoggerConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash"`
-	DefaultInputterConfig `mapstructure:",squash"`
+	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
 	Level                 string
 }
 

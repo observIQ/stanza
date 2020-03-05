@@ -1,49 +1,18 @@
 package bundle
 
 import (
-	"html/template"
 	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xeipuuv/gojsonschema"
 )
 
 func TestBundleDefinitionRender(t *testing.T) {
-
-	tmpl, err := template.New("config").Parse(`
-plugins:
-{{ if .enable }}
-- id: enabled
-  type: test
-{{ end }}
-{{ if .disable }}
-- id: disabled
-  type: test
-{{ end }}`)
-	assert.NoError(t, err)
-
-	schemaLoader := gojsonschema.NewStringLoader(`{
-  "type": "object",
-  "properties": {
-    "enable": {
-      "type": "boolean"
-    },
-    "disable": {
-      "type": "boolean"
-    }
-  }}`)
-	schema, err := gojsonschema.NewSchema(schemaLoader)
-	assert.NoError(t, err)
-
-	def := BundleDefinition{
-		spec:     schema,
-		template: tmpl,
-	}
+	def := newFakeBundleDefinition()
 
 	params := map[string]interface{}{
-		"enable":  true,
-		"disable": false,
+		"enabled": true,
+		"value":   "testval",
 	}
 
 	configReader, err := def.Render(params)
@@ -54,8 +23,11 @@ plugins:
 
 	expected := `
 plugins:
-- id: enabled
-  type: test`
+- id: mygenerator
+  type: generate
+  count: 3
+  record:
+    testkey: testval`
 	assert.YAMLEq(t, expected, string(config))
 
 }

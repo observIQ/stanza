@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -42,7 +43,11 @@ func main() {
 		return
 	}
 
-	logger.Infow("Unmarshalled the config", "config", cfg)
+	cfgYaml, err := yaml.Marshal(cfg)
+	if err != nil {
+		logger.Errorw("Failed to marshal yaml", "error", err)
+	}
+	logger.Infof("Unmarshalled the config: %s\n", string(cfgYaml))
 
 	agent := bpla.NewLogAgent(cfg, logger)
 

@@ -6,15 +6,15 @@ import (
 )
 
 func init() {
-	RegisterConfig("null", &NullOutputConfig{})
+	RegisterConfig("bundle_output", &BundleOutputConfig{})
 }
 
-type NullOutputConfig struct {
+type BundleOutputConfig struct {
 	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
 	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
 }
 
-func (c *NullOutputConfig) Build(context BuildContext) (Plugin, error) {
+func (c BundleOutputConfig) Build(context BuildContext) (Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -25,28 +25,38 @@ func (c *NullOutputConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	dest := &NullOutput{
-		DefaultPlugin:   defaultPlugin,
-		DefaultInputter: defaultInputter,
+	if context.BundleOutput == nil {
+		return nil, fmt.Errorf("bundle_output plugin can only be used in the context of a bundle")
 	}
 
-	return dest, nil
+	plugin := &BundleOutput{
+		DefaultPlugin:   defaultPlugin,
+		DefaultInputter: defaultInputter,
+		output:          context.BundleOutput,
+	}
+
+	return plugin, nil
 }
 
-type NullOutput struct {
+type BundleOutput struct {
 	DefaultPlugin
 	DefaultInputter
+
+	output EntryChannel
 }
 
-func (p *NullOutput) Start(wg *sync.WaitGroup) error {
+func (p *BundleOutput) Start(wg *sync.WaitGroup) error {
+	wg.Done()
 	go func() {
 		defer wg.Done()
 
 		for {
-			_, ok := <-p.Input()
+			entry, ok := <-p.Input()
 			if !ok {
 				return
 			}
+
+			p.output <- entry
 		}
 	}()
 
