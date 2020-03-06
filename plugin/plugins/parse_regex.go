@@ -1,4 +1,4 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
@@ -6,23 +6,24 @@ import (
 	"sync"
 
 	e "github.com/bluemedora/bplogagent/entry"
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("regex", &RegexConfig{})
+	pg.RegisterConfig("parse_regex", &RegexParserConfig{})
 }
 
-type RegexConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
+type RegexParserConfig struct {
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field string
 	Regex string
 }
 
-func (c RegexConfig) Build(context BuildContext) (Plugin, error) {
+func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("build default plugin: %s", err)
@@ -51,7 +52,7 @@ func (c RegexConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("compiling regex: %s", err)
 	}
 
-	plugin := &RegexPlugin{
+	plugin := &RegexParser{
 		DefaultPlugin:    defaultPlugin,
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
@@ -63,16 +64,16 @@ func (c RegexConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-type RegexPlugin struct {
-	DefaultPlugin
-	DefaultOutputter
-	DefaultInputter
+type RegexParser struct {
+	pg.DefaultPlugin
+	pg.DefaultOutputter
+	pg.DefaultInputter
 
 	field  string
 	regexp *regexp.Regexp
 }
 
-func (p *RegexPlugin) Start(wg *sync.WaitGroup) error {
+func (p *RegexParser) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 		for {
@@ -95,7 +96,7 @@ func (p *RegexPlugin) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (p *RegexPlugin) processEntry(entry e.Entry) (e.Entry, error) {
+func (p *RegexParser) processEntry(entry e.Entry) (e.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
 		return e.Entry{}, fmt.Errorf("field '%s' does not exist on the record", p.field)

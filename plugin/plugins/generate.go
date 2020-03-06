@@ -1,4 +1,4 @@
-package plugin
+package plugins
 
 import (
 	"context"
@@ -7,20 +7,21 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("generate", &GenerateConfig{})
+	pg.RegisterConfig("generate", &GenerateConfig{})
 }
 
 type GenerateConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	Record                 map[string]interface{}
-	Count                  int
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	Record                    map[string]interface{}
+	Count                     int
 }
 
-func (c GenerateConfig) Build(context BuildContext) (Plugin, error) {
+func (c GenerateConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -31,7 +32,7 @@ func (c GenerateConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
 
-	plugin := &GeneratePlugin{
+	plugin := &GenerateSource{
 		config:           c,
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
@@ -39,15 +40,15 @@ func (c GenerateConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-type GeneratePlugin struct {
-	DefaultPlugin
-	DefaultOutputter
+type GenerateSource struct {
+	pg.DefaultPlugin
+	pg.DefaultOutputter
 	config GenerateConfig
 
 	cancel context.CancelFunc
 }
 
-func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
+func (p *GenerateSource) Start(wg *sync.WaitGroup) error {
 	// TODO protect against multiple starts?
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
@@ -79,7 +80,7 @@ func (p *GeneratePlugin) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (p *GeneratePlugin) Stop() {
+func (p *GenerateSource) Stop() {
 	// TODO should this block until exit?
 	p.cancel()
 }

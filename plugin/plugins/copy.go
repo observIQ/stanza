@@ -1,25 +1,26 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"go.uber.org/zap"
 )
 
 func init() {
-	RegisterConfig("copy", &CopyConfig{})
+	pg.RegisterConfig("copy", &CopyConfig{})
 }
 
 type CopyConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
-	PluginOutputs         []PluginID `mapstructure:"outputs"`
-	Field                 string
+	pg.DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
+	PluginOutputs            []pg.PluginID `mapstructure:"outputs"`
+	Field                    string
 }
 
-func (c CopyConfig) Build(context BuildContext) (Plugin, error) {
+func (c CopyConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -30,14 +31,14 @@ func (c CopyConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
 
-	outputs := make([]Inputter, 0)
+	outputs := make([]pg.Inputter, 0)
 	for _, outputID := range c.PluginOutputs {
 		output, ok := context.Plugins[outputID]
 		if !ok {
 			return nil, fmt.Errorf("no output found with ID %s", outputID)
 		}
 
-		inputter, ok := output.(Inputter)
+		inputter, ok := output.(pg.Inputter)
 		if !ok {
 			return nil, fmt.Errorf("output with ID '%s' is not an inputter", outputID)
 		}
@@ -55,15 +56,15 @@ func (c CopyConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-func (c CopyConfig) Outputs() []PluginID {
+func (c CopyConfig) Outputs() []pg.PluginID {
 	return c.PluginOutputs
 }
 
 type CopyPlugin struct {
-	DefaultPlugin
-	DefaultInputter
+	pg.DefaultPlugin
+	pg.DefaultInputter
 
-	outputs []Inputter
+	outputs []pg.Inputter
 	*zap.SugaredLogger
 }
 
@@ -86,7 +87,7 @@ func (p *CopyPlugin) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (p *CopyPlugin) Outputs() []Inputter {
+func (p *CopyPlugin) Outputs() []pg.Inputter {
 	return p.outputs
 }
 

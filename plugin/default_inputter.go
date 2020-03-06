@@ -17,16 +17,16 @@ func (c DefaultInputterConfig) Build() (DefaultInputter, error) {
 	}
 
 	return DefaultInputter{
-		input: make(chan entry.Entry, bufferSize),
+		InputChannel: make(chan entry.Entry, bufferSize),
 	}, nil
 }
 
 func (c DefaultInputterConfig) IsInputter() {}
 
 type DefaultInputter struct {
-	input EntryChannel
+	InputChannel EntryChannel
 }
 
 func (s *DefaultInputter) Input() EntryChannel {
-	return s.input
+	return s.InputChannel
 }

@@ -1,4 +1,4 @@
-package plugin
+package plugins
 
 import (
 	"crypto/rand"
@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/assert"
 )
 
-func testInputterExitsOnChannelClose(t *testing.T, inputter Inputter) {
+func testInputterExitsOnChannelClose(t *testing.T, inputter pg.Inputter) {
 	// Ensure that the plugin output isn't blocked
-	if outputter, ok := inputter.(Outputter); ok {
+	if outputter, ok := inputter.(pg.Outputter); ok {
 		for _, inputter := range outputter.Outputs() {
 			consumeEntries(inputter.Input())
 		}
@@ -28,7 +29,7 @@ func testInputterExitsOnChannelClose(t *testing.T, inputter Inputter) {
 	assert.NoError(t, err)
 
 	// Close output channels on exit
-	if outputter, ok := inputter.(Outputter); ok {
+	if outputter, ok := inputter.(pg.Outputter); ok {
 		go func() {
 			wg.Wait()
 			for _, inputter := range outputter.Outputs() {
@@ -53,7 +54,7 @@ func testInputterExitsOnChannelClose(t *testing.T, inputter Inputter) {
 	}
 }
 
-func consumeEntries(channel EntryChannel) {
+func consumeEntries(channel pg.EntryChannel) {
 	go func() {
 		for {
 			_, ok := <-channel
@@ -102,8 +103,8 @@ var standardInputterBenchmarks = []inputterBenchmark{
 	{2, 10, 10},
 }
 
-func benchmarkInputter(b *testing.B, inputter Inputter, bm inputterBenchmark, generate func(int, int, int) map[string]interface{}) {
-	if outputter, ok := inputter.(Outputter); ok {
+func benchmarkInputter(b *testing.B, inputter pg.Inputter, bm inputterBenchmark, generate func(int, int, int) map[string]interface{}) {
+	if outputter, ok := inputter.(pg.Outputter); ok {
 		for _, inputter := range outputter.Outputs() {
 			consumeEntries(inputter.Input())
 		}
@@ -113,7 +114,7 @@ func benchmarkInputter(b *testing.B, inputter Inputter, bm inputterBenchmark, ge
 	wg.Add(1)
 	inputter.Start(wg)
 
-	if outputter, ok := inputter.(Outputter); ok {
+	if outputter, ok := inputter.(pg.Outputter); ok {
 		go func() {
 			wg.Wait()
 			for _, inputter := range outputter.Outputs() {

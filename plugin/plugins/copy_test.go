@@ -1,27 +1,28 @@
-package plugin
+package plugins
 
 import (
 	"testing"
 
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 )
 
 func NewFakeCopyPlugin() *CopyPlugin {
 	out1 := newFakeNullOutput()
-	out1.id = "out1"
+	out1.PluginID = "out1"
 
 	out2 := newFakeNullOutput()
-	out2.id = "out2"
+	out2.PluginID = "out2"
 	return &CopyPlugin{
-		DefaultPlugin: DefaultPlugin{
-			id:         "test",
-			pluginType: "copy",
+		DefaultPlugin: pg.DefaultPlugin{
+			PluginID:   "test",
+			PluginType: "copy",
 		},
-		DefaultInputter: DefaultInputter{
-			input: make(EntryChannel, 10),
+		DefaultInputter: pg.DefaultInputter{
+			InputChannel: make(pg.EntryChannel, 10),
 		},
-		outputs: []Inputter{
+		outputs: []pg.Inputter{
 			out1,
 			out2,
 		},
@@ -29,9 +30,9 @@ func NewFakeCopyPlugin() *CopyPlugin {
 }
 
 func TestCopyImplementations(t *testing.T) {
-	assert.Implements(t, (*Outputter)(nil), new(CopyPlugin))
-	assert.Implements(t, (*Inputter)(nil), new(CopyPlugin))
-	assert.Implements(t, (*Plugin)(nil), new(CopyPlugin))
+	assert.Implements(t, (*pg.Outputter)(nil), new(CopyPlugin))
+	assert.Implements(t, (*pg.Inputter)(nil), new(CopyPlugin))
+	assert.Implements(t, (*pg.Plugin)(nil), new(CopyPlugin))
 }
 
 func TestCopyExitsOnChannelClose(t *testing.T) {

@@ -1,23 +1,24 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
 	"sync"
 
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"go.uber.org/zap/zapcore"
 )
 
 func init() {
-	RegisterConfig("logger", &LoggerConfig{})
+	pg.RegisterConfig("log", &LogOutputConfig{})
 }
 
-type LoggerConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
-	Level                 string
+type LogOutputConfig struct {
+	pg.DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
+	Level                    string
 }
 
-func (c LoggerConfig) Build(context BuildContext) (Plugin, error) {
+func (c LogOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	newLogger := context.Logger.With("plugin_type", "logger", "plugin_id", c.ID())
 
 	if c.Level == "" {
@@ -54,7 +55,7 @@ func (c LoggerConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	plugin := &LoggerPlugin{
+	plugin := &LogOutput{
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
 		logFunc:         logFunc,
@@ -63,14 +64,14 @@ func (c LoggerConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-type LoggerPlugin struct {
-	DefaultPlugin
-	DefaultInputter
+type LogOutput struct {
+	pg.DefaultPlugin
+	pg.DefaultInputter
 
 	logFunc func(string, ...interface{})
 }
 
-func (p *LoggerPlugin) Start(wg *sync.WaitGroup) error {
+func (p *LogOutput) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 

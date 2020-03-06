@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/plugins"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ plugins:
 
 	expectedConfig := Config{
 		Plugins: []plugin.PluginConfig{
-			&plugin.GenerateConfig{
+			&plugins.GenerateConfig{
 				DefaultPluginConfig: plugin.DefaultPluginConfig{
 					PluginID:   "mygenerate",
 					PluginType: "generate",

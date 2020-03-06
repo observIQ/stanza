@@ -19,7 +19,7 @@ func (c DefaultOutputterConfig) Build(plugins map[PluginID]Plugin) (DefaultOutpu
 	}
 
 	return DefaultOutputter{
-		outputPlugin: inputter,
+		OutputPlugin: inputter,
 	}, nil
 }
 
@@ -29,13 +29,13 @@ func (c DefaultOutputterConfig) Outputs() []PluginID {
 
 // DefaultOutputter
 type DefaultOutputter struct {
-	outputPlugin Inputter
+	OutputPlugin Inputter
 }
 
 func (s *DefaultOutputter) Outputs() []Inputter {
-	return []Inputter{s.outputPlugin}
+	return []Inputter{s.OutputPlugin}
 }
 
 func (s *DefaultOutputter) Output() EntryChannel {
-	return s.outputPlugin.Input()
+	return s.OutputPlugin.Input()
 }

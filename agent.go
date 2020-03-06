@@ -7,6 +7,7 @@ import (
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/config"
 	pg "github.com/bluemedora/bplogagent/plugin"
+	_ "github.com/bluemedora/bplogagent/plugin/plugins" // register plugins
 	"go.uber.org/zap"
 )
 

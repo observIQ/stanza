@@ -1,9 +1,10 @@
-package plugin
+package plugins
 
 import (
 	"testing"
 
 	"cloud.google.com/go/logging"
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 	"go.uber.org/zap"
@@ -33,13 +34,13 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
 	return &GoogleCloudLoggingPlugin{
-		DefaultPlugin: DefaultPlugin{
-			id:            "test",
-			pluginType:    "GoogleCloudLogging",
+		DefaultPlugin: pg.DefaultPlugin{
+			PluginID:      "test",
+			PluginType:    "GoogleCloudLogging",
 			SugaredLogger: sugaredLogger,
 		},
-		DefaultInputter: DefaultInputter{
-			input: make(EntryChannel, 10),
+		DefaultInputter: pg.DefaultInputter{
+			InputChannel: make(pg.EntryChannel, 10),
 		},
 		googleCloudLogger: newFakeGoogleCloudLogger(),
 		projectID:         "testproject",
@@ -47,8 +48,8 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
 }
 
 func TestGoogleCloudLoggingImplementations(t *testing.T) {
-	assert.Implements(t, (*Inputter)(nil), new(GoogleCloudLoggingPlugin))
-	assert.Implements(t, (*Plugin)(nil), new(GoogleCloudLoggingPlugin))
+	assert.Implements(t, (*pg.Inputter)(nil), new(GoogleCloudLoggingPlugin))
+	assert.Implements(t, (*pg.Plugin)(nil), new(GoogleCloudLoggingPlugin))
 }
 
 func TestGoogleCloudLoggingExitsOnInputClose(t *testing.T) {

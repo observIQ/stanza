@@ -1,25 +1,27 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
 	"sync"
 	"time"
+
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("rate_limit", &RateLimitConfig{})
+	pg.RegisterConfig("rate_limit", &RateLimitConfig{})
 }
 
 type RateLimitConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
-	Rate                   float64
-	Interval               float64
-	Burst                  uint64
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
+	Rate                      float64
+	Interval                  float64
+	Burst                     uint64
 }
 
-func (c RateLimitConfig) Build(context BuildContext) (Plugin, error) {
+func (c RateLimitConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 	var interval time.Duration
 	if c.Rate != 0 && c.Interval != 0 {
@@ -57,9 +59,9 @@ func (c RateLimitConfig) Build(context BuildContext) (Plugin, error) {
 }
 
 type RateLimitPlugin struct {
-	DefaultPlugin
-	DefaultOutputter
-	DefaultInputter
+	pg.DefaultPlugin
+	pg.DefaultOutputter
+	pg.DefaultInputter
 
 	// Processed fields
 	burst    uint64

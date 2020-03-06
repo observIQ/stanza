@@ -1,27 +1,28 @@
-package plugin
+package plugins
 
 import (
 	"encoding/json"
 	"testing"
 
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 	"go.uber.org/zap"
 )
 
-func NewFakeJSONPlugin() *JSONPlugin {
+func NewFakeJSONPlugin() *JSONParser {
 	logger, _ := zap.NewProduction()
-	return &JSONPlugin{
-		DefaultPlugin: DefaultPlugin{
-			id:            "test",
-			pluginType:    "json",
+	return &JSONParser{
+		DefaultPlugin: pg.DefaultPlugin{
+			PluginID:      "test",
+			PluginType:    "json",
 			SugaredLogger: logger.Sugar(),
 		},
-		DefaultInputter: DefaultInputter{
-			input: make(EntryChannel, 10),
+		DefaultInputter: pg.DefaultInputter{
+			InputChannel: make(pg.EntryChannel, 10),
 		},
-		DefaultOutputter: DefaultOutputter{
-			outputPlugin: newFakeNullOutput(),
+		DefaultOutputter: pg.DefaultOutputter{
+			OutputPlugin: newFakeNullOutput(),
 		},
 		field:            "testfield",
 		destinationField: "testparsed",
@@ -29,9 +30,9 @@ func NewFakeJSONPlugin() *JSONPlugin {
 }
 
 func TestJSONImplementations(t *testing.T) {
-	assert.Implements(t, (*Outputter)(nil), new(JSONPlugin))
-	assert.Implements(t, (*Inputter)(nil), new(JSONPlugin))
-	assert.Implements(t, (*Plugin)(nil), new(JSONPlugin))
+	assert.Implements(t, (*pg.Outputter)(nil), new(JSONParser))
+	assert.Implements(t, (*pg.Inputter)(nil), new(JSONParser))
+	assert.Implements(t, (*pg.Plugin)(nil), new(JSONParser))
 }
 
 func TestJSONExitsOnInputClose(t *testing.T) {

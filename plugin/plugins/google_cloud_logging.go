@@ -1,4 +1,4 @@
-package plugin
+package plugins
 
 import (
 	"context"
@@ -8,21 +8,22 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"google.golang.org/api/option"
 )
 
 func init() {
-	RegisterConfig("google_cloud_logging", &GoogleCloudLoggingOutputConfig{})
+	pg.RegisterConfig("google_cloud_logging", &GoogleCloudLoggingOutputConfig{})
 }
 
 type GoogleCloudLoggingOutputConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials           string
-	ProjectID             string `mapstructure:"project_id"`
+	pg.DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
+	Credentials              string
+	ProjectID                string `mapstructure:"project_id"`
 }
 
-func (c GoogleCloudLoggingOutputConfig) Build(buildContext BuildContext) (Plugin, error) {
+func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
 	options := make([]option.ClientOption, 0, 2)
 
 	// TODO configure bundle size
@@ -79,8 +80,8 @@ type GoogleCloudLogger interface {
 }
 
 type GoogleCloudLoggingPlugin struct {
-	DefaultPlugin
-	DefaultInputter
+	pg.DefaultPlugin
+	pg.DefaultInputter
 
 	googleCloudLogger GoogleCloudLogger
 	projectID         string

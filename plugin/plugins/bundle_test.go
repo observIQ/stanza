@@ -1,26 +1,27 @@
-package plugin
+package plugins
 
 import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/bundle"
+	pg "github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 func TestBasicBundlePluginFunctionality(t *testing.T) {
 	config := &BundleConfig{
-		DefaultPluginConfig: DefaultPluginConfig{
+		DefaultPluginConfig: pg.DefaultPluginConfig{
 			PluginID:   "mybundle",
 			PluginType: "bundle",
 		},
-		DefaultBundleConfig: DefaultBundleConfig{
+		DefaultBundleConfig: pg.DefaultBundleConfig{
 			BundleType: "noop",
 			Params: map[string]interface{}{
 				"enabled": true,
 			},
 		},
-		DefaultOutputterConfig: DefaultOutputterConfig{
+		DefaultOutputterConfig: pg.DefaultOutputterConfig{
 			Output: "mybundlereceiver",
 		},
 	}
@@ -31,16 +32,16 @@ func TestBasicBundlePluginFunctionality(t *testing.T) {
 	bundles := bundle.GetBundleDefinitions("./test/bundles", logger.Sugar())
 	assert.Greater(t, len(bundles), 0)
 
-	buildContext := BuildContext{
-		Plugins: map[PluginID]Plugin{
-			"mybundlereceiver": &NullOutput{
-				DefaultPlugin: DefaultPlugin{
-					id:            "mybundlereceiver",
-					pluginType:    "null",
+	buildContext := pg.BuildContext{
+		Plugins: map[pg.PluginID]pg.Plugin{
+			"mybundlereceiver": &DropOutput{
+				DefaultPlugin: pg.DefaultPlugin{
+					PluginID:      "mybundlereceiver",
+					PluginType:    "null",
 					SugaredLogger: logger.Sugar(),
 				},
-				DefaultInputter: DefaultInputter{
-					input: make(EntryChannel, 1),
+				DefaultInputter: pg.DefaultInputter{
+					InputChannel: make(pg.EntryChannel, 1),
 				},
 			},
 		},

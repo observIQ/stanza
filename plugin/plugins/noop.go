@@ -1,21 +1,23 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
 	"sync"
+
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("noop", &NoopConfig{})
+	pg.RegisterConfig("noop", &NoopConfig{})
 }
 
 type NoopConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 }
 
-func (c *NoopConfig) Build(context BuildContext) (Plugin, error) {
+func (c *NoopConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -31,7 +33,7 @@ func (c *NoopConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
 	}
 
-	plugin := &NoopOutput{
+	plugin := &NoopParser{
 		DefaultPlugin:    defaultPlugin,
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
@@ -40,13 +42,13 @@ func (c *NoopConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-type NoopOutput struct {
-	DefaultPlugin
-	DefaultInputter
-	DefaultOutputter
+type NoopParser struct {
+	pg.DefaultPlugin
+	pg.DefaultInputter
+	pg.DefaultOutputter
 }
 
-func (p *NoopOutput) Start(wg *sync.WaitGroup) error {
+func (p *NoopParser) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 

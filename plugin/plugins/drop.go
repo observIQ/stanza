@@ -1,20 +1,22 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
 	"sync"
+
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("null", &NullOutputConfig{})
+	pg.RegisterConfig("drop", &DropOutputConfig{})
 }
 
-type NullOutputConfig struct {
-	DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
+type DropOutputConfig struct {
+	pg.DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
 }
 
-func (c *NullOutputConfig) Build(context BuildContext) (Plugin, error) {
+func (c *DropOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -25,7 +27,7 @@ func (c *NullOutputConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
-	dest := &NullOutput{
+	dest := &DropOutput{
 		DefaultPlugin:   defaultPlugin,
 		DefaultInputter: defaultInputter,
 	}
@@ -33,12 +35,12 @@ func (c *NullOutputConfig) Build(context BuildContext) (Plugin, error) {
 	return dest, nil
 }
 
-type NullOutput struct {
-	DefaultPlugin
-	DefaultInputter
+type DropOutput struct {
+	pg.DefaultPlugin
+	pg.DefaultInputter
 }
 
-func (p *NullOutput) Start(wg *sync.WaitGroup) error {
+func (p *DropOutput) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 

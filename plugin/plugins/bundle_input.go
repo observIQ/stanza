@@ -1,20 +1,22 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
 	"sync"
+
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("bundle_input", &BundleInputConfig{})
+	pg.RegisterConfig("bundle_input", &BundleInputConfig{})
 }
 
 type BundleInputConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 }
 
-func (c BundleInputConfig) Build(context BuildContext) (Plugin, error) {
+func (c BundleInputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -39,10 +41,10 @@ func (c BundleInputConfig) Build(context BuildContext) (Plugin, error) {
 }
 
 type BundleInput struct {
-	DefaultPlugin
-	DefaultOutputter
+	pg.DefaultPlugin
+	pg.DefaultOutputter
 
-	input EntryChannel
+	input pg.EntryChannel
 }
 
 func (p *BundleInput) Start(wg *sync.WaitGroup) error {

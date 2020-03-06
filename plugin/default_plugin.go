@@ -21,8 +21,8 @@ func (c DefaultPluginConfig) Build(logger *zap.SugaredLogger) (DefaultPlugin, er
 	}
 
 	plugin := DefaultPlugin{
-		id:            c.PluginID,
-		pluginType:    c.Type(),
+		PluginID:      c.PluginID,
+		PluginType:    c.Type(),
 		SugaredLogger: logger.With("plugin_type", c.PluginType, "plugin_id", c.PluginID),
 	}
 
@@ -38,15 +38,15 @@ func (c DefaultPluginConfig) Type() string {
 }
 
 type DefaultPlugin struct {
-	id         PluginID
-	pluginType string
+	PluginID   PluginID
+	PluginType string
 	*zap.SugaredLogger
 }
 
 func (p *DefaultPlugin) ID() PluginID {
-	return p.id
+	return p.PluginID
 }
 
 func (p *DefaultPlugin) Type() string {
-	return p.pluginType
+	return p.PluginType
 }

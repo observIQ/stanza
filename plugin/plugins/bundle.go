@@ -1,21 +1,23 @@
-package plugin
+package plugins
 
 import (
 	"fmt"
+
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("bundle", &BundleConfig{})
+	pg.RegisterConfig("bundle", &BundleConfig{})
 }
 
 type BundleConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
-	DefaultBundleConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultBundleConfig    `mapstructure:",squash" yaml:",inline"`
 }
 
-func (c BundleConfig) Build(context BuildContext) (Plugin, error) {
+func (c BundleConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("build default plugin: %s", err)
@@ -29,8 +31,8 @@ func (c BundleConfig) Build(context BuildContext) (Plugin, error) {
 	isInputter := hasBundleOfType(configs, "bundle_input")
 	isOutputter := hasBundleOfType(configs, "bundle_output")
 
-	var defaultInputter DefaultInputter
-	var defaultOutputter DefaultOutputter
+	var defaultInputter pg.DefaultInputter
+	var defaultOutputter pg.DefaultOutputter
 	if isInputter {
 		defaultInputter, err = c.DefaultInputterConfig.Build()
 		context.BundleInput = defaultInputter.Input()
@@ -52,7 +54,7 @@ func (c BundleConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("build default bundle: %s", err)
 	}
 
-	var plugin Plugin
+	var plugin pg.Plugin
 	switch {
 	case isInputter && isOutputter:
 		plugin = &BothputterBundle{
@@ -83,7 +85,7 @@ func (c BundleConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-func hasBundleOfType(configs []PluginConfig, bundleType string) bool {
+func hasBundleOfType(configs []pg.PluginConfig, bundleType string) bool {
 	for _, config := range configs {
 		if config.Type() == bundleType {
 			return true
@@ -93,24 +95,24 @@ func hasBundleOfType(configs []PluginConfig, bundleType string) bool {
 }
 
 type InputterBundle struct {
-	DefaultPlugin
-	DefaultBundle
-	DefaultInputter
+	pg.DefaultPlugin
+	pg.DefaultBundle
+	pg.DefaultInputter
 }
 type OutputterBundle struct {
-	DefaultPlugin
-	DefaultBundle
-	DefaultOutputter
+	pg.DefaultPlugin
+	pg.DefaultBundle
+	pg.DefaultOutputter
 }
 
 type NeitherputterBundle struct {
-	DefaultPlugin
-	DefaultBundle
+	pg.DefaultPlugin
+	pg.DefaultBundle
 }
 
 type BothputterBundle struct {
-	DefaultPlugin
-	DefaultBundle
-	DefaultInputter
-	DefaultOutputter
+	pg.DefaultPlugin
+	pg.DefaultBundle
+	pg.DefaultInputter
+	pg.DefaultOutputter
 }

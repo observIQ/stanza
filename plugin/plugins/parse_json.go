@@ -1,4 +1,4 @@
-package plugin
+package plugins
 
 import (
 	"encoding/json"
@@ -6,23 +6,24 @@ import (
 	"sync"
 
 	e "github.com/bluemedora/bplogagent/entry"
+	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
 func init() {
-	RegisterConfig("json", &JSONConfig{})
+	pg.RegisterConfig("json_parser", &JSONParserConfig{})
 }
 
-type JSONConfig struct {
-	DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
+type JSONParserConfig struct {
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field            string
 	DestinationField string
 }
 
-func (c JSONConfig) Build(context BuildContext) (Plugin, error) {
+func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
@@ -42,7 +43,7 @@ func (c JSONConfig) Build(context BuildContext) (Plugin, error) {
 		return nil, fmt.Errorf("missing required field 'field'")
 	}
 
-	plugin := &JSONPlugin{
+	plugin := &JSONParser{
 		DefaultPlugin:    defaultPlugin,
 		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
@@ -54,16 +55,16 @@ func (c JSONConfig) Build(context BuildContext) (Plugin, error) {
 	return plugin, nil
 }
 
-type JSONPlugin struct {
-	DefaultPlugin
-	DefaultOutputter
-	DefaultInputter
+type JSONParser struct {
+	pg.DefaultPlugin
+	pg.DefaultOutputter
+	pg.DefaultInputter
 
 	field            string
 	destinationField string
 }
 
-func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {
+func (p *JSONParser) Start(wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 		for {
@@ -86,7 +87,7 @@ func (p *JSONPlugin) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (p *JSONPlugin) processEntry(entry e.Entry) (e.Entry, error) {
+func (p *JSONParser) processEntry(entry e.Entry) (e.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
 		return e.Entry{}, fmt.Errorf("field '%s' does not exist on the record", p.field)
