@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"hash/fnv"
 
+	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
 )
 
 type PluginGraph struct {
-	graph *simple.DirectedGraph
+	Graph *simple.DirectedGraph
 }
 
 type pluginNode struct {
@@ -73,7 +74,7 @@ func (pluginGraph *PluginGraph) Stop() {
 // TODO this should never error, since we sorted the configs
 // during build time, but I should think about this more closely
 func (pluginGraph *PluginGraph) SortedPlugins() []Plugin {
-	sortedNodes, err := topo.Sort(pluginGraph.graph)
+	sortedNodes, err := topo.Sort(pluginGraph.Graph)
 	if err != nil {
 		panic(err)
 	}
@@ -85,4 +86,8 @@ func (pluginGraph *PluginGraph) SortedPlugins() []Plugin {
 
 	return plugins
 
+}
+
+func (pluginGraph *PluginGraph) MarshalDot() ([]byte, error) {
+	return dot.Marshal(pluginGraph.Graph, "G", "", " ")
 }

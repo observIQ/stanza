@@ -37,14 +37,24 @@ func (a *LogAgent) Start() error {
 		Plugins: make(map[pg.PluginID]pg.Plugin),
 		Bundles: bundles,
 	}
+
 	a.plugins, err = configGraph.Build(buildContext)
 	if err != nil {
 		return err
 	}
+
+	dotGraph, err := a.plugins.MarshalDot()
+	if err != nil {
+		a.Warnw("Failed to marshal plugin graph as dot", "error", err)
+	} else {
+		a.Infof("Plugin graph:\n%s", dotGraph)
+	}
+
 	err = a.plugins.Start()
 	if err != nil {
 		return err
 	}
+	a.Info("Started plugins")
 
 	return nil
 }
@@ -54,7 +64,6 @@ func (a *LogAgent) Stop() {
 	a.plugins.Stop()
 
 	a.plugins = nil
-	<-a.started
 	a.Info("Log agent stopped cleanly")
 }
 

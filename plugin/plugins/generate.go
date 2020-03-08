@@ -46,16 +46,18 @@ type GenerateSource struct {
 	config GenerateConfig
 
 	cancel context.CancelFunc
+	wg     *sync.WaitGroup
 }
 
-func (p *GenerateSource) Start(wg *sync.WaitGroup) error {
+func (p *GenerateSource) Start() error {
 	// TODO protect against multiple starts?
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
+	p.wg = &sync.WaitGroup{}
+	p.wg.Add(1)
 
 	go func() {
-		defer wg.Done()
-
+		p.wg.Done()
 		i := 0
 		for {
 			select {
@@ -86,8 +88,8 @@ func (p *GenerateSource) Start(wg *sync.WaitGroup) error {
 }
 
 func (p *GenerateSource) Stop() {
-	// TODO should this block until exit?
 	p.cancel()
+	p.wg.Wait()
 }
 
 // TODO This is a really dumb implementation right now.
