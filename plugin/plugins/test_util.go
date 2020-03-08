@@ -16,7 +16,7 @@ func (b inputterBenchmark) String() string {
 	return fmt.Sprintf("Fields=%d,Depth=%d,Length=%d", b.fields, b.depth, b.fieldLength)
 }
 
-func (b inputterBenchmark) EstimatedBytes() int {
+func (b inputterBenchmark) EstimatedBytes() int64 {
 	pow := func(a, b int) int {
 		n := 1
 		for i := 0; i < b; i++ {
@@ -31,7 +31,7 @@ func (b inputterBenchmark) EstimatedBytes() int {
 	}
 	bytes += pow(b.fields, b.depth+1) * b.fieldLength
 
-	return bytes
+	return int64(bytes)
 }
 
 var standardInputterBenchmarks = []inputterBenchmark{

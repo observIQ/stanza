@@ -1,11 +1,11 @@
 package plugins
 
 import (
-	"encoding/json"
 	"fmt"
 
 	e "github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/json-iterator/go"
 )
 
 func init() {
@@ -42,6 +42,7 @@ func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 		field:            c.Field,
 		destinationField: c.DestinationField,
+		json:             jsoniter.ConfigFastest,
 	}
 
 	return plugin, nil
@@ -53,6 +54,7 @@ type JSONParser struct {
 
 	field            string
 	destinationField string
+	json             jsoniter.API
 }
 
 func (p *JSONParser) Input(entry *e.Entry) error {
@@ -76,9 +78,8 @@ func (p *JSONParser) processEntry(entry *e.Entry) (*e.Entry, error) {
 		return nil, fmt.Errorf("field '%s' can not be parsed as JSON because it is of type %T", p.field, message)
 	}
 
-	// TODO consider using faster json decoder (fastjson?)
 	var parsedMessage map[string]interface{}
-	err := json.Unmarshal([]byte(messageString), &parsedMessage)
+	err := p.json.UnmarshalFromString(messageString, &parsedMessage)
 	if err != nil {
 		return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
 	}
