@@ -24,12 +24,12 @@ type JSONParserConfig struct {
 func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+		return nil, fmt.Errorf("build default plugin: %s", err)
 	}
 
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default outputter: %s", err)
+		return nil, fmt.Errorf("build default outputter: %s", err)
 	}
 
 	if c.Field == "" {
@@ -80,7 +80,7 @@ func (p *JSONParser) processEntry(entry *e.Entry) (*e.Entry, error) {
 	var parsedMessage map[string]interface{}
 	err := json.Unmarshal([]byte(messageString), &parsedMessage)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse field %s as JSON: %w", p.field, err)
+		return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
 	}
 
 	if p.destinationField == "" {

@@ -33,7 +33,7 @@ func NewPluginConfigGraph(configs []PluginConfig) (*PluginConfigGraph, error) {
 		for outputID, outputNodeID := range node.NodeOutputIDs() {
 			outputNode := configGraph.Node(outputNodeID)
 			if outputNode == nil {
-				return nil, fmt.Errorf("failed to find node for output ID %s", outputID)
+				return nil, fmt.Errorf("find node for output ID %s", outputID)
 			}
 			edge := configGraph.NewEdge(node, outputNode)
 			configGraph.SetEdge(edge)
@@ -84,7 +84,7 @@ func (configGraph *PluginConfigGraph) Build(buildContext BuildContext) (*PluginG
 	sortedNodes, err := topo.Sort(configGraph.graph)
 	if err != nil {
 		// TODO make this error message more user-readable
-		return nil, fmt.Errorf("failed to order plugin dependencies: %s", err)
+		return nil, fmt.Errorf("order plugin dependencies: %s", err)
 	}
 
 	// Build the configs in reverse topological order
@@ -101,7 +101,7 @@ func (configGraph *PluginConfigGraph) Build(buildContext BuildContext) (*PluginG
 
 		plugin, err := configNode.PluginConfig.Build(buildContext)
 		if err != nil {
-			return nil, fmt.Errorf("failed to build plugin with id '%s': %s", configNode.PluginConfig.ID(), err)
+			return nil, fmt.Errorf("build plugin with id '%s': %s", configNode.PluginConfig.ID(), err)
 		}
 
 		buildContext.Plugins[plugin.ID()] = plugin
@@ -127,7 +127,7 @@ func (configGraph *PluginConfigGraph) Build(buildContext BuildContext) (*PluginG
 		for outputID, outputNodeID := range node.NodeOutputIDs() {
 			outputNode := pluginGraph.Node(outputNodeID)
 			if outputNode == nil {
-				return nil, fmt.Errorf("failed to find node for output ID %s", outputID)
+				return nil, fmt.Errorf("find node for output ID %s", outputID)
 			}
 			edge := pluginGraph.NewEdge(node, outputNode)
 			pluginGraph.SetEdge(edge)

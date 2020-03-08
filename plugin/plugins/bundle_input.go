@@ -19,12 +19,12 @@ type BundleInputConfig struct {
 func (c BundleInputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+		return nil, fmt.Errorf("build default plugin: %s", err)
 	}
 
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default inputter: %s", err)
+		return nil, fmt.Errorf("build default inputter: %s", err)
 	}
 
 	if !context.IsBundle {

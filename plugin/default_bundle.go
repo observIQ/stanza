@@ -27,7 +27,7 @@ func (c DefaultBundleConfig) RenderPluginConfigs(bundles []*bundle.BundleDefinit
 	// Render the bundle config
 	renderedConfig, err := bundleDefinition.Render(c.Params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to render bundle config: %s", err)
+		return nil, fmt.Errorf("render bundle config: %s", err)
 	}
 
 	// Parse the rendered config
@@ -36,14 +36,14 @@ func (c DefaultBundleConfig) RenderPluginConfigs(bundles []*bundle.BundleDefinit
 	v.SetConfigType("yaml")
 	err = v.ReadConfig(renderedConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config into viper: %s", err)
+		return nil, fmt.Errorf("read config into viper: %s", err)
 	}
 	var pluginUnmarshaller struct {
 		Plugins []PluginConfig
 	}
 	err = v.UnmarshalExact(&pluginUnmarshaller, UnmarshalHook)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal from viper: %s", err)
+		return nil, fmt.Errorf("unmarshal from viper: %s", err)
 	}
 
 	return pluginUnmarshaller.Plugins, nil

@@ -21,7 +21,7 @@ type CopyConfig struct {
 func (c CopyConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+		return nil, fmt.Errorf("build default plugin: %s", err)
 	}
 
 	outputs := make([]pg.Inputter, 0)

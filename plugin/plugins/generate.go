@@ -24,12 +24,12 @@ type GenerateConfig struct {
 func (c GenerateConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+		return nil, fmt.Errorf("build default plugin: %s", err)
 	}
 
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default outputter: %s", err)
+		return nil, fmt.Errorf("build default outputter: %s", err)
 	}
 
 	plugin := &GenerateSource{
@@ -71,7 +71,7 @@ func (p *GenerateSource) Start(wg *sync.WaitGroup) error {
 
 			err := p.Output(entry)
 			if err != nil {
-				p.Warnw("Failed to process entry", "error", err)
+				p.Warnw("process entry", "error", err)
 			}
 
 			i += 1

@@ -27,7 +27,7 @@ func (c LogOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	level := new(zapcore.Level)
 	err := level.UnmarshalText([]byte(c.Level))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse level: %s", err)
+		return nil, fmt.Errorf("parse level: %s", err)
 	}
 
 	var logFunc func(string, ...interface{})
@@ -46,7 +46,7 @@ func (c LogOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+		return nil, fmt.Errorf("build default plugin: %s", err)
 	}
 
 	plugin := &LogOutput{

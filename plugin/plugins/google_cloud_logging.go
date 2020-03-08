@@ -46,7 +46,7 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.
 	defer cancel()
 	client, err := logging.NewClient(ctx, c.ProjectID, options...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create logging client: %w", err)
+		return nil, fmt.Errorf("create logging client: %w", err)
 	}
 	// TODO client.Ping(). Maybe should be in the Start() method
 
@@ -54,7 +54,7 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.
 
 	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build default plugin: %s", err)
+		return nil, fmt.Errorf("build default plugin: %s", err)
 	}
 
 	dest := &GoogleCloudLoggingPlugin{

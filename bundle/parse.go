@@ -33,33 +33,33 @@ func parseUncompressedBundle(dir string) (*BundleDefinition, error) {
 		case "spec.json":
 			file, err := os.Open(path)
 			if err != nil {
-				return fmt.Errorf("failed to open spec.json: %s", err)
+				return err
 			}
 			defer file.Close()
 			def = &BundleDefinition{}
 			err = parseBundleSpec(file, def)
 			if err != nil {
-				return fmt.Errorf("failed to parse spec.json as a bundle spec: %s", err)
+				return fmt.Errorf("parse spec.json as a bundle spec: %s", err)
 			}
 		case "schema.json":
 			file, err := os.Open(path)
 			if err != nil {
-				return fmt.Errorf("failed to open schema.json: %s", err)
+				return err
 			}
 			defer file.Close()
 			schema, err = parseBundleSchema(file)
 			if err != nil {
-				return fmt.Errorf("failed to parse schema.json as a bundle spec: %s", err)
+				return fmt.Errorf("parse schema.json as a bundle spec: %s", err)
 			}
 		case "config.tmpl":
 			file, err := os.Open(path)
 			if err != nil {
-				return fmt.Errorf("failed to open config.json: %s", err)
+				return err
 			}
 			defer file.Close()
 			tmpl, err = parseBundleTemplate(file)
 			if err != nil {
-				return fmt.Errorf("failed to parse config.tmpl as a go template: %s", err)
+				return fmt.Errorf("parse config.tmpl as a go template: %s", err)
 			}
 		default:
 			return fmt.Errorf("bundle contains an unknown file '%s'", info.Name())
@@ -93,7 +93,7 @@ func parseUncompressedBundle(dir string) (*BundleDefinition, error) {
 func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 	decompressed, err := gzip.NewReader(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode file as gzip: %s", err)
+		return nil, fmt.Errorf("decode file as gzip: %s", err)
 	}
 
 	tarReader := tar.NewReader(decompressed)
@@ -108,7 +108,7 @@ func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse file as tar: %s", err)
+			return nil, fmt.Errorf("parse file as tar: %s", err)
 		}
 
 		switch header.Name {
@@ -116,17 +116,17 @@ func parseCompressedBundle(file io.Reader) (*BundleDefinition, error) {
 			def = &BundleDefinition{}
 			err = parseBundleSpec(tarReader, def)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse spec.json as a bundle spec: %s", err)
+				return nil, fmt.Errorf("parse spec.json as a bundle spec: %s", err)
 			}
 		case "schema.json":
 			schema, err = parseBundleSchema(tarReader)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse schema.json as a bundle spec: %s", err)
+				return nil, fmt.Errorf("parse schema.json as a bundle spec: %s", err)
 			}
 		case "config.tmpl":
 			tmpl, err = parseBundleTemplate(tarReader)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse config.tmpl as a go template: %s", err)
+				return nil, fmt.Errorf("parse config.tmpl as a go template: %s", err)
 			}
 		default:
 			return nil, fmt.Errorf("bundle contains an unknown file '%s'", header.Name)
@@ -170,7 +170,7 @@ func parseBundleTemplate(templateReader io.Reader) (*template.Template, error) {
 	buf := new(bytes.Buffer)
 	_, err := buf.ReadFrom(templateReader)
 	if err != nil {
-		return nil, fmt.Errorf("failed reading template file to string: %s", err)
+		return nil, fmt.Errorf("read template file to string: %s", err)
 	}
 	templateString := buf.String()
 	t := template.New("config")
@@ -180,12 +180,12 @@ func parseBundleTemplate(templateReader io.Reader) (*template.Template, error) {
 func parseBundleSpec(specReader io.Reader, dest *BundleDefinition) error {
 	specJson, err := ioutil.ReadAll(specReader)
 	if err != nil {
-		return fmt.Errorf("failed to read all of spec: %s", err)
+		return fmt.Errorf("read full spec: %s", err)
 	}
 
 	err = json.Unmarshal(specJson, dest)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal spec: %s", err)
+		return fmt.Errorf("unmarshal spec: %s", err)
 	}
 
 	return nil

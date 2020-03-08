@@ -26,13 +26,13 @@ type BundleDefinition struct {
 func (def *BundleDefinition) Render(params map[string]interface{}) (io.Reader, error) {
 	err := def.Validate(params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate params: %s", err)
+		return nil, fmt.Errorf("validate params: %s", err)
 	}
 
 	var buf bytes.Buffer
 	err = def.template.Execute(&buf, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to render template: %s", err)
+		return nil, fmt.Errorf("render template: %s", err)
 	}
 
 	return &buf, nil
@@ -42,7 +42,7 @@ func (def *BundleDefinition) Validate(params map[string]interface{}) error {
 	paramsLoader := gojsonschema.NewGoLoader(params)
 	result, err := def.schema.Validate(paramsLoader)
 	if err != nil {
-		return fmt.Errorf("failed to run schema validation: %s", err)
+		return fmt.Errorf("run schema validation: %s", err)
 	}
 
 	if !result.Valid() {

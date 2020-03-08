@@ -38,6 +38,9 @@ func (a *LogAgent) Start() error {
 		Bundles: bundles,
 	}
 	a.plugins, err = configGraph.Build(buildContext)
+	if err != nil {
+		return err
+	}
 	err = a.plugins.Start()
 	if err != nil {
 		return err

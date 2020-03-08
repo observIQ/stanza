@@ -83,7 +83,7 @@ func newPluginConfigDecoder() mapstructure.DecodeHookFunc {
 		// TODO handle unused keys
 		err := mapstructure.Decode(data, &configDefinition)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode plugin definition: %s", err)
+			return nil, fmt.Errorf("decode plugin definition: %s", err)
 		}
 
 		return configDefinition, nil
