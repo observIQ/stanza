@@ -9,5 +9,5 @@ type Config struct {
 	// when parsing the config? Also can define a .Build() method on it to get
 	// a PluginList
 	Plugins    []plugin.PluginConfig
-	BundlePath string `mapstructure:"bundle_path"`
+	BundlePath string `mapstructure:"bundle_path" yaml:"bundle_path"`
 }

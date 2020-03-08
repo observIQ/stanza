@@ -14,7 +14,7 @@ func init() {
 
 type LogOutputConfig struct {
 	pg.DefaultPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Level                  string
+	Level                  string `yaml:",omitempty"`
 }
 
 func (c LogOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {

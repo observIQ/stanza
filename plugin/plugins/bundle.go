@@ -19,7 +19,7 @@ type BundleConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
 	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 
-	BundleType string `mapstructure:"bundle_type"`
+	BundleType string `mapstructure:"bundle_type" yaml:"bundle_type"`
 	Params     map[string]interface{}
 }
 
@@ -34,6 +34,7 @@ func (c BundleConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
 		return nil, fmt.Errorf("render bundle configs: %s", err)
 	}
 
+	// TODO comment this because it's complicated
 	buildContext.IsBundle = true
 	defaultBundle, err := c.buildDefaultBundle(configs, buildContext)
 	if err != nil {
@@ -205,6 +206,10 @@ type BothputterBundle struct {
 	pg.DefaultOutputter
 
 	bundleInput BundleInputter
+}
+
+func (b *BothputterBundle) Input(entry *entry.Entry) error {
+	return b.bundleInput.InputFromBundle(entry)
 }
 
 type BundleInputter interface {

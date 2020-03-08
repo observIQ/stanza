@@ -18,7 +18,7 @@ type GenerateConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
 	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 	Record                    map[string]interface{}
-	Count                     int
+	Count                     int `yaml:",omitempty"`
 }
 
 func (c GenerateConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
