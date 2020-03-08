@@ -15,14 +15,12 @@ func TestBasicBundlePluginFunctionality(t *testing.T) {
 			PluginID:   "mybundle",
 			PluginType: "bundle",
 		},
-		DefaultBundleConfig: pg.DefaultBundleConfig{
-			BundleType: "noop",
-			Params: map[string]interface{}{
-				"enabled": true,
-			},
-		},
 		DefaultOutputterConfig: pg.DefaultOutputterConfig{
 			Output: "mybundlereceiver",
+		},
+		BundleType: "noop",
+		Params: map[string]interface{}{
+			"enabled": true,
 		},
 	}
 
@@ -39,9 +37,6 @@ func TestBasicBundlePluginFunctionality(t *testing.T) {
 					PluginID:      "mybundlereceiver",
 					PluginType:    "null",
 					SugaredLogger: logger.Sugar(),
-				},
-				DefaultInputter: pg.DefaultInputter{
-					InputChannel: make(pg.EntryChannel, 1),
 				},
 			},
 		},

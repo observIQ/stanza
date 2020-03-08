@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"cloud.google.com/go/logging"
+	"github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
 	"google.golang.org/api/option"
 )
@@ -17,10 +17,9 @@ func init() {
 }
 
 type GoogleCloudLoggingOutputConfig struct {
-	pg.DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials              string
-	ProjectID                string `mapstructure:"project_id"`
+	pg.DefaultPluginConfig `mapstructure:",squash" yaml:",inline"`
+	Credentials            string
+	ProjectID              string `mapstructure:"project_id"`
 }
 
 func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
@@ -58,14 +57,8 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
 
-	defaultInputter, err := c.DefaultInputterConfig.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build default inputter: %s", err)
-	}
-
 	dest := &GoogleCloudLoggingPlugin{
-		DefaultPlugin:   defaultPlugin,
-		DefaultInputter: defaultInputter,
+		DefaultPlugin: defaultPlugin,
 
 		googleCloudLogger: GoogleCloudLoggingLogger,
 		projectID:         c.ProjectID,
@@ -81,52 +74,30 @@ type GoogleCloudLogger interface {
 
 type GoogleCloudLoggingPlugin struct {
 	pg.DefaultPlugin
-	pg.DefaultInputter
 
 	googleCloudLogger GoogleCloudLogger
 	projectID         string
 }
 
-func (p *GoogleCloudLoggingPlugin) Start(wg *sync.WaitGroup) error {
-	go func() {
-		defer wg.Done()
-		defer func() {
-			p.Infow("Flushing")
-			// TODO figure out why this seems to randomly block forever
-			// Seems to maybe be associated with compression
-			err := p.googleCloudLogger.Flush()
-			if err != nil {
-				p.Errorw("Failed to flush to stackdriver", "error", err)
-			}
-			p.Infow("Flushed")
-		}()
+func (p *GoogleCloudLoggingPlugin) Input(entry *entry.Entry) error {
+	googleCloudLoggingEntry := logging.Entry{
+		Timestamp: entry.Timestamp,
+		Payload:   entry.Record,
+		Severity:  logging.Info, // TODO calculate severity correctly
+	}
 
-		for {
-			entry, ok := <-p.Input()
-			if !ok {
-				return
-			}
-
-			googleCloudLoggingEntry := logging.Entry{
-				Timestamp: entry.Timestamp,
-				Payload:   entry.Record,
-				Severity:  logging.Info, // TODO calculate severity correctly
-			}
-
-			// TODO how do we communicate which logs have been flushed?
-			// It appears that there is no way to inject any sort of callback
-			// or synchronously log multiple at a time with the current API.
-			//
-			// To be guarantee delivery, we either need to periodically flush,
-			// or request a change to the library. Realistically, a periodic
-			// flush is probably pretty practical.
-			//
-			// Ideas for a library change:
-			// - Add a callback to each log entry
-			// - Create a Logger.LogMultipleSync() and do our own bundling
-			p.googleCloudLogger.Log(googleCloudLoggingEntry)
-		}
-	}()
+	// TODO how do we communicate which logs have been flushed?
+	// It appears that there is no way to inject any sort of callback
+	// or synchronously log multiple at a time with the current API.
+	//
+	// To be guarantee delivery, we either need to periodically flush,
+	// or request a change to the library. Realistically, a periodic
+	// flush is probably pretty practical.
+	//
+	// Ideas for a library change:
+	// - Add a callback to each log entry
+	// - Create a Logger.LogMultipleSync() and do our own bundling
+	p.googleCloudLogger.Log(googleCloudLoggingEntry)
 
 	return nil
 }

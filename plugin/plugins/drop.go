@@ -2,8 +2,8 @@ package plugins
 
 import (
 	"fmt"
-	"sync"
 
+	"github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
@@ -12,8 +12,7 @@ func init() {
 }
 
 type DropOutputConfig struct {
-	pg.DefaultPluginConfig   `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultInputterConfig `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultPluginConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 func (c *DropOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
@@ -22,14 +21,8 @@ func (c *DropOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
 
-	defaultInputter, err := c.DefaultInputterConfig.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build default inputter: %s", err)
-	}
-
 	dest := &DropOutput{
-		DefaultPlugin:   defaultPlugin,
-		DefaultInputter: defaultInputter,
+		DefaultPlugin: defaultPlugin,
 	}
 
 	return dest, nil
@@ -37,20 +30,8 @@ func (c *DropOutputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 type DropOutput struct {
 	pg.DefaultPlugin
-	pg.DefaultInputter
 }
 
-func (p *DropOutput) Start(wg *sync.WaitGroup) error {
-	go func() {
-		defer wg.Done()
-
-		for {
-			_, ok := <-p.Input()
-			if !ok {
-				return
-			}
-		}
-	}()
-
+func (p *DropOutput) Input(entry *entry.Entry) error {
 	return nil
 }

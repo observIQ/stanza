@@ -3,7 +3,6 @@ package plugins
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	e "github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -16,7 +15,6 @@ func init() {
 type JSONParserConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
 	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field            string
@@ -27,11 +25,6 @@ func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
-	}
-
-	defaultInputter, err := c.DefaultInputterConfig.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build default inputter: %s", err)
 	}
 
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
@@ -45,7 +38,6 @@ func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 	plugin := &JSONParser{
 		DefaultPlugin:    defaultPlugin,
-		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
 
 		field:            c.Field,
@@ -58,51 +50,37 @@ func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 type JSONParser struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
-	pg.DefaultInputter
 
 	field            string
 	destinationField string
 }
 
-func (p *JSONParser) Start(wg *sync.WaitGroup) error {
-	go func() {
-		defer wg.Done()
-		for {
-			entry, ok := <-p.Input()
-			if !ok {
-				return
-			}
+func (p *JSONParser) Input(entry *e.Entry) error {
+	newEntry, err := p.processEntry(entry)
+	if err != nil {
+		// TODO option to allow
+		return err
+	}
 
-			newEntry, err := p.processEntry(entry)
-			if err != nil {
-				// TODO better error handling
-				p.Warnw("Failed to process entry", "error", err)
-				continue
-			}
-
-			p.Output() <- newEntry
-		}
-	}()
-
-	return nil
+	return p.Output(newEntry)
 }
 
-func (p *JSONParser) processEntry(entry e.Entry) (e.Entry, error) {
+func (p *JSONParser) processEntry(entry *e.Entry) (*e.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field '%s' does not exist on the record", p.field)
+		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)
 	}
 
 	messageString, ok := message.(string)
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field '%s' can not be parsed as JSON because it is of type %T", p.field, message)
+		return nil, fmt.Errorf("field '%s' can not be parsed as JSON because it is of type %T", p.field, message)
 	}
 
 	// TODO consider using faster json decoder (fastjson?)
 	var parsedMessage map[string]interface{}
 	err := json.Unmarshal([]byte(messageString), &parsedMessage)
 	if err != nil {
-		return e.Entry{}, fmt.Errorf("failed to parse field %s as JSON: %w", p.field, err)
+		return nil, fmt.Errorf("failed to parse field %s as JSON: %w", p.field, err)
 	}
 
 	if p.destinationField == "" {

@@ -58,15 +58,20 @@ func (p *GenerateSource) Start(wg *sync.WaitGroup) error {
 
 		i := 0
 		for {
-			entry := entry.Entry{
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			entry := &entry.Entry{
 				Timestamp: time.Now(),
 				Record:    copyMap(p.config.Record),
 			}
 
-			select {
-			case <-ctx.Done():
-				return
-			case p.Output() <- entry:
+			err := p.Output(entry)
+			if err != nil {
+				p.Warnw("Failed to process entry", "error", err)
 			}
 
 			i += 1

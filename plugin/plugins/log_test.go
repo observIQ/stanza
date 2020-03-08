@@ -5,7 +5,6 @@ import (
 
 	pg "github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/goleak"
 	"go.uber.org/zap"
 )
 
@@ -18,9 +17,6 @@ func NewFakeLogOutput() *LogOutput {
 			PluginType:    "logger",
 			SugaredLogger: sugaredLogger,
 		},
-		DefaultInputter: pg.DefaultInputter{
-			InputChannel: make(pg.EntryChannel, 10),
-		},
 		logFunc: func(string, ...interface{}) {},
 	}
 }
@@ -28,10 +24,4 @@ func NewFakeLogOutput() *LogOutput {
 func TestLoggerImplementations(t *testing.T) {
 	assert.Implements(t, (*pg.Plugin)(nil), new(LogOutput))
 	assert.Implements(t, (*pg.Inputter)(nil), new(LogOutput))
-}
-
-func TestLoggerExitsOnInputClose(t *testing.T) {
-	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
-	logger := NewFakeLogOutput()
-	testInputterExitsOnChannelClose(t, logger)
 }

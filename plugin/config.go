@@ -5,7 +5,9 @@ import (
 	"reflect"
 
 	// Register built-in plugins
+	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/mitchellh/mapstructure"
+	"go.uber.org/zap"
 )
 
 var PluginConfigDefinitions = make(map[string]func() PluginConfig)
@@ -27,12 +29,19 @@ type PluginConfig interface {
 
 type OutputterConfig interface {
 	PluginConfig
-	Outputs() []PluginID
+	OutputIDs() []PluginID
 }
 
 type InputterConfig interface {
 	PluginConfig
 	IsInputter()
+}
+
+type BuildContext struct {
+	Plugins  map[PluginID]Plugin
+	Bundles  []*bundle.BundleDefinition
+	IsBundle bool
+	Logger   *zap.SugaredLogger
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {

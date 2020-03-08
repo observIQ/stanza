@@ -3,7 +3,6 @@ package plugins
 import (
 	"fmt"
 	"regexp"
-	"sync"
 
 	e "github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -16,7 +15,6 @@ func init() {
 type RegexParserConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
 	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field string
@@ -27,11 +25,6 @@ func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("build default plugin: %s", err)
-	}
-
-	defaultInputter, err := c.DefaultInputterConfig.Build()
-	if err != nil {
-		return nil, fmt.Errorf("build default inputter: %s", err)
 	}
 
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
@@ -54,7 +47,6 @@ func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 	plugin := &RegexParser{
 		DefaultPlugin:    defaultPlugin,
-		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
 
 		field:  c.Field,
@@ -67,50 +59,36 @@ func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 type RegexParser struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
-	pg.DefaultInputter
 
 	field  string
 	regexp *regexp.Regexp
 }
 
-func (p *RegexParser) Start(wg *sync.WaitGroup) error {
-	go func() {
-		defer wg.Done()
-		for {
-			entry, ok := <-p.Input()
-			if !ok {
-				return
-			}
+func (p *RegexParser) Input(entry *e.Entry) error {
+	newEntry, err := p.processEntry(entry)
+	if err != nil {
+		// TODO allow continuing with best effort
+		return err
+	}
 
-			newEntry, err := p.processEntry(entry)
-			if err != nil {
-				// TODO better error handling
-				p.Warnw("Failed to process entry", "error", err)
-				continue
-			}
-
-			p.Output() <- newEntry
-		}
-	}()
-
-	return nil
+	return p.Output(newEntry)
 }
 
-func (p *RegexParser) processEntry(entry e.Entry) (e.Entry, error) {
+func (p *RegexParser) processEntry(entry *e.Entry) (*e.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field '%s' does not exist on the record", p.field)
+		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)
 	}
 
 	// TODO support bytes?
 	messageString, ok := message.(string)
 	if !ok {
-		return e.Entry{}, fmt.Errorf("field '%s' can not be parsed with regex because it is of type %T", p.field, message)
+		return nil, fmt.Errorf("field '%s' can not be parsed with regex because it is of type %T", p.field, message)
 	}
 
 	matches := p.regexp.FindStringSubmatch(messageString)
 	if matches == nil {
-		return e.Entry{}, fmt.Errorf("regex pattern does not match field")
+		return nil, fmt.Errorf("regex pattern does not match field")
 	}
 
 	newFields := map[string]interface{}{}

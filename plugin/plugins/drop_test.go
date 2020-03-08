@@ -8,8 +8,5 @@ func newFakeNullOutput() *DropOutput {
 			PluginID:   "testnull",
 			PluginType: "null",
 		},
-		DefaultInputter: pg.DefaultInputter{
-			InputChannel: make(pg.EntryChannel, 10),
-		},
 	}
 }

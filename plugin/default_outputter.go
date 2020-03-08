@@ -1,6 +1,10 @@
 package plugin
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/bluemedora/bplogagent/entry"
+)
 
 // DefaultOutputterConfig
 type DefaultOutputterConfig struct {
@@ -23,7 +27,7 @@ func (c DefaultOutputterConfig) Build(plugins map[PluginID]Plugin) (DefaultOutpu
 	}, nil
 }
 
-func (c DefaultOutputterConfig) Outputs() []PluginID {
+func (c DefaultOutputterConfig) OutputIDs() []PluginID {
 	return []PluginID{c.Output}
 }
 
@@ -36,6 +40,6 @@ func (s *DefaultOutputter) Outputs() []Inputter {
 	return []Inputter{s.OutputPlugin}
 }
 
-func (s *DefaultOutputter) Output() EntryChannel {
-	return s.OutputPlugin.Input()
+func (s *DefaultOutputter) Output(entry *entry.Entry) error {
+	return s.OutputPlugin.Input(entry)
 }

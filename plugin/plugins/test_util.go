@@ -3,67 +3,8 @@ package plugins
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"sync"
-	"testing"
-	"time"
-
-	"github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
-	"github.com/stretchr/testify/assert"
 )
-
-func testInputterExitsOnChannelClose(t *testing.T, inputter pg.Inputter) {
-	// Ensure that the plugin output isn't blocked
-	if outputter, ok := inputter.(pg.Outputter); ok {
-		for _, inputter := range outputter.Outputs() {
-			consumeEntries(inputter.Input())
-		}
-	}
-
-	// Start the plugin
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	err := inputter.Start(wg)
-	assert.NoError(t, err)
-
-	// Close output channels on exit
-	if outputter, ok := inputter.(pg.Outputter); ok {
-		go func() {
-			wg.Wait()
-			for _, inputter := range outputter.Outputs() {
-				close(inputter.Input())
-			}
-		}()
-	}
-
-	// Signal when the plugin exits
-	exited := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(exited)
-	}()
-
-	// Ensure the plugin exits quickly when its input channel is closed
-	close(inputter.Input())
-	select {
-	case <-exited:
-	case <-time.After(10 * time.Millisecond):
-		t.Errorf("Inputter of type %T did not exit in a timely manner when its input channel was closed", inputter)
-	}
-}
-
-func consumeEntries(channel pg.EntryChannel) {
-	go func() {
-		for {
-			_, ok := <-channel
-			if !ok {
-				return
-			}
-		}
-	}()
-}
 
 type inputterBenchmark struct {
 	fields      int
@@ -101,43 +42,6 @@ var standardInputterBenchmarks = []inputterBenchmark{
 	{10, 0, 10},
 	{2, 2, 10},
 	{2, 10, 10},
-}
-
-func benchmarkInputter(b *testing.B, inputter pg.Inputter, bm inputterBenchmark, generate func(int, int, int) map[string]interface{}) {
-	if outputter, ok := inputter.(pg.Outputter); ok {
-		for _, inputter := range outputter.Outputs() {
-			consumeEntries(inputter.Input())
-		}
-	}
-
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	inputter.Start(wg)
-
-	if outputter, ok := inputter.(pg.Outputter); ok {
-		go func() {
-			wg.Wait()
-			for _, inputter := range outputter.Outputs() {
-				close(inputter.Input())
-			}
-		}()
-	}
-
-	entry := entry.Entry{
-		Timestamp: time.Now(),
-		Record:    generate(bm.fields, bm.depth, bm.fieldLength),
-	}
-	encoded, err := json.Marshal(entry)
-	assert.NoError(b, err)
-	estimatedBytes := int64(len(encoded))
-	b.SetBytes(estimatedBytes)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		inputter.Input() <- entry
-	}
-
-	close(inputter.Input())
 }
 
 // generateEntry creates an entry with a configurable number

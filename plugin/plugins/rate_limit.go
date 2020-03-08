@@ -1,10 +1,11 @@
 package plugins
 
 import (
+	"context"
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
 )
 
@@ -15,10 +16,9 @@ func init() {
 type RateLimitConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
 	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultInputterConfig  `mapstructure:",squash" yaml:",inline"`
 	Rate                      float64
 	Interval                  float64
-	Burst                     uint64
+	Burst                     uint
 }
 
 func (c RateLimitConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
@@ -37,11 +37,6 @@ func (c RateLimitConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 		return nil, fmt.Errorf("failed to build default plugin: %s", err)
 	}
 
-	defaultInputter, err := c.DefaultInputterConfig.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build default inputter: %s", err)
-	}
-
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build default outputter: %s", err)
@@ -49,10 +44,10 @@ func (c RateLimitConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 	plugin := &RateLimitPlugin{
 		DefaultPlugin:    defaultPlugin,
-		DefaultInputter:  defaultInputter,
 		DefaultOutputter: defaultOutputter,
-		interval:         interval,
-		burst:            c.Burst,
+
+		Interval: interval,
+		Burst:    c.Burst,
 	}
 
 	return plugin, nil
@@ -61,46 +56,43 @@ func (c RateLimitConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 type RateLimitPlugin struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
-	pg.DefaultInputter
 
-	// Processed fields
-	burst    uint64
-	interval time.Duration
+	Interval time.Duration
+	Burst    uint
+
+	isReady chan struct{}
+	cancel  context.CancelFunc
 }
 
-func (p *RateLimitPlugin) Start(wg *sync.WaitGroup) error {
-	ticker := time.NewTicker(p.interval)
+func (p *RateLimitPlugin) Input(entry *entry.Entry) error {
+	<-p.isReady
+	return p.Output(entry)
+}
 
+func (p *RateLimitPlugin) Start() error {
+	p.isReady = make(chan struct{}, p.Burst)
+	ticker := time.NewTicker(p.Interval)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancel = cancel
+
+	// Buffer the ticker ticks in isReady to allow bursts
 	go func() {
-		defer wg.Done()
 		defer ticker.Stop()
-
-		isReady := make(chan struct{}, p.burst)
-		exitTicker := make(chan struct{})
-		defer close(exitTicker)
-
-		// Buffer the ticker ticks to allow bursts
-		go func() {
-			for {
-				select {
-				case <-ticker.C:
-					isReady <- struct{}{}
-				case <-exitTicker:
-					return
-				}
-			}
-		}()
-
+		defer close(p.isReady)
 		for {
-			entry, ok := <-p.Input()
-			if !ok {
+			select {
+			case <-ticker.C:
+				p.isReady <- struct{}{}
+			case <-ctx.Done():
 				return
 			}
-
-			<-isReady
-			p.Output() <- entry
 		}
 	}()
 
 	return nil
+}
+
+func (p *RateLimitPlugin) Stop() {
+	p.cancel()
 }

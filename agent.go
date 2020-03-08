@@ -1,9 +1,6 @@
 package bplogagent
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/config"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -22,37 +19,26 @@ func NewLogAgent(cfg config.Config, logger *zap.SugaredLogger) *LogAgent {
 type LogAgent struct {
 	Config config.Config
 
-	plugins  []pg.Plugin
-	pluginWg *sync.WaitGroup
-	started  chan struct{}
+	plugins *pg.PluginGraph
+	started chan struct{}
 	*zap.SugaredLogger
 }
 
 func (a *LogAgent) Start() error {
-	// TODO abstract this?
-	select {
-	case a.started <- struct{}{}:
-	default:
-		return fmt.Errorf("log agent is already running")
+	// TODO protect against multiple starts
+	configGraph, err := pg.NewPluginConfigGraph(a.Config.Plugins)
+	if err != nil {
+		return err
 	}
 
-	a.Info("Starting log collector")
-	a.pluginWg = new(sync.WaitGroup)
-
 	bundles := bundle.GetBundleDefinitions(a.Config.BundlePath, a.SugaredLogger)
-
 	buildContext := pg.BuildContext{
 		Logger:  a.SugaredLogger,
 		Plugins: make(map[pg.PluginID]pg.Plugin),
 		Bundles: bundles,
 	}
-	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
-	if err != nil {
-		return err
-	}
-	a.plugins = plugins
-
-	err = pg.StartPlugins(a.plugins, a.pluginWg, a.SugaredLogger)
+	a.plugins, err = configGraph.Build(buildContext)
+	err = a.plugins.Start()
 	if err != nil {
 		return err
 	}
@@ -61,15 +47,10 @@ func (a *LogAgent) Start() error {
 }
 
 func (a *LogAgent) Stop() {
-	for _, plugin := range a.plugins {
-		if stopper, ok := plugin.(pg.Stopper); ok {
-			stopper.Stop()
-		}
-	}
-	a.Info("Waiting for plugins to exit cleanly")
-	a.pluginWg.Wait()
+	a.Info("Stopping plugins")
+	a.plugins.Stop()
+
 	a.plugins = nil
-	a.pluginWg = nil
 	<-a.started
 	a.Info("Log agent stopped cleanly")
 }
