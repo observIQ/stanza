@@ -1,18 +1,15 @@
 package plugins
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
-	"github.com/fsnotify/fsnotify"
-
 	// using Docker's filenotify so we can fall back to polling
 	// for envs where notify isn't available
-	"github.com/docker/docker/pkg/filenotify"
 )
 
 func init() {
@@ -23,8 +20,9 @@ type FileSourceConfig struct {
 	pg.DefaultPluginConfig
 	pg.DefaultOutputterConfig
 
-	// TODO allow multiple glob patterns?
-	Path string
+	Include              []string
+	Exclude              []string
+	FallbackPollInterval float64
 }
 
 func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
@@ -38,15 +36,23 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		return nil, fmt.Errorf("build default outputter: %s", err)
 	}
 
-	_, err = filepath.Glob(c.Path)
-	if err != nil {
-		return nil, fmt.Errorf("parse glob: %s", err)
+	for _, include := range c.Include {
+		_, err := filepath.Match(include, "")
+		if err != nil {
+			return nil, fmt.Errorf("parse include glob: %s", err)
+		}
+	}
+
+	for _, exclude := range c.Exclude {
+		_, err := filepath.Match(exclude, "")
+		if err != nil {
+			return nil, fmt.Errorf("parse exclude glob: %s", err)
+		}
 	}
 
 	plugin := &FileSource{
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
-		Path:             c.Path,
 	}
 
 	return plugin, nil
@@ -56,112 +62,121 @@ type FileSource struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
 
-	Path string
+	Include []string
+	Exclude []string
+
+	cancel             context.CancelFunc
+	watchedFiles       map[string]*FileWatcher
+	fmux               sync.Mutex
+	watchedDirectories map[string]*DirectoryWatcher
+	dmux               sync.Mutex
 }
 
-func (f *FileSource) Start(wg *sync.WaitGroup) error {
+func (f *FileSource) Start() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	f.cancel = cancel
 
-	ready := make(chan error)
 	go func() {
-		defer wg.Done()
-		paths, err := filepath.Glob(f.Path)
-		if err != nil {
-			ready <- err
-		}
-
-		watcher, err := filenotify.New()
-		if err != nil {
-			ready <- err
-		}
-
-		for _, path := range paths {
-			err := watcher.Add(path)
-			if err != nil {
-
+		globTicker := time.NewTicker(time.Second) // TODO tune this param and make it configurable
+		for {
+			select {
+			case <-ctx.Done():
+				// TODO
+			case <-globTicker.C:
+				f.updateFiles(ctx)
 			}
 		}
-
 	}()
 
-	return <-ready
+	return nil
 }
 
-// FileWatcher is a wrapper around `fsnotify` that periodically polls
-// to mitigate issues with filesystems that don't support notify events
-type FileWatcher struct {
-	path         string
-	file         *os.File
-	watcher      *fsnotify.Watcher
-	offset       int
-	pollInterval time.Duration
-}
-
-func NewFileWatcher(path string) (*FileWatcher, error) {
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, fmt.Errorf("creating fsnotify watcher: %s", err)
-	}
-
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, fmt.Errorf("determining absolute path: %s", err)
-	}
-
-	return &FileWatcher{
-		path:         absPath,
-		watcher:      w,
-		pollInterval: 3 * time.Second,
-	}, err
-}
-
-func (w *FileWatcher) Watch() error {
-	for {
-		// TODO actually test all these cases
-		// TODO actually test all these cases on every OS we support
-		// TODO actually test all these cases on weird filesystems (NFS, FUSE, etc)
-
-		// TODO reuse the timer? but be careful about draining -- see timer.Reset() docs
-		timer := time.NewTimer(w.pollInterval)
-
-		select {
-		case event, ok := <-w.watcher.Events:
-			// Stop the timer so it can be garbage collected before it fires
-			timer.Stop()
-
-			// Watcher closed
-			if !ok {
-				return nil
+func (f *FileSource) updateFiles(ctx context.Context) {
+	for _, includePattern := range f.Include {
+		matches, _ := filepath.Glob(includePattern)
+		for _, path := range matches {
+			if !f.isExcluded(path) {
+				f.tryWatchFile(path)
 			}
-
-			// File touched
-			if event.Op&fsnotify.Write > 0 {
-				w.Read()
-			}
-
-			// File touched
-			if event.Op&fsnotify.Create > 0 {
-				w.offset = 0
-				w.Read()
-			}
-
-			// File removed
-			if event.Op&fsnotify.Remove == fsnotify.Remove {
-				return nil
-			}
-		case <-timer.C:
-			// Try to read file anyways
-			w.Read()
-		case err := <-w.watcher.Errors:
-			timer.Stop()
-			// TODO should we exit?
-			return err
 		}
-
 	}
 }
 
-func (w *FileWatcher) Close() {
-	w.watcher.Close()
+func (f *FileSource) isExcluded(path string) bool {
+	for _, excludePattern := range f.Exclude {
+		// error already checked in build step
+		if exclude, _ := filepath.Match(excludePattern, path); exclude {
+			return true
+		}
+	}
+
+	return false
 }
 
-func (w *FileWatcher) Read() {}
+func (f *FileSource) tryWatchFile(path string) {
+	f.fmux.Lock()
+	defer f.fmux.Unlock()
+
+	f.tryWatchDirectory(path)
+
+	_, ok := f.watchedFiles[path]
+	if ok {
+		return
+	}
+
+	watcher, err := NewFileWatcher(path)
+	if err != nil {
+		println("Creating file watcher: ", err) // TODO
+	}
+
+	f.watchedFiles[path] = watcher
+	f.Infow("Watching file", "path", path)
+
+	go func() {
+		err := watcher.Watch()
+		if err != nil {
+			f.Infow("Stopped watching file", "path", path)
+			f.removeFileWatcher(path)
+		}
+	}()
+}
+
+func (f *FileSource) tryWatchDirectory(path string) {
+	f.dmux.Lock()
+	defer f.dmux.Unlock()
+
+	_, ok := f.watchedDirectories[path]
+	if ok {
+		return
+	}
+
+	watcher, err := NewDirectoryWatcher(path, f.tryWatchFile)
+	if err != nil {
+		println("Creating directory watcher: ", err) // TODO
+	}
+
+	f.watchedDirectories[path] = watcher
+	f.Infow("Watching directory", "path", path)
+
+	go func() {
+		err := watcher.Watch()
+		if err != nil {
+			f.Infow("Stopped watching directory", "path", path)
+			f.removeDirectoryWatcher(path)
+		}
+	}()
+}
+
+func (f *FileSource) removeDirectoryWatcher(path string) {
+	f.dmux.Lock()
+	defer f.dmux.Unlock()
+
+	delete(f.watchedDirectories, path)
+}
+
+func (f *FileSource) removeFileWatcher(path string) {
+	f.fmux.Lock()
+	defer f.fmux.Unlock()
+
+	delete(f.watchedFiles, path)
+}
