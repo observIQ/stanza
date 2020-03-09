@@ -38,8 +38,9 @@ type InputterConfig interface {
 }
 
 type BuildContext struct {
-	Plugins  map[PluginID]Plugin
-	Bundles  []*bundle.BundleDefinition
+	Plugins map[PluginID]Plugin
+	Bundles []*bundle.BundleDefinition
+	// TODO this should be an array of bundle IDs to namespace the plugin ids in the bundles
 	IsBundle bool
 	Logger   *zap.SugaredLogger
 }
