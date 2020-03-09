@@ -65,6 +65,7 @@ type FileSource struct {
 	Include []string
 	Exclude []string
 
+	wg                 *sync.WaitGroup
 	cancel             context.CancelFunc
 	watchedFiles       map[string]*FileWatcher
 	fmux               sync.Mutex
@@ -75,8 +76,11 @@ type FileSource struct {
 func (f *FileSource) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
+	f.wg = &sync.WaitGroup{}
 
+	f.wg.Add(1)
 	go func() {
+		defer f.wg.Done()
 		globTicker := time.NewTicker(time.Second) // TODO tune this param and make it configurable
 		for {
 			select {
@@ -91,12 +95,17 @@ func (f *FileSource) Start() error {
 	return nil
 }
 
+func (f *FileSource) Stop() {
+	f.cancel()
+	f.wg.Wait()
+}
+
 func (f *FileSource) updateFiles(ctx context.Context) {
 	for _, includePattern := range f.Include {
 		matches, _ := filepath.Glob(includePattern)
 		for _, path := range matches {
 			if !f.isExcluded(path) {
-				f.tryWatchFile(path)
+				f.tryWatchFile(ctx, path)
 			}
 		}
 	}
@@ -113,11 +122,11 @@ func (f *FileSource) isExcluded(path string) bool {
 	return false
 }
 
-func (f *FileSource) tryWatchFile(path string) {
+func (f *FileSource) tryWatchFile(ctx context.Context, path string) {
 	f.fmux.Lock()
 	defer f.fmux.Unlock()
 
-	f.tryWatchDirectory(path)
+	f.tryWatchDirectory(ctx, path)
 
 	_, ok := f.watchedFiles[path]
 	if ok {
@@ -132,8 +141,10 @@ func (f *FileSource) tryWatchFile(path string) {
 	f.watchedFiles[path] = watcher
 	f.Infow("Watching file", "path", path)
 
+	f.wg.Add(1)
 	go func() {
-		err := watcher.Watch()
+		defer f.wg.Done()
+		err := watcher.Watch(ctx)
 		if err != nil {
 			f.Infow("Stopped watching file", "path", path)
 			f.removeFileWatcher(path)
@@ -141,7 +152,7 @@ func (f *FileSource) tryWatchFile(path string) {
 	}()
 }
 
-func (f *FileSource) tryWatchDirectory(path string) {
+func (f *FileSource) tryWatchDirectory(ctx context.Context, path string) {
 	f.dmux.Lock()
 	defer f.dmux.Unlock()
 
@@ -150,7 +161,7 @@ func (f *FileSource) tryWatchDirectory(path string) {
 		return
 	}
 
-	watcher, err := NewDirectoryWatcher(path, f.tryWatchFile)
+	watcher, err := NewDirectoryWatcher(path, func(path string) { f.tryWatchFile(ctx, path) })
 	if err != nil {
 		println("Creating directory watcher: ", err) // TODO
 	}
@@ -158,8 +169,10 @@ func (f *FileSource) tryWatchDirectory(path string) {
 	f.watchedDirectories[path] = watcher
 	f.Infow("Watching directory", "path", path)
 
+	f.wg.Add(1)
 	go func() {
-		err := watcher.Watch()
+		defer f.wg.Done()
+		err := watcher.Watch(ctx)
 		if err != nil {
 			f.Infow("Stopped watching directory", "path", path)
 			f.removeDirectoryWatcher(path)

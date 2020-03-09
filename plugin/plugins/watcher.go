@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,7 +38,7 @@ func NewFileWatcher(path string) (*FileWatcher, error) {
 	}, err
 }
 
-func (w *FileWatcher) Watch() error {
+func (w *FileWatcher) Watch(ctx context.Context) error {
 	for {
 		// TODO actually test all these cases
 		// TODO actually test all these cases on every OS we support
@@ -47,6 +48,9 @@ func (w *FileWatcher) Watch() error {
 		timer := time.NewTimer(w.pollInterval)
 
 		select {
+		case <-ctx.Done():
+			timer.Stop()
+			w.watcher.Close()
 		case event, ok := <-w.watcher.Events:
 			timer.Stop()
 			if !ok {
@@ -63,10 +67,6 @@ func (w *FileWatcher) Watch() error {
 		}
 
 	}
-}
-
-func (w *FileWatcher) Close() {
-	w.watcher.Close()
 }
 
 func (w *FileWatcher) Read() {}
@@ -95,12 +95,14 @@ func NewDirectoryWatcher(path string, newFileCallback func(path string)) (*Direc
 	}, err
 }
 
-func (w *DirectoryWatcher) Watch() error {
+func (w *DirectoryWatcher) Watch(ctx context.Context) error {
 	for {
 		timer := time.NewTimer(w.pollInterval)
 
 		select {
-
+		case <-ctx.Done():
+			timer.Stop()
+			w.watcher.Close()
 		case event, ok := <-w.watcher.Events:
 			timer.Stop()
 			if !ok {
