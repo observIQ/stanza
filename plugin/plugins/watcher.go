@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -13,32 +13,77 @@ import (
 // FileWatcher is a wrapper around `fsnotify` that periodically polls
 // to mitigate issues with filesystems that don't support notify events
 type FileWatcher struct {
+	inode        uint64
+	dev          uint64
 	path         string
 	file         *os.File
-	watcher      *fsnotify.Watcher
-	offset       int
+	offset       int64
 	pollInterval time.Duration
+	fileSource   *FileSource
+	cancel       context.CancelFunc
 }
 
-func NewFileWatcher(path string) (*FileWatcher, error) {
-	w, err := fsnotify.NewWatcher()
+func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool) (*FileWatcher, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("creating fsnotify watcher: %s", err)
+		return nil, err
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	fileSize := fileInfo.Size()
+
+	// TODO make this work for windows
+	var inode uint64
+	var dev uint64
+	switch sys := fileInfo.Sys().(type) {
+	case *syscall.Stat_t:
+		inode = sys.Ino
+		dev = uint64(sys.Dev)
+	default:
+		return nil, fmt.Errorf("cannot use fileinfo of type %T", fileInfo.Sys())
 	}
 
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, fmt.Errorf("determining absolute path: %s", err)
-	}
+	offset := func() int64 {
+		if startFromBeginning {
+			return 0
+		}
+		return fileSize
+	}()
 
 	return &FileWatcher{
-		path:         absPath,
-		watcher:      w,
+		inode:        inode,
+		dev:          dev,
+		path:         path,
 		pollInterval: 3 * time.Second,
-	}, err
+		offset:       offset,
+		fileSource:   fileSource,
+	}, nil
 }
 
-func (w *FileWatcher) Watch(ctx context.Context) error {
+func (w *FileWatcher) Watch(startCtx context.Context) error {
+	ctx, cancel := context.WithCancel(startCtx)
+	w.cancel = cancel
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("creating fsnotify watcher: %s", err)
+	}
+
+	err = watcher.Add(w.path)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open(w.path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	w.file = file
+
 	for {
 		// TODO actually test all these cases
 		// TODO actually test all these cases on every OS we support
@@ -50,48 +95,76 @@ func (w *FileWatcher) Watch(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			w.watcher.Close()
-		case event, ok := <-w.watcher.Events:
+			err := watcher.Close()
+			if err != nil {
+				return err
+			}
+		case event, ok := <-watcher.Events:
 			timer.Stop()
 			if !ok {
 				return nil
 			}
-			fmt.Printf("File event: %s\n", event)
+			// println("Filewatcher: ", event.String(), " ", event.Name)
+			if event.Op&fsnotify.Remove > 0 {
+				watcher.Close()
+				w.fileSource.fileRemoved <- w
+				continue
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Chmod) > 0 {
+				w.fileSource.fileTouched <- w.path
+				fileInfo, err := file.Stat()
+				if err != nil {
+					return err
+				}
+				if fileInfo.Size() < w.offset {
+					w.offset = 0
+				} else if fileInfo.Size() > w.offset {
+					w.offset = fileInfo.Size()
+				} else {
+				}
+			}
+			// ignore chmod and rename (rename is covered by directory create)
 		case <-timer.C:
-			// Try to read file anyways
-			w.Read()
-		case err := <-w.watcher.Errors:
+			// TODO check if the file still exists and if it grew
+		case err := <-watcher.Errors:
 			timer.Stop()
 			// TODO should we exit?
 			return err
 		}
-
 	}
 }
 
 func (w *FileWatcher) Read() {}
 
+func (w *FileWatcher) Close() {
+	if w.cancel != nil {
+		w.cancel()
+	}
+}
+
 type DirectoryWatcher struct {
 	path         string
 	watcher      *fsnotify.Watcher
 	pollInterval time.Duration
+	fileSource   *FileSource
 }
 
-func NewDirectoryWatcher(path string, newFileCallback func(path string)) (*DirectoryWatcher, error) {
+func NewDirectoryWatcher(path string, fileSource *FileSource) (*DirectoryWatcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("creating fsnotify watcher: %s", err)
 	}
 
-	absPath, err := filepath.Abs(path)
+	err = w.Add(path)
 	if err != nil {
-		return nil, fmt.Errorf("determining absolute path: %s", err)
+		return nil, err
 	}
 
 	return &DirectoryWatcher{
-		path:         absPath,
+		path:         path,
 		watcher:      w,
 		pollInterval: 3 * time.Second,
+		fileSource:   fileSource,
 	}, err
 }
 
@@ -102,20 +175,28 @@ func (w *DirectoryWatcher) Watch(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			w.watcher.Close()
+			err := w.watcher.Close()
+			if err != nil {
+				return err
+			}
 		case event, ok := <-w.watcher.Events:
 			timer.Stop()
 			if !ok {
 				return nil
 			}
-			fmt.Printf("Directory event: %s\n", event)
+			// println("Dirwatcher: ", event.String(), event.Name)
+			if event.Op&fsnotify.Create > 0 {
+				w.fileSource.fileCreated <- event.Name
+				continue
+			}
+			// TODO catch directory removal
+			// ignore all other events since they're handled by the fileWatcher
 		case <-timer.C:
 		case err := <-w.watcher.Errors:
 			timer.Stop()
 			// TODO should we exit?
 			return err
 		}
-
 	}
 }
 

@@ -2,9 +2,14 @@ package plugins
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -53,6 +58,12 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 	plugin := &FileSource{
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
+		Include:          c.Include,
+		Exclude:          c.Exclude,
+		fileCreated:      make(chan string),
+		fileTouched:      make(chan string),
+		fileRemoved:      make(chan *FileWatcher),
+		directoryRemoved: make(chan *DirectoryWatcher),
 	}
 
 	return plugin, nil
@@ -65,12 +76,20 @@ type FileSource struct {
 	Include []string
 	Exclude []string
 
-	wg                 *sync.WaitGroup
-	cancel             context.CancelFunc
-	watchedFiles       map[string]*FileWatcher
-	fmux               sync.Mutex
-	watchedDirectories map[string]*DirectoryWatcher
-	dmux               sync.Mutex
+	fingerprintBytes int64
+
+	wg     *sync.WaitGroup
+	cancel context.CancelFunc
+
+	fileWatchers      []*FileWatcher
+	fileMux           sync.Mutex
+	directoryWatchers map[string]*DirectoryWatcher
+	directoryMux      sync.Mutex
+
+	fileCreated      chan string
+	fileRemoved      chan *FileWatcher
+	fileTouched      chan string
+	directoryRemoved chan *DirectoryWatcher
 }
 
 func (f *FileSource) Start() error {
@@ -78,16 +97,42 @@ func (f *FileSource) Start() error {
 	f.cancel = cancel
 	f.wg = &sync.WaitGroup{}
 
+	f.fileWatchers = make([]*FileWatcher, 0)
+	f.directoryWatchers = make(map[string]*DirectoryWatcher, 0)
+
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
-		globTicker := time.NewTicker(time.Second) // TODO tune this param and make it configurable
+		defer f.Info("Exiting glob updater")
+
+		// Do it once first
+		f.checkGlob(ctx)
+
+		globTicker := time.NewTicker(100 * time.Second) // TODO tune this param and make it configurable
+
+		// Synchronize all new tracking notifications here so there
+		// are no race conditions in file operations.
+		// Also keeps us from having to do lots of map locking
 		for {
 			select {
 			case <-ctx.Done():
-				// TODO
+				return
 			case <-globTicker.C:
-				f.updateFiles(ctx)
+				f.checkGlob(ctx)
+			case path := <-f.fileCreated:
+				f.Debugw("Received file created notification", "path", path)
+				f.tryAddFile(ctx, path, false)
+			case watcher := <-f.fileRemoved:
+				f.Debugw("Received file removed notification", "path", watcher.path)
+				f.removeFileWatcher(watcher)
+			case watcher := <-f.directoryRemoved:
+				f.Debugw("Received directory removed notification", "path", watcher.path)
+				f.removeDirectoryWatcher(watcher)
+			case path := <-f.fileTouched:
+				f.Debugw("Received file touched notification", "path", path)
+				// Don't do anything here, but it ensures that we're not
+				// reading at the same time that we're handling file
+				// changes
 			}
 		}
 	}()
@@ -96,17 +141,17 @@ func (f *FileSource) Start() error {
 }
 
 func (f *FileSource) Stop() {
+	f.Info("Stopping source")
 	f.cancel()
 	f.wg.Wait()
+	f.Info("Stopped source")
 }
 
-func (f *FileSource) updateFiles(ctx context.Context) {
+func (f *FileSource) checkGlob(ctx context.Context) {
 	for _, includePattern := range f.Include {
 		matches, _ := filepath.Glob(includePattern)
 		for _, path := range matches {
-			if !f.isExcluded(path) {
-				f.tryWatchFile(ctx, path)
-			}
+			f.tryAddFile(ctx, path, true)
 		}
 	}
 }
@@ -122,74 +167,169 @@ func (f *FileSource) isExcluded(path string) bool {
 	return false
 }
 
-func (f *FileSource) tryWatchFile(ctx context.Context, path string) {
-	f.fmux.Lock()
-	defer f.fmux.Unlock()
-
-	f.tryWatchDirectory(ctx, path)
-
-	_, ok := f.watchedFiles[path]
-	if ok {
+func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool) {
+	if f.isExcluded(path) {
+		f.Debugw("Skipping excluded file", "path", path)
 		return
 	}
 
-	watcher, err := NewFileWatcher(path)
-	if err != nil {
-		println("Creating file watcher: ", err) // TODO
+	f.tryAddDirectory(ctx, filepath.Dir(path))
+
+	createWatcher, startFromBeginning, err := f.checkPath(path, !globCheck)
+	if !createWatcher {
+		return
 	}
 
-	f.watchedFiles[path] = watcher
-	f.Infow("Watching file", "path", path)
+	watcher, err := NewFileWatcher(path, f, startFromBeginning)
+	if err != nil {
+		if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
+			f.Debugw("File deleted before it could be read", "path", path)
+		} else {
+			f.Warnw("Failed to create file watcher", "error", err)
+
+			fmt.Printf("ERROR TYPE: %T", err)
+		}
+		return
+	}
+
+	f.Infow("Watching file", "path", watcher.path)
+	f.overwriteFileWatcher(watcher)
 
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
+		defer f.Debugw("File watcher stopped", "path", path)
+		defer f.removeFileWatcher(watcher)
+
 		err := watcher.Watch(ctx)
 		if err != nil {
-			f.Infow("Stopped watching file", "path", path)
-			f.removeFileWatcher(path)
+			if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
+				f.Debugw("File deleted before it could be read", "path", path)
+			} else {
+				f.Warnw("Watch failed", "error", err)
+			}
 		}
 	}()
 }
 
-func (f *FileSource) tryWatchDirectory(ctx context.Context, path string) {
-	f.dmux.Lock()
-	defer f.dmux.Unlock()
+func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool, startFromBeginning bool, err error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return false, false, err
+	}
 
-	_, ok := f.watchedDirectories[path]
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return false, false, err
+	}
+
+	// TODO get these safely
+	var inode uint64
+	var dev uint64
+	switch sys := fileInfo.Sys().(type) {
+	case *syscall.Stat_t:
+		inode = sys.Ino
+		dev = uint64(sys.Dev)
+	default:
+		return false, false, fmt.Errorf("cannot use fileinfo of type %T", fileInfo.Sys())
+	}
+
+	for _, watcher := range f.fileWatchers {
+		// TODO what if multiple match? anything?
+		if watcher.dev == dev && watcher.inode == inode {
+			if watcher.path == path {
+				f.Infow("Continuing to watch file", "path", path)
+				return false, false, nil
+			} else {
+				f.Infow("File was renamed", "path", path)
+				watcher.path = path
+				return false, false, nil
+			}
+			// Don't check fingerprints during glob check because we only want to
+			// check newly-created files. TODO make this cleaner/clearer
+		} else if checkCopy && f.fingerprint(watcher.file) == f.fingerprint(file) {
+			f.Infow("File was copied. Starting from previous offset", "path", path)
+			return true, false, nil
+		}
+	}
+
+	return true, true, nil
+}
+
+func (f *FileSource) fingerprint(file *os.File) string {
+	_, err := file.Seek(0, io.SeekStart)
+	if err != nil {
+		panic(err)
+	}
+	hash := md5.New()
+
+	buffer := make([]byte, f.fingerprintBytes)
+	_, err = io.ReadFull(file, buffer)
+	if err != nil {
+		panic(err) // TODO
+	}
+	hash.Write(buffer)
+	return base64.StdEncoding.EncodeToString(hash.Sum(nil))
+}
+
+func (f *FileSource) tryAddDirectory(ctx context.Context, path string) {
+
+	_, ok := f.directoryWatchers[path]
 	if ok {
 		return
 	}
 
-	watcher, err := NewDirectoryWatcher(path, func(path string) { f.tryWatchFile(ctx, path) })
+	watcher, err := NewDirectoryWatcher(path, f)
 	if err != nil {
 		println("Creating directory watcher: ", err) // TODO
 	}
 
-	f.watchedDirectories[path] = watcher
+	f.directoryWatchers[path] = watcher
 	f.Infow("Watching directory", "path", path)
 
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
+		defer f.Debugw("Directory watcher stopped", "path", path)
+		defer f.removeDirectoryWatcher(watcher)
+
 		err := watcher.Watch(ctx)
 		if err != nil {
-			f.Infow("Stopped watching directory", "path", path)
-			f.removeDirectoryWatcher(path)
+			f.Warnw("Directory watch failed", "error", err)
 		}
 	}()
 }
 
-func (f *FileSource) removeDirectoryWatcher(path string) {
-	f.dmux.Lock()
-	defer f.dmux.Unlock()
-
-	delete(f.watchedDirectories, path)
+func (f *FileSource) removeDirectoryWatcher(directoryWatcher *DirectoryWatcher) {
+	f.directoryMux.Lock()
+	delete(f.directoryWatchers, directoryWatcher.path)
+	f.directoryMux.Unlock()
 }
 
-func (f *FileSource) removeFileWatcher(path string) {
-	f.fmux.Lock()
-	defer f.fmux.Unlock()
+func (f *FileSource) removeFileWatcher(watcher *FileWatcher) {
+	f.fileMux.Lock()
+	for i, trackedWatcher := range f.fileWatchers {
+		if trackedWatcher == watcher {
+			trackedWatcher.Close()
+			f.fileWatchers = append(f.fileWatchers[:i], f.fileWatchers[i+1:]...)
+		}
+	}
+	f.fileMux.Unlock()
+}
 
-	delete(f.watchedFiles, path)
+func (f *FileSource) overwriteFileWatcher(watcher *FileWatcher) {
+	f.fileMux.Lock()
+	overwritten := false
+	for i, trackedWatcher := range f.fileWatchers {
+		if trackedWatcher.path == watcher.path {
+			trackedWatcher.Close()
+			f.fileWatchers[i] = watcher
+			overwritten = true
+		}
+	}
+
+	if !overwritten {
+		f.fileWatchers = append(f.fileWatchers, watcher)
+	}
+	f.fileMux.Unlock()
 }
