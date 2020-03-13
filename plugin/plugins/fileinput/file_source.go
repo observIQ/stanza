@@ -141,7 +141,7 @@ func (f *FileSource) Start() error {
 		// Do it once first
 		f.checkGlob(ctx)
 
-		globTicker := time.NewTicker(100 * time.Second) // TODO tune this param and make it configurable
+		globTicker := time.NewTicker(time.Second) // TODO tune this param and make it configurable
 
 		// Synchronize all new tracking notifications here so there
 		// are no race conditions in file operations.
@@ -186,7 +186,7 @@ func (f *FileSource) checkGlob(ctx context.Context) {
 		for _, path := range matches {
 			fileInfo, err := os.Stat(path)
 			if err != nil || fileInfo.IsDir() {
-				continue
+				continue // skip directories
 			}
 			f.tryAddFile(ctx, path, true)
 		}

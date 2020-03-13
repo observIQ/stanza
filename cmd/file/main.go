@@ -6,18 +6,12 @@ import (
 
 	pg "github.com/bluemedora/bplogagent/plugin"
 	pgs "github.com/bluemedora/bplogagent/plugin/plugins"
+	fi "github.com/bluemedora/bplogagent/plugin/plugins/fileinput"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 func main() {
-
-	out := &pgs.DropOutput{
-		DefaultPlugin: pg.DefaultPlugin{
-			PluginID:   "drop",
-			PluginType: "drop",
-		},
-	}
 
 	logCfg := zap.NewDevelopmentConfig()
 	logCfg.EncoderConfig.TimeKey = ""
@@ -26,21 +20,33 @@ func main() {
 	logCfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	baseLogger, _ := logCfg.Build()
 	logger := baseLogger.Sugar()
-	sourceConfig := &pgs.FileSourceConfig{
+
+	buildContext := pg.BuildContext{
+		Plugins: map[pg.PluginID]pg.Plugin{},
+		Logger:  logger,
+	}
+	logConfig := &pgs.LogOutputConfig{
+		DefaultPluginConfig: pg.DefaultPluginConfig{
+			PluginID:   "log",
+			PluginType: "log",
+		},
+		Level: "debug",
+	}
+	logPlugin, err := logConfig.Build(buildContext)
+	if err != nil {
+		panic(err)
+	}
+
+	buildContext.Plugins["log"] = logPlugin
+	sourceConfig := &fi.FileSourceConfig{
 		DefaultPluginConfig: pg.DefaultPluginConfig{
 			PluginID:   "myfilesource",
 			PluginType: "file_source",
 		},
 		DefaultOutputterConfig: pg.DefaultOutputterConfig{
-			Output: "drop",
+			Output: "log",
 		},
 		Include: os.Args[1:],
-	}
-	buildContext := pg.BuildContext{
-		Plugins: map[pg.PluginID]pg.Plugin{
-			pg.PluginID("drop"): out,
-		},
-		Logger: logger,
 	}
 
 	source, err := sourceConfig.Build(buildContext)
@@ -48,7 +54,7 @@ func main() {
 		panic(err)
 	}
 
-	err = source.(*pgs.FileSource).Start()
+	err = source.(*fi.FileSource).Start()
 	if err != nil {
 		panic(err)
 	}
@@ -58,5 +64,5 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	<-interrupt
-	source.(*pgs.FileSource).Stop()
+	source.(*fi.FileSource).Stop()
 }
