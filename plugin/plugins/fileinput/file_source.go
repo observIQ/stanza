@@ -27,10 +27,10 @@ type FileSourceConfig struct {
 	pg.DefaultPluginConfig
 	pg.DefaultOutputterConfig
 
-	Include              []string
-	Exclude              []string
-	FallbackPollInterval float64
-	Multiline            *FileSourceMultilineConfig
+	Include      []string
+	Exclude      []string
+	PollInterval float64
+	Multiline    *FileSourceMultilineConfig
 }
 
 type FileSourceMultilineConfig struct {
@@ -84,13 +84,26 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		return nil, fmt.Errorf("if multiline is configured, either line_start_pattern or line_end_pattern must be configured")
 	}
 
+	if c.PollInterval < 0 {
+		return nil, fmt.Errorf("poll_interval must be greater than zero if configured")
+	}
+
+	pollInterval := func() time.Duration {
+		if c.PollInterval == 0 {
+			return 5 * time.Second
+		} else {
+			return time.Duration(float64(time.Second) * c.PollInterval)
+		}
+	}()
+
 	plugin := &FileSource{
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
 
-		Include:   c.Include,
-		Exclude:   c.Exclude,
-		splitFunc: splitFunc,
+		Include:      c.Include,
+		Exclude:      c.Exclude,
+		SplitFunc:    splitFunc,
+		PollInterval: pollInterval,
 
 		fileCreated:      make(chan string),
 		fileTouched:      make(chan string),
@@ -105,9 +118,10 @@ type FileSource struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
 
-	Include   []string
-	Exclude   []string
-	splitFunc bufio.SplitFunc
+	Include      []string
+	Exclude      []string
+	PollInterval time.Duration
+	SplitFunc    bufio.SplitFunc
 
 	fingerprintBytes int64
 
@@ -138,10 +152,10 @@ func (f *FileSource) Start() error {
 		defer f.wg.Done()
 		defer f.Info("Exiting glob updater")
 
-		// Do it once first
+		// Do it once first for responsive startup
 		f.checkGlob(ctx)
 
-		globTicker := time.NewTicker(time.Second) // TODO tune this param and make it configurable
+		globTicker := time.NewTicker(f.PollInterval)
 
 		// Synchronize all new tracking notifications here so there
 		// are no race conditions in file operations.
@@ -161,11 +175,7 @@ func (f *FileSource) Start() error {
 			case watcher := <-f.directoryRemoved:
 				f.Debugw("Received directory removed notification", "path", watcher.path)
 				f.removeDirectoryWatcher(watcher)
-			case path := <-f.fileTouched:
-				f.Debugw("Received file touched notification", "path", path)
-				// Don't do anything here, but it ensures that we're not
-				// reading at the same time that we're handling file
-				// changes
+			case <-f.fileTouched:
 			}
 		}
 	}()
@@ -217,7 +227,7 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 		return
 	}
 
-	watcher, err := NewFileWatcher(path, f, startFromBeginning, f.splitFunc)
+	watcher, err := NewFileWatcher(path, f, startFromBeginning, f.SplitFunc, f.PollInterval, f.SugaredLogger)
 	if err != nil {
 		if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
 			f.Debugw("File deleted before it could be read", "path", path)
@@ -275,7 +285,6 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 		// TODO what if multiple match? anything?
 		if watcher.dev == dev && watcher.inode == inode {
 			if watcher.path == path {
-				f.Infow("Continuing to watch file", "path", path)
 				return false, false, nil
 			} else {
 				f.Infow("File was renamed", "path", path)

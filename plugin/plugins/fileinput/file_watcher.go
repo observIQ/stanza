@@ -26,10 +26,10 @@ type FileWatcher struct {
 	cancel       context.CancelFunc
 	splitFunc    bufio.SplitFunc
 
-	zap.SugaredLogger
+	*zap.SugaredLogger
 }
 
-func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool, splitFunc bufio.SplitFunc) (*FileWatcher, error) {
+func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool, splitFunc bufio.SplitFunc, pollInterval time.Duration, logger *zap.SugaredLogger) (*FileWatcher, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -61,27 +61,32 @@ func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool
 	}()
 
 	return &FileWatcher{
-		inode:        inode,
-		dev:          dev,
-		path:         path,
-		pollInterval: 3 * time.Second,
-		offset:       offset,
-		fileSource:   fileSource,
-		splitFunc:    splitFunc,
+		inode:         inode,
+		dev:           dev,
+		path:          path,
+		pollInterval:  pollInterval,
+		offset:        offset,
+		fileSource:    fileSource,
+		splitFunc:     splitFunc,
+		SugaredLogger: logger.With("path", path),
 	}, nil
 }
 
 func (w *FileWatcher) Watch(startCtx context.Context) error {
 	ctx, cancel := context.WithCancel(startCtx)
 	w.cancel = cancel
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("creating fsnotify watcher: %s", err)
-	}
-
-	err = watcher.Add(w.path)
-	if err != nil {
-		return err
+		// TODO if falling back to polling, should we set the default lower?
+		w.Infow("Failed to create notifying watcher. Falling back to polling only", "error", err)
+		watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
+	} else {
+		err = watcher.Add(w.path)
+		if err != nil {
+			w.Infow("Failed to add path to watcher. Falling back to polling only", "error", err)
+			watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
+		}
 	}
 
 	file, err := os.Open(w.path)
@@ -90,6 +95,8 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 	}
 	defer file.Close()
 	w.file = file
+
+	w.checkFile(ctx) // Check it once initially for responsive startup
 
 	for {
 		// TODO actually test all these cases
@@ -121,10 +128,9 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 			}
 			// ignore chmod and rename (rename is covered by directory create)
 		case <-timer.C:
-			// TODO check if the file still exists and if it grew
+			w.checkFile(ctx)
 		case err := <-watcher.Errors:
 			timer.Stop()
-			// TODO should we exit?
 			return err
 		}
 	}
@@ -139,28 +145,38 @@ func (w *FileWatcher) checkFile(ctx context.Context) {
 
 	fileInfo, err := w.file.Stat()
 	if err != nil {
-		w.Warnw("Failed to get file info", "error", err) // TODO is this a recoverable error?
+		w.Errorw("Failed to get file info", "error", err) // TODO is this a recoverable error?
 		return
 	}
 
 	if fileInfo.Size() < w.offset {
 		w.Debug("Detected file truncation. Starting from beginning")
-		w.offset = 0
-		w.readToEnd()
+		w.offset, err = w.file.Seek(0, 0)
+		if err != nil {
+			w.Errorw("Failed to seek to file start", "error", err)
+			return
+		}
+		w.readToEnd(ctx)
 	} else if fileInfo.Size() > w.offset {
-		w.readToEnd()
+		w.readToEnd(ctx)
 	}
 
 	// do nothing if the file hasn't changed size
 }
 
-func (w *FileWatcher) readToEnd() {
+func (w *FileWatcher) readToEnd(ctx context.Context) {
 	// TODO seek to last offset?
 	scanner := bufio.NewScanner(w.file)
 	scanner.Split(w.splitFunc)
 	// TODO scanner.Buffer() to set max size
 
 	for {
+		select {
+		case <-ctx.Done():
+			return // Stop reading if closed
+		default:
+		}
+
 		ok := scanner.Scan()
 		if !ok {
 			if err := scanner.Err(); err != nil {
@@ -174,12 +190,18 @@ func (w *FileWatcher) readToEnd() {
 			Timestamp: time.Now(),
 			Record: map[string]interface{}{
 				"message": message,
+				"path":    w.path, // TODO use absolute path?
 			},
 		}
 
-		// TODO how to get offsets?
-
 		w.fileSource.Output(entry)
+
+		var err error
+		w.offset, err = w.file.Seek(0, 1) // get current file offset
+		if err != nil {
+			w.Errorw("Failed to get current offset", "error", err)
+			return
+		}
 	}
 }
 
