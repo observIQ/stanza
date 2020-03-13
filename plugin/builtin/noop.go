@@ -1,4 +1,4 @@
-package plugins
+package builtin
 
 import (
 	"fmt"
@@ -8,15 +8,15 @@ import (
 )
 
 func init() {
-	pg.RegisterConfig("bundle_input", &BundleInputConfig{})
+	pg.RegisterConfig("noop", &NoopConfig{})
 }
 
-type BundleInputConfig struct {
+type NoopConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
 	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 }
 
-func (c BundleInputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
+func (c *NoopConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("build default plugin: %s", err)
@@ -24,14 +24,10 @@ func (c BundleInputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 
 	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
 	if err != nil {
-		return nil, fmt.Errorf("build default inputter: %s", err)
+		return nil, fmt.Errorf("build default outputter: %s", err)
 	}
 
-	if !context.IsBundle {
-		return nil, fmt.Errorf("bundle_output can only be used in context of a bundle")
-	}
-
-	plugin := &BundleInput{
+	plugin := &NoopParser{
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
 	}
@@ -39,11 +35,11 @@ func (c BundleInputConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	return plugin, nil
 }
 
-type BundleInput struct {
+type NoopParser struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
 }
 
-func (p *BundleInput) InputFromBundle(entry *entry.Entry) error {
+func (p *NoopParser) Input(entry *entry.Entry) error {
 	return p.Output(entry)
 }

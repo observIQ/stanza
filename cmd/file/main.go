@@ -5,8 +5,8 @@ import (
 	"os/signal"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
-	pgs "github.com/bluemedora/bplogagent/plugin/plugins"
-	fi "github.com/bluemedora/bplogagent/plugin/plugins/fileinput"
+	pgs "github.com/bluemedora/bplogagent/plugin/builtin"
+	fi "github.com/bluemedora/bplogagent/plugin/builtin/fileinput"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
