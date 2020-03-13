@@ -1,6 +1,7 @@
 package fileinput
 
 import (
+	"bufio"
 	"context"
 	"crypto/md5"
 	"encoding/base64"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"syscall"
 	"time"
@@ -61,11 +63,35 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		}
 	}
 
+	var splitFunc bufio.SplitFunc
+	if c.Multiline == nil {
+		splitFunc = bufio.ScanLines
+	} else if c.Multiline.LineEndPattern != "" && c.Multiline.LineStartPattern != "" {
+		return nil, fmt.Errorf("cannot configure both line_start_pattern and line_end_pattern")
+	} else if c.Multiline.LineEndPattern != "" {
+		re, err := regexp.Compile(c.Multiline.LineEndPattern)
+		if err != nil {
+			return nil, fmt.Errorf("compile line end regex: %s", err)
+		}
+		splitFunc = NewLineEndSplitFunc(re)
+	} else if c.Multiline.LineStartPattern != "" {
+		re, err := regexp.Compile(c.Multiline.LineStartPattern)
+		if err != nil {
+			return nil, fmt.Errorf("compile line start regex: %s", err)
+		}
+		splitFunc = NewLineStartSplitFunc(re)
+	} else if c.Multiline.LineEndPattern == "" && c.Multiline.LineStartPattern == "" {
+		return nil, fmt.Errorf("if multiline is configured, either line_start_pattern or line_end_pattern must be configured")
+	}
+
 	plugin := &FileSource{
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
-		Include:          c.Include,
-		Exclude:          c.Exclude,
+
+		Include:   c.Include,
+		Exclude:   c.Exclude,
+		splitFunc: splitFunc,
+
 		fileCreated:      make(chan string),
 		fileTouched:      make(chan string),
 		fileRemoved:      make(chan *FileWatcher),
@@ -79,8 +105,9 @@ type FileSource struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
 
-	Include []string
-	Exclude []string
+	Include   []string
+	Exclude   []string
+	splitFunc bufio.SplitFunc
 
 	fingerprintBytes int64
 
@@ -157,6 +184,10 @@ func (f *FileSource) checkGlob(ctx context.Context) {
 	for _, includePattern := range f.Include {
 		matches, _ := filepath.Glob(includePattern)
 		for _, path := range matches {
+			fileInfo, err := os.Stat(path)
+			if err != nil || fileInfo.IsDir() {
+				continue
+			}
 			f.tryAddFile(ctx, path, true)
 		}
 	}
@@ -186,7 +217,7 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 		return
 	}
 
-	watcher, err := NewFileWatcher(path, f, startFromBeginning)
+	watcher, err := NewFileWatcher(path, f, startFromBeginning, f.splitFunc)
 	if err != nil {
 		if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
 			f.Debugw("File deleted before it could be read", "path", path)

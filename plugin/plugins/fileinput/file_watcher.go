@@ -1,13 +1,16 @@
 package fileinput
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"syscall"
 	"time"
 
+	"github.com/bluemedora/bplogagent/entry"
 	"github.com/fsnotify/fsnotify"
+	"go.uber.org/zap"
 )
 
 // FileWatcher is a wrapper around `fsnotify` that periodically polls
@@ -21,9 +24,12 @@ type FileWatcher struct {
 	pollInterval time.Duration
 	fileSource   *FileSource
 	cancel       context.CancelFunc
+	splitFunc    bufio.SplitFunc
+
+	zap.SugaredLogger
 }
 
-func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool) (*FileWatcher, error) {
+func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool, splitFunc bufio.SplitFunc) (*FileWatcher, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -61,6 +67,7 @@ func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool
 		pollInterval: 3 * time.Second,
 		offset:       offset,
 		fileSource:   fileSource,
+		splitFunc:    splitFunc,
 	}, nil
 }
 
@@ -110,17 +117,7 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 				continue
 			}
 			if event.Op&(fsnotify.Write|fsnotify.Chmod) > 0 {
-				w.fileSource.fileTouched <- w.path
-				fileInfo, err := file.Stat()
-				if err != nil {
-					return err
-				}
-				if fileInfo.Size() < w.offset {
-					w.offset = 0
-				} else if fileInfo.Size() > w.offset {
-					w.offset = fileInfo.Size()
-				} else {
-				}
+				w.checkFile(ctx)
 			}
 			// ignore chmod and rename (rename is covered by directory create)
 		case <-timer.C:
@@ -133,72 +130,61 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 	}
 }
 
-func (w *FileWatcher) Read() {}
+func (w *FileWatcher) checkFile(ctx context.Context) {
+	select {
+	case w.fileSource.fileTouched <- w.path:
+	case <-ctx.Done():
+		return
+	}
+
+	fileInfo, err := w.file.Stat()
+	if err != nil {
+		w.Warnw("Failed to get file info", "error", err) // TODO is this a recoverable error?
+		return
+	}
+
+	if fileInfo.Size() < w.offset {
+		w.Debug("Detected file truncation. Starting from beginning")
+		w.offset = 0
+		w.readToEnd()
+	} else if fileInfo.Size() > w.offset {
+		w.readToEnd()
+	}
+
+	// do nothing if the file hasn't changed size
+}
+
+func (w *FileWatcher) readToEnd() {
+	// TODO seek to last offset?
+	scanner := bufio.NewScanner(w.file)
+	scanner.Split(w.splitFunc)
+	// TODO scanner.Buffer() to set max size
+
+	for {
+		ok := scanner.Scan()
+		if !ok {
+			if err := scanner.Err(); err != nil {
+				w.Warn("Failed to scan file", "error", err)
+			}
+			break
+		}
+
+		message := scanner.Text()
+		entry := &entry.Entry{
+			Timestamp: time.Now(),
+			Record: map[string]interface{}{
+				"message": message,
+			},
+		}
+
+		// TODO how to get offsets?
+
+		w.fileSource.Output(entry)
+	}
+}
 
 func (w *FileWatcher) Close() {
 	if w.cancel != nil {
 		w.cancel()
 	}
-}
-
-type DirectoryWatcher struct {
-	path         string
-	watcher      *fsnotify.Watcher
-	pollInterval time.Duration
-	fileSource   *FileSource
-}
-
-func NewDirectoryWatcher(path string, fileSource *FileSource) (*DirectoryWatcher, error) {
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, fmt.Errorf("creating fsnotify watcher: %s", err)
-	}
-
-	err = w.Add(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DirectoryWatcher{
-		path:         path,
-		watcher:      w,
-		pollInterval: 3 * time.Second,
-		fileSource:   fileSource,
-	}, err
-}
-
-func (w *DirectoryWatcher) Watch(ctx context.Context) error {
-	for {
-		timer := time.NewTimer(w.pollInterval)
-
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			err := w.watcher.Close()
-			if err != nil {
-				return err
-			}
-		case event, ok := <-w.watcher.Events:
-			timer.Stop()
-			if !ok {
-				return nil
-			}
-			// println("Dirwatcher: ", event.String(), event.Name)
-			if event.Op&fsnotify.Create > 0 {
-				w.fileSource.fileCreated <- event.Name
-				continue
-			}
-			// TODO catch directory removal
-			// ignore all other events since they're handled by the fileWatcher
-		case <-timer.C:
-		case err := <-w.watcher.Errors:
-			timer.Stop()
-			// TODO should we exit?
-			return err
-		}
-	}
-}
-
-func (w *DirectoryWatcher) Close() {
-	w.watcher.Close()
 }
