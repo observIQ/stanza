@@ -1,4 +1,4 @@
-package plugins
+package fileinput
 
 import (
 	"context"
@@ -28,6 +28,12 @@ type FileSourceConfig struct {
 	Include              []string
 	Exclude              []string
 	FallbackPollInterval float64
+	Multiline            *FileSourceMultilineConfig
+}
+
+type FileSourceMultilineConfig struct {
+	LineStartPattern string `mapstructure:"log_start_pattern"`
+	LineEndPattern   string `mapstructure:"log_end_pattern"`
 }
 
 func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {

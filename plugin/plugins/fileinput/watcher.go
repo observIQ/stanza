@@ -1,4 +1,4 @@
-package plugins
+package fileinput
 
 import (
 	"context"
@@ -104,7 +104,6 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 			if !ok {
 				return nil
 			}
-			// println("Filewatcher: ", event.String(), " ", event.Name)
 			if event.Op&fsnotify.Remove > 0 {
 				watcher.Close()
 				w.fileSource.fileRemoved <- w
