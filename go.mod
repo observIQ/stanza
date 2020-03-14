@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.38.0
-	github.com/docker/docker v1.4.2-0.20200229013735-71373c6105e3
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/json-iterator/go v1.1.9
