@@ -11,7 +11,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -106,23 +105,35 @@ func TestFileWatcher_ExitOnFileDelete(t *testing.T) {
 	}
 }
 
-func TestFileWatcher_ErrOnFileNotExist(t *testing.T) {
-	assert.NotNil(t, nil)
+func TestFileWatcher_ErrNewOnFileNotExist(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	logger, err := zap.NewDevelopment()
-	assert.NoError(t, err)
-
+	logger := zaptest.NewLogger(t)
 	outputFunc, _ := newOutputNotifier()
 	watcher, err := NewFileWatcher("filedoesnotexist", outputFunc, true, bufio.ScanLines, time.Minute, logger.Sugar())
+	assert.Error(t, err)
+	assert.Nil(t, watcher)
+}
+
+func TestFileWatcher_ErrWatchOnFileNotExist(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	temp, err := ioutil.TempFile("", t.Name())
 	assert.NoError(t, err)
-	println(watcher)
-	println(watcher)
+	temp.Close()
+
+	logger := zaptest.NewLogger(t)
+	outputFunc, _ := newOutputNotifier()
+	watcher, err := NewFileWatcher(temp.Name(), outputFunc, true, bufio.ScanLines, time.Minute, logger.Sugar())
+	assert.NoError(t, err)
+
+	err = os.Remove(temp.Name())
+	assert.NoError(t, err)
 
 	done := make(chan struct{})
 	go func() {
 		err := watcher.Watch(context.Background())
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		close(done)
 	}()
 
