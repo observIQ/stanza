@@ -13,8 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// FileWatcher is a wrapper around `fsnotify` that periodically polls
-// to mitigate issues with filesystems that don't support notify events
+// FileWatcher is a wrapper around `fsnotify` that periodically polls to provide
+// a fallback for filesystems and platforms that don't support event notification
 type FileWatcher struct {
 	inode        uint64
 	dev          uint64
@@ -22,14 +22,22 @@ type FileWatcher struct {
 	file         *os.File
 	offset       int64
 	pollInterval time.Duration
-	fileSource   *FileSource
 	cancel       context.CancelFunc
 	splitFunc    bufio.SplitFunc
+	output       func(*entry.Entry) error
 
 	*zap.SugaredLogger
 }
 
-func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool, splitFunc bufio.SplitFunc, pollInterval time.Duration, logger *zap.SugaredLogger) (*FileWatcher, error) {
+func NewFileWatcher(
+	path string,
+	output func(*entry.Entry) error,
+	startFromBeginning bool,
+	splitFunc bufio.SplitFunc,
+	pollInterval time.Duration,
+	logger *zap.SugaredLogger,
+) (*FileWatcher, error) {
+
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -66,9 +74,9 @@ func NewFileWatcher(path string, fileSource *FileSource, startFromBeginning bool
 		path:          path,
 		pollInterval:  pollInterval,
 		offset:        offset,
-		fileSource:    fileSource,
 		splitFunc:     splitFunc,
-		SugaredLogger: logger.With("path", path),
+		output:        output,
+		SugaredLogger: logger.Named("file_watcher").With("path", path),
 	}, nil
 }
 
@@ -76,12 +84,14 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 	ctx, cancel := context.WithCancel(startCtx)
 	w.cancel = cancel
 
+	// Create the watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		// TODO if falling back to polling, should we set the default lower?
 		w.Infow("Failed to create notifying watcher. Falling back to polling only", "error", err)
 		watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
 	} else {
+		defer watcher.Close()
 		err = watcher.Add(w.path)
 		if err != nil {
 			w.Infow("Failed to add path to watcher. Falling back to polling only", "error", err)
@@ -89,6 +99,7 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 		}
 	}
 
+	// Keep a persistent open file
 	file, err := os.Open(w.path)
 	if err != nil {
 		return err
@@ -96,7 +107,11 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 	defer file.Close()
 	w.file = file
 
-	w.checkFile(ctx) // Check it once initially for responsive startup
+	// Check it once initially for responsive startup
+	err = w.checkReadFile(ctx)
+	if err != nil {
+		return err
+	}
 
 	for {
 		// TODO actually test all these cases
@@ -109,26 +124,27 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			err := watcher.Close()
-			if err != nil {
-				return err
-			}
+			return nil
 		case event, ok := <-watcher.Events:
 			timer.Stop()
 			if !ok {
 				return nil
 			}
 			if event.Op&fsnotify.Remove > 0 {
-				watcher.Close()
-				w.fileSource.fileRemoved <- w
-				continue
+				return watcher.Close()
 			}
 			if event.Op&(fsnotify.Write|fsnotify.Chmod) > 0 {
-				w.checkFile(ctx)
+				err := w.checkReadFile(ctx)
+				if err != nil {
+					return err
+				}
 			}
-			// ignore chmod and rename (rename is covered by directory create)
+			// ignore rename (rename is covered by directory create)
 		case <-timer.C:
-			w.checkFile(ctx)
+			err := w.checkReadFile(ctx)
+			if err != nil {
+				return err
+			}
 		case err := <-watcher.Errors:
 			timer.Stop()
 			return err
@@ -136,35 +152,44 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 	}
 }
 
-func (w *FileWatcher) checkFile(ctx context.Context) {
+func (w *FileWatcher) checkReadFile(ctx context.Context) error {
+	// TODO ensure that none of the errors thrown in here are recoverable
+	// since returning an error triggers a return from the watch function
 	select {
-	case w.fileSource.fileTouched <- w.path:
 	case <-ctx.Done():
-		return
+		return nil
+	default:
 	}
+
+	// TODO check if the file still exists
 
 	fileInfo, err := w.file.Stat()
 	if err != nil {
-		w.Errorw("Failed to get file info", "error", err) // TODO is this a recoverable error?
-		return
+		return err
 	}
 
 	if fileInfo.Size() < w.offset {
 		w.Debug("Detected file truncation. Starting from beginning")
 		w.offset, err = w.file.Seek(0, 0)
 		if err != nil {
-			w.Errorw("Failed to seek to file start", "error", err)
-			return
+			return fmt.Errorf("seek to start: %s", err)
 		}
-		w.readToEnd(ctx)
+		err := w.readToEnd(ctx)
+		if err != nil {
+			return err
+		}
 	} else if fileInfo.Size() > w.offset {
-		w.readToEnd(ctx)
+		err := w.readToEnd(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	// do nothing if the file hasn't changed size
+	return nil
 }
 
-func (w *FileWatcher) readToEnd(ctx context.Context) {
+func (w *FileWatcher) readToEnd(ctx context.Context) error {
 	// TODO seek to last offset?
 	scanner := bufio.NewScanner(w.file)
 	scanner.Split(w.splitFunc)
@@ -173,16 +198,13 @@ func (w *FileWatcher) readToEnd(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			return // Stop reading if closed
+			return nil // Stop reading if closed
 		default:
 		}
 
 		ok := scanner.Scan()
 		if !ok {
-			if err := scanner.Err(); err != nil {
-				w.Warn("Failed to scan file", "error", err)
-			}
-			break
+			return scanner.Err()
 		}
 
 		message := scanner.Text()
@@ -194,13 +216,17 @@ func (w *FileWatcher) readToEnd(ctx context.Context) {
 			},
 		}
 
-		w.fileSource.Output(entry)
+		err := w.output(entry)
+		if err != nil {
+			return fmt.Errorf("output entry: %s", err)
+		}
 
-		var err error
+		// TODO does this actually work how I think it does with the scanner?
+		// I'm unsure if the scanner peeks ahead, or actually advances the reader
+		// every time it tries to parse something. This needs to be tested
 		w.offset, err = w.file.Seek(0, 1) // get current file offset
 		if err != nil {
-			w.Errorw("Failed to get current offset", "error", err)
-			return
+			return fmt.Errorf("get current offset: %s", err)
 		}
 	}
 }

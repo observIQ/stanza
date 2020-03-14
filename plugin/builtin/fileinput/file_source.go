@@ -15,8 +15,6 @@ import (
 	"time"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
-	// using Docker's filenotify so we can fall back to polling
-	// for envs where notify isn't available
 )
 
 func init() {
@@ -49,6 +47,7 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		return nil, fmt.Errorf("build default outputter: %s", err)
 	}
 
+	// Ensure includes can be parsed as globs
 	for _, include := range c.Include {
 		_, err := filepath.Match(include, "")
 		if err != nil {
@@ -56,6 +55,7 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		}
 	}
 
+	// Ensure excludes can be parsed as globs
 	for _, exclude := range c.Exclude {
 		_, err := filepath.Match(exclude, "")
 		if err != nil {
@@ -63,31 +63,36 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		}
 	}
 
+	// Determine the split function for log entries
 	var splitFunc bufio.SplitFunc
 	if c.Multiline == nil {
 		splitFunc = bufio.ScanLines
-	} else if c.Multiline.LineEndPattern != "" && c.Multiline.LineStartPattern != "" {
-		return nil, fmt.Errorf("cannot configure both line_start_pattern and line_end_pattern")
-	} else if c.Multiline.LineEndPattern != "" {
-		re, err := regexp.Compile(c.Multiline.LineEndPattern)
-		if err != nil {
-			return nil, fmt.Errorf("compile line end regex: %s", err)
+	} else {
+		definedLineEndPattern := c.Multiline.LineEndPattern != ""
+		definedLineStartPattern := c.Multiline.LineStartPattern != ""
+
+		switch {
+		case definedLineEndPattern == definedLineStartPattern:
+			return nil, fmt.Errorf("if multiline is configured, exactly one of line_start_pattern or line_end_pattern must be set")
+		case definedLineEndPattern:
+			re, err := regexp.Compile(c.Multiline.LineEndPattern)
+			if err != nil {
+				return nil, fmt.Errorf("compile line end regex: %s", err)
+			}
+			splitFunc = NewLineEndSplitFunc(re)
+		case definedLineStartPattern:
+			re, err := regexp.Compile(c.Multiline.LineStartPattern)
+			if err != nil {
+				return nil, fmt.Errorf("compile line start regex: %s", err)
+			}
+			splitFunc = NewLineStartSplitFunc(re)
 		}
-		splitFunc = NewLineEndSplitFunc(re)
-	} else if c.Multiline.LineStartPattern != "" {
-		re, err := regexp.Compile(c.Multiline.LineStartPattern)
-		if err != nil {
-			return nil, fmt.Errorf("compile line start regex: %s", err)
-		}
-		splitFunc = NewLineStartSplitFunc(re)
-	} else if c.Multiline.LineEndPattern == "" && c.Multiline.LineStartPattern == "" {
-		return nil, fmt.Errorf("if multiline is configured, either line_start_pattern or line_end_pattern must be configured")
 	}
 
+	// Parse the poll interval
 	if c.PollInterval < 0 {
 		return nil, fmt.Errorf("poll_interval must be greater than zero if configured")
 	}
-
 	pollInterval := func() time.Duration {
 		if c.PollInterval == 0 {
 			return 5 * time.Second
@@ -106,7 +111,7 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		PollInterval: pollInterval,
 
 		fileCreated:      make(chan string),
-		fileTouched:      make(chan string),
+		fileTouched:      make(chan struct{}),
 		fileRemoved:      make(chan *FileWatcher),
 		directoryRemoved: make(chan *DirectoryWatcher),
 	}
@@ -135,7 +140,7 @@ type FileSource struct {
 
 	fileCreated      chan string
 	fileRemoved      chan *FileWatcher
-	fileTouched      chan string
+	fileTouched      chan struct{}
 	directoryRemoved chan *DirectoryWatcher
 }
 
@@ -176,6 +181,7 @@ func (f *FileSource) Start() error {
 				f.Debugw("Received directory removed notification", "path", watcher.path)
 				f.removeDirectoryWatcher(watcher)
 			case <-f.fileTouched:
+				// swallow messages as a notification that it's safe to read?
 			}
 		}
 	}()
@@ -227,7 +233,7 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 		return
 	}
 
-	watcher, err := NewFileWatcher(path, f, startFromBeginning, f.SplitFunc, f.PollInterval, f.SugaredLogger)
+	watcher, err := NewFileWatcher(path, f.Output, startFromBeginning, f.SplitFunc, f.PollInterval, f.SugaredLogger)
 	if err != nil {
 		if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
 			f.Debugw("File deleted before it could be read", "path", path)
@@ -283,6 +289,7 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 
 	for _, watcher := range f.fileWatchers {
 		// TODO what if multiple match? anything?
+		// TODO how do links (hard and soft) interact with this logic?
 		if watcher.dev == dev && watcher.inode == inode {
 			if watcher.path == path {
 				return false, false, nil
@@ -303,6 +310,7 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 }
 
 func (f *FileSource) fingerprint(file *os.File) string {
+	// TODO make sure resetting the seek location isn't messing with things
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
 		panic(err)
