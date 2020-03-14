@@ -5,6 +5,9 @@ import (
 	"os"
 	"os/signal"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	bpla "github.com/bluemedora/bplogagent"
 	"github.com/bluemedora/bplogagent/config"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -56,6 +59,11 @@ func main() {
 		logger.Errorw("Failed to start log collector", "error", err)
 		return
 	}
+
+	// Start the profiler http server
+	go func() {
+		logger.Info(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	// Wait for interrupt to exit
 	interrupt := make(chan os.Signal, 1)
