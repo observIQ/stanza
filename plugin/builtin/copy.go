@@ -14,8 +14,7 @@ func init() {
 
 type CopyConfig struct {
 	pg.DefaultPluginConfig `mapstructure:",squash" yaml:",inline"`
-	PluginOutputs          []pg.PluginID `mapstructure:"outputs"`
-	Field                  string
+	PluginOutputs          []pg.PluginID `mapstructure:"outputs" yaml:"outputs"`
 }
 
 func (c CopyConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
@@ -48,7 +47,7 @@ func (c CopyConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	return plugin, nil
 }
 
-func (c CopyConfig) Outputs() []pg.PluginID {
+func (c CopyConfig) OutputIDs() []pg.PluginID {
 	return c.PluginOutputs
 }
 

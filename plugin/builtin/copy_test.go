@@ -33,6 +33,11 @@ func TestCopyImplementations(t *testing.T) {
 	assert.Implements(t, (*pg.Plugin)(nil), new(CopyPlugin))
 }
 
+func TestCopyConfigImplementations(t *testing.T) {
+	assert.Implements(t, (*pg.OutputterConfig)(nil), new(CopyConfig))
+	assert.Implements(t, (*pg.PluginConfig)(nil), new(CopyConfig))
+}
+
 func BenchmarkCopyPlugin(b *testing.B) {
 	for _, ib := range standardInputterBenchmarks {
 		ib := ib
