@@ -1,6 +1,8 @@
 package bplogagent
 
 import (
+	"fmt"
+
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/config"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -40,7 +42,7 @@ func (a *LogAgent) Start() error {
 
 	a.plugins, err = configGraph.Build(buildContext)
 	if err != nil {
-		return err
+		return fmt.Errorf("build plugin graph: %s", err)
 	}
 
 	dotGraph, err := a.plugins.MarshalDot()
