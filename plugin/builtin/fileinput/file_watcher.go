@@ -16,15 +16,20 @@ import (
 // FileWatcher is a wrapper around `fsnotify` that periodically polls to provide
 // a fallback for filesystems and platforms that don't support event notification
 type FileWatcher struct {
-	inode        uint64
-	dev          uint64
-	path         string
-	file         *os.File
-	offset       int64
+	inode  uint64
+	dev    uint64
+	path   string
+	file   *os.File
+	offset int64
+
 	pollInterval time.Duration
-	cancel       context.CancelFunc
-	splitFunc    bufio.SplitFunc
-	output       func(*entry.Entry) error
+	pollingOnly  bool
+
+	cancel context.CancelFunc
+
+	splitFunc bufio.SplitFunc
+	output    func(*entry.Entry) error
+	watcher   *fsnotify.Watcher
 
 	*zap.SugaredLogger
 }
@@ -68,36 +73,46 @@ func NewFileWatcher(
 		return fileSize
 	}()
 
+	// Create the watcher
+	pollingOnly := false
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		// TODO if falling back to polling, should we set the default lower?
+		// TODO maybe even make some sort of smart interval tuning?
+		watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
+		pollingOnly = true
+	} else {
+		err = watcher.Add(path)
+		if err != nil {
+			watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
+			pollingOnly = true
+		}
+	}
+
 	return &FileWatcher{
-		inode:         inode,
-		dev:           dev,
-		path:          path,
-		pollInterval:  pollInterval,
+		inode: inode,
+		dev:   dev,
+		path:  path,
+
+		pollInterval: pollInterval,
+		pollingOnly:  pollingOnly,
+
 		offset:        offset,
 		splitFunc:     splitFunc,
 		output:        output,
+		watcher:       watcher,
 		SugaredLogger: logger.Named("file_watcher").With("path", path),
 	}, nil
 }
 
 func (w *FileWatcher) Watch(startCtx context.Context) error {
+	// TODO This coupling is really gross and I'd like to make it better
+	if !w.pollingOnly {
+		defer w.watcher.Close()
+	}
+
 	ctx, cancel := context.WithCancel(startCtx)
 	w.cancel = cancel
-
-	// Create the watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		// TODO if falling back to polling, should we set the default lower?
-		w.Infow("Failed to create notifying watcher. Falling back to polling only", "error", err)
-		watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
-	} else {
-		defer watcher.Close()
-		err = watcher.Add(w.path)
-		if err != nil {
-			w.Infow("Failed to add path to watcher. Falling back to polling only", "error", err)
-			watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
-		}
-	}
 
 	// Keep a persistent open file
 	file, err := os.Open(w.path)
@@ -125,13 +140,13 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 		case <-ctx.Done():
 			timer.Stop()
 			return nil
-		case event, ok := <-watcher.Events:
+		case event, ok := <-w.watcher.Events:
 			timer.Stop()
 			if !ok {
 				return nil
 			}
 			if event.Op&fsnotify.Remove > 0 {
-				return watcher.Close()
+				return nil
 			}
 			if event.Op&(fsnotify.Write|fsnotify.Chmod) > 0 {
 				err := w.checkReadFile(ctx)
@@ -145,7 +160,7 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 			if err != nil {
 				return err
 			}
-		case err := <-watcher.Errors:
+		case err := <-w.watcher.Errors:
 			timer.Stop()
 			return err
 		}
@@ -161,7 +176,10 @@ func (w *FileWatcher) checkReadFile(ctx context.Context) error {
 	default:
 	}
 
-	// TODO check if the file still exists
+	if _, err := os.Stat(w.path); os.IsNotExist(err) {
+		w.Close()
+		return nil
+	}
 
 	fileInfo, err := w.file.Stat()
 	if err != nil {
@@ -169,7 +187,7 @@ func (w *FileWatcher) checkReadFile(ctx context.Context) error {
 	}
 
 	if fileInfo.Size() < w.offset {
-		w.Debug("Detected file truncation. Starting from beginning")
+		w.Info("Detected file truncation. Starting from beginning")
 		w.offset, err = w.file.Seek(0, 0)
 		if err != nil {
 			return fmt.Errorf("seek to start: %s", err)
