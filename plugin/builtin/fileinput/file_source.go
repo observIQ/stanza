@@ -239,8 +239,6 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 			f.Debugw("File deleted before it could be read", "path", path)
 		} else {
 			f.Warnw("Failed to create file watcher", "error", err)
-
-			fmt.Printf("ERROR TYPE: %T", err)
 		}
 		return
 	}
@@ -335,7 +333,8 @@ func (f *FileSource) tryAddDirectory(ctx context.Context, path string) {
 
 	watcher, err := NewDirectoryWatcher(path, f)
 	if err != nil {
-		println("Creating directory watcher: ", err) // TODO
+		f.Warnw("Failed to create directory watcher", "error", err)
+		return
 	}
 
 	f.directoryWatchers[path] = watcher

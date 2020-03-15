@@ -50,7 +50,6 @@ func (w *DirectoryWatcher) Watch(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			// println("Dirwatcher: ", event.String(), event.Name)
 			if event.Op&fsnotify.Create > 0 {
 				w.fileSource.fileCreated <- event.Name
 				continue
