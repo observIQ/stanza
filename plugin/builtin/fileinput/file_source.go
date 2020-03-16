@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
-	"syscall"
 	"time"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
+	"go.etcd.io/bbolt"
 )
 
 func init() {
@@ -22,11 +22,12 @@ func init() {
 }
 
 type FileSourceConfig struct {
-	pg.DefaultPluginConfig
-	pg.DefaultOutputterConfig
+	pg.DefaultPluginConfig    `mapstructure:",squash"`
+	pg.DefaultOutputterConfig `mapstructure:",squash"`
 
-	Include      []string
-	Exclude      []string
+	Include []string
+	Exclude []string
+	// TODO start from beginning once offsets are implemented
 	PollInterval float64
 	Multiline    *FileSourceMultilineConfig
 }
@@ -105,15 +106,13 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		DefaultPlugin:    defaultPlugin,
 		DefaultOutputter: defaultOutputter,
 
-		Include:      c.Include,
-		Exclude:      c.Exclude,
-		SplitFunc:    splitFunc,
-		PollInterval: pollInterval,
+		Include:          c.Include,
+		Exclude:          c.Exclude,
+		SplitFunc:        splitFunc,
+		PollInterval:     pollInterval,
+		FingerprintBytes: 100,
 
-		fileCreated:      make(chan string),
-		fileTouched:      make(chan struct{}),
-		fileRemoved:      make(chan *FileWatcher),
-		directoryRemoved: make(chan *DirectoryWatcher),
+		fileCreated: make(chan string),
 	}
 
 	return plugin, nil
@@ -123,12 +122,11 @@ type FileSource struct {
 	pg.DefaultPlugin
 	pg.DefaultOutputter
 
-	Include      []string
-	Exclude      []string
-	PollInterval time.Duration
-	SplitFunc    bufio.SplitFunc
-
-	fingerprintBytes int64
+	Include          []string
+	Exclude          []string
+	PollInterval     time.Duration
+	SplitFunc        bufio.SplitFunc
+	FingerprintBytes int64
 
 	wg     *sync.WaitGroup
 	cancel context.CancelFunc
@@ -138,10 +136,9 @@ type FileSource struct {
 	directoryWatchers map[string]*DirectoryWatcher
 	directoryMux      sync.Mutex
 
-	fileCreated      chan string
-	fileRemoved      chan *FileWatcher
-	fileTouched      chan struct{}
-	directoryRemoved chan *DirectoryWatcher
+	fileCreated chan string
+
+	db *bbolt.DB
 }
 
 func (f *FileSource) Start() error {
@@ -158,30 +155,26 @@ func (f *FileSource) Start() error {
 		defer f.Info("Exiting glob updater")
 
 		// Do it once first for responsive startup
-		f.checkGlob(ctx)
+		matches := globMatches(f.Include, f.Exclude)
+		for _, match := range matches {
+			f.tryAddFile(ctx, match, true)
+		}
 
 		globTicker := time.NewTicker(f.PollInterval)
+		defer globTicker.Stop()
 
-		// Synchronize all new tracking notifications here so there
-		// are no race conditions in file operations.
-		// Also keeps us from having to do lots of map locking
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-globTicker.C:
-				f.checkGlob(ctx)
+				matches := globMatches(f.Include, f.Exclude)
+				for _, match := range matches {
+					f.tryAddFile(ctx, match, true)
+				}
 			case path := <-f.fileCreated:
 				f.Debugw("Received file created notification", "path", path)
 				f.tryAddFile(ctx, path, false)
-			case watcher := <-f.fileRemoved:
-				f.Debugw("Received file removed notification", "path", watcher.path)
-				f.removeFileWatcher(watcher)
-			case watcher := <-f.directoryRemoved:
-				f.Debugw("Received directory removed notification", "path", watcher.path)
-				f.removeDirectoryWatcher(watcher)
-			case <-f.fileTouched:
-				// swallow messages as a notification that it's safe to read?
 			}
 		}
 	}()
@@ -196,21 +189,29 @@ func (f *FileSource) Stop() {
 	f.Info("Stopped source")
 }
 
-func (f *FileSource) checkGlob(ctx context.Context) {
-	for _, includePattern := range f.Include {
+// globMatches queries the filesystem for any files that match one of the
+// include patterns, but do not match any of the exclude patterns
+func globMatches(includes []string, excludes []string) []string {
+	matched := []string{}
+	for _, includePattern := range includes {
 		matches, _ := filepath.Glob(includePattern)
 		for _, path := range matches {
 			fileInfo, err := os.Stat(path)
 			if err != nil || fileInfo.IsDir() {
 				continue // skip directories
 			}
-			f.tryAddFile(ctx, path, true)
+			if isExcluded(path, excludes) {
+				continue // skip excluded
+			}
+			matched = append(matched, path)
 		}
 	}
+	return matched
 }
 
-func (f *FileSource) isExcluded(path string) bool {
-	for _, excludePattern := range f.Exclude {
+// isExcluded checks if the path is matched by any of the exclude patterns
+func isExcluded(path string, excludes []string) bool {
+	for _, excludePattern := range excludes {
 		// error already checked in build step
 		if exclude, _ := filepath.Match(excludePattern, path); exclude {
 			return true
@@ -220,32 +221,31 @@ func (f *FileSource) isExcluded(path string) bool {
 	return false
 }
 
+//
 func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool) {
-	if f.isExcluded(path) {
+	// Skip the path if it's excluded
+	if isExcluded(path, f.Exclude) {
 		f.Debugw("Skipping excluded file", "path", path)
 		return
 	}
 
+	// Add the file's directory so we can get faster notifications
 	f.tryAddDirectory(ctx, filepath.Dir(path))
 
-	createWatcher, startFromBeginning, err := f.checkPath(path, !globCheck)
-	if !createWatcher {
+	// Check if we should start watching the file
+	createWatcher, startingOffset, err := f.checkPath(path, !globCheck)
+	if err != nil || !createWatcher {
 		return
 	}
 
-	watcher, err := NewFileWatcher(path, f.Output, startFromBeginning, f.SplitFunc, f.PollInterval, f.SugaredLogger)
-	if err != nil {
-		if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
-			f.Debugw("File deleted before it could be read", "path", path)
-		} else {
-			f.Warnw("Failed to create file watcher", "error", err)
-		}
-		return
-	}
+	// Create the file watcher
+	watcher := NewFileWatcher(path, f.Output, startingOffset, f.SplitFunc, f.PollInterval, f.SugaredLogger)
 
+	// Save a reference
 	f.Infow("Watching file", "path", watcher.path)
 	f.overwriteFileWatcher(watcher)
 
+	// Start the watcher
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
@@ -263,51 +263,31 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 	}()
 }
 
-func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool, startFromBeginning bool, err error) {
+// checkPath TODO
+func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool, startingOffset int64, err error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return false, false, err
+		return false, 0, err
 	}
+	defer file.Close()
 
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return false, false, err
-	}
+	fingerprint := fingerprint(f.FingerprintBytes, file)
 
-	// TODO get these safely
-	var inode uint64
-	var dev uint64
-	switch sys := fileInfo.Sys().(type) {
-	case *syscall.Stat_t:
-		inode = sys.Ino
-		dev = uint64(sys.Dev)
-	default:
-		return false, false, fmt.Errorf("cannot use fileinfo of type %T", fileInfo.Sys())
-	}
-
+	// https://github.com/timberio/vector/blob/master/lib/file-source/src/file_server.rs
 	for _, watcher := range f.fileWatchers {
-		// TODO what if multiple match? anything?
-		// TODO how do links (hard and soft) interact with this logic?
-		if watcher.dev == dev && watcher.inode == inode {
+		if watcher.Fingerprint(f.FingerprintBytes) == fingerprint {
+
+			// The path is the same, so nothing has changed
 			if watcher.path == path {
-				return false, false, nil
-			} else {
-				f.Infow("File was renamed", "path", path)
-				watcher.path = path
-				return false, false, nil
+				return false, 0, nil
 			}
-			// Don't check fingerprints during glob check because we only want to
-			// check newly-created files. TODO make this cleaner/clearer
-		} else if checkCopy && f.fingerprint(watcher.file) == f.fingerprint(file) {
-			f.Infow("File was copied. Starting from previous offset", "path", path)
-			return true, false, nil
 		}
 	}
 
-	return true, true, nil
+	return true, 0, nil
 }
 
-func (f *FileSource) fingerprint(file *os.File) string {
+func fingerprint(numBytes int64, file *os.File) string {
 	// TODO make sure resetting the seek location isn't messing with things
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
@@ -315,11 +295,9 @@ func (f *FileSource) fingerprint(file *os.File) string {
 	}
 	hash := md5.New()
 
-	buffer := make([]byte, f.fingerprintBytes)
-	_, err = io.ReadFull(file, buffer)
-	if err != nil {
-		panic(err) // TODO
-	}
+	buffer := make([]byte, numBytes)
+	_, _ = io.ReadFull(file, buffer)
+	// TODO what if the file is empty?
 	hash.Write(buffer)
 	return base64.StdEncoding.EncodeToString(hash.Sum(nil))
 }

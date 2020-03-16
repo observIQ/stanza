@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -16,20 +15,17 @@ import (
 // FileWatcher is a wrapper around `fsnotify` that periodically polls to provide
 // a fallback for filesystems and platforms that don't support event notification
 type FileWatcher struct {
-	inode  uint64
-	dev    uint64
 	path   string
-	file   *os.File
 	offset int64
 
 	pollInterval time.Duration
-	pollingOnly  bool
 
 	cancel context.CancelFunc
 
-	splitFunc bufio.SplitFunc
-	output    func(*entry.Entry) error
-	watcher   *fsnotify.Watcher
+	splitFunc   bufio.SplitFunc
+	output      func(*entry.Entry) error
+	watcher     *fsnotify.Watcher
+	fingerprint *string
 
 	*zap.SugaredLogger
 }
@@ -37,93 +33,47 @@ type FileWatcher struct {
 func NewFileWatcher(
 	path string,
 	output func(*entry.Entry) error,
-	startFromBeginning bool,
+	offset int64,
 	splitFunc bufio.SplitFunc,
 	pollInterval time.Duration,
 	logger *zap.SugaredLogger,
-) (*FileWatcher, error) {
-
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	fileSize := fileInfo.Size()
-
-	// TODO make this work for windows
-	var inode uint64
-	var dev uint64
-	switch sys := fileInfo.Sys().(type) {
-	case *syscall.Stat_t:
-		inode = sys.Ino
-		dev = uint64(sys.Dev)
-	default:
-		return nil, fmt.Errorf("cannot use fileinfo of type %T", fileInfo.Sys())
-	}
-
-	offset := func() int64 {
-		if startFromBeginning {
-			return 0
-		}
-		return fileSize
-	}()
-
-	// Create the watcher
-	pollingOnly := false
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		// TODO if falling back to polling, should we set the default lower?
-		// TODO maybe even make some sort of smart interval tuning?
-		watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
-		pollingOnly = true
-	} else {
-		err = watcher.Add(path)
-		if err != nil {
-			watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
-			pollingOnly = true
-		}
-	}
+) *FileWatcher {
 
 	return &FileWatcher{
-		inode: inode,
-		dev:   dev,
-		path:  path,
+		path: path,
 
 		pollInterval: pollInterval,
-		pollingOnly:  pollingOnly,
 
 		offset:        offset,
 		splitFunc:     splitFunc,
 		output:        output,
-		watcher:       watcher,
-		SugaredLogger: logger.Named("file_watcher").With("path", path),
-	}, nil
+		SugaredLogger: logger.With("path", path),
+	}
 }
 
 func (w *FileWatcher) Watch(startCtx context.Context) error {
-	// TODO This coupling is really gross and I'd like to make it better
-	if !w.pollingOnly {
-		defer w.watcher.Close()
+	// Create the watcher if it's not manually set (probably only in tests)
+	if w.watcher == nil {
+		var err error
+		w.watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			// TODO if falling back to polling, should we set the default lower?
+			// TODO maybe even make some sort of smart interval tuning?
+			w.watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
+		} else {
+			defer w.watcher.Close()
+			err = w.watcher.Add(w.path)
+			if err != nil {
+				w.watcher = &fsnotify.Watcher{} // create an empty watcher whose channels are just nil
+			}
+		}
 	}
 
 	ctx, cancel := context.WithCancel(startCtx)
 	w.cancel = cancel
 
-	// Keep a persistent open file
-	file, err := os.Open(w.path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	w.file = file
-
 	// Check it once initially for responsive startup
-	err = w.checkReadFile(ctx)
+	err := w.checkReadFile(ctx)
 	if err != nil {
 		return err
 	}
@@ -145,7 +95,7 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 			if !ok {
 				return nil
 			}
-			if event.Op&fsnotify.Remove > 0 {
+			if event.Op&(fsnotify.Remove|fsnotify.Rename) > 0 {
 				return nil
 			}
 			if event.Op&(fsnotify.Write|fsnotify.Chmod) > 0 {
@@ -165,6 +115,7 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 			return err
 		}
 	}
+
 }
 
 func (w *FileWatcher) checkReadFile(ctx context.Context) error {
@@ -176,28 +127,27 @@ func (w *FileWatcher) checkReadFile(ctx context.Context) error {
 	default:
 	}
 
-	if _, err := os.Stat(w.path); os.IsNotExist(err) {
-		w.Close()
-		return nil
+	file, err := os.Open(w.path)
+	if err != nil {
+		return err
 	}
+	defer file.Close()
 
-	fileInfo, err := w.file.Stat()
+	fileInfo, err := file.Stat()
 	if err != nil {
 		return err
 	}
 
 	if fileInfo.Size() < w.offset {
 		w.Info("Detected file truncation. Starting from beginning")
-		w.offset, err = w.file.Seek(0, 0)
-		if err != nil {
-			return fmt.Errorf("seek to start: %s", err)
-		}
-		err := w.readToEnd(ctx)
+		w.offset = 0
+		w.fingerprint = nil
+		err := w.readToEnd(ctx, file)
 		if err != nil {
 			return err
 		}
 	} else if fileInfo.Size() > w.offset {
-		err := w.readToEnd(ctx)
+		err := w.readToEnd(ctx, file)
 		if err != nil {
 			return err
 		}
@@ -207,9 +157,14 @@ func (w *FileWatcher) checkReadFile(ctx context.Context) error {
 	return nil
 }
 
-func (w *FileWatcher) readToEnd(ctx context.Context) error {
-	// TODO seek to last offset?
-	scanner := bufio.NewScanner(w.file)
+func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
+	var err error
+	w.offset, err = file.Seek(w.offset, 0) // set the file to the last offset
+	if err != nil {
+		return fmt.Errorf("get current offset: %s", err)
+	}
+
+	scanner := bufio.NewScanner(file)
 	scanner.Split(w.splitFunc)
 	// TODO scanner.Buffer() to set max size
 
@@ -242,10 +197,29 @@ func (w *FileWatcher) readToEnd(ctx context.Context) error {
 		// TODO does this actually work how I think it does with the scanner?
 		// I'm unsure if the scanner peeks ahead, or actually advances the reader
 		// every time it tries to parse something. This needs to be tested
-		w.offset, err = w.file.Seek(0, 1) // get current file offset
+		w.offset, err = file.Seek(0, 1) // get current file offset
 		if err != nil {
 			return fmt.Errorf("get current offset: %s", err)
 		}
+	}
+}
+
+func (w *FileWatcher) Offset() int64 {
+	return w.offset
+}
+
+func (w *FileWatcher) Fingerprint(numBytes int64) string {
+	if w.fingerprint == nil {
+		file, err := os.Open(w.path) // TODO handle error
+		if err != nil {
+			return err.Error()
+		}
+		defer file.Close()
+		fp := fingerprint(numBytes, file)
+		w.fingerprint = &fp
+		return fp
+	} else {
+		return *w.fingerprint
 	}
 }
 

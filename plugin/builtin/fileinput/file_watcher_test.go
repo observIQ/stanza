@@ -37,8 +37,7 @@ func TestFileWatcherReadsLog(t *testing.T) {
 	// Create the watcher
 	logger := zaptest.NewLogger(t).Sugar()
 	outputFunc, entryChan := newOutputNotifier()
-	watcher, err := NewFileWatcher(temp.Name(), outputFunc, true, bufio.ScanLines, time.Minute, logger)
-	assert.NoError(t, err)
+	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, time.Minute, logger)
 
 	// Start the watcher
 	ctx, cancel := context.WithCancel(context.Background())
@@ -85,8 +84,7 @@ func TestFileWatcher_ExitOnFileDelete(t *testing.T) {
 	// Create the file watcher
 	logger := zaptest.NewLogger(t, zaptest.Level(zap.DebugLevel)).Sugar()
 	outputFunc, entryChan := newOutputNotifier()
-	watcher, err := NewFileWatcher(temp.Name(), outputFunc, true, bufio.ScanLines, time.Minute, logger)
-	assert.NoError(t, err)
+	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, time.Minute, logger)
 
 	// Start the file watcher
 	done := make(chan struct{})
@@ -119,17 +117,6 @@ func TestFileWatcher_ExitOnFileDelete(t *testing.T) {
 	}
 }
 
-func TestFileWatcher_ErrNewOnFileNotExist(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
-	// Expect creating a file watcher to fail if the file does not exist
-	logger := zaptest.NewLogger(t)
-	outputFunc, _ := newOutputNotifier()
-	watcher, err := NewFileWatcher("filedoesnotexist", outputFunc, true, bufio.ScanLines, time.Minute, logger.Sugar())
-	assert.Error(t, err)
-	assert.Nil(t, watcher)
-}
-
 func TestFileWatcher_ErrWatchOnFileNotExist(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
@@ -141,8 +128,7 @@ func TestFileWatcher_ErrWatchOnFileNotExist(t *testing.T) {
 	// Create the file watcher
 	logger := zaptest.NewLogger(t)
 	outputFunc, _ := newOutputNotifier()
-	watcher, err := NewFileWatcher(temp.Name(), outputFunc, true, bufio.ScanLines, time.Minute, logger.Sugar())
-	assert.NoError(t, err)
+	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, time.Minute, logger.Sugar())
 
 	// Remove the file
 	err = os.Remove(temp.Name())
@@ -175,14 +161,10 @@ func TestFileWatcher_PollingFallback(t *testing.T) {
 	// Create the file watcher with low poll rate
 	logger := zaptest.NewLogger(t)
 	outputFunc, entryChan := newOutputNotifier()
-	watcher, err := NewFileWatcher(temp.Name(), outputFunc, true, bufio.ScanLines, 10*time.Millisecond, logger.Sugar())
-	assert.NoError(t, err)
+	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, 10*time.Millisecond, logger.Sugar())
 
 	// Override the underlying watcher with a do-nothing version
-	// TODO a nicer way to inject the watcher dependency would make things much cleaner
-	watcher.watcher.Close()
 	watcher.watcher = &fsnotify.Watcher{}
-	watcher.pollingOnly = true
 
 	// Start the watcher
 	done := make(chan struct{})
