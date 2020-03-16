@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/md5"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
-	"go.etcd.io/bbolt"
 )
 
 func init() {
@@ -25,11 +23,11 @@ type FileSourceConfig struct {
 	pg.DefaultPluginConfig    `mapstructure:",squash"`
 	pg.DefaultOutputterConfig `mapstructure:",squash"`
 
-	Include []string
-	Exclude []string
+	Include []string `yaml:",omitempty"`
+	Exclude []string `yaml:",omitempty"`
 	// TODO start from beginning once offsets are implemented
-	PollInterval float64
-	Multiline    *FileSourceMultilineConfig
+	PollInterval float64                    `yaml:",omitempty"`
+	Multiline    *FileSourceMultilineConfig `yaml:",omitempty"`
 }
 
 type FileSourceMultilineConfig struct {
@@ -113,6 +111,10 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		FingerprintBytes: 100,
 
 		fileCreated: make(chan string),
+		offsetStore: &OffsetStore{
+			db:     buildContext.Database,
+			bucket: string(c.ID()), // TODO use bundle as prefix
+		},
 	}
 
 	return plugin, nil
@@ -138,7 +140,7 @@ type FileSource struct {
 
 	fileCreated chan string
 
-	db *bbolt.DB
+	offsetStore *OffsetStore
 }
 
 func (f *FileSource) Start() error {
@@ -239,7 +241,16 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 	}
 
 	// Create the file watcher
-	watcher := NewFileWatcher(path, f.Output, startingOffset, f.SplitFunc, f.PollInterval, f.SugaredLogger)
+	watcher := &FileWatcher{
+		path:             path,
+		offset:           startingOffset,
+		pollInterval:     f.PollInterval,
+		splitFunc:        f.SplitFunc,
+		output:           f.Output,
+		fingerprintBytes: f.FingerprintBytes,
+		offsetStore:      f.offsetStore,
+		SugaredLogger:    f.SugaredLogger.With("path", path),
+	}
 
 	// Save a reference
 	f.Infow("Watching file", "path", watcher.path)
@@ -263,7 +274,6 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 	}()
 }
 
-// checkPath TODO
 func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool, startingOffset int64, err error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -271,23 +281,51 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 	}
 	defer file.Close()
 
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return false, 0, err
+	}
+
+	// If zero size, skip fingerprinting
+	if fileInfo.Size() == 0 {
+		for _, watcher := range f.fileWatchers {
+			if watcher.path == path {
+				return false, 0, nil
+			}
+		}
+		return true, 0, nil
+	}
+
 	fingerprint := fingerprint(f.FingerprintBytes, file)
 
-	// https://github.com/timberio/vector/blob/master/lib/file-source/src/file_server.rs
+	// Skip if fingerprint and path are the same
 	for _, watcher := range f.fileWatchers {
-		if watcher.Fingerprint(f.FingerprintBytes) == fingerprint {
+		if watcher.path == path {
+			watcherFP, err := watcher.Fingerprint()
+			if err != nil {
+				f.Debug("Failed to get watcher fingerprint", "error", err)
+				continue
+			}
 
-			// The path is the same, so nothing has changed
-			if watcher.path == path {
+			if string(watcherFP) == string(fingerprint) {
 				return false, 0, nil
 			}
 		}
 	}
 
+	// Detect file rotation (offset is stored but path is different)
+	offset, err := f.offsetStore.GetOffset(fingerprint)
+	if err == nil {
+		f.Warnw("Failed to get offset for fingerprint", "error", err)
+	}
+	if offset != nil {
+		return true, *offset, nil
+	}
+
 	return true, 0, nil
 }
 
-func fingerprint(numBytes int64, file *os.File) string {
+func fingerprint(numBytes int64, file *os.File) []byte {
 	// TODO make sure resetting the seek location isn't messing with things
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
@@ -299,7 +337,7 @@ func fingerprint(numBytes int64, file *os.File) string {
 	_, _ = io.ReadFull(file, buffer)
 	// TODO what if the file is empty?
 	hash.Write(buffer)
-	return base64.StdEncoding.EncodeToString(hash.Sum(nil))
+	return hash.Sum(nil)
 }
 
 func (f *FileSource) tryAddDirectory(ctx context.Context, path string) {

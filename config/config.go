@@ -5,9 +5,7 @@ import (
 )
 
 type Config struct {
-	// TODO make a PluginConfigList type that can validate that the outputs exist
-	// when parsing the config? Also can define a .Build() method on it to get
-	// a PluginList
-	Plugins    []plugin.PluginConfig
-	BundlePath string `mapstructure:"bundle_path" yaml:"bundle_path"`
+	Plugins      []plugin.PluginConfig
+	BundlePath   string `mapstructure:"bundle_path" yaml:"bundle_path"`
+	DatabaseFile string `mapstructure:"database_file" yaml:"database_file"`
 }

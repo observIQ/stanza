@@ -15,19 +15,18 @@ import (
 // FileWatcher is a wrapper around `fsnotify` that periodically polls to provide
 // a fallback for filesystems and platforms that don't support event notification
 type FileWatcher struct {
-	path   string
-	offset int64
-
-	pollInterval time.Duration
-
-	cancel context.CancelFunc
-
-	splitFunc   bufio.SplitFunc
-	output      func(*entry.Entry) error
-	watcher     *fsnotify.Watcher
-	fingerprint *string
-
+	path             string
+	offset           int64
+	pollInterval     time.Duration
+	splitFunc        bufio.SplitFunc
+	output           func(*entry.Entry) error
+	fingerprintBytes int64
+	offsetStore      *OffsetStore
 	*zap.SugaredLogger
+
+	cancel            context.CancelFunc
+	stableFingerprint []byte
+	watcher           *fsnotify.Watcher
 }
 
 func NewFileWatcher(
@@ -197,29 +196,38 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 		// TODO does this actually work how I think it does with the scanner?
 		// I'm unsure if the scanner peeks ahead, or actually advances the reader
 		// every time it tries to parse something. This needs to be tested
-		w.offset, err = file.Seek(0, 1) // get current file offset
+		newOffset, err := file.Seek(0, 1) // get current file offset
 		if err != nil {
 			return fmt.Errorf("get current offset: %s", err)
 		}
+
+		// TODO this will be very slow while the fingerprint hasn't stabilized
+		fingerprint, err := w.Fingerprint(w.fingerprintBytes)
+		if err != nil {
+			return fmt.Errorf("get fingerprint: %s", err)
+		}
+
+		// TODO setting the offset for every log might not be performant enough
+		err = w.offsetStore.SetOffset(fingerprint, newOffset)
+		if err != nil {
+			return fmt.Errorf("set offset: %s", err)
+		}
+
 	}
 }
 
-func (w *FileWatcher) Offset() int64 {
-	return w.offset
-}
-
-func (w *FileWatcher) Fingerprint(numBytes int64) string {
-	if w.fingerprint == nil {
+func (w *FileWatcher) Fingerprint() ([]byte, error) {
+	if w.stableFingerprint == nil {
 		file, err := os.Open(w.path) // TODO handle error
 		if err != nil {
-			return err.Error()
+			return nil, err
 		}
 		defer file.Close()
-		fp := fingerprint(numBytes, file)
-		w.fingerprint = &fp
-		return fp
+		fp := fingerprint(w.fingerprintBytes, file)
+		w.stableFingerprint = fp
+		return fp, nil
 	} else {
-		return *w.fingerprint
+		return w.stableFingerprint, nil
 	}
 }
 
