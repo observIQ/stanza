@@ -54,10 +54,10 @@ func (p *GenerateSource) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 	p.wg = &sync.WaitGroup{}
-	p.wg.Add(1)
 
+	p.wg.Add(1)
 	go func() {
-		p.wg.Done()
+		defer p.wg.Done()
 		i := 0
 		for {
 			select {
