@@ -1,4 +1,3 @@
-//go:generate mockery -name=PluginConfig -output=./testutil -outpkg=testutil -case=snake
 package plugin
 
 import (
