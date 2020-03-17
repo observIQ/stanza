@@ -27,10 +27,10 @@ func newOutputNotifier() (func(*entry.Entry) error, chan *entry.Entry) {
 	return f, c
 }
 
-func newTestOffsetStore() (*OffsetStore, func(), error) {
+func newTestOffsetStore() (*OffsetStore, func()) {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		return nil, nil, err
+		panic(err)
 	}
 
 	remove := func() {
@@ -39,7 +39,7 @@ func newTestOffsetStore() (*OffsetStore, func(), error) {
 
 	db, err := bbolt.Open(filepath.Join(tempDir, "bplogagent.db"), 0666, nil)
 	if err != nil {
-		return nil, nil, err
+		panic(err)
 	}
 
 	store := &OffsetStore{
@@ -47,7 +47,7 @@ func newTestOffsetStore() (*OffsetStore, func(), error) {
 		bucket: "test",
 	}
 
-	return store, remove, nil
+	return store, remove
 }
 
 func TestFileWatcherReadsLog(t *testing.T) {
@@ -56,11 +56,13 @@ func TestFileWatcherReadsLog(t *testing.T) {
 	// Create the temp file
 	temp, err := ioutil.TempFile("", t.Name())
 	assert.NoError(t, err)
+	defer func() {
+		os.Remove(temp.Name())
+	}()
 	defer temp.Close()
 
 	// Create the test OffsetStore
-	store, remove, err := newTestOffsetStore()
-	assert.NoError(t, err)
+	store, remove := newTestOffsetStore()
 	defer remove()
 
 	// Create the watcher
@@ -120,8 +122,7 @@ func TestFileWatcher_ExitOnFileDelete(t *testing.T) {
 	defer temp.Close()
 
 	// Create the test offset store
-	store, remove, err := newTestOffsetStore()
-	assert.NoError(t, err)
+	store, remove := newTestOffsetStore()
 	defer remove()
 
 	// Create the watcher
@@ -178,7 +179,7 @@ func TestFileWatcher_ErrWatchOnFileNotExist(t *testing.T) {
 	temp.Close()
 
 	// Create the test offset store
-	store, remove, err := newTestOffsetStore()
+	store, remove := newTestOffsetStore()
 	assert.NoError(t, err)
 	defer remove()
 
@@ -225,7 +226,7 @@ func TestFileWatcher_PollingFallback(t *testing.T) {
 	defer temp.Close()
 
 	// Create the test offset store
-	store, remove, err := newTestOffsetStore()
+	store, remove := newTestOffsetStore()
 	assert.NoError(t, err)
 	defer remove()
 
