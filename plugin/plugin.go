@@ -1,4 +1,4 @@
-//go:generate mockery -name=Plugin -output=./testutil -outpkg=testutil -case=snake
+//go:generate mockery -name=^(Plugin|Inputter|Outputter)$ -output=./testutil -outpkg=testutil -case=snake
 package plugin
 
 import (
