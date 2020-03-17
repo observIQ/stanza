@@ -20,8 +20,8 @@ func init() {
 }
 
 type FileSourceConfig struct {
-	pg.DefaultPluginConfig    `mapstructure:",squash"`
-	pg.DefaultOutputterConfig `mapstructure:",squash"`
+	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
+	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
 
 	Include []string `yaml:",omitempty"`
 	Exclude []string `yaml:",omitempty"`
@@ -31,8 +31,8 @@ type FileSourceConfig struct {
 }
 
 type FileSourceMultilineConfig struct {
-	LineStartPattern string `mapstructure:"log_start_pattern"`
-	LineEndPattern   string `mapstructure:"log_end_pattern"`
+	LineStartPattern string `mapstructure:"line_start_pattern" yaml:"line_start_pattern"`
+	LineEndPattern   string `mapstructure:"line_end_pattern" yaml:"line_end_pattern"`
 }
 
 func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
@@ -162,6 +162,8 @@ func (f *FileSource) Start() error {
 			f.tryAddFile(ctx, match, true)
 		}
 
+		// TODO clear database of untracked offsets after initial startup
+
 		globTicker := time.NewTicker(f.PollInterval)
 		defer globTicker.Stop()
 
@@ -253,7 +255,8 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 	}
 
 	// Save a reference
-	f.Infow("Watching file", "path", watcher.path)
+	fp, _ := watcher.Fingerprint()
+	f.Infow("Watching file", "path", watcher.path, "offset", watcher.offset, "fingerprint", fp)
 	f.overwriteFileWatcher(watcher)
 
 	// Start the watcher
@@ -296,7 +299,7 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 		return true, 0, nil
 	}
 
-	fingerprint := fingerprint(f.FingerprintBytes, file)
+	fingerprint, _ := fingerprint(f.FingerprintBytes, file)
 
 	// Skip if fingerprint and path are the same
 	for _, watcher := range f.fileWatchers {
@@ -315,7 +318,7 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 
 	// Detect file rotation (offset is stored but path is different)
 	offset, err := f.offsetStore.GetOffset(fingerprint)
-	if err == nil {
+	if err != nil {
 		f.Warnw("Failed to get offset for fingerprint", "error", err)
 	}
 	if offset != nil {
@@ -325,7 +328,7 @@ func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool,
 	return true, 0, nil
 }
 
-func fingerprint(numBytes int64, file *os.File) []byte {
+func fingerprint(numBytes int64, file *os.File) (fp []byte, stable bool) {
 	// TODO make sure resetting the seek location isn't messing with things
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
@@ -334,10 +337,10 @@ func fingerprint(numBytes int64, file *os.File) []byte {
 	hash := md5.New()
 
 	buffer := make([]byte, numBytes)
-	_, _ = io.ReadFull(file, buffer)
+	bytesRead, _ := io.ReadFull(file, buffer)
 	// TODO what if the file is empty?
 	hash.Write(buffer)
-	return hash.Sum(nil)
+	return hash.Sum(nil), int64(bytesRead) >= numBytes
 }
 
 func (f *FileSource) tryAddDirectory(ctx context.Context, path string) {
@@ -379,7 +382,7 @@ func (f *FileSource) removeFileWatcher(watcher *FileWatcher) {
 	f.fileMux.Lock()
 	for i, trackedWatcher := range f.fileWatchers {
 		if trackedWatcher == watcher {
-			trackedWatcher.Close()
+			trackedWatcher.Exit()
 			f.fileWatchers = append(f.fileWatchers[:i], f.fileWatchers[i+1:]...)
 		}
 	}
@@ -391,7 +394,7 @@ func (f *FileSource) overwriteFileWatcher(watcher *FileWatcher) {
 	overwritten := false
 	for i, trackedWatcher := range f.fileWatchers {
 		if trackedWatcher.path == watcher.path {
-			trackedWatcher.Close()
+			trackedWatcher.Exit()
 			f.fileWatchers[i] = watcher
 			overwritten = true
 		}

@@ -14,29 +14,28 @@ type OffsetStore struct {
 }
 
 type offsetStorer struct {
-	offset int64
+	Offset int64
 }
 
 func (s *OffsetStore) GetOffset(fingerprint []byte) (*int64, error) {
 	var offset *int64
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		bucket := tx.Bucket([]byte(s.bucket))
+	err := s.db.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if bucket == nil {
-			return fmt.Errorf("bucket '%s' does not exist", s.bucket)
+			return fmt.Errorf("failed to create bucket: %s", err)
 		}
 		val := bucket.Get(fingerprint)
 		if val == nil {
-			offset = func() *int64 { i := int64(0); return &i }()
 			return nil
 		}
 
 		var storer offsetStorer
-		err := gob.NewDecoder(bytes.NewReader(val)).Decode(&storer)
+		err = gob.NewDecoder(bytes.NewReader(val)).Decode(&storer)
 		if err != nil {
 			return err
 		}
 
-		offset = &storer.offset
+		offset = &storer.Offset
 		return nil
 	})
 
@@ -45,20 +44,20 @@ func (s *OffsetStore) GetOffset(fingerprint []byte) (*int64, error) {
 
 func (s *OffsetStore) SetOffset(fingerprint []byte, offset int64) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
-		bucket := tx.Bucket([]byte(s.bucket))
+		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if bucket == nil {
-			return fmt.Errorf("bucket '%s' does not exist", s.bucket)
+			return fmt.Errorf("failed to create bucket: %s", err)
 		}
 
-		buf := make([]byte, 0, 10)
+		var buf bytes.Buffer
 		storer := offsetStorer{
-			offset: offset,
+			Offset: offset,
 		}
-		err := gob.NewEncoder(bytes.NewBuffer(buf)).Encode(storer)
+		err = gob.NewEncoder(&buf).Encode(storer)
 		if err != nil {
 			return err
 		}
 
-		return bucket.Put(fingerprint, buf)
+		return bucket.Put(fingerprint, buf.Bytes())
 	})
 }

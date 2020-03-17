@@ -29,27 +29,6 @@ type FileWatcher struct {
 	watcher           *fsnotify.Watcher
 }
 
-func NewFileWatcher(
-	path string,
-	output func(*entry.Entry) error,
-	offset int64,
-	splitFunc bufio.SplitFunc,
-	pollInterval time.Duration,
-	logger *zap.SugaredLogger,
-) *FileWatcher {
-
-	return &FileWatcher{
-		path: path,
-
-		pollInterval: pollInterval,
-
-		offset:        offset,
-		splitFunc:     splitFunc,
-		output:        output,
-		SugaredLogger: logger.With("path", path),
-	}
-}
-
 func (w *FileWatcher) Watch(startCtx context.Context) error {
 	// Create the watcher if it's not manually set (probably only in tests)
 	if w.watcher == nil {
@@ -72,6 +51,7 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 	w.cancel = cancel
 
 	// Check it once initially for responsive startup
+	// Return an error the first time if reading fails
 	err := w.checkReadFile(ctx)
 	if err != nil {
 		return err
@@ -100,14 +80,14 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 			if event.Op&(fsnotify.Write|fsnotify.Chmod) > 0 {
 				err := w.checkReadFile(ctx)
 				if err != nil {
-					return err
+					return nil
 				}
 			}
 			// ignore rename (rename is covered by directory create)
 		case <-timer.C:
 			err := w.checkReadFile(ctx)
 			if err != nil {
-				return err
+				return nil
 			}
 		case err := <-w.watcher.Errors:
 			timer.Stop()
@@ -128,6 +108,7 @@ func (w *FileWatcher) checkReadFile(ctx context.Context) error {
 
 	file, err := os.Open(w.path)
 	if err != nil {
+		w.Exit()
 		return err
 	}
 	defer file.Close()
@@ -140,7 +121,7 @@ func (w *FileWatcher) checkReadFile(ctx context.Context) error {
 	if fileInfo.Size() < w.offset {
 		w.Info("Detected file truncation. Starting from beginning")
 		w.offset = 0
-		w.fingerprint = nil
+		w.stableFingerprint = nil
 		err := w.readToEnd(ctx, file)
 		if err != nil {
 			return err
@@ -166,6 +147,24 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(w.splitFunc)
 	// TODO scanner.Buffer() to set max size
+
+	defer func() {
+		// TODO this will be very slow while the fingerprint hasn't stabilized
+		fingerprint, err := w.Fingerprint()
+		if err != nil {
+			w.Warnf("failed to get fingerprint", "error", err)
+		}
+
+		// TODO setting the offset for every log might not be performant enough
+		// TODO only doing this at the end of reads means that we can't guarantee
+		// no duplicate logs
+		err = w.offsetStore.SetOffset(fingerprint, w.offset)
+		if err != nil {
+			w.Warnf("failed to set offset", "error", err)
+		}
+
+		w.Debugw("Stored offset", "path", w.path, "offset", w.offset, "fingerprint", fingerprint)
+	}()
 
 	for {
 		select {
@@ -196,21 +195,9 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 		// TODO does this actually work how I think it does with the scanner?
 		// I'm unsure if the scanner peeks ahead, or actually advances the reader
 		// every time it tries to parse something. This needs to be tested
-		newOffset, err := file.Seek(0, 1) // get current file offset
+		w.offset, err = file.Seek(0, 1) // get current file offset
 		if err != nil {
 			return fmt.Errorf("get current offset: %s", err)
-		}
-
-		// TODO this will be very slow while the fingerprint hasn't stabilized
-		fingerprint, err := w.Fingerprint(w.fingerprintBytes)
-		if err != nil {
-			return fmt.Errorf("get fingerprint: %s", err)
-		}
-
-		// TODO setting the offset for every log might not be performant enough
-		err = w.offsetStore.SetOffset(fingerprint, newOffset)
-		if err != nil {
-			return fmt.Errorf("set offset: %s", err)
 		}
 
 	}
@@ -223,15 +210,17 @@ func (w *FileWatcher) Fingerprint() ([]byte, error) {
 			return nil, err
 		}
 		defer file.Close()
-		fp := fingerprint(w.fingerprintBytes, file)
-		w.stableFingerprint = fp
+		fp, stable := fingerprint(w.fingerprintBytes, file)
+		if stable {
+			w.stableFingerprint = fp
+		}
 		return fp, nil
 	} else {
 		return w.stableFingerprint, nil
 	}
 }
 
-func (w *FileWatcher) Close() {
+func (w *FileWatcher) Exit() {
 	if w.cancel != nil {
 		w.cancel()
 	}

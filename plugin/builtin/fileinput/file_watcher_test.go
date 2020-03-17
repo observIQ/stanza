@@ -5,14 +5,15 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/bbolt"
 	"go.uber.org/goleak"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -26,6 +27,29 @@ func newOutputNotifier() (func(*entry.Entry) error, chan *entry.Entry) {
 	return f, c
 }
 
+func newTestOffsetStore() (*OffsetStore, func(), error) {
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	remove := func() {
+		os.RemoveAll(tempDir)
+	}
+
+	db, err := bbolt.Open(filepath.Join(tempDir, "bplogagent.db"), 0666, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	store := &OffsetStore{
+		db:     db,
+		bucket: "test",
+	}
+
+	return store, remove, nil
+}
+
 func TestFileWatcherReadsLog(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
@@ -34,10 +58,24 @@ func TestFileWatcherReadsLog(t *testing.T) {
 	assert.NoError(t, err)
 	defer temp.Close()
 
+	// Create the test OffsetStore
+	store, remove, err := newTestOffsetStore()
+	assert.NoError(t, err)
+	defer remove()
+
 	// Create the watcher
 	logger := zaptest.NewLogger(t).Sugar()
 	outputFunc, entryChan := newOutputNotifier()
-	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, time.Minute, logger)
+	watcher := &FileWatcher{
+		path:             temp.Name(),
+		offset:           0,
+		pollInterval:     time.Minute,
+		splitFunc:        bufio.ScanLines,
+		output:           outputFunc,
+		fingerprintBytes: 100,
+		offsetStore:      store,
+		SugaredLogger:    logger,
+	}
 
 	// Start the watcher
 	ctx, cancel := context.WithCancel(context.Background())
@@ -81,10 +119,24 @@ func TestFileWatcher_ExitOnFileDelete(t *testing.T) {
 	assert.NoError(t, err)
 	defer temp.Close()
 
-	// Create the file watcher
-	logger := zaptest.NewLogger(t, zaptest.Level(zap.DebugLevel)).Sugar()
+	// Create the test offset store
+	store, remove, err := newTestOffsetStore()
+	assert.NoError(t, err)
+	defer remove()
+
+	// Create the watcher
+	logger := zaptest.NewLogger(t).Sugar()
 	outputFunc, entryChan := newOutputNotifier()
-	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, time.Minute, logger)
+	watcher := &FileWatcher{
+		path:             temp.Name(),
+		offset:           0,
+		pollInterval:     time.Minute,
+		splitFunc:        bufio.ScanLines,
+		output:           outputFunc,
+		fingerprintBytes: 100,
+		offsetStore:      store,
+		SugaredLogger:    logger,
+	}
 
 	// Start the file watcher
 	done := make(chan struct{})
@@ -125,10 +177,24 @@ func TestFileWatcher_ErrWatchOnFileNotExist(t *testing.T) {
 	assert.NoError(t, err)
 	temp.Close()
 
-	// Create the file watcher
-	logger := zaptest.NewLogger(t)
+	// Create the test offset store
+	store, remove, err := newTestOffsetStore()
+	assert.NoError(t, err)
+	defer remove()
+
+	// Create the watcher
+	logger := zaptest.NewLogger(t).Sugar()
 	outputFunc, _ := newOutputNotifier()
-	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, time.Minute, logger.Sugar())
+	watcher := &FileWatcher{
+		path:             temp.Name(),
+		offset:           0,
+		pollInterval:     time.Minute,
+		splitFunc:        bufio.ScanLines,
+		output:           outputFunc,
+		fingerprintBytes: 100,
+		offsetStore:      store,
+		SugaredLogger:    logger,
+	}
 
 	// Remove the file
 	err = os.Remove(temp.Name())
@@ -158,10 +224,24 @@ func TestFileWatcher_PollingFallback(t *testing.T) {
 	assert.NoError(t, err)
 	defer temp.Close()
 
-	// Create the file watcher with low poll rate
-	logger := zaptest.NewLogger(t)
+	// Create the test offset store
+	store, remove, err := newTestOffsetStore()
+	assert.NoError(t, err)
+	defer remove()
+
+	// Create the watcher
+	logger := zaptest.NewLogger(t).Sugar()
 	outputFunc, entryChan := newOutputNotifier()
-	watcher := NewFileWatcher(temp.Name(), outputFunc, 0, bufio.ScanLines, 10*time.Millisecond, logger.Sugar())
+	watcher := &FileWatcher{
+		path:             temp.Name(),
+		offset:           0,
+		pollInterval:     10 * time.Millisecond,
+		splitFunc:        bufio.ScanLines,
+		output:           outputFunc,
+		fingerprintBytes: 100,
+		offsetStore:      store,
+		SugaredLogger:    logger,
+	}
 
 	// Override the underlying watcher with a do-nothing version
 	watcher.watcher = &fsnotify.Watcher{}
