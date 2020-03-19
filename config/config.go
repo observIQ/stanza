@@ -5,9 +5,10 @@ import (
 )
 
 type Config struct {
-	// TODO make a PluginConfigList type that can validate that the outputs exist
-	// when parsing the config? Also can define a .Build() method on it to get
-	// a PluginList
 	Plugins    []plugin.PluginConfig
 	BundlePath string `mapstructure:"bundle_path" yaml:"bundle_path"`
+}
+
+func (c Config) IsZero() bool {
+	return len(c.Plugins) == 0 && c.BundlePath == ""
 }
