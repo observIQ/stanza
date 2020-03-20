@@ -63,7 +63,7 @@ type TimeParserConfig struct {
 	// TODO design these params better
 	Field        FieldSelector
 	Layout       string
-	KeepOriginal bool
+	KeepOriginal bool `yaml:"keep_original"`
 }
 
 func (c TimeParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
