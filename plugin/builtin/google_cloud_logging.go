@@ -23,7 +23,6 @@ type GoogleCloudLoggingOutputConfig struct {
 }
 
 func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
-	options := make([]option.ClientOption, 0, 2)
 
 	// TODO configure bundle size
 	// TODO allow alternate credentials options (file, etc.)
@@ -31,26 +30,9 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.
 		return nil, errors.New("missing required configuration option credentials")
 	}
 
-	options = append(options, option.WithCredentialsJSON([]byte(c.Credentials)))
-	options = append(options, option.WithUserAgent("BindplaneLogAgent/2.0.0"))
-	// TODO WithCompressor is deprecated, and may be removed in favor of UseCompressor
-	// However, I can't seem to get UseCompressor to work, so skipping for now
-	// This seems to be causing flush to hang.
-	// options = append(options, option.WithGRPCDialOption(grpc.WithCompressor(grpc.NewGZIPCompressor())))
-
 	if c.ProjectID == "" {
 		return nil, errors.New("missing required configuration option project_id")
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
-	defer cancel()
-	client, err := logging.NewClient(ctx, c.ProjectID, options...)
-	if err != nil {
-		return nil, fmt.Errorf("create logging client: %w", err)
-	}
-	// TODO client.Ping(). Maybe should be in the Start() method
-
-	GoogleCloudLoggingLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
 
 	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
 	if err != nil {
@@ -60,8 +42,8 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.
 	dest := &GoogleCloudLoggingPlugin{
 		DefaultPlugin: defaultPlugin,
 
-		googleCloudLogger: GoogleCloudLoggingLogger,
-		projectID:         c.ProjectID,
+		credentials: c.Credentials,
+		projectID:   c.ProjectID,
 	}
 
 	return dest, nil
@@ -75,8 +57,39 @@ type GoogleCloudLogger interface {
 type GoogleCloudLoggingPlugin struct {
 	pg.DefaultPlugin
 
-	googleCloudLogger GoogleCloudLogger
+	credentials       string
 	projectID         string
+	googleCloudLogger GoogleCloudLogger
+}
+
+func (p *GoogleCloudLoggingPlugin) Start() error {
+	options := make([]option.ClientOption, 0, 2)
+	options = append(options, option.WithCredentialsJSON([]byte(p.credentials)))
+	options = append(options, option.WithUserAgent("BindplaneLogAgent/2.0.0"))
+	// TODO WithCompressor is deprecated, and may be removed in favor of UseCompressor
+	// However, I can't seem to get UseCompressor to work, so skipping for now
+	// This seems to be causing flush to hang.
+	// options = append(options, option.WithGRPCDialOption(grpc.WithCompressor(grpc.NewGZIPCompressor())))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
+	defer cancel()
+	client, err := logging.NewClient(ctx, p.projectID, options...)
+	if err != nil {
+		return fmt.Errorf("create logging client: %w", err)
+	}
+	// TODO client.Ping(). Maybe should be in the Start() method
+
+	GoogleCloudLoggingLogger := client.Logger("test_log_name", logging.ConcurrentWriteLimit(10))
+
+	p.googleCloudLogger = GoogleCloudLoggingLogger
+
+	return nil
+}
+
+func (p *GoogleCloudLoggingPlugin) Stop() {
+	err := p.googleCloudLogger.Flush()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *GoogleCloudLoggingPlugin) Input(entry *entry.Entry) error {

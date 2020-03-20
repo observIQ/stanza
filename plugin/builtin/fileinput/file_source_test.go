@@ -19,6 +19,13 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+func TestFileSourceImplements(t *testing.T) {
+	assert.Implements(t, (*pg.Outputter)(nil), new(FileSource))
+	assert.Implements(t, (*pg.Stopper)(nil), new(FileSource))
+	assert.Implements(t, (*pg.Starter)(nil), new(FileSource))
+	assert.Implements(t, (*pg.Plugin)(nil), new(FileSource))
+}
+
 func newTestFileSource(t *testing.T) (source *FileSource, mockInputter *testutil.Inputter, closeStore func()) {
 	mockInputter = &testutil.Inputter{}
 

@@ -145,7 +145,15 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 	}
 
 	scanner := bufio.NewScanner(file)
-	scanner.Split(w.splitFunc)
+
+	// Create an intermediary scan func that keeps track of how far we've advanced
+	pos := w.offset
+	scanFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		advance, token, err = bufio.ScanLines(data, atEOF)
+		pos += int64(advance)
+		return
+	}
+	scanner.Split(scanFunc)
 	// TODO scanner.Buffer() to set max size
 
 	defer func() {
@@ -155,7 +163,6 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 			w.Warnf("failed to get fingerprint", "error", err)
 		}
 
-		// TODO setting the offset for every log might not be performant enough
 		// TODO only doing this at the end of reads means that we can't guarantee
 		// no duplicate logs
 		err = w.offsetStore.SetOffset(fingerprint, w.offset)
@@ -189,17 +196,10 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 
 		err := w.output(entry)
 		if err != nil {
-			return fmt.Errorf("output entry: %s", err)
+			w.Warnw("Failed to process entry", "error", err, "entry", entry)
 		}
 
-		// TODO does this actually work how I think it does with the scanner?
-		// I'm unsure if the scanner peeks ahead, or actually advances the reader
-		// every time it tries to parse something. This needs to be tested
-		w.offset, err = file.Seek(0, 1) // get current file offset
-		if err != nil {
-			return fmt.Errorf("get current offset: %s", err)
-		}
-
+		w.offset = pos
 	}
 }
 

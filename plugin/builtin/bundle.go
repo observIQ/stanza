@@ -2,7 +2,6 @@ package builtin
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/entry"
@@ -174,7 +173,7 @@ type DefaultBundle struct {
 	*zap.SugaredLogger
 }
 
-func (b *DefaultBundle) Start(wg *sync.WaitGroup) error {
+func (b *DefaultBundle) Start() error {
 	return b.plugins.Start()
 }
 

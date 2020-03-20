@@ -46,4 +46,6 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
 func TestGoogleCloudLoggingImplementations(t *testing.T) {
 	assert.Implements(t, (*pg.Inputter)(nil), new(GoogleCloudLoggingPlugin))
 	assert.Implements(t, (*pg.Plugin)(nil), new(GoogleCloudLoggingPlugin))
+	assert.Implements(t, (*pg.Starter)(nil), new(GoogleCloudLoggingPlugin))
+	assert.Implements(t, (*pg.Stopper)(nil), new(GoogleCloudLoggingPlugin))
 }

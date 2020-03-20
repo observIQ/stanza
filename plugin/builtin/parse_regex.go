@@ -19,6 +19,7 @@ type RegexParserConfig struct {
 	// TODO design these params better
 	Field string
 	Regex string
+
 }
 
 func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
