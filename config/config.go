@@ -5,8 +5,9 @@ import (
 )
 
 type Config struct {
-	Plugins    []plugin.PluginConfig
-	BundlePath string `mapstructure:"bundle_path" yaml:"bundle_path"`
+	Plugins      []plugin.PluginConfig
+	BundlePath   string `mapstructure:"bundle_path" yaml:"bundle_path,omitempty"`
+	DatabaseFile string `mapstructure:"database_file" yaml:"database_file,omitempty"`
 }
 
 func (c Config) IsZero() bool {

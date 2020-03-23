@@ -5,13 +5,15 @@ import (
 	"os"
 	"os/signal"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	bpla "github.com/bluemedora/bplogagent"
 	"github.com/bluemedora/bplogagent/config"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	yaml "gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -43,11 +45,11 @@ func main() {
 		return
 	}
 
-	cfgYaml, err := yaml.Marshal(cfg)
-	if err != nil {
-		logger.Errorw("Failed to marshal yaml", "error", err)
-	}
-	logger.Infof("Unmarshalled the config:\n%s\n", string(cfgYaml))
+	// cfgYaml, err := yaml.Marshal(cfg)
+	// if err != nil {
+	// 	logger.Errorw("Failed to marshal yaml", "error", err)
+	// }
+	// logger.Infof("Unmarshalled the config:\n%s\n", string(cfgYaml))
 
 	agent := bpla.NewLogAgent(cfg, logger)
 
@@ -56,6 +58,11 @@ func main() {
 		logger.Errorw("Failed to start log collector", "error", err)
 		return
 	}
+
+	// Start the profiler http server
+	go func() {
+		logger.Info(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	// Wait for interrupt to exit
 	interrupt := make(chan os.Signal, 1)

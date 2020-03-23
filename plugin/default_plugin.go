@@ -23,7 +23,7 @@ func (c DefaultPluginConfig) Build(logger *zap.SugaredLogger) (DefaultPlugin, er
 	plugin := DefaultPlugin{
 		PluginID:      c.PluginID,
 		PluginType:    c.Type(),
-		SugaredLogger: logger.With("plugin_type", c.PluginType, "plugin_id", c.PluginID),
+		SugaredLogger: logger.With("plugin_id", c.PluginID),
 	}
 
 	return plugin, nil

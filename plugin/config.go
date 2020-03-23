@@ -7,6 +7,7 @@ import (
 	// Register built-in plugins
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/mitchellh/mapstructure"
+	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
 
@@ -42,6 +43,7 @@ type BuildContext struct {
 	Bundles []*bundle.BundleDefinition
 	// TODO this should be an array of bundle IDs to namespace the plugin ids in the bundles
 	IsBundle bool
+	Database *bbolt.DB
 	Logger   *zap.SugaredLogger
 }
 

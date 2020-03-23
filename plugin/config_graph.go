@@ -35,6 +35,9 @@ func NewPluginConfigGraph(configs []PluginConfig) (*PluginConfigGraph, error) {
 			if outputNode == nil {
 				return nil, fmt.Errorf("find node for output ID %s", outputID)
 			}
+			if outputNode.ID() == node.ID() {
+				return nil, fmt.Errorf("plugin '%s' cannot output to itself", node.PluginConfig.ID())
+			}
 			edge := configGraph.NewEdge(node, outputNode)
 			configGraph.SetEdge(edge)
 		}
