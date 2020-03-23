@@ -23,11 +23,6 @@ type BundleConfig struct {
 }
 
 func (c BundleConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
-	if err != nil {
-		return nil, fmt.Errorf("build default plugin: %s", err)
-	}
-
 	configs, err := c.renderPluginConfigs(buildContext.Bundles)
 	if err != nil {
 		return nil, fmt.Errorf("render bundle configs: %s", err)
@@ -54,7 +49,6 @@ func (c BundleConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
 			return nil, fmt.Errorf("build default outputter: %s", err)
 		}
 		bundle := &BothputterBundle{
-			DefaultPlugin:    defaultPlugin,
 			DefaultBundle:    defaultBundle,
 			DefaultOutputter: defaultOutputter,
 			bundleInput:      bundleInput,
@@ -63,7 +57,6 @@ func (c BundleConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
 		plugin = bundle
 	case bundleInput != nil && bundleOutput == nil:
 		plugin = &InputterBundle{
-			DefaultPlugin: defaultPlugin,
 			DefaultBundle: defaultBundle,
 			bundleInput:   bundleInput,
 		}
@@ -73,7 +66,6 @@ func (c BundleConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
 			return nil, fmt.Errorf("build default outputter: %s", err)
 		}
 		bundle := &OutputterBundle{
-			DefaultPlugin:    defaultPlugin,
 			DefaultBundle:    defaultBundle,
 			DefaultOutputter: defaultOutputter,
 		}
@@ -81,7 +73,6 @@ func (c BundleConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
 		plugin = bundle
 	case bundleInput == nil && bundleOutput == nil:
 		plugin = &NeitherputterBundle{
-			DefaultPlugin: defaultPlugin,
 			DefaultBundle: defaultBundle,
 		}
 	}
@@ -127,6 +118,11 @@ func (c BundleConfig) renderPluginConfigs(bundles []*bundle.BundleDefinition) ([
 }
 
 func (c BundleConfig) buildDefaultBundle(configs []pg.PluginConfig, buildContext pg.BuildContext) (DefaultBundle, error) {
+	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
+	if err != nil {
+		return DefaultBundle{}, fmt.Errorf("build default plugin: %s", err)
+	}
+
 	// Clear plugins before build
 	configGraph, err := pg.NewPluginConfigGraph(configs)
 	if err != nil {
@@ -142,6 +138,7 @@ func (c BundleConfig) buildDefaultBundle(configs []pg.PluginConfig, buildContext
 	defaultBundle := DefaultBundle{
 		bundleType:    c.BundleType,
 		plugins:       pluginGraph,
+		DefaultPlugin: defaultPlugin,
 		SugaredLogger: buildContext.Logger,
 	}
 
@@ -170,6 +167,7 @@ type DefaultBundle struct {
 	bundleType string
 	plugins    *pg.PluginGraph
 
+	pg.DefaultPlugin
 	*zap.SugaredLogger
 }
 
@@ -185,25 +183,21 @@ func (b *DefaultBundle) Stop() error {
 
 type InputterBundle struct {
 	DefaultBundle
-	pg.DefaultPlugin
 
 	bundleInput BundleInputter
 }
 
 type OutputterBundle struct {
 	DefaultBundle
-	pg.DefaultPlugin
 	pg.DefaultOutputter
 }
 
 type NeitherputterBundle struct {
 	DefaultBundle
-	pg.DefaultPlugin
 }
 
 type BothputterBundle struct {
 	DefaultBundle
-	pg.DefaultPlugin
 	pg.DefaultOutputter
 
 	bundleInput BundleInputter
