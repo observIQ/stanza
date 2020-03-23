@@ -36,7 +36,7 @@ func main() {
 	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
 	if err != nil {
-		logger.Errorw("Failed to read the config", "error", err)
+		logger.Errorw("Failed to read the config", zap.Error(err))
 		return
 	}
 	err = v.Unmarshal(&cfg, plugin.UnmarshalHook)
