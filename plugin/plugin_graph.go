@@ -47,11 +47,10 @@ func (pluginGraph *PluginGraph) Start() error {
 
 	// Start plugins, destinations first
 	for i := len(sortedPlugins) - 1; i >= 0; i-- {
-		if starter, ok := sortedPlugins[i].(Starter); ok {
-			err := starter.Start()
-			if err != nil {
-				return fmt.Errorf("start plugin '%s': %s", starter.ID(), err)
-			}
+		plugin := sortedPlugins[i]
+		err := plugin.Start()
+		if err != nil {
+			return fmt.Errorf("start plugin '%s': %s", plugin.ID(), err)
 		}
 	}
 
@@ -63,10 +62,9 @@ func (pluginGraph *PluginGraph) Stop() {
 
 	// Stop plugins, sources first
 	for _, plugin := range sortedPlugins {
-		if stopper, ok := plugin.(Stopper); ok {
-			stopper.Stop()
-		}
+		_ = plugin.Stop()
 	}
+
 }
 
 // Sorted returns a topographically sorted list of plugins from
