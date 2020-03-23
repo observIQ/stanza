@@ -52,11 +52,11 @@ func (p *DefaultPlugin) Type() string {
 }
 
 func (p *DefaultPlugin) Start() error {
-	p.Info("Plugin started")
+	p.Debug("Plugin started")
 	return nil
 }
 
 func (p *DefaultPlugin) Stop() error {
-	p.Info("Plugin stopped")
+	p.Debug("Plugin stopped")
 	return nil
 }

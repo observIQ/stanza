@@ -93,6 +93,7 @@ func (p *RateLimitPlugin) Start() error {
 	return nil
 }
 
-func (p *RateLimitPlugin) Stop() {
+func (p *RateLimitPlugin) Stop() error {
 	p.cancel()
+	return nil
 }

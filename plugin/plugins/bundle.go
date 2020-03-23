@@ -174,12 +174,14 @@ type DefaultBundle struct {
 	*zap.SugaredLogger
 }
 
-func (b *DefaultBundle) Start(wg *sync.WaitGroup) error {
+func (b *DefaultBundle) Start() error {
 	return b.plugins.Start()
 }
 
-func (b *DefaultBundle) Stop() {
+func (b *DefaultBundle) Stop() error {
+	// TODO return error if plugins fail to stop
 	b.plugins.Stop()
+	return nil
 }
 
 type InputterBundle struct {
