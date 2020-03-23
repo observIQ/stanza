@@ -7,14 +7,14 @@ To test: `go test -cover -race ./...` (cover and race optional)
 To benchmark: `go test -bench=. -test.benchmem=true ./...`
 
 ## Plugin Development
-Plugins should be designed to executed only a single responsibility, such as:
+All plugins should be designed to executed only a single responsibility, such as:
 - Discovering logs
 - Filtering logs
 - Parsing logs
 - Forwarding logs
 
 ### Basic Methods
-Plugins implement 4 basic methods: 
+All plugins implement 4 basic methods: 
 - **ID()**
   - This method should return the plugin id specified in the plugin config.
   - We highly recommend embedding a basic plugin helper to implement this method.
