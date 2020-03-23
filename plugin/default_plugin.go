@@ -50,3 +50,13 @@ func (p *DefaultPlugin) ID() PluginID {
 func (p *DefaultPlugin) Type() string {
 	return p.PluginType
 }
+
+func (p *DefaultPlugin) Start() error {
+	p.Info("Plugin started")
+	return nil
+}
+
+func (p *DefaultPlugin) Stop() error {
+	p.Info("Plugin stopped")
+	return nil
+}
