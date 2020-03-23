@@ -186,11 +186,12 @@ func (f *FileSource) Start() error {
 	return nil
 }
 
-func (f *FileSource) Stop() {
+func (f *FileSource) Stop() error {
 	f.Info("Stopping source")
 	f.cancel()
 	f.wg.Wait()
 	f.Info("Stopped source")
+	return nil
 }
 
 // globMatches queries the filesystem for any files that match one of the

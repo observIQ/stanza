@@ -69,10 +69,11 @@ func (fo *FileOutput) Start() error {
 	return nil
 }
 
-func (fo *FileOutput) Stop() {
+func (fo *FileOutput) Stop() error {
 	if fo.file != nil {
 		fo.file.Close()
 	}
+	return nil
 }
 
 func (fo *FileOutput) Input(entry *entry.Entry) error {

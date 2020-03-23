@@ -87,9 +87,10 @@ func (p *GenerateSource) Start() error {
 	return nil
 }
 
-func (p *GenerateSource) Stop() {
+func (p *GenerateSource) Stop() error {
 	p.cancel()
 	p.wg.Wait()
+	return nil
 }
 
 // TODO This is a really dumb implementation right now.

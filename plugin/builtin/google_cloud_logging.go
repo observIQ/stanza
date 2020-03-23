@@ -85,11 +85,8 @@ func (p *GoogleCloudLoggingPlugin) Start() error {
 	return nil
 }
 
-func (p *GoogleCloudLoggingPlugin) Stop() {
-	err := p.googleCloudLogger.Flush()
-	if err != nil {
-		panic(err)
-	}
+func (p *GoogleCloudLoggingPlugin) Stop() error {
+	return p.googleCloudLogger.Flush()
 }
 
 func (p *GoogleCloudLoggingPlugin) Input(entry *entry.Entry) error {

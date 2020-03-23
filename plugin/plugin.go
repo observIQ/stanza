@@ -8,6 +8,8 @@ import (
 type Plugin interface {
 	ID() PluginID
 	Type() string
+	Start() error
+	Stop() error
 }
 
 type Outputter interface {
@@ -19,16 +21,6 @@ type Inputter interface {
 	Plugin
 	// TODO should this take a pointer or a value?
 	Input(*entry.Entry) error
-}
-
-type Stopper interface {
-	Plugin
-	Stop()
-}
-
-type Starter interface {
-	Plugin
-	Start() error
 }
 
 type PluginID string
