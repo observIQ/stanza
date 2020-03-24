@@ -279,14 +279,10 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		_, err = io.Copy(temp1, temp2)
 		assert.NoError(t, err)
 
-		time.Sleep(50 * time.Millisecond)
-
 		// Truncate original file
 		err = temp1.Truncate(0)
 		temp1.Seek(0, 0)
 		assert.NoError(t, err)
-
-		time.Sleep(50 * time.Millisecond)
 
 		// Write to original and new file
 		_, err = temp1.WriteString("testlog3\n")
