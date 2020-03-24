@@ -140,7 +140,9 @@ LOOP:
 	source.Stop()
 	wg.Wait()
 
-	assert.ElementsMatch(t, expected, receivedMessages)
+	if !assert.ElementsMatch(t, expected, receivedMessages) {
+		t.Logf("Received: %#v\n", receivedMessages)
+	}
 }
 
 func TestFileSource_SimpleWrite(t *testing.T) {
@@ -269,7 +271,7 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Wait for the logs to be read and the offset to be set
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 
 		temp2, err := ioutil.TempFile(tempDir, "")
 		assert.NoError(t, err)
@@ -277,9 +279,14 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		_, err = io.Copy(temp1, temp2)
 		assert.NoError(t, err)
 
+		time.Sleep(50 * time.Millisecond)
+
 		// Truncate original file
 		err = temp1.Truncate(0)
+		temp1.Seek(0, 0)
 		assert.NoError(t, err)
+
+		time.Sleep(50 * time.Millisecond)
 
 		// Write to original and new file
 		_, err = temp1.WriteString("testlog3\n")
