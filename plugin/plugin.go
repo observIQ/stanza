@@ -5,6 +5,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 )
 
+// Plugin is a log monitoring component with a single responsibility.
 type Plugin interface {
 	ID() PluginID
 	Type() string
@@ -12,15 +13,16 @@ type Plugin interface {
 	Stop() error
 }
 
-type Outputter interface {
+// Producer is a plugin that can produce entries to consumers.
+type Producer interface {
 	Plugin
-	Outputs() []Inputter
+	Consumers() []Consumer
 }
 
-type Inputter interface {
+// Consumer is a plugin that can consume entries from producers.
+type Consumer interface {
 	Plugin
-	// TODO should this take a pointer or a value?
-	Input(*entry.Entry) error
+	Consume(*entry.Entry) error
 }
 
 type PluginID string

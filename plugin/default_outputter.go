@@ -17,7 +17,7 @@ func (c DefaultOutputterConfig) Build(plugins map[PluginID]Plugin) (DefaultOutpu
 		return DefaultOutputter{}, fmt.Errorf("could not find plugin with ID %s", c.Output)
 	}
 
-	inputter, ok := outputPlugin.(Inputter)
+	inputter, ok := outputPlugin.(Consumer)
 	if !ok {
 		return DefaultOutputter{}, fmt.Errorf("plugin with ID '%s' is not an inputter, so can not be outputted to", outputPlugin.ID())
 	}
@@ -33,11 +33,11 @@ func (c DefaultOutputterConfig) OutputIDs() []PluginID {
 
 // DefaultOutputter
 type DefaultOutputter struct {
-	OutputPlugin Inputter
+	OutputPlugin Consumer
 }
 
-func (s *DefaultOutputter) Outputs() []Inputter {
-	return []Inputter{s.OutputPlugin}
+func (s *DefaultOutputter) Outputs() []Consumer {
+	return []Consumer{s.OutputPlugin}
 }
 
 func (s *DefaultOutputter) Output(entry *entry.Entry) error {

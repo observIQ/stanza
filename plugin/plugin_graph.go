@@ -18,7 +18,7 @@ type pluginNode struct {
 }
 
 func (n pluginNode) NodeOutputIDs() map[PluginID]int64 {
-	outputterConfig, ok := n.Plugin.(Outputter)
+	outputterConfig, ok := n.Plugin.(Writer)
 	if !ok {
 		return nil
 	}

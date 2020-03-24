@@ -1,4 +1,4 @@
-package plugin
+package buffer
 
 import "github.com/bluemedora/bplogagent/entry"
 
