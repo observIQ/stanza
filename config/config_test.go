@@ -44,7 +44,7 @@ plugins:
 	v.ReadConfig(bytes.NewReader(rawConfig))
 
 	var config Config
-	err := v.UnmarshalExact(&config, plugin.UnmarshalHook)
+	err := v.UnmarshalExact(&config, UnmarshalHook)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedConfig, config)

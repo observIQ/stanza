@@ -6,6 +6,7 @@ import (
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/entry"
 	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -109,7 +110,9 @@ func (c BundleConfig) renderPluginConfigs(bundles []*bundle.BundleDefinition) ([
 	var pluginUnmarshaller struct {
 		Plugins []pg.PluginConfig
 	}
-	err = v.UnmarshalExact(&pluginUnmarshaller, pg.UnmarshalHook)
+	err = v.UnmarshalExact(&pluginUnmarshaller, func(c *mapstructure.DecoderConfig) {
+		c.DecodeHook = pg.PluginConfigDecoder
+	})
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal from viper: %s", err)
 	}
