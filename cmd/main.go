@@ -10,7 +10,6 @@ import (
 
 	bpla "github.com/bluemedora/bplogagent"
 	"github.com/bluemedora/bplogagent/config"
-	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -36,10 +35,10 @@ func main() {
 	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
 	if err != nil {
-		logger.Errorw("Failed to read the config", "error", err)
+		logger.Errorw("Failed to read the config", zap.Error(err))
 		return
 	}
-	err = v.Unmarshal(&cfg, plugin.UnmarshalHook)
+	err = v.Unmarshal(&cfg, config.UnmarshalHook)
 	if err != nil {
 		logger.Errorw("Failed to unmarshal the config", "error", err)
 		return
