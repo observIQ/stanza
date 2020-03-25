@@ -8,7 +8,7 @@ import (
 	"gonum.org/v1/gonum/graph/topo"
 )
 
-func NewPluginConfigGraph(configs []PluginConfig) (*PluginConfigGraph, error) {
+func NewPluginConfigGraph(configs []Config) (*PluginConfigGraph, error) {
 	configGraph := simple.NewDirectedGraph()
 	// Build nodes
 	configNodes := make([]pluginConfigNode, 0, len(configs))
@@ -51,7 +51,7 @@ type PluginConfigGraph struct {
 }
 
 type pluginConfigNode struct {
-	PluginConfig
+	Config
 }
 
 func (n pluginConfigNode) NodeOutputIDs() map[PluginID]int64 {

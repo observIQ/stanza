@@ -7,16 +7,17 @@ import (
 
 // Plugin is a log monitoring component with a single responsibility.
 type Plugin interface {
-	ID() PluginID
+	ID() string
 	Type() string
 	Start() error
-	Stop() error
+	Stop()
 }
 
 // Producer is a plugin that can produce entries to consumers.
 type Producer interface {
 	Plugin
 	Consumers() []Consumer
+	SetConsumers([]Consumer) error
 }
 
 // Consumer is a plugin that can consume entries from producers.
@@ -24,5 +25,3 @@ type Consumer interface {
 	Plugin
 	Consume(*entry.Entry) error
 }
-
-type PluginID string

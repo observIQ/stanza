@@ -12,7 +12,7 @@ type DefaultBundleConfig struct {
 	BundleType string `mapstructure:"bundle_type"`
 	Params     map[string]interface{}
 }
-
+Config
 func (c DefaultBundleConfig) RenderPluginConfigs(bundles []*bundle.BundleDefinition) ([]PluginConfig, error) {
 	var bundleDefinition *bundle.BundleDefinition
 	for _, bundle := range bundles {
@@ -39,7 +39,7 @@ func (c DefaultBundleConfig) RenderPluginConfigs(bundles []*bundle.BundleDefinit
 	if err != nil {
 		return nil, fmt.Errorf("read config into viper: %s", err)
 	}
-	var pluginUnmarshaller struct {
+	var pluginUConfigstruct {
 		Plugins []PluginConfig
 	}
 	err = v.UnmarshalExact(&pluginUnmarshaller, func(c *mapstructure.DecoderConfig) {

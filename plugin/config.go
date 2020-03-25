@@ -11,30 +11,30 @@ import (
 	"go.uber.org/zap"
 )
 
-var PluginConfigDefinitions = make(map[string]func() PluginConfig)
+var PluginConfigDefinitions = make(map[string]func() Config)
 
 // RegisterConfig will register a config struct by name in the packages config registry
 // during package load time.
-func RegisterConfig(name string, config PluginConfig) {
-	PluginConfigDefinitions[name] = func() PluginConfig {
+func RegisterConfig(name string, config Config) {
+	PluginConfigDefinitions[name] = func() Config {
 		val := reflect.New(reflect.TypeOf(config).Elem()).Interface()
-		return val.(PluginConfig)
+		return val.(Config)
 	}
 }
 
-type PluginConfig interface {
-	ID() PluginID
+type Config interface {
+	ID() string
 	Type() string
 	Build(BuildContext) (Plugin, error)
 }
 
 type OutputterConfig interface {
-	PluginConfig
+	Config
 	OutputIDs() []PluginID
 }
 
 type InputterConfig interface {
-	PluginConfig
+	Config
 	IsInputter()
 }
 
