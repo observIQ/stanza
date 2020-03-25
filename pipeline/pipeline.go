@@ -10,50 +10,19 @@ import (
 
 // Pipeline is a directed graph of connected plugins.
 type Pipeline struct {
-	*simple.DirectedGraph
-	plugins []pg.Plugin
-	built   bool
+	graph   *simple.DirectedGraph
 	running bool
-}
-
-// Build will build the pipeline cleanly from the supplied plugins.
-func (p Pipeline) Build() error {
-	if p.running {
-		return fmt.Errorf("pipeline is running")
-	}
-
-	p.clearGraph()
-	p.built = false
-
-	if err := p.connectPlugins(); err != nil {
-		return err
-	}
-
-	if err := p.addNodes(); err != nil {
-		return err
-	}
-
-	if err := p.connectNodes(); err != nil {
-		return err
-	}
-
-	p.built = true
-	return nil
 }
 
 // Start will start the plugins in a pipeline in reverse topological order.
 func (p Pipeline) Start() error {
 	if p.running {
-		return fmt.Errorf("pipeline is already running")
+		return nil
 	}
 
-	if !p.built {
-		return fmt.Errorf("pipeline is not built")
-	}
-
-	sortedNodes, _ := topo.Sort(p)
+	sortedNodes, _ := topo.Sort(p.graph)
 	for i := len(sortedNodes) - 1; i >= 0; i-- {
-		node, _ := sortedNodes[i].(PluginNode)
+		node := sortedNodes[i].(PluginNode)
 		if err := node.Plugin.Start(); err != nil {
 			return fmt.Errorf("%s failed to start: %s", node.Plugin.ID(), err)
 		}
@@ -64,97 +33,72 @@ func (p Pipeline) Start() error {
 }
 
 // Stop will stop the plugins in a pipeline in topological order.
-func (p Pipeline) Stop() error {
+func (p Pipeline) Stop() {
 	if !p.running {
-		return fmt.Errorf("pipeline is not running")
+		return
 	}
 
-	sortedNodes, _ := topo.Sort(p)
+	sortedNodes, _ := topo.Sort(p.graph)
 	for _, node := range sortedNodes {
-		pluginNode, _ := node.(PluginNode)
+		pluginNode := node.(PluginNode)
 		pluginNode.Stop()
 	}
 
 	p.running = false
-	return nil
 }
 
-// clear will clear the pipeline of connected nodes and edges.
-func (p Pipeline) clearGraph() {
-	p.clearEdges()
-	p.clearNodes()
-}
-
-// clearEdges clears the pipeline of all edges.
-func (p Pipeline) clearEdges() {
-	edges := p.Edges()
-	for edges.Next() {
-		edge := edges.Edge()
-		p.RemoveEdge(edge.From().ID(), edge.To().ID())
-	}
-}
-
-// clearNodes clears the pipeline of all nodes.
-func (p Pipeline) clearNodes() {
-	nodes := p.Nodes()
-	for nodes.Next() {
-		node := nodes.Node()
-		p.RemoveNode(node.ID())
-	}
-}
-
-// addNodes will add the nodes to the graph.
-func (p Pipeline) addNodes() error {
-	for _, plugin := range p.plugins {
+// addNodes will add plugins as nodes to the supplied graph.
+func addNodes(graph *simple.DirectedGraph, plugins []pg.Plugin) error {
+	for _, plugin := range plugins {
 		node := PluginNode{plugin}
-		if p.Node(node.ID()) != nil {
+		if graph.Node(node.ID()) != nil {
 			return fmt.Errorf("multiple plugins with id %s", plugin.ID())
 		}
-		p.AddNode(node)
+		graph.AddNode(node)
 	}
 	return nil
 }
 
-// connectNodes will connect the nodes in the graph.
-func (p Pipeline) connectNodes() error {
-	nodes := p.Nodes()
+// connectNodes will connect the nodes in the supplied graph.
+func connectNodes(graph *simple.DirectedGraph) error {
+	nodes := graph.Nodes()
 	for nodes.Next() {
-		node, _ := nodes.Node().(PluginNode)
-		if err := p.connectNode(node); err != nil {
+		node := nodes.Node().(PluginNode)
+		if err := connectNode(graph, node); err != nil {
 			return fmt.Errorf("connecting %s failed: %s", node.Plugin.ID(), err)
 		}
 	}
 
-	if _, err := topo.Sort(p); err != nil {
-		return fmt.Errorf("pipeline has circular connections")
+	if _, err := topo.Sort(graph); err != nil {
+		return fmt.Errorf("graph is not acyclic: %s", err)
 	}
 
 	return nil
 }
 
-// connectNode will connect a node to its outputs in the graph.
-func (p Pipeline) connectNode(node PluginNode) error {
+// connectNode will connect a node to its outputs in the supplied graph.
+func connectNode(graph *simple.DirectedGraph, node PluginNode) error {
 	for pluginID, nodeID := range node.OutputIDs() {
-		outputNode := p.Node(nodeID)
+		outputNode := graph.Node(nodeID)
 		if outputNode == nil {
-			return fmt.Errorf("output %s is missing in pipeline", pluginID)
+			return fmt.Errorf("output %s is missing", pluginID)
 		}
 
-		if p.HasEdgeFromTo(node.ID(), nodeID) {
-			return fmt.Errorf("multiple connections to output %s exist", pluginID)
+		if graph.HasEdgeFromTo(node.ID(), nodeID) {
+			return fmt.Errorf("multiple connections to %s exist", pluginID)
 		}
 
-		edge := p.NewEdge(node, outputNode)
-		p.SetEdge(edge)
+		edge := graph.NewEdge(node, outputNode)
+		graph.SetEdge(edge)
 	}
 
 	return nil
 }
 
 // connectPlugins will connect producers to consumers.
-func (p Pipeline) connectPlugins() error {
-	consumers := p.consumers()
-	for _, producer := range p.producers() {
+func connectPlugins(plugins []pg.Plugin) error {
+	consumers := consumers(plugins)
+	for _, producer := range producers(plugins) {
 		if err := producer.SetConsumers(consumers); err != nil {
 			return err
 		}
@@ -162,10 +106,10 @@ func (p Pipeline) connectPlugins() error {
 	return nil
 }
 
-// producers will return all producer plugins in the pipeline.
-func (p Pipeline) producers() []pg.Producer {
+// producers will return only producers from a list.
+func producers(plugins []pg.Plugin) []pg.Producer {
 	producers := make([]pg.Producer, 0)
-	for _, plugin := range p.plugins {
+	for _, plugin := range plugins {
 		if producer, ok := plugin.(pg.Producer); ok {
 			producers = append(producers, producer)
 		}
@@ -173,13 +117,31 @@ func (p Pipeline) producers() []pg.Producer {
 	return producers
 }
 
-// consumers will return all consumer plugins in the pipeline.
-func (p Pipeline) consumers() []pg.Consumer {
+// consumers will return only consumers from a list.
+func consumers(plugins []pg.Plugin) []pg.Consumer {
 	consumers := make([]pg.Consumer, 0)
-	for _, plugin := range p.plugins {
+	for _, plugin := range plugins {
 		if consumer, ok := plugin.(pg.Consumer); ok {
 			consumers = append(consumers, consumer)
 		}
 	}
 	return consumers
+}
+
+// NewPipeline creates a new pipeline of connected plugins.
+func NewPipeline(plugins []pg.Plugin) (Pipeline, error) {
+	if err := connectPlugins(plugins); err != nil {
+		return Pipeline{}, err
+	}
+
+	graph := simple.NewDirectedGraph()
+	if err := addNodes(graph, plugins); err != nil {
+		return Pipeline{}, err
+	}
+
+	if err := connectNodes(graph); err != nil {
+		return Pipeline{}, err
+	}
+
+	return Pipeline{graph: graph}, nil
 }
