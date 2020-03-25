@@ -97,6 +97,13 @@ func (a *LogAgent) Stop() {
 	a.Info("Log agent stopped cleanly")
 }
 
+func (a *LogAgent) Reconfigure(cfg config.Config) error {
+	// TODO smart reconfiguration (not just stop, reconfigure, start) would be cool to avoid any downtime
+	a.Stop()
+	a.Config = cfg
+	return a.Start()
+}
+
 func (a *LogAgent) Status() struct{} {
 	return struct{}{}
 }
