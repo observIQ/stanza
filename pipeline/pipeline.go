@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+
 	pg "github.com/bluemedora/bplogagent/plugin"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
