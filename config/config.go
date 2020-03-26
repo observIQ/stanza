@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	Plugins      []plugin.PluginConfig
+	Plugins      []plugin.Config
 	BundlePath   string `mapstructure:"bundle_path" yaml:"bundle_path,omitempty"`
 	DatabaseFile string `mapstructure:"database_file" yaml:"database_file,omitempty"`
 }

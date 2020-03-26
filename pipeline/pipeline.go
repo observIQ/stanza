@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	pg "github.com/bluemedora/bplogagent/plugin"
+	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
 )
@@ -15,7 +16,7 @@ type Pipeline struct {
 }
 
 // Start will start the plugins in a pipeline in reverse topological order.
-func (p Pipeline) Start() error {
+func (p *Pipeline) Start() error {
 	if p.running {
 		return nil
 	}
@@ -33,7 +34,7 @@ func (p Pipeline) Start() error {
 }
 
 // Stop will stop the plugins in a pipeline in topological order.
-func (p Pipeline) Stop() {
+func (p *Pipeline) Stop() {
 	if !p.running {
 		return
 	}
@@ -45,6 +46,11 @@ func (p Pipeline) Stop() {
 	}
 
 	p.running = false
+}
+
+// MarshalDot will encode the pipeline as a dot graph.
+func (p *Pipeline) MarshalDot() ([]byte, error) {
+	return dot.Marshal(p.graph, "G", "", " ")
 }
 
 // addNodes will add plugins as nodes to the supplied graph.
