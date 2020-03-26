@@ -135,19 +135,19 @@ func consumers(plugins []pg.Plugin) []pg.Consumer {
 }
 
 // NewPipeline creates a new pipeline of connected plugins.
-func NewPipeline(plugins []pg.Plugin) (Pipeline, error) {
+func NewPipeline(plugins []pg.Plugin) (*Pipeline, error) {
 	if err := connectPlugins(plugins); err != nil {
-		return Pipeline{}, err
+		return nil, err
 	}
 
 	graph := simple.NewDirectedGraph()
 	if err := addNodes(graph, plugins); err != nil {
-		return Pipeline{}, err
+		return nil, err
 	}
 
 	if err := connectNodes(graph); err != nil {
-		return Pipeline{}, err
+		return nil, err
 	}
 
-	return Pipeline{graph: graph}, nil
+	return &Pipeline{graph: graph}, nil
 }

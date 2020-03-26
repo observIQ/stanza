@@ -21,7 +21,7 @@ type LogAgent struct {
 	*zap.SugaredLogger
 
 	database *bbolt.DB
-	pipeline pipeline.Pipeline
+	pipeline *pipeline.Pipeline
 	running  bool
 }
 
@@ -69,7 +69,11 @@ func (a *LogAgent) Stop() {
 	}
 
 	a.pipeline.Stop()
+	a.pipeline = nil
+
 	a.closeDatabase()
+	a.database = nil
+
 	a.running = false
 	a.Info("Agent stopped")
 }
