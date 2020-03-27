@@ -31,13 +31,14 @@ func (a *LogAgent) Start() error {
 		return nil
 	}
 
-	database, err := a.openDatabase()
+	database, err := openDatabase(a.Config.DatabaseFile)
 	if err != nil {
 		return fmt.Errorf("open database: %s", err)
 	}
 	a.database = database
 
-	plugins, err := a.buildPlugins()
+	buildContext := newBuildContext(a.SugaredLogger, database, a.Config.BundlePath)
+	plugins, err := buildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
 		return fmt.Errorf("build plugins: %s", err)
 	}
@@ -71,7 +72,7 @@ func (a *LogAgent) Stop() {
 	a.pipeline.Stop()
 	a.pipeline = nil
 
-	a.closeDatabase()
+	a.database.Close()
 	a.database = nil
 
 	a.running = false
@@ -83,15 +84,14 @@ func (a *LogAgent) Status() struct{} {
 	return struct{}{}
 }
 
-// buildPlugins builds the plugins listed in the agent config.
-func (a *LogAgent) buildPlugins() ([]pg.Plugin, error) {
-	context := a.buildContext()
-	plugins := make([]pg.Plugin, 0)
+// buildPlugins builds plugins from plugin configs.
+func buildPlugins(pluginConfigs []pg.Config, context pg.BuildContext) ([]pg.Plugin, error) {
+	plugins := make([]pg.Plugin, len(pluginConfigs))
 
-	for _, pluginConfig := range a.Config.Plugins {
-		plugin, err := pluginConfig.Build(context)
+	for _, config := range pluginConfigs {
+		plugin, err := config.Build(context)
 		if err != nil {
-			return plugins, fmt.Errorf("failed to build %s: %s", pluginConfig.ID(), err)
+			return plugins, fmt.Errorf("failed to build %s: %s", config.ID(), err)
 		}
 		plugins = append(plugins, plugin)
 	}
@@ -99,37 +99,27 @@ func (a *LogAgent) buildPlugins() ([]pg.Plugin, error) {
 	return plugins, nil
 }
 
-// buildContext will create a build context for building plugins.
-func (a *LogAgent) buildContext() pg.BuildContext {
+// newBuildContext will create a build context for building plugins.
+func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB, bundlePath string) pg.BuildContext {
 	return pg.BuildContext{
-		Logger:   a.SugaredLogger,
-		Bundles:  bundle.GetBundleDefinitions(a.Config.BundlePath, a.SugaredLogger),
-		Database: a.database,
+		Logger:   logger,
+		Bundles:  bundle.GetBundleDefinitions(bundlePath, logger),
+		Database: database,
 	}
 }
 
-// openDatabase will open a connection to the database.
-func (a *LogAgent) openDatabase() (*bbolt.DB, error) {
-	file := a.databaseFile()
+// openDatabase will open and create a database.
+func openDatabase(file string) (*bbolt.DB, error) {
+	if file == "" {
+		file = defaultDatabaseFile()
+	}
+
 	options := &bbolt.Options{Timeout: 1 * time.Second}
 	return bbolt.Open(file, 0666, options)
 }
 
-// closeDatabase will close the database connection.
-func (a *LogAgent) closeDatabase() {
-	if a.database != nil {
-		if err := a.database.Close(); err != nil {
-			a.Errorf("Failed to close database: %s", err)
-		}
-	}
-}
-
-// databaseFile returns the location of the database.
-func (a *LogAgent) databaseFile() string {
-	if a.Config.DatabaseFile != "" {
-		return a.Config.DatabaseFile
-	}
-
+// defaultDatabaseFile returns the default location of the database.
+func defaultDatabaseFile() string {
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return filepath.Join(".", "bplogagent.db")
