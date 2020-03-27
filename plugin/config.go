@@ -28,16 +28,6 @@ type Config interface {
 	Build(BuildContext) (Plugin, error)
 }
 
-type OutputterConfig interface {
-	Config
-	OutputIDs() []PluginID
-}
-
-type InputterConfig interface {
-	Config
-	IsInputter()
-}
-
 type BuildContext struct {
 	Bundles []*bundle.BundleDefinition
 	// TODO this should be an array of bundle IDs to namespace the plugin ids in the bundles
