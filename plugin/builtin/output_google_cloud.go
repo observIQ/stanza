@@ -8,21 +8,28 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 	"google.golang.org/api/option"
 )
 
 func init() {
-	pg.RegisterConfig("google_cloud_logging", &GoogleCloudLoggingOutputConfig{})
+	plugin.Register("google_cloud_output", &GoogleCloudOutputConfig{})
 }
 
-type GoogleCloudLoggingOutputConfig struct {
-	pg.DefaultPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials            string
-	ProjectID              string `mapstructure:"project_id"`
+// GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
+type GoogleCloudOutputConfig struct {
+	base.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	Credentials       string
+	ProjectID         string `mapstructure:"project_id"`
 }
 
-func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
+// Build will build a google cloud output plugin.
+func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
+	outputPlugin, err := c.OutputConfig.Build(buildContext)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO configure bundle size
 	// TODO allow alternate credentials options (file, etc.)
@@ -34,35 +41,32 @@ func (c GoogleCloudLoggingOutputConfig) Build(buildContext pg.BuildContext) (pg.
 		return nil, errors.New("missing required configuration option project_id")
 	}
 
-	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
-	if err != nil {
-		return nil, fmt.Errorf("build default plugin: %s", err)
+	googleCloudOutput := &GoogleCloudOutput{
+		OutputPlugin: outputPlugin,
+		credentials:  c.Credentials,
+		projectID:    c.ProjectID,
 	}
 
-	dest := &GoogleCloudLoggingPlugin{
-		DefaultPlugin: defaultPlugin,
-
-		credentials: c.Credentials,
-		projectID:   c.ProjectID,
-	}
-
-	return dest, nil
+	return googleCloudOutput, nil
 }
 
+// GoogleCloudLogger is a logger that logs to google cloud.
 type GoogleCloudLogger interface {
 	Log(logging.Entry)
 	Flush() error
 }
 
-type GoogleCloudLoggingPlugin struct {
-	pg.DefaultPlugin
+// GoogleCloudOutput is a plugin that sends logs to google cloud logging.
+type GoogleCloudOutput struct {
+	base.OutputPlugin
 
 	credentials       string
 	projectID         string
 	googleCloudLogger GoogleCloudLogger
 }
 
-func (p *GoogleCloudLoggingPlugin) Start() error {
+// Start will start the google cloud logger.
+func (p *GoogleCloudOutput) Start() error {
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentialsJSON([]byte(p.credentials)))
 	options = append(options, option.WithUserAgent("BindplaneLogAgent/2.0.0"))
@@ -85,11 +89,13 @@ func (p *GoogleCloudLoggingPlugin) Start() error {
 	return nil
 }
 
-func (p *GoogleCloudLoggingPlugin) Stop() error {
+// Stop will flush the google cloud logger.
+func (p *GoogleCloudOutput) Stop() error {
 	return p.googleCloudLogger.Flush()
 }
 
-func (p *GoogleCloudLoggingPlugin) Input(entry *entry.Entry) error {
+// Consume will send an entry to google cloud logging.
+func (p *GoogleCloudOutput) Consume(entry *entry.Entry) error {
 	googleCloudLoggingEntry := logging.Entry{
 		Timestamp: entry.Timestamp,
 		Payload:   entry.Record,

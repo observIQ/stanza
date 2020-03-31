@@ -4,33 +4,29 @@ import (
 	"fmt"
 	"regexp"
 
-	e "github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 )
 
 func init() {
-	pg.RegisterConfig("parse_regex", &RegexParserConfig{})
+	plugin.Register("regex_parser", &RegexParserConfig{})
 }
 
+// RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	base.ParserConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field string
 	Regex string
-
 }
 
-func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
+// Build will build a regex parser plugin.
+func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
-		return nil, fmt.Errorf("build default plugin: %s", err)
-	}
-
-	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
-	if err != nil {
-		return nil, fmt.Errorf("build default outputter: %s", err)
+		return nil, err
 	}
 
 	if c.Field == "" {
@@ -46,36 +42,35 @@ func (c RegexParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 		return nil, fmt.Errorf("compiling regex: %s", err)
 	}
 
-	plugin := &RegexParser{
-		DefaultPlugin:    defaultPlugin,
-		DefaultOutputter: defaultOutputter,
-
-		field:  c.Field,
-		regexp: r,
+	regexParser := &RegexParser{
+		ParserPlugin: parserPlugin,
+		field:        c.Field,
+		regexp:       r,
 	}
 
-	return plugin, nil
+	return regexParser, nil
 }
 
+// RegexParser is a plugin that parses regex in an entry.
 type RegexParser struct {
-	pg.DefaultPlugin
-	pg.DefaultOutputter
+	base.ParserPlugin
 
 	field  string
 	regexp *regexp.Regexp
 }
 
-func (p *RegexParser) Input(entry *e.Entry) error {
-	newEntry, err := p.processEntry(entry)
+// Consume will parse a field in the entry as regex
+func (p *RegexParser) Consume(entry *entry.Entry) error {
+	newEntry, err := p.parse(entry)
 	if err != nil {
 		// TODO allow continuing with best effort
 		return err
 	}
 
-	return p.Output(newEntry)
+	return p.Output.Consume(newEntry)
 }
 
-func (p *RegexParser) processEntry(entry *e.Entry) (*e.Entry, error) {
+func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
 		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)

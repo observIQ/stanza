@@ -38,7 +38,7 @@ func (a *LogAgent) Start() error {
 	a.database = database
 
 	buildContext := newBuildContext(a.SugaredLogger, database, a.Config.BundlePath)
-	plugins, err := buildPlugins(a.Config.Plugins, buildContext)
+	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
 		return fmt.Errorf("build plugins: %s", err)
 	}
@@ -84,22 +84,7 @@ func (a *LogAgent) Status() struct{} {
 	return struct{}{}
 }
 
-// buildPlugins builds plugins from plugin configs.
-func buildPlugins(pluginConfigs []pg.Config, context pg.BuildContext) ([]pg.Plugin, error) {
-	plugins := make([]pg.Plugin, len(pluginConfigs))
-
-	for _, config := range pluginConfigs {
-		plugin, err := config.Build(context)
-		if err != nil {
-			return plugins, fmt.Errorf("failed to build %s: %s", config.ID(), err)
-		}
-		plugins = append(plugins, plugin)
-	}
-
-	return plugins, nil
-}
-
-// newBuildContext will create a build context for building plugins.
+// newBuildContext will create a new build context for building plugins.
 func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB, bundlePath string) pg.BuildContext {
 	return pg.BuildContext{
 		Logger:   logger,

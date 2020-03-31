@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	e "github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 )
 
 func init() {
-	pg.RegisterConfig("parse_time", &TimeParserConfig{})
+	plugin.Register("time_parser", &TimeParserConfig{})
 }
 
 // TODO make this fully general (delete?) and move it out of this file
@@ -56,25 +57,20 @@ func (f FieldSelector) Delete(record map[string]interface{}) error {
 	return fmt.Errorf("should never get here")
 }
 
+// TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	base.ParserConfig `mapstructure:",squash" yaml:",inline"`
 
-	// TODO design these params better
 	Field        FieldSelector
 	Layout       string
 	KeepOriginal bool `yaml:"keep_original"`
 }
 
-func (c TimeParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
+// Build will build a time parser plugin.
+func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
-		return nil, fmt.Errorf("build default plugin: %s", err)
-	}
-
-	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
-	if err != nil {
-		return nil, fmt.Errorf("build default outputter: %s", err)
+		return nil, err
 	}
 
 	if c.Field == nil {
@@ -85,38 +81,39 @@ func (c TimeParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 		return nil, fmt.Errorf("missing required field 'layout'")
 	}
 
-	plugin := &TimeParser{
-		DefaultPlugin:    defaultPlugin,
-		DefaultOutputter: defaultOutputter,
+	timeParserPlugin := &TimeParser{
+		ParserPlugin: parserPlugin,
 
 		field:        c.Field,
 		layout:       c.Layout,
 		keepOriginal: c.KeepOriginal,
 	}
 
-	return plugin, nil
+	return timeParserPlugin, nil
 }
 
+// TimeParser is a plugin that parses time from a field.
 type TimeParser struct {
-	pg.DefaultPlugin
-	pg.DefaultOutputter
+	base.ParserPlugin
 
 	field        FieldSelector
 	layout       string
 	keepOriginal bool
 }
 
-func (p *TimeParser) Input(entry *e.Entry) error {
-	newEntry, err := p.processEntry(entry)
+// Consume will parse time and send the entry to the next plugin.
+func (p *TimeParser) Consume(entry *entry.Entry) error {
+	newEntry, err := p.parseTime(entry)
 	if err != nil {
 		// TODO allow continuing with best effort
 		return err
 	}
 
-	return p.Output(newEntry)
+	return p.Output.Consume(newEntry)
 }
 
-func (p *TimeParser) processEntry(entry *e.Entry) (*e.Entry, error) {
+// Parse time will parse time and create a new entry.
+func (p *TimeParser) parseTime(entry *entry.Entry) (*entry.Entry, error) {
 	message, err := p.field.Select(entry.Record)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select field: %s", err)
@@ -144,5 +141,3 @@ func (p *TimeParser) processEntry(entry *e.Entry) (*e.Entry, error) {
 
 	return entry, nil
 }
-
-// TODO write tests

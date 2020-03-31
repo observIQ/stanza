@@ -3,33 +3,30 @@ package builtin
 import (
 	"fmt"
 
-	e "github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
-	"github.com/json-iterator/go"
+	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func init() {
-	pg.RegisterConfig("json_parser", &JSONParserConfig{})
+	plugin.Register("json_parser", &JSONParserConfig{})
 }
 
+// JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+	base.ParserConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field            string
 	DestinationField string
 }
 
-func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(context.Logger)
+// Build will build a JSON parser plugin.
+func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
-		return nil, fmt.Errorf("build default plugin: %s", err)
-	}
-
-	defaultOutputter, err := c.DefaultOutputterConfig.Build(context.Plugins)
-	if err != nil {
-		return nil, fmt.Errorf("build default outputter: %s", err)
+		return nil, err
 	}
 
 	if c.Field == "" {
@@ -37,8 +34,7 @@ func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	}
 
 	plugin := &JSONParser{
-		DefaultPlugin:    defaultPlugin,
-		DefaultOutputter: defaultOutputter,
+		ParserPlugin: parserPlugin,
 
 		field:            c.Field,
 		destinationField: c.DestinationField,
@@ -48,26 +44,28 @@ func (c JSONParserConfig) Build(context pg.BuildContext) (pg.Plugin, error) {
 	return plugin, nil
 }
 
+// JSONParser is a plugin that parses JSON.
 type JSONParser struct {
-	pg.DefaultPlugin
-	pg.DefaultOutputter
+	base.ParserPlugin
 
 	field            string
 	destinationField string
 	json             jsoniter.API
 }
 
-func (p *JSONParser) Input(entry *e.Entry) error {
-	newEntry, err := p.processEntry(entry)
+// Consume will parse an entry field as JSON.
+func (p *JSONParser) Consume(entry *entry.Entry) error {
+	newEntry, err := p.parse(entry)
 	if err != nil {
 		// TODO option to allow
 		return err
 	}
 
-	return p.Output(newEntry)
+	return p.Output.Consume(newEntry)
 }
 
-func (p *JSONParser) processEntry(entry *e.Entry) (*e.Entry, error) {
+// parse will parse an entry.
+func (p *JSONParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 	message, ok := entry.Record[p.field]
 	if !ok {
 		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)

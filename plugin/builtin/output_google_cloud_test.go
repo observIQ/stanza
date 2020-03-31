@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"cloud.google.com/go/logging"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -29,14 +30,16 @@ func newFakeGoogleCloudLogger() GoogleCloudLogger {
 	}
 }
 
-func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
+func newFakeGoogleCloudLoggingPlugin() *GoogleCloudOutput {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
-	return &GoogleCloudLoggingPlugin{
-		DefaultPlugin: pg.DefaultPlugin{
-			PluginID:      "test",
-			PluginType:    "GoogleCloudLogging",
-			SugaredLogger: sugaredLogger,
+	return &GoogleCloudOutput{
+		OutputPlugin: base.OutputPlugin{
+			base.Plugin{
+				PluginID:      "test",
+				PluginType:    "GoogleCloudLogging",
+				SugaredLogger: sugaredLogger,
+			},
 		},
 		googleCloudLogger: newFakeGoogleCloudLogger(),
 		projectID:         "testproject",
@@ -44,6 +47,6 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudLoggingPlugin {
 }
 
 func TestGoogleCloudLoggingImplementations(t *testing.T) {
-	assert.Implements(t, (*pg.Inputter)(nil), new(GoogleCloudLoggingPlugin))
-	assert.Implements(t, (*pg.Plugin)(nil), new(GoogleCloudLoggingPlugin))
+	assert.Implements(t, (*plugin.Plugin)(nil), new(GoogleCloudOutput))
+	assert.Implements(t, (*plugin.Consumer)(nil), new(GoogleCloudOutput))
 }

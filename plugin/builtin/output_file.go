@@ -8,22 +8,25 @@ import (
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 )
 
 func init() {
-	pg.RegisterConfig("file_out", &FileOutputConfig{})
+	plugin.Register("file_output", &FileOutputConfig{})
 }
 
+// FileOutputConfig is the configuration of a file output pluginn.
 type FileOutputConfig struct {
-	pg.DefaultPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Path                   string `yaml:",omitempty"`
-	Format                 string `yaml:",omitempty"`
+	base.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	Path              string `yaml:",omitempty"`
+	Format            string `yaml:",omitempty"`
 	// TODO file permissions?
 }
 
-func (c *FileOutputConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
+// Build will build a file output plugin.
+func (c *FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	outputPlugin, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -39,16 +42,19 @@ func (c *FileOutputConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error
 	if c.Path == "" {
 		return nil, fmt.Errorf("must provide a path to output to")
 	}
-	return &FileOutput{
-		DefaultPlugin: defaultPlugin,
-		path:          c.Path,
-		tmpl:          tmpl,
-	}, nil
 
+	fileOutput := &FileOutput{
+		OutputPlugin: outputPlugin,
+		path:         c.Path,
+		tmpl:         tmpl,
+	}
+
+	return fileOutput, nil
 }
 
+// FileOutput is a plugin that writes logs to a file.
 type FileOutput struct {
-	pg.DefaultPlugin
+	base.OutputPlugin
 	path    string
 	tmpl    *template.Template
 	encoder *json.Encoder
@@ -57,6 +63,7 @@ type FileOutput struct {
 	mux  sync.Mutex
 }
 
+// Start will open the output file.
 func (fo *FileOutput) Start() error {
 	var err error
 	fo.file, err = os.OpenFile(fo.path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
@@ -69,6 +76,7 @@ func (fo *FileOutput) Start() error {
 	return nil
 }
 
+// Stop will close the output file.
 func (fo *FileOutput) Stop() error {
 	if fo.file != nil {
 		fo.file.Close()
@@ -76,7 +84,8 @@ func (fo *FileOutput) Stop() error {
 	return nil
 }
 
-func (fo *FileOutput) Input(entry *entry.Entry) error {
+// Consume will write an entry to the output file.
+func (fo *FileOutput) Consume(entry *entry.Entry) error {
 	fo.mux.Lock()
 
 	if fo.tmpl != nil {
