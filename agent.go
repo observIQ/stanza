@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewLogAgent(cfg config.Config, logger *zap.SugaredLogger) *LogAgent {
+func NewLogAgent(cfg *config.Config, logger *zap.SugaredLogger) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,
@@ -23,7 +23,7 @@ func NewLogAgent(cfg config.Config, logger *zap.SugaredLogger) *LogAgent {
 }
 
 type LogAgent struct {
-	Config config.Config
+	Config *config.Config
 
 	plugins *pg.PluginGraph
 	started chan struct{}
@@ -95,13 +95,6 @@ func (a *LogAgent) Stop() {
 		a.closeDB()
 	}
 	a.Info("Log agent stopped cleanly")
-}
-
-func (a *LogAgent) Reconfigure(cfg config.Config) error {
-	// TODO smart reconfiguration (not just stop, reconfigure, start) would be cool to avoid any downtime
-	a.Stop()
-	a.Config = cfg
-	return a.Start()
 }
 
 func (a *LogAgent) Status() struct{} {

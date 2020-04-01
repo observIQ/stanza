@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/mitchellh/mapstructure"
 )
 
 type Config struct {
@@ -15,6 +14,4 @@ func (c Config) IsZero() bool {
 	return len(c.Plugins) == 0 && c.BundlePath == ""
 }
 
-func UnmarshalHook(c *mapstructure.DecoderConfig) {
-	c.DecodeHook = plugin.PluginConfigDecoder
-}
+var DecodeHookFunc = plugin.PluginConfigDecoder
