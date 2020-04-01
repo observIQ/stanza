@@ -37,7 +37,7 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockConsumer *testutil.
 		InputPlugin: base.InputPlugin{
 			Plugin: base.Plugin{
 				PluginID:      "testfile",
-				PluginType:    "file",
+				PluginType:    "file_input",
 				SugaredLogger: logger,
 			},
 			Output: nil,
