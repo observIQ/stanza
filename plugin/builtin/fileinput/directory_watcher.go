@@ -12,10 +12,10 @@ type DirectoryWatcher struct {
 	path         string
 	watcher      *fsnotify.Watcher
 	pollInterval time.Duration
-	fileSource   *FileSource
+	fileSource   *FileInput
 }
 
-func NewDirectoryWatcher(path string, fileSource *FileSource) (*DirectoryWatcher, error) {
+func NewDirectoryWatcher(path string, fileSource *FileInput) (*DirectoryWatcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("creating fsnotify watcher: %s", err)

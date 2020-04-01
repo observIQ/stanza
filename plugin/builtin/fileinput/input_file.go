@@ -12,16 +12,16 @@ import (
 	"sync"
 	"time"
 
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 )
 
 func init() {
-	pg.RegisterConfig("file", &FileSourceConfig{})
+	plugin.Register("file_input", &FileInputConfig{})
 }
 
-type FileSourceConfig struct {
-	pg.DefaultPluginConfig    `mapstructure:",squash" yaml:",inline"`
-	pg.DefaultOutputterConfig `mapstructure:",squash" yaml:",inline"`
+type FileInputConfig struct {
+	base.InputConfig `mapstructure:",squash" yaml:",inline"`
 
 	Include []string `yaml:",omitempty"`
 	Exclude []string `yaml:",omitempty"`
@@ -35,15 +35,10 @@ type FileSourceMultilineConfig struct {
 	LineEndPattern   string `mapstructure:"line_end_pattern" yaml:"line_end_pattern"`
 }
 
-func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error) {
-	defaultPlugin, err := c.DefaultPluginConfig.Build(buildContext.Logger)
+func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
-		return nil, fmt.Errorf("build default plugin: %s", err)
-	}
-
-	defaultOutputter, err := c.DefaultOutputterConfig.Build(buildContext.Plugins)
-	if err != nil {
-		return nil, fmt.Errorf("build default outputter: %s", err)
+		return nil, err
 	}
 
 	// Ensure includes can be parsed as globs
@@ -100,10 +95,8 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 		}
 	}()
 
-	plugin := &FileSource{
-		DefaultPlugin:    defaultPlugin,
-		DefaultOutputter: defaultOutputter,
-
+	plugin := &FileInput{
+		InputPlugin:      inputPlugin,
 		Include:          c.Include,
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
@@ -112,7 +105,7 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 
 		fileCreated: make(chan string),
 		offsetStore: &OffsetStore{
-			db:     buildContext.Database,
+			db:     context.Database,
 			bucket: string(c.ID()), // TODO use bundle as prefix
 		},
 	}
@@ -120,9 +113,8 @@ func (c FileSourceConfig) Build(buildContext pg.BuildContext) (pg.Plugin, error)
 	return plugin, nil
 }
 
-type FileSource struct {
-	pg.DefaultPlugin
-	pg.DefaultOutputter
+type FileInput struct {
+	base.InputPlugin
 
 	Include          []string
 	Exclude          []string
@@ -143,7 +135,7 @@ type FileSource struct {
 	offsetStore *OffsetStore
 }
 
-func (f *FileSource) Start() error {
+func (f *FileInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
 	f.wg = &sync.WaitGroup{}
@@ -186,7 +178,7 @@ func (f *FileSource) Start() error {
 	return nil
 }
 
-func (f *FileSource) Stop() error {
+func (f *FileInput) Stop() error {
 	f.Info("Stopping source")
 	f.cancel()
 	f.wg.Wait()
@@ -227,7 +219,7 @@ func isExcluded(path string, excludes []string) bool {
 }
 
 //
-func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool) {
+func (f *FileInput) tryAddFile(ctx context.Context, path string, globCheck bool) {
 	// Skip the path if it's excluded
 	if isExcluded(path, f.Exclude) {
 		f.Debugw("Skipping excluded file", "path", path)
@@ -249,7 +241,7 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 		offset:           startingOffset,
 		pollInterval:     f.PollInterval,
 		splitFunc:        f.SplitFunc,
-		output:           f.Output,
+		output:           f.Output.Consume,
 		fingerprintBytes: f.FingerprintBytes,
 		offsetStore:      f.offsetStore,
 		SugaredLogger:    f.SugaredLogger.With("path", path),
@@ -278,7 +270,7 @@ func (f *FileSource) tryAddFile(ctx context.Context, path string, globCheck bool
 	}()
 }
 
-func (f *FileSource) checkPath(path string, checkCopy bool) (createWatcher bool, startingOffset int64, err error) {
+func (f *FileInput) checkPath(path string, checkCopy bool) (createWatcher bool, startingOffset int64, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return false, 0, err
@@ -344,7 +336,7 @@ func fingerprint(numBytes int64, file *os.File) (fp []byte, stable bool) {
 	return hash.Sum(nil), int64(bytesRead) >= numBytes
 }
 
-func (f *FileSource) tryAddDirectory(ctx context.Context, path string) {
+func (f *FileInput) tryAddDirectory(ctx context.Context, path string) {
 
 	_, ok := f.directoryWatchers[path]
 	if ok {
@@ -373,13 +365,13 @@ func (f *FileSource) tryAddDirectory(ctx context.Context, path string) {
 	}()
 }
 
-func (f *FileSource) removeDirectoryWatcher(directoryWatcher *DirectoryWatcher) {
+func (f *FileInput) removeDirectoryWatcher(directoryWatcher *DirectoryWatcher) {
 	f.directoryMux.Lock()
 	delete(f.directoryWatchers, directoryWatcher.path)
 	f.directoryMux.Unlock()
 }
 
-func (f *FileSource) removeFileWatcher(watcher *FileWatcher) {
+func (f *FileInput) removeFileWatcher(watcher *FileWatcher) {
 	f.fileMux.Lock()
 	for i, trackedWatcher := range f.fileWatchers {
 		if trackedWatcher == watcher {
@@ -390,7 +382,7 @@ func (f *FileSource) removeFileWatcher(watcher *FileWatcher) {
 	f.fileMux.Unlock()
 }
 
-func (f *FileSource) overwriteFileWatcher(watcher *FileWatcher) {
+func (f *FileInput) overwriteFileWatcher(watcher *FileWatcher) {
 	f.fileMux.Lock()
 	overwritten := false
 	for i, trackedWatcher := range f.fileWatchers {

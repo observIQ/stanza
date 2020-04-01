@@ -1,3 +1,5 @@
+//go:generate mockery -name=^(Plugin|Producer|Consumer)$ -output=./testutil -outpkg=testutil -case=snake
+
 package plugin
 
 import "github.com/bluemedora/bplogagent/entry"

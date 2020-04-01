@@ -1,6 +1,8 @@
 package base
 
 import (
+	"fmt"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 )
@@ -11,7 +13,7 @@ type OutputConfig struct {
 }
 
 // Build will build a basic output plugin.
-func (c OutputConfig) Build(context plugin.BuildContext) (OutputPlugin, error) {
+func (c *OutputConfig) Build(context plugin.BuildContext) (OutputPlugin, error) {
 	p, err := c.PluginConfig.Build(context)
 	if err != nil {
 		return OutputPlugin{}, err
@@ -26,7 +28,6 @@ type OutputPlugin struct {
 }
 
 // Consume will log that an entry has been consumed.
-func (o *OutputPlugin) Consume(entry *entry.Entry) error {
-	o.Debug("Entry consumed")
-	return nil
+func (p *OutputPlugin) Consume(entry *entry.Entry) error {
+	return fmt.Errorf("consume not implemented")
 }

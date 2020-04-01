@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/base"
 	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -20,26 +21,26 @@ import (
 )
 
 func TestFileSourceImplements(t *testing.T) {
-	assert.Implements(t, (*pg.Outputter)(nil), new(FileSource))
-	assert.Implements(t, (*pg.Plugin)(nil), new(FileSource))
+	assert.Implements(t, (*plugin.Plugin)(nil), new(FileInput))
+	assert.Implements(t, (*plugin.Producer)(nil), new(FileInput))
 }
 
-func newTestFileSource(t *testing.T) (source *FileSource, mockInputter *testutil.Inputter, closeStore func()) {
-	mockInputter = &testutil.Inputter{}
+func newTestFileSource(t *testing.T) (source *FileInput, mockConsumer *testutil.Consumer, closeStore func()) {
+	mockConsumer = &testutil.Consumer{}
 
 	var offsetStore *OffsetStore
 	offsetStore, closeStore = newTestOffsetStore()
 
 	logger := zaptest.NewLogger(t).Sugar()
 
-	source = &FileSource{
-		DefaultPlugin: pg.DefaultPlugin{
-			PluginID:      "testfile",
-			PluginType:    "file",
-			SugaredLogger: logger,
-		},
-		DefaultOutputter: pg.DefaultOutputter{
-			OutputPlugin: mockInputter,
+	source = &FileInput{
+		InputPlugin: base.InputPlugin{
+			Plugin: base.Plugin{
+				PluginID:      "testfile",
+				PluginType:    "file",
+				SugaredLogger: logger,
+			},
+			Output: nil,
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     1 * time.Minute,
@@ -69,10 +70,10 @@ func newTempDir() (tempDir string, cleanup func()) {
 func TestFileSource_CleanStop(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	source, mockInputter, cleanupSource := newTestFileSource(t)
+	source, mockConsumer, cleanupSource := newTestFileSource(t)
 	defer cleanupSource()
 
-	_ = mockInputter
+	_ = mockConsumer
 
 	tempDir, cleanupDir := newTempDir()
 	defer cleanupDir()
@@ -89,10 +90,10 @@ func TestFileSource_CleanStop(t *testing.T) {
 
 }
 
-func expectedLogsTest(t *testing.T, expected []string, generator func(source *FileSource, tempdir string)) {
+func expectedLogsTest(t *testing.T, expected []string, generator func(source *FileInput, tempdir string)) {
 	defer goleak.VerifyNone(t)
 
-	source, mockInputter, cleanupSource := newTestFileSource(t)
+	source, mockConsumer, cleanupSource := newTestFileSource(t)
 	defer cleanupSource()
 
 	tempDir, cleanupDir := newTempDir()
@@ -103,7 +104,7 @@ func expectedLogsTest(t *testing.T, expected []string, generator func(source *Fi
 	receivedMessages := make([]string, 0)
 	logReceived := make(chan struct{})
 	mux := &sync.Mutex{}
-	mockInputter.On("Input", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockConsumer.On("Consume", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		mux.Lock()
 		receivedMessages = append(receivedMessages, args.Get(0).(*entry.Entry).Record["message"].(string))
 		logReceived <- struct{}{}
@@ -148,7 +149,7 @@ LOOP:
 func TestFileSource_SimpleWrite(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	generate := func(source *FileSource, tempDir string) {
+	generate := func(source *FileInput, tempDir string) {
 		temp, err := ioutil.TempFile(tempDir, "")
 		assert.NoError(t, err)
 
@@ -169,7 +170,7 @@ func TestFileSource_SimpleWrite(t *testing.T) {
 func TestFileSource_MultiFileSimple(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	generate := func(source *FileSource, tempDir string) {
+	generate := func(source *FileInput, tempDir string) {
 		temp1, err := ioutil.TempFile(tempDir, "")
 		assert.NoError(t, err)
 
@@ -197,7 +198,7 @@ func TestFileSource_MultiFileSimple(t *testing.T) {
 func TestFileSource_MoveFile(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	generate := func(source *FileSource, tempDir string) {
+	generate := func(source *FileInput, tempDir string) {
 		temp1, err := ioutil.TempFile(tempDir, "")
 		assert.NoError(t, err)
 
@@ -221,7 +222,7 @@ func TestFileSource_MoveFile(t *testing.T) {
 func TestFileSource_TruncateThenWrite(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	generate := func(source *FileSource, tempDir string) {
+	generate := func(source *FileInput, tempDir string) {
 		temp1, err := ioutil.TempFile(tempDir, "")
 		assert.NoError(t, err)
 
@@ -257,7 +258,7 @@ func TestFileSource_TruncateThenWrite(t *testing.T) {
 func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	generate := func(source *FileSource, tempDir string) {
+	generate := func(source *FileInput, tempDir string) {
 		temp1, err := ioutil.TempFile(tempDir, "")
 		assert.NoError(t, err)
 

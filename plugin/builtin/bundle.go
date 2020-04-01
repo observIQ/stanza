@@ -18,33 +18,46 @@ func init() {
 
 // BundleConfig is the configuration of a bundle plugin.
 type BundleConfig struct {
-	base.InputConfig `mapstructure:",squash" yaml:",inline"`
-	BundleType       string `mapstructure:"bundle_type" yaml:"bundle_type"`
-	Params           map[string]interface{}
+	base.PluginConfig `mapstructure:",squash" yaml:",inline"`
+	BundleType        string `mapstructure:"bundle_type" yaml:"bundle_type"`
+	Params            map[string]interface{}
+	OutputID          string `mapstructure:"output" yaml:"output"`
 }
 
 // Build will build a bundle plugin.
 func (c BundleConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+	p, err := c.PluginConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	configs, err := c.renderPluginConfigs(context.Bundles)
 	if err != nil {
-		return nil, fmt.Errorf("render bundle configs: %s", err)
+		return nil, fmt.Errorf("bundle failed to render plugin configs: %s", err)
 	}
 
 	plugins, err := plugin.BuildPlugins(configs, context)
 	if err != nil {
-		return nil, fmt.Errorf("plugins failed to build in bundle: %s", err)
+		return nil, fmt.Errorf("bundle failed to build plugins: %s", err)
+	}
+
+	bundleInput := findBundleInput(plugins)
+	bundleOutput := findBundleOutput(plugins)
+
+	if bundleOutput == nil && c.OutputID != "" {
+		return nil, fmt.Errorf("bundle has an output param, but no bundle_output plugin")
+	}
+
+	if bundleOutput != nil && c.OutputID == "" {
+		return nil, fmt.Errorf("bundle has a bundle_output plugin, but no output param")
 	}
 
 	bundle := &Bundle{
-		InputPlugin:   inputPlugin,
-		plugins:       plugins,
-		bundleInputs:  findBundleInputs(plugins),
-		bundleOutputs: findBundleOutputs(plugins),
+		Plugin:       p,
+		OutputID:     c.OutputID,
+		plugins:      plugins,
+		bundleInput:  bundleInput,
+		bundleOutput: bundleOutput,
 	}
 
 	return bundle, nil
@@ -89,37 +102,38 @@ func (c BundleConfig) renderPluginConfigs(bundles []*bundle.BundleDefinition) ([
 	return pluginUnmarshaller.Plugins, nil
 }
 
-// findBundleInputs will find all plugins that are of type BundleInput.
-func findBundleInputs(plugins []plugin.Plugin) []*BundleInput {
-	bundleInputs := make([]*BundleInput, 0)
+// findBundleInputs will find the first bundle input in a collection of plugins.
+func findBundleInput(plugins []plugin.Plugin) *BundleInput {
 	for _, plugin := range plugins {
-		switch c := plugin.(type) {
+		switch t := plugin.(type) {
 		case *BundleInput:
-			bundleInputs = append(bundleInputs, c)
+			return t
 		}
 	}
-	return bundleInputs
+	return nil
 }
 
-// findBundleOutputs will find all plugins that are of type BundleOutput.
-func findBundleOutputs(plugins []plugin.Plugin) []*BundleOutput {
-	bundleOutputs := make([]*BundleOutput, 0)
+// findBundleOutput will find the first bundle output in a collection of plugins.
+func findBundleOutput(plugins []plugin.Plugin) *BundleOutput {
 	for _, plugin := range plugins {
-		switch c := plugin.(type) {
+		switch t := plugin.(type) {
 		case *BundleOutput:
-			bundleOutputs = append(bundleOutputs, c)
+			return t
 		}
 	}
-	return bundleOutputs
+	return nil
 }
 
 // Bundle is a plugin that runs its own collection of plugins in a pipeline.
 type Bundle struct {
-	base.InputPlugin
-	pipeline      *pipeline.Pipeline
-	plugins       []plugin.Plugin
-	bundleInputs  []*BundleInput
-	bundleOutputs []*BundleOutput
+	base.Plugin
+	OutputID string
+	Output   plugin.Consumer
+
+	pipeline     *pipeline.Pipeline
+	plugins      []plugin.Plugin
+	bundleInput  *BundleInput
+	bundleOutput *BundleOutput
 }
 
 // Start will start the bundle pipeline.
@@ -130,8 +144,8 @@ func (b *Bundle) Start() error {
 	}
 	b.pipeline = pipeline
 
-	for _, bundleOutput := range b.bundleOutputs {
-		bundleOutput.SetBundle(b)
+	if b.bundleOutput != nil {
+		b.bundleOutput.SetBundle(b)
 	}
 
 	err = b.pipeline.Start()
@@ -149,17 +163,35 @@ func (b *Bundle) Stop() error {
 	return nil
 }
 
-// PipelineOut will forward an outgoing entry from the pipeline.
-func (b *Bundle) PipelineOut(entry *entry.Entry) error {
-	return b.Output.Consume(entry)
+// Consumers will return an array containing the plugin's output, if one exists.
+func (b *Bundle) Consumers() []plugin.Consumer {
+	if b.Output != nil {
+		return []plugin.Consumer{}
+	}
+
+	return []plugin.Consumer{b.Output}
+}
+
+// SetConsumers will find an output consumer if output id is not empty.
+func (b *Bundle) SetConsumers(consumers []plugin.Consumer) error {
+	if b.OutputID == "" {
+		return nil
+	}
+
+	consumer, err := base.FindConsumer(consumers, b.OutputID)
+	if err != nil {
+		return err
+	}
+
+	b.Output = consumer
+	return nil
 }
 
 // Consume will send an entry to the pipeline.
 func (b *Bundle) Consume(entry *entry.Entry) error {
-	for _, bundleInput := range b.bundleInputs {
-		if err := bundleInput.Consume(entry); err != nil {
-			return err
-		}
+	if b.bundleInput == nil {
+		return fmt.Errorf("bundle_input plugin does not exist")
 	}
-	return nil
+
+	return b.bundleInput.PipeIn(entry)
 }

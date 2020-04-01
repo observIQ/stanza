@@ -13,18 +13,22 @@ type InputConfig struct {
 }
 
 // Build will build a basic input plugin.
-func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
+func (c *InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
 	p, err := c.PluginConfig.Build(context)
 	if err != nil {
 		return InputPlugin{}, err
 	}
 
-	input := InputPlugin{
+	if c.OutputID == "" {
+		return InputPlugin{}, fmt.Errorf("output parameter is not defined")
+	}
+
+	inputPlugin := InputPlugin{
 		Plugin:   p,
 		OutputID: c.OutputID,
 	}
 
-	return input, nil
+	return inputPlugin, nil
 }
 
 // InputPlugin is a plugin that is a producer, but not a consumer.
@@ -35,25 +39,27 @@ type InputPlugin struct {
 }
 
 // Consumers will return an array containing the plugin's connected output.
-func (s InputPlugin) Consumers() []plugin.Consumer {
-	return []plugin.Consumer{s.Output}
+func (p *InputPlugin) Consumers() []plugin.Consumer {
+	return []plugin.Consumer{p.Output}
 }
 
 // SetConsumers will find and set the consumer that matches the output id.
-func (s InputPlugin) SetConsumers(consumers []plugin.Consumer) error {
-	if s.OutputID == "" {
-		return nil
+func (p *InputPlugin) SetConsumers(consumers []plugin.Consumer) error {
+	consumer, err := FindConsumer(consumers, p.OutputID)
+	if err != nil {
+		return err
 	}
 
+	p.Output = consumer
+	return nil
+}
+
+// FindConsumer will find a consumer with the supplied id.
+func FindConsumer(consumers []plugin.Consumer, consumerID string) (plugin.Consumer, error) {
 	for _, consumer := range consumers {
-		if consumer.ID() == s.OutputID {
-			s.Output = consumer
+		if consumer.ID() == consumerID {
+			return consumer, nil
 		}
 	}
-
-	if s.Output == nil {
-		return fmt.Errorf("missing output %s", s.OutputID)
-	}
-
-	return nil
+	return nil, fmt.Errorf("consumer %s is missing", consumerID)
 }

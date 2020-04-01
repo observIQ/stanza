@@ -34,7 +34,7 @@ type BundleInput struct {
 	base.InputPlugin
 }
 
-// Consume will start entry processing in a bundle.
-func (p *BundleInput) Consume(entry *entry.Entry) error {
+// PipeIn is used by bundle plugins to submit entries to their embedded pipeline.
+func (p *BundleInput) PipeIn(entry *entry.Entry) error {
 	return p.Output.Consume(entry)
 }

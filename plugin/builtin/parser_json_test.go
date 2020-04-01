@@ -18,14 +18,12 @@ func NewFakeJSONPlugin() *JSONParser {
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
 		ParserPlugin: base.ParserPlugin{
-			base.InputPlugin{
-				Plugin: base.Plugin{
-					PluginID:      "test",
-					PluginType:    "json",
-					SugaredLogger: logger.Sugar(),
-				},
-				Output: nil,
+			Plugin: base.Plugin{
+				PluginID:      "test",
+				PluginType:    "json",
+				SugaredLogger: logger.Sugar(),
 			},
+			Output: nil,
 		},
 		field:            "testfield",
 		destinationField: "testparsed",

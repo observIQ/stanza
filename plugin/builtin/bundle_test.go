@@ -12,13 +12,11 @@ import (
 
 func TestBasicBundlePluginFunctionality(t *testing.T) {
 	config := &BundleConfig{
-		InputConfig: base.InputConfig{
-			PluginConfig: base.PluginConfig{
-				PluginID:   "mybundle",
-				PluginType: "bundle",
-			},
-			OutputID: "mybundlereceiver",
+		PluginConfig: base.PluginConfig{
+			PluginID:   "mybundle",
+			PluginType: "bundle",
 		},
+		OutputID:   "mybundlereceiver",
 		BundleType: "noop",
 		Params: map[string]interface{}{
 			"enabled": true,

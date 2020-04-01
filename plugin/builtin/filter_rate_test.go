@@ -15,14 +15,12 @@ func NewFakeRateLimitPlugin() *RateFilter {
 	sugaredLogger := logger.Sugar()
 	return &RateFilter{
 		FilterPlugin: base.FilterPlugin{
-			InputPlugin: base.InputPlugin{
-				Plugin: base.Plugin{
-					PluginID:      "test",
-					PluginType:    "rate_filter",
-					SugaredLogger: sugaredLogger,
-				},
-				Output: newFakeNullOutput(),
+			Plugin: base.Plugin{
+				PluginID:      "test",
+				PluginType:    "rate_filter",
+				SugaredLogger: sugaredLogger,
 			},
+			Output: newFakeNullOutput(),
 		},
 		Interval: time.Millisecond,
 		Burst:    10,

@@ -35,9 +35,14 @@ type BundleOutput struct {
 	bundle *Bundle
 }
 
-// Consume will output the entry to the parent bundle.
+// Consume will pipe an entry out of the pipeline.
 func (o *BundleOutput) Consume(e *entry.Entry) error {
-	return o.bundle.PipelineOut(e)
+	return o.PipeOut(e)
+}
+
+// PipeOut sends an entry to the parent bundle outside of the pipeline.
+func (o *BundleOutput) PipeOut(e *entry.Entry) error {
+	return o.bundle.Output.Consume(e)
 }
 
 // SetBundle will set the parent bundle.

@@ -14,17 +14,17 @@ type PluginConfig struct {
 }
 
 // ID returns the id field from the plugin config.
-func (c PluginConfig) ID() string {
+func (c *PluginConfig) ID() string {
 	return c.PluginID
 }
 
 // Type returns the type field from the plugin config.
-func (c PluginConfig) Type() string {
+func (c *PluginConfig) Type() string {
 	return c.PluginType
 }
 
 // Build will build a basic plugin.
-func (c PluginConfig) Build(context plugin.BuildContext) (Plugin, error) {
+func (c *PluginConfig) Build(context plugin.BuildContext) (Plugin, error) {
 	if c.PluginID == "" {
 		return Plugin{}, fmt.Errorf("missing required field 'id'")
 	}
@@ -61,12 +61,12 @@ func (p *Plugin) Type() string {
 
 // Start will log that the plugin has started.
 func (p *Plugin) Start() error {
-	p.Debug("Plugin started")
+	p.Debug("Ignoring startup. Not implemented.")
 	return nil
 }
 
 // Stop will log that the plugin has stopped.
 func (p *Plugin) Stop() error {
-	p.Debug("Plugin stopped")
+	p.Debug("Ignoring shutdown. Not implemented.")
 	return nil
 }
