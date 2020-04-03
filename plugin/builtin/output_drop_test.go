@@ -1,16 +1,14 @@
 package builtin
 
 import (
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func newFakeNullOutput() *DropOutput {
 	return &DropOutput{
-		OutputPlugin: base.OutputPlugin{
-			Plugin: base.Plugin{
-				PluginID:   "testnull",
-				PluginType: "null",
-			},
+		BasicIdentity: helper.BasicIdentity{
+			PluginID:   "testnull",
+			PluginType: "null",
 		},
 	}
 }

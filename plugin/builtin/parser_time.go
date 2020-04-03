@@ -6,7 +6,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func init() {
@@ -59,7 +59,8 @@ func (f FieldSelector) Delete(record map[string]interface{}) error {
 
 // TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	base.ParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	Field        FieldSelector
 	Layout       string
@@ -68,7 +69,12 @@ type TimeParserConfig struct {
 
 // Build will build a time parser plugin.
 func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	parserPlugin, err := c.ParserConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	if err != nil {
+		return nil, err
+	}
+
+	basicTransformer, err := c.BasicTransformerConfig.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +88,8 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	timeParserPlugin := &TimeParser{
-		ParserPlugin: parserPlugin,
+		BasicIdentity:    basicIdentity,
+		BasicTransformer: basicTransformer,
 
 		field:        c.Field,
 		layout:       c.Layout,
@@ -94,22 +101,24 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // TimeParser is a plugin that parses time from a field.
 type TimeParser struct {
-	base.ParserPlugin
+	helper.BasicIdentity
+	helper.BasicLifecycle
+	helper.BasicTransformer
 
 	field        FieldSelector
 	layout       string
 	keepOriginal bool
 }
 
-// Consume will parse time and send the entry to the next plugin.
-func (p *TimeParser) Consume(entry *entry.Entry) error {
+// Process will parse time and send the entry to the next plugin.
+func (p *TimeParser) Process(entry *entry.Entry) error {
 	newEntry, err := p.parseTime(entry)
 	if err != nil {
 		// TODO allow continuing with best effort
 		return err
 	}
 
-	return p.Output.Consume(newEntry)
+	return p.Output.Process(newEntry)
 }
 
 // Parse time will parse time and create a new entry.

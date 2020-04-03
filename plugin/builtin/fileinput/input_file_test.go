@@ -12,7 +12,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -22,11 +22,10 @@ import (
 
 func TestFileSourceImplements(t *testing.T) {
 	assert.Implements(t, (*plugin.Plugin)(nil), new(FileInput))
-	assert.Implements(t, (*plugin.Producer)(nil), new(FileInput))
 }
 
-func newTestFileSource(t *testing.T) (source *FileInput, mockConsumer *testutil.Consumer, closeStore func()) {
-	mockConsumer = &testutil.Consumer{}
+func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Plugin, closeStore func()) {
+	mockOutput = &testutil.Plugin{}
 
 	var offsetStore *OffsetStore
 	offsetStore, closeStore = newTestOffsetStore()
@@ -34,13 +33,13 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockConsumer *testutil.
 	logger := zaptest.NewLogger(t).Sugar()
 
 	source = &FileInput{
-		InputPlugin: base.InputPlugin{
-			Plugin: base.Plugin{
-				PluginID:      "testfile",
-				PluginType:    "file_input",
-				SugaredLogger: logger,
-			},
-			Output: nil,
+		BasicIdentity: helper.BasicIdentity{
+			PluginID:      "testfile",
+			PluginType:    "file_input",
+			SugaredLogger: logger,
+		},
+		BasicInput: helper.BasicInput{
+			Output: mockOutput,
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     1 * time.Minute,
@@ -70,10 +69,10 @@ func newTempDir() (tempDir string, cleanup func()) {
 func TestFileSource_CleanStop(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	source, mockConsumer, cleanupSource := newTestFileSource(t)
+	source, mockOutput, cleanupSource := newTestFileSource(t)
 	defer cleanupSource()
 
-	_ = mockConsumer
+	_ = mockOutput
 
 	tempDir, cleanupDir := newTempDir()
 	defer cleanupDir()
@@ -93,7 +92,7 @@ func TestFileSource_CleanStop(t *testing.T) {
 func expectedLogsTest(t *testing.T, expected []string, generator func(source *FileInput, tempdir string)) {
 	defer goleak.VerifyNone(t)
 
-	source, mockConsumer, cleanupSource := newTestFileSource(t)
+	source, mockOutput, cleanupSource := newTestFileSource(t)
 	defer cleanupSource()
 
 	tempDir, cleanupDir := newTempDir()
@@ -104,7 +103,7 @@ func expectedLogsTest(t *testing.T, expected []string, generator func(source *Fi
 	receivedMessages := make([]string, 0)
 	logReceived := make(chan struct{})
 	mux := &sync.Mutex{}
-	mockConsumer.On("Consume", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockOutput.On("Process", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		mux.Lock()
 		receivedMessages = append(receivedMessages, args.Get(0).(*entry.Entry).Record["message"].(string))
 		logReceived <- struct{}{}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/assert"
@@ -17,12 +17,12 @@ import (
 func NewFakeJSONPlugin() *JSONParser {
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
-		ParserPlugin: base.ParserPlugin{
-			Plugin: base.Plugin{
-				PluginID:      "test",
-				PluginType:    "json",
-				SugaredLogger: logger.Sugar(),
-			},
+		BasicIdentity: helper.BasicIdentity{
+			PluginID:      "test",
+			PluginType:    "json_parser",
+			SugaredLogger: logger.Sugar(),
+		},
+		BasicTransformer: helper.BasicTransformer{
 			Output: nil,
 		},
 		field:            "testfield",
@@ -33,7 +33,6 @@ func NewFakeJSONPlugin() *JSONParser {
 
 func TestJSONImplementations(t *testing.T) {
 	assert.Implements(t, (*plugin.Plugin)(nil), new(JSONParser))
-	assert.Implements(t, (*plugin.Consumer)(nil), new(JSONParser))
 }
 
 func BenchmarkJSONParser(b *testing.B) {
@@ -56,7 +55,7 @@ func benchJSONParser(b *testing.B, ib inputterBenchmark) {
 
 	b.SetBytes(ib.EstimatedBytes())
 	for i := 0; i < b.N; i++ {
-		err := copy.Consume(&entry.Entry{
+		err := copy.Process(&entry.Entry{
 			Timestamp: time.Now(),
 			Record:    marshalledRecord,
 		})

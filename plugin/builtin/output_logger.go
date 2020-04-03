@@ -5,7 +5,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -15,13 +15,13 @@ func init() {
 
 // LoggerOutputConfig is the configuration of a logger output plugin.
 type LoggerOutputConfig struct {
-	base.OutputConfig `mapstructure:",squash" yaml:",inline"`
-	Level             string `yaml:",omitempty"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	Level                      string `yaml:",omitempty"`
 }
 
 // Build will build a logger output plugin.
 func (c LoggerOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +52,8 @@ func (c LoggerOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	}
 
 	loggerOutput := &LoggerOutput{
-		OutputPlugin: outputPlugin,
-		logFunc:      logFunc,
+		BasicIdentity: basicIdentity,
+		logFunc:       logFunc,
 	}
 
 	return loggerOutput, nil
@@ -61,12 +61,14 @@ func (c LoggerOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 
 // LoggerOutput is a plugin that logs entries using the internal logger.
 type LoggerOutput struct {
-	base.OutputPlugin
+	helper.BasicIdentity
+	helper.BasicLifecycle
+	helper.BasicOutput
 	logFunc func(string, ...interface{})
 }
 
-// Consume will log entries received.
-func (o *LoggerOutput) Consume(entry *entry.Entry) error {
+// Process will log entries received.
+func (o *LoggerOutput) Process(entry *entry.Entry) error {
 	o.logFunc("Received log", "entry", entry)
 	return nil
 }

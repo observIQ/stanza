@@ -54,8 +54,10 @@ func (a *LogAgent) Start() error {
 		return fmt.Errorf("start pipeline: %s", err)
 	}
 
-	if dotGraph, err := pipeline.MarshalDot(); err != nil {
+	if dotGraph, err := pipeline.MarshalDot(); err == nil {
 		a.Infof("Pipeline:\n%s", dotGraph)
+	} else {
+		a.Errorf("Failed to render dot: %s", err)
 	}
 
 	a.running = true

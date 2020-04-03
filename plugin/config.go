@@ -26,7 +26,7 @@ type BuildContext struct {
 
 // BuildPlugins will build a collection of plugins from plugin configs.
 func BuildPlugins(configs []Config, context BuildContext) ([]Plugin, error) {
-	plugins := make([]Plugin, len(configs))
+	plugins := make([]Plugin, 0, len(configs))
 
 	for _, config := range configs {
 		plugin, err := config.Build(context)

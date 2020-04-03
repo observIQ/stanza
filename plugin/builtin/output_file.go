@@ -9,7 +9,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func init() {
@@ -18,15 +18,15 @@ func init() {
 
 // FileOutputConfig is the configuration of a file output pluginn.
 type FileOutputConfig struct {
-	base.OutputConfig `mapstructure:",squash" yaml:",inline"`
-	Path              string `yaml:",omitempty"`
-	Format            string `yaml:",omitempty"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	Path                       string `yaml:",omitempty"`
+	Format                     string `yaml:",omitempty"`
 	// TODO file permissions?
 }
 
 // Build will build a file output plugin.
-func (c *FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func (c *FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	fileOutput := &FileOutput{
-		OutputPlugin: outputPlugin,
-		path:         c.Path,
-		tmpl:         tmpl,
+		BasicIdentity: basicIdentity,
+		path:          c.Path,
+		tmpl:          tmpl,
 	}
 
 	return fileOutput, nil
@@ -54,13 +54,14 @@ func (c *FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // FileOutput is a plugin that writes logs to a file.
 type FileOutput struct {
-	base.OutputPlugin
+	helper.BasicIdentity
+	helper.BasicOutput
+
 	path    string
 	tmpl    *template.Template
 	encoder *json.Encoder
-
-	file *os.File
-	mux  sync.Mutex
+	file    *os.File
+	mux     sync.Mutex
 }
 
 // Start will open the output file.
@@ -84,8 +85,8 @@ func (fo *FileOutput) Stop() error {
 	return nil
 }
 
-// Consume will write an entry to the output file.
-func (fo *FileOutput) Consume(entry *entry.Entry) error {
+// Process will write an entry to the output file.
+func (fo *FileOutput) Process(entry *entry.Entry) error {
 	fo.mux.Lock()
 
 	if fo.tmpl != nil {

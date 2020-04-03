@@ -7,9 +7,10 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/pipeline"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
+	"gonum.org/v1/gonum/graph"
 )
 
 func init() {
@@ -18,15 +19,15 @@ func init() {
 
 // BundleConfig is the configuration of a bundle plugin.
 type BundleConfig struct {
-	base.PluginConfig `mapstructure:",squash" yaml:",inline"`
-	BundleType        string `mapstructure:"bundle_type" yaml:"bundle_type"`
-	Params            map[string]interface{}
-	OutputID          string `mapstructure:"output" yaml:"output"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	BundleType                 string `mapstructure:"bundle_type" yaml:"bundle_type"`
+	Params                     map[string]interface{}
+	OutputID                   string `mapstructure:"output" yaml:"output"`
 }
 
 // Build will build a bundle plugin.
 func (c BundleConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	p, err := c.PluginConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +54,11 @@ func (c BundleConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) 
 	}
 
 	bundle := &Bundle{
-		Plugin:       p,
-		OutputID:     c.OutputID,
-		plugins:      plugins,
-		bundleInput:  bundleInput,
-		bundleOutput: bundleOutput,
+		BasicIdentity: basicIdentity,
+		OutputID:      c.OutputID,
+		plugins:       plugins,
+		bundleInput:   bundleInput,
+		bundleOutput:  bundleOutput,
 	}
 
 	return bundle, nil
@@ -126,9 +127,9 @@ func findBundleOutput(plugins []plugin.Plugin) *BundleOutput {
 
 // Bundle is a plugin that runs its own collection of plugins in a pipeline.
 type Bundle struct {
-	base.Plugin
+	helper.BasicIdentity
 	OutputID string
-	Output   plugin.Consumer
+	Output   plugin.Plugin
 
 	pipeline     *pipeline.Pipeline
 	plugins      []plugin.Plugin
@@ -163,35 +164,50 @@ func (b *Bundle) Stop() error {
 	return nil
 }
 
-// Consumers will return an array containing the plugin's output, if one exists.
-func (b *Bundle) Consumers() []plugin.Consumer {
-	if b.Output != nil {
-		return []plugin.Consumer{}
-	}
-
-	return []plugin.Consumer{b.Output}
+// CanOutput will return true if a bundle output exists in the pipeline.
+func (b *Bundle) CanOutput() bool {
+	return b.bundleOutput != nil
 }
 
-// SetConsumers will find an output consumer if output id is not empty.
-func (b *Bundle) SetConsumers(consumers []plugin.Consumer) error {
+// Outputs will return an array containing the plugin's output.
+func (b *Bundle) Outputs() []plugin.Plugin {
+	if b.Output == nil {
+		return []plugin.Plugin{}
+	}
+
+	return []plugin.Plugin{b.Output}
+}
+
+// SetOutputs will set an output if output id is not empty.
+func (b *Bundle) SetOutputs(plugins []plugin.Plugin) error {
 	if b.OutputID == "" {
 		return nil
 	}
 
-	consumer, err := base.FindConsumer(consumers, b.OutputID)
+	output, err := helper.FindOutput(plugins, b.OutputID)
 	if err != nil {
 		return err
 	}
 
-	b.Output = consumer
+	b.Output = output
 	return nil
 }
 
-// Consume will send an entry to the pipeline.
-func (b *Bundle) Consume(entry *entry.Entry) error {
+// CanProcess will return true if a bundle input exists in the pipeline.
+func (b *Bundle) CanProcess() bool {
+	return b.bundleInput != nil
+}
+
+// Process will pipe an entry into the embedded pipeline.
+func (b *Bundle) Process(entry *entry.Entry) error {
 	if b.bundleInput == nil {
 		return fmt.Errorf("bundle_input plugin does not exist")
 	}
 
 	return b.bundleInput.PipeIn(entry)
+}
+
+// Subgraph will return a graph of the bundle pipeline.
+func (b *Bundle) Subgraph() graph.Graph {
+	return b.pipeline.Graph
 }

@@ -5,7 +5,7 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -34,12 +34,10 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudOutput {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
 	return &GoogleCloudOutput{
-		OutputPlugin: base.OutputPlugin{
-			base.Plugin{
-				PluginID:      "test",
-				PluginType:    "GoogleCloudLogging",
-				SugaredLogger: sugaredLogger,
-			},
+		BasicIdentity: helper.BasicIdentity{
+			PluginID:      "test",
+			PluginType:    "google_cloud_out",
+			SugaredLogger: sugaredLogger,
 		},
 		googleCloudLogger: newFakeGoogleCloudLogger(),
 		projectID:         "testproject",
@@ -48,5 +46,4 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudOutput {
 
 func TestGoogleCloudLoggingImplementations(t *testing.T) {
 	assert.Implements(t, (*plugin.Plugin)(nil), new(GoogleCloudOutput))
-	assert.Implements(t, (*plugin.Consumer)(nil), new(GoogleCloudOutput))
 }

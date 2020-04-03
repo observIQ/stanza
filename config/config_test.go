@@ -6,6 +6,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/builtin"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/spf13/viper"
@@ -16,7 +17,7 @@ func TestUnmarshalPluginConfig(t *testing.T) {
 	rawConfig := []byte(`
 plugins:
 - id: mygenerate
-  type: generate
+  type: generate_input
   count: 1
   output: next
   record:
@@ -24,14 +25,14 @@ plugins:
 `)
 
 	expectedConfig := Config{
-		Plugins: []plugin.PluginConfig{
-			&builtin.GenerateConfig{
-				DefaultPluginConfig: plugin.DefaultPluginConfig{
+		Plugins: []plugin.Config{
+			&builtin.GenerateInputConfig{
+				BasicIdentityConfig: helper.BasicIdentityConfig{
 					PluginID:   "mygenerate",
-					PluginType: "generate",
+					PluginType: "generate_input",
 				},
-				DefaultOutputterConfig: plugin.DefaultOutputterConfig{
-					Output: "next",
+				BasicInputConfig: helper.BasicInputConfig{
+					OutputID: "next",
 				},
 				Count:  1,
 				Record: map[string]interface{}{"test": "asdf"},
@@ -52,7 +53,7 @@ plugins:
 
 func TestConfigIsZero(t *testing.T) {
 	config := Config{
-		Plugins:    make([]plugin.PluginConfig, 0),
+		Plugins:    make([]plugin.Config, 0),
 		BundlePath: "",
 	}
 

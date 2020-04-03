@@ -6,22 +6,22 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/assert"
 )
 
-func NewFakeCopyPlugin() *CopyFilter {
+func NewFakeCopyPlugin() *CopyPlugin {
 	out1 := newFakeNullOutput()
 	out1.PluginID = "out1"
 
 	out2 := newFakeNullOutput()
 	out2.PluginID = "out2"
-	return &CopyFilter{
-		Plugin: base.Plugin{
+	return &CopyPlugin{
+		BasicIdentity: helper.BasicIdentity{
 			PluginID:   "test",
-			PluginType: "copy_filter",
+			PluginType: "copy",
 		},
-		outputs: []plugin.Consumer{
+		outputs: []plugin.Plugin{
 			out1,
 			out2,
 		},
@@ -29,9 +29,7 @@ func NewFakeCopyPlugin() *CopyFilter {
 }
 
 func TestCopyImplementations(t *testing.T) {
-	assert.Implements(t, (*plugin.Plugin)(nil), new(CopyFilter))
-	assert.Implements(t, (*plugin.Consumer)(nil), new(CopyFilter))
-	assert.Implements(t, (*plugin.Producer)(nil), new(CopyFilter))
+	assert.Implements(t, (*plugin.Plugin)(nil), new(CopyPlugin))
 }
 
 func BenchmarkCopyPlugin(b *testing.B) {
@@ -49,7 +47,7 @@ func benchCopyPlugin(b *testing.B, ib inputterBenchmark) {
 
 	b.SetBytes(ib.EstimatedBytes())
 	for i := 0; i < b.N; i++ {
-		err := copy.Consume(&entry.Entry{
+		err := copy.Process(&entry.Entry{
 			Timestamp: time.Now(),
 			Record:    record,
 		})

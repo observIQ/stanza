@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func init() {
@@ -21,7 +21,8 @@ func init() {
 }
 
 type FileInputConfig struct {
-	base.InputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig    `mapstructure:",squash" yaml:",inline"`
 
 	Include []string `yaml:",omitempty"`
 	Exclude []string `yaml:",omitempty"`
@@ -36,7 +37,12 @@ type FileSourceMultilineConfig struct {
 }
 
 func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	if err != nil {
+		return nil, err
+	}
+
+	basicInput, err := c.BasicInputConfig.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +102,8 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}()
 
 	plugin := &FileInput{
-		InputPlugin:      inputPlugin,
+		BasicIdentity:    basicIdentity,
+		BasicInput:       basicInput,
 		Include:          c.Include,
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
@@ -114,7 +121,8 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 }
 
 type FileInput struct {
-	base.InputPlugin
+	helper.BasicIdentity
+	helper.BasicInput
 
 	Include          []string
 	Exclude          []string
@@ -241,7 +249,7 @@ func (f *FileInput) tryAddFile(ctx context.Context, path string, globCheck bool)
 		offset:           startingOffset,
 		pollInterval:     f.PollInterval,
 		splitFunc:        f.SplitFunc,
-		output:           f.Output.Consume,
+		output:           f.Output.Process,
 		fingerprintBytes: f.FingerprintBytes,
 		offsetStore:      f.offsetStore,
 		SugaredLogger:    f.SugaredLogger.With("path", path),

@@ -7,7 +7,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func init() {
@@ -16,29 +16,37 @@ func init() {
 
 // GenerateInputConfig is the configuration of a generate input plugin.
 type GenerateInputConfig struct {
-	base.InputConfig `mapstructure:",squash" yaml:",inline"`
-	Record           map[string]interface{}
-	Count            int `yaml:",omitempty"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig    `mapstructure:",squash" yaml:",inline"`
+	Record                     map[string]interface{}
+	Count                      int `yaml:",omitempty"`
 }
 
 // Build will build a generate input plugin.
 func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	if err != nil {
+		return nil, err
+	}
+
+	basicInput, err := c.BasicInputConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	generateInput := &GenerateInput{
-		InputPlugin: inputPlugin,
-		record:      c.Record,
-		count:       c.Count,
+		BasicIdentity: basicIdentity,
+		BasicInput:    basicInput,
+		record:        c.Record,
+		count:         c.Count,
 	}
 	return generateInput, nil
 }
 
 // GenerateInput is a plugin that generates log entries.
 type GenerateInput struct {
-	base.InputPlugin
+	helper.BasicIdentity
+	helper.BasicInput
 	count  int
 	record map[string]interface{}
 	cancel context.CancelFunc
@@ -68,7 +76,7 @@ func (g *GenerateInput) Start() error {
 				Record:    copyMap(g.record),
 			}
 
-			err := g.Output.Consume(entry)
+			err := g.Output.Process(entry)
 			if err != nil {
 				g.Warnw("process entry", "error", err)
 			}

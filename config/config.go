@@ -16,5 +16,5 @@ func (c Config) IsZero() bool {
 }
 
 func UnmarshalHook(c *mapstructure.DecoderConfig) {
-	c.DecodeHook = plugin.PluginConfigDecoder
+	c.DecodeHook = plugin.ConfigDecoder
 }

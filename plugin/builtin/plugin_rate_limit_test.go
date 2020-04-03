@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"testing"
+	"time"
 
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
@@ -9,19 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewFakeLogOutput() *LoggerOutput {
+func NewFakeRateLimitPlugin() *RateLimitPlugin {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
-	return &LoggerOutput{
+	return &RateLimitPlugin{
 		BasicIdentity: helper.BasicIdentity{
 			PluginID:      "test",
-			PluginType:    "logger_output",
+			PluginType:    "rate_filter",
 			SugaredLogger: sugaredLogger,
 		},
-		logFunc: func(string, ...interface{}) {},
+		BasicTransformer: helper.BasicTransformer{
+			Output: newFakeNullOutput(),
+		},
+		interval: time.Millisecond,
+		burst:    10,
 	}
 }
 
-func TestLoggerImplementations(t *testing.T) {
-	assert.Implements(t, (*plugin.Plugin)(nil), new(LoggerOutput))
+func TestRateLimitImplementations(t *testing.T) {
+	assert.Implements(t, (*plugin.Plugin)(nil), new(RateLimitPlugin))
 }

@@ -3,7 +3,7 @@ package pipeline
 import (
 	"fmt"
 
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
 	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
@@ -11,7 +11,7 @@ import (
 
 // Pipeline is a directed graph of connected plugins.
 type Pipeline struct {
-	graph   *simple.DirectedGraph
+	Graph   *simple.DirectedGraph
 	running bool
 }
 
@@ -21,11 +21,11 @@ func (p *Pipeline) Start() error {
 		return nil
 	}
 
-	sortedNodes, _ := topo.Sort(p.graph)
+	sortedNodes, _ := topo.Sort(p.Graph)
 	for i := len(sortedNodes) - 1; i >= 0; i-- {
-		node := sortedNodes[i].(PluginNode)
-		if err := node.Plugin.Start(); err != nil {
-			return fmt.Errorf("%s failed to start: %s", node.Plugin.ID(), err)
+		plugin := sortedNodes[i].(PluginNode).Plugin()
+		if err := plugin.Start(); err != nil {
+			return fmt.Errorf("%s failed to start: %s", plugin.ID(), err)
 		}
 	}
 
@@ -39,10 +39,10 @@ func (p *Pipeline) Stop() {
 		return
 	}
 
-	sortedNodes, _ := topo.Sort(p.graph)
+	sortedNodes, _ := topo.Sort(p.Graph)
 	for _, node := range sortedNodes {
-		pluginNode := node.(PluginNode)
-		pluginNode.Stop()
+		plugin := node.(PluginNode).Plugin()
+		plugin.Stop()
 	}
 
 	p.running = false
@@ -50,17 +50,18 @@ func (p *Pipeline) Stop() {
 
 // MarshalDot will encode the pipeline as a dot graph.
 func (p *Pipeline) MarshalDot() ([]byte, error) {
-	return dot.Marshal(p.graph, "G", "", " ")
+	return dot.Marshal(p.Graph, "G", "", " ")
 }
 
 // addNodes will add plugins as nodes to the supplied graph.
-func addNodes(graph *simple.DirectedGraph, plugins []pg.Plugin) error {
+func addNodes(graph *simple.DirectedGraph, plugins []plugin.Plugin) error {
 	for _, plugin := range plugins {
-		node := PluginNode{plugin}
-		if graph.Node(node.ID()) != nil {
+		pluginNode := createPluginNode(plugin)
+		if graph.Node(pluginNode.ID()) != nil {
 			return fmt.Errorf("multiple plugins with id %s", plugin.ID())
 		}
-		graph.AddNode(node)
+
+		graph.AddNode(pluginNode)
 	}
 	return nil
 }
@@ -71,72 +72,57 @@ func connectNodes(graph *simple.DirectedGraph) error {
 	for nodes.Next() {
 		node := nodes.Node().(PluginNode)
 		if err := connectNode(graph, node); err != nil {
-			return fmt.Errorf("connecting %s failed: %s", node.Plugin.ID(), err)
+			return fmt.Errorf("failed to connect %s to output: %s", node.Plugin().ID(), err)
 		}
 	}
 
 	if _, err := topo.Sort(graph); err != nil {
-		return fmt.Errorf("graph is not acyclic: %s", err)
+		return fmt.Errorf("pipeline is not acyclic: %s", err)
 	}
 
 	return nil
 }
 
 // connectNode will connect a node to its outputs in the supplied graph.
-func connectNode(graph *simple.DirectedGraph, node PluginNode) error {
-	for pluginID, nodeID := range node.OutputIDs() {
-		outputNode := graph.Node(nodeID)
-		if outputNode == nil {
-			return fmt.Errorf("output %s is missing", pluginID)
+func connectNode(graph *simple.DirectedGraph, inputNode PluginNode) error {
+	for outputPluginID, outputNodeID := range inputNode.OutputIDs() {
+		if graph.Node(outputNodeID) == nil {
+			return fmt.Errorf("output %s is missing", outputPluginID)
 		}
 
-		if graph.HasEdgeFromTo(node.ID(), nodeID) {
-			return fmt.Errorf("multiple connections to %s exist", pluginID)
+		outputNode := graph.Node(outputNodeID).(PluginNode)
+		if !outputNode.Plugin().CanProcess() {
+			return fmt.Errorf("%s can not be an output", outputPluginID)
 		}
 
-		edge := graph.NewEdge(node, outputNode)
+		if graph.HasEdgeFromTo(inputNode.ID(), outputNodeID) {
+			return fmt.Errorf("output %s already exists", outputPluginID)
+		}
+
+		edge := graph.NewEdge(inputNode, outputNode)
 		graph.SetEdge(edge)
 	}
 
 	return nil
 }
 
-// connectPlugins will connect producers to consumers.
-func connectPlugins(plugins []pg.Plugin) error {
-	consumers := consumers(plugins)
-	for _, producer := range producers(plugins) {
-		if err := producer.SetConsumers(consumers); err != nil {
-			return err
+// setOutputs will set the outputs on plugins that can output.
+func setOutputs(plugins []plugin.Plugin) error {
+	for _, plugin := range plugins {
+		if !plugin.CanOutput() {
+			continue
+		}
+
+		if err := plugin.SetOutputs(plugins); err != nil {
+			return fmt.Errorf("failed to set outputs for %s: %s", plugin.ID(), err)
 		}
 	}
 	return nil
 }
 
-// producers will return only producers from a list.
-func producers(plugins []pg.Plugin) []pg.Producer {
-	producers := make([]pg.Producer, 0)
-	for _, plugin := range plugins {
-		if producer, ok := plugin.(pg.Producer); ok {
-			producers = append(producers, producer)
-		}
-	}
-	return producers
-}
-
-// consumers will return only consumers from a list.
-func consumers(plugins []pg.Plugin) []pg.Consumer {
-	consumers := make([]pg.Consumer, 0)
-	for _, plugin := range plugins {
-		if consumer, ok := plugin.(pg.Consumer); ok {
-			consumers = append(consumers, consumer)
-		}
-	}
-	return consumers
-}
-
 // NewPipeline creates a new pipeline of connected plugins.
-func NewPipeline(plugins []pg.Plugin) (*Pipeline, error) {
-	if err := connectPlugins(plugins); err != nil {
+func NewPipeline(plugins []plugin.Plugin) (*Pipeline, error) {
+	if err := setOutputs(plugins); err != nil {
 		return nil, err
 	}
 
@@ -149,5 +135,5 @@ func NewPipeline(plugins []pg.Plugin) (*Pipeline, error) {
 		return nil, err
 	}
 
-	return &Pipeline{graph: graph}, nil
+	return &Pipeline{Graph: graph}, nil
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -15,7 +15,8 @@ func init() {
 
 // JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	base.ParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field            string
@@ -24,17 +25,19 @@ type JSONParserConfig struct {
 
 // Build will build a JSON parser plugin.
 func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	parserPlugin, err := c.ParserConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	if c.Field == "" {
-		return nil, fmt.Errorf("missing required field 'field'")
+	basicTransformer, err := c.BasicTransformerConfig.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	plugin := &JSONParser{
-		ParserPlugin: parserPlugin,
+		BasicIdentity:    basicIdentity,
+		BasicTransformer: basicTransformer,
 
 		field:            c.Field,
 		destinationField: c.DestinationField,
@@ -46,22 +49,24 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // JSONParser is a plugin that parses JSON.
 type JSONParser struct {
-	base.ParserPlugin
+	helper.BasicIdentity
+	helper.BasicLifecycle
+	helper.BasicTransformer
 
 	field            string
 	destinationField string
 	json             jsoniter.API
 }
 
-// Consume will parse an entry field as JSON.
-func (p *JSONParser) Consume(entry *entry.Entry) error {
+// Process will parse an entry field as JSON.
+func (p *JSONParser) Process(entry *entry.Entry) error {
 	newEntry, err := p.parse(entry)
 	if err != nil {
 		// TODO option to allow
 		return err
 	}
 
-	return p.Output.Consume(newEntry)
+	return p.Output.Process(newEntry)
 }
 
 // parse will parse an entry.

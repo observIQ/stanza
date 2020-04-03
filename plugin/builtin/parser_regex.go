@@ -6,7 +6,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func init() {
@@ -15,7 +15,8 @@ func init() {
 
 // RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	base.ParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
 	Field string
@@ -24,7 +25,12 @@ type RegexParserConfig struct {
 
 // Build will build a regex parser plugin.
 func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	parserPlugin, err := c.ParserConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	if err != nil {
+		return nil, err
+	}
+
+	basicTransformer, err := c.BasicTransformerConfig.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +49,11 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	regexParser := &RegexParser{
-		ParserPlugin: parserPlugin,
-		field:        c.Field,
-		regexp:       r,
+		BasicIdentity:    basicIdentity,
+		BasicTransformer: basicTransformer,
+
+		field:  c.Field,
+		regexp: r,
 	}
 
 	return regexParser, nil
@@ -53,21 +61,23 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // RegexParser is a plugin that parses regex in an entry.
 type RegexParser struct {
-	base.ParserPlugin
+	helper.BasicIdentity
+	helper.BasicLifecycle
+	helper.BasicTransformer
 
 	field  string
 	regexp *regexp.Regexp
 }
 
-// Consume will parse a field in the entry as regex
-func (p *RegexParser) Consume(entry *entry.Entry) error {
+// Process will parse a field in the entry as regex
+func (p *RegexParser) Process(entry *entry.Entry) error {
 	newEntry, err := p.parse(entry)
 	if err != nil {
 		// TODO allow continuing with best effort
 		return err
 	}
 
-	return p.Output.Consume(newEntry)
+	return p.Output.Process(newEntry)
 }
 
 func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {

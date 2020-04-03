@@ -3,7 +3,7 @@ package builtin
 import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
 func init() {
@@ -12,18 +12,25 @@ func init() {
 
 // BundleInputConfig is the configuration of a bundle input plugin.
 type BundleInputConfig struct {
-	base.InputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig    `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a bundle input plugin.
 func (c BundleInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	if err != nil {
+		return nil, err
+	}
+
+	basicInput, err := c.BasicInputConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	bundleInput := &BundleInput{
-		InputPlugin: inputPlugin,
+		BasicIdentity: basicIdentity,
+		BasicInput:    basicInput,
 	}
 
 	return bundleInput, nil
@@ -31,10 +38,12 @@ func (c BundleInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // BundleInput is a plugin that represents the receiving point of a bundle.
 type BundleInput struct {
-	base.InputPlugin
+	helper.BasicIdentity
+	helper.BasicLifecycle
+	helper.BasicInput
 }
 
-// PipeIn is used by bundle plugins to submit entries to their embedded pipeline.
+// PipeIn is used by bundles to submit entries to the beginning of their bundle pipeline.
 func (p *BundleInput) PipeIn(entry *entry.Entry) error {
-	return p.Output.Consume(entry)
+	return p.Output.Process(entry)
 }

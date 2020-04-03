@@ -5,14 +5,14 @@ import (
 
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 func TestBasicBundlePluginFunctionality(t *testing.T) {
 	config := &BundleConfig{
-		PluginConfig: base.PluginConfig{
+		BasicIdentityConfig: helper.BasicIdentityConfig{
 			PluginID:   "mybundle",
 			PluginType: "bundle",
 		},

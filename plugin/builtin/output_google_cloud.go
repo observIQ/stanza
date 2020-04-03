@@ -9,7 +9,7 @@ import (
 	"cloud.google.com/go/logging"
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/base"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"google.golang.org/api/option"
 )
 
@@ -19,14 +19,14 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	base.OutputConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials       string
-	ProjectID         string `mapstructure:"project_id"`
+	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	Credentials                string
+	ProjectID                  string `mapstructure:"project_id"`
 }
 
 // Build will build a google cloud output plugin.
-func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(buildContext)
+func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +42,9 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 	}
 
 	googleCloudOutput := &GoogleCloudOutput{
-		OutputPlugin: outputPlugin,
-		credentials:  c.Credentials,
-		projectID:    c.ProjectID,
+		BasicIdentity: basicIdentity,
+		credentials:   c.Credentials,
+		projectID:     c.ProjectID,
 	}
 
 	return googleCloudOutput, nil
@@ -58,7 +58,8 @@ type GoogleCloudLogger interface {
 
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
-	base.OutputPlugin
+	helper.BasicIdentity
+	helper.BasicOutput
 
 	credentials       string
 	projectID         string
@@ -95,7 +96,7 @@ func (p *GoogleCloudOutput) Stop() error {
 }
 
 // Consume will send an entry to google cloud logging.
-func (p *GoogleCloudOutput) Consume(entry *entry.Entry) error {
+func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
 	googleCloudLoggingEntry := logging.Entry{
 		Timestamp: entry.Timestamp,
 		Payload:   entry.Record,
