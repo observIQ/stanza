@@ -10,6 +10,7 @@ import (
 
 	bpla "github.com/bluemedora/bplogagent"
 	"github.com/bluemedora/bplogagent/config"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -38,7 +39,9 @@ func main() {
 		logger.Errorw("Failed to read the config", zap.Error(err))
 		return
 	}
-	err = v.Unmarshal(&cfg, config.UnmarshalHook)
+	err = v.Unmarshal(&cfg, func(cfg *mapstructure.DecoderConfig) {
+		cfg.DecodeHook = config.DecodeHookFunc
+	})
 	if err != nil {
 		logger.Errorw("Failed to unmarshal the config", "error", err)
 		return
@@ -50,7 +53,7 @@ func main() {
 	// }
 	// logger.Infof("Unmarshalled the config:\n%s\n", string(cfgYaml))
 
-	agent := bpla.NewLogAgent(cfg, logger)
+	agent := bpla.NewLogAgent(&cfg, logger)
 
 	err = agent.Start()
 	if err != nil {

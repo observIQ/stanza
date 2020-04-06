@@ -17,7 +17,7 @@ import (
 
 // LogAgent is an entity that handles log monitoring.
 type LogAgent struct {
-	Config config.Config
+	Config *config.Config
 	*zap.SugaredLogger
 
 	database *bbolt.DB
@@ -115,7 +115,7 @@ func defaultDatabaseFile() string {
 }
 
 // NewLogAgent creates a new log agent.
-func NewLogAgent(cfg config.Config, logger *zap.SugaredLogger) *LogAgent {
+func NewLogAgent(cfg *config.Config, logger *zap.SugaredLogger) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,
