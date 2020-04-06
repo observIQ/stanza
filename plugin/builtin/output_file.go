@@ -18,15 +18,15 @@ func init() {
 
 // FileOutputConfig is the configuration of a file output pluginn.
 type FileOutputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	Path                       string `yaml:",omitempty"`
-	Format                     string `yaml:",omitempty"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	Path                     string `yaml:",omitempty"`
+	Format                   string `yaml:",omitempty"`
 	// TODO file permissions?
 }
 
 // Build will build a file output plugin.
 func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	fileOutput := &FileOutput{
-		BasicIdentity: basicIdentity,
-		path:          c.Path,
-		tmpl:          tmpl,
+		BasicPlugin: basicPlugin,
+		path:        c.Path,
+		tmpl:        tmpl,
 	}
 
 	return fileOutput, nil
@@ -54,7 +54,7 @@ func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // FileOutput is a plugin that writes logs to a file.
 type FileOutput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicOutput
 
 	path    string

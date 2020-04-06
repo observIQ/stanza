@@ -1,4 +1,4 @@
-package builtin
+package bundle
 
 import (
 	"testing"
@@ -12,12 +12,12 @@ import (
 
 func TestBasicBundlePluginFunctionality(t *testing.T) {
 	config := &BundleConfig{
-		BasicIdentityConfig: helper.BasicIdentityConfig{
+		BasicPluginConfig: helper.BasicPluginConfig{
 			PluginID:   "mybundle",
 			PluginType: "bundle",
 		},
 		OutputID:   "mybundlereceiver",
-		BundleType: "noop",
+		BundleType: "simple",
 		Params: map[string]interface{}{
 			"enabled": true,
 		},
@@ -26,7 +26,7 @@ func TestBasicBundlePluginFunctionality(t *testing.T) {
 	logger, err := zap.NewProduction()
 	assert.NoError(t, err)
 
-	bundles := bundle.GetBundleDefinitions("./test/bundles", logger.Sugar())
+	bundles := bundle.GetBundleDefinitions("./test_bundles", logger.Sugar())
 	assert.Greater(t, len(bundles), 0)
 
 	buildContext := plugin.BuildContext{

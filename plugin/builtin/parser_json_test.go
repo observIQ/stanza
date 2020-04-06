@@ -17,7 +17,7 @@ import (
 func NewFakeJSONPlugin() *JSONParser {
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
-		BasicIdentity: helper.BasicIdentity{
+		BasicPlugin: helper.BasicPlugin{
 			PluginID:      "test",
 			PluginType:    "json_parser",
 			SugaredLogger: logger.Sugar(),

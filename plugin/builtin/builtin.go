@@ -1,4 +1,7 @@
 package builtin
 
-// import fileinput to register it when builtin is imported
-import _ "github.com/bluemedora/bplogagent/plugin/builtin/fileinput"
+import (
+	// Load embedded packages when importing builtin plugins
+	_ "github.com/bluemedora/bplogagent/plugin/builtin/bundle"
+	_ "github.com/bluemedora/bplogagent/plugin/builtin/fileinput"
+)

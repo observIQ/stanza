@@ -76,6 +76,7 @@ func connectNodes(graph *simple.DirectedGraph) error {
 		}
 	}
 
+	// TODO: Best error message for users explaining the circular chain.
 	if _, err := topo.Sort(graph); err != nil {
 		return fmt.Errorf("pipeline is not acyclic: %s", err)
 	}

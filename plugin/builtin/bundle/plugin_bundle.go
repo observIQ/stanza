@@ -1,4 +1,4 @@
-package builtin
+package bundle
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
-	"gonum.org/v1/gonum/graph"
 )
 
 func init() {
@@ -19,15 +18,15 @@ func init() {
 
 // BundleConfig is the configuration of a bundle plugin.
 type BundleConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	BundleType                 string `mapstructure:"bundle_type" yaml:"bundle_type"`
-	Params                     map[string]interface{}
-	OutputID                   string `mapstructure:"output" yaml:"output"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	BundleType               string `mapstructure:"bundle_type" yaml:"bundle_type"`
+	Params                   map[string]interface{}
+	OutputID                 string `mapstructure:"output" yaml:"output"`
 }
 
 // Build will build a bundle plugin.
 func (c BundleConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +53,11 @@ func (c BundleConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) 
 	}
 
 	bundle := &Bundle{
-		BasicIdentity: basicIdentity,
-		OutputID:      c.OutputID,
-		plugins:       plugins,
-		bundleInput:   bundleInput,
-		bundleOutput:  bundleOutput,
+		BasicPlugin:  basicPlugin,
+		OutputID:     c.OutputID,
+		plugins:      plugins,
+		bundleInput:  bundleInput,
+		bundleOutput: bundleOutput,
 	}
 
 	return bundle, nil
@@ -127,7 +126,7 @@ func findBundleOutput(plugins []plugin.Plugin) *BundleOutput {
 
 // Bundle is a plugin that runs its own collection of plugins in a pipeline.
 type Bundle struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	OutputID string
 	Output   plugin.Plugin
 
@@ -205,9 +204,4 @@ func (b *Bundle) Process(entry *entry.Entry) error {
 	}
 
 	return b.bundleInput.PipeIn(entry)
-}
-
-// Subgraph will return a graph of the bundle pipeline.
-func (b *Bundle) Subgraph() graph.Graph {
-	return b.pipeline.Graph
 }

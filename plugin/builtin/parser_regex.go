@@ -15,7 +15,7 @@ func init() {
 
 // RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
@@ -25,7 +25,7 @@ type RegexParserConfig struct {
 
 // Build will build a regex parser plugin.
 func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	regexParser := &RegexParser{
-		BasicIdentity:    basicIdentity,
+		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
 		field:  c.Field,
@@ -61,7 +61,7 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // RegexParser is a plugin that parses regex in an entry.
 type RegexParser struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicTransformer
 

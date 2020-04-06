@@ -7,23 +7,23 @@ import (
 )
 
 func init() {
-	plugin.Register("drop_out", &DropOutputConfig{})
+	plugin.Register("drop_output", &DropOutputConfig{})
 }
 
 // DropOutputConfig is the configuration of a drop output plugin.
 type DropOutputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a drop output plugin.
 func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	dropOutput := &DropOutput{
-		BasicIdentity: basicIdentity,
+		BasicPlugin: basicPlugin,
 	}
 
 	return dropOutput, nil
@@ -31,7 +31,7 @@ func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // DropOutput is a plugin that consumes and ignores incoming entries.
 type DropOutput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicOutput
 }

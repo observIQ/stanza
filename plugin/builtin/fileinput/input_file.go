@@ -21,8 +21,8 @@ func init() {
 }
 
 type FileInputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 
 	Include []string `yaml:",omitempty"`
 	Exclude []string `yaml:",omitempty"`
@@ -37,7 +37,7 @@ type FileSourceMultilineConfig struct {
 }
 
 func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}()
 
 	plugin := &FileInput{
-		BasicIdentity:    basicIdentity,
+		BasicPlugin:      basicPlugin,
 		BasicInput:       basicInput,
 		Include:          c.Include,
 		Exclude:          c.Exclude,
@@ -121,7 +121,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 }
 
 type FileInput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicInput
 
 	Include          []string

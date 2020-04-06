@@ -33,7 +33,7 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Pl
 	logger := zaptest.NewLogger(t).Sugar()
 
 	source = &FileInput{
-		BasicIdentity: helper.BasicIdentity{
+		BasicPlugin: helper.BasicPlugin{
 			PluginID:      "testfile",
 			PluginType:    "file_input",
 			SugaredLogger: logger,

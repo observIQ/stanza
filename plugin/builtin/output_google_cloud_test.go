@@ -34,7 +34,7 @@ func newFakeGoogleCloudLoggingPlugin() *GoogleCloudOutput {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
 	return &GoogleCloudOutput{
-		BasicIdentity: helper.BasicIdentity{
+		BasicPlugin: helper.BasicPlugin{
 			PluginID:      "test",
 			PluginType:    "google_cloud_out",
 			SugaredLogger: sugaredLogger,

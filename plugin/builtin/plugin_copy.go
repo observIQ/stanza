@@ -13,20 +13,20 @@ func init() {
 
 // CopyPluginConfig is the configuration of a copy plugin.
 type CopyPluginConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	OutputIDs                  []string `mapstructure:"outputs" yaml:"outputs"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	OutputIDs                []string `mapstructure:"outputs" yaml:"outputs"`
 }
 
 // Build will build a copy filter plugin.
 func (c CopyPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	copyPlugin := &CopyPlugin{
-		BasicIdentity: basicIdentity,
-		outputIDs:     c.OutputIDs,
+		BasicPlugin: basicPlugin,
+		outputIDs:   c.OutputIDs,
 	}
 
 	return copyPlugin, nil
@@ -34,7 +34,7 @@ func (c CopyPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // CopyPlugin is a plugin that sends a copy of an entry to multiple outputs.
 type CopyPlugin struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	outputIDs []string
 	outputs   []plugin.Plugin

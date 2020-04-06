@@ -16,16 +16,16 @@ func init() {
 
 // RateLimitConfig is the configuration of a rate filter plugin.
 type RateLimitConfig struct {
-	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-	Rate              float64
-	Interval          float64
-	Burst             uint
+	Rate                          float64
+	Interval                      float64
+	Burst                         uint
 }
 
 // Build will build a rate limit plugin.
 func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -45,10 +45,10 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}
 
 	rateLimitPlugin := &RateLimitPlugin{
-		BasicIdentity: basicIdentity,
+		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
-		interval:     interval,
-		burst:        c.Burst,
+		interval:         interval,
+		burst:            c.Burst,
 	}
 
 	return rateLimitPlugin, nil
@@ -56,13 +56,13 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 
 // RateLimitPlugin is a plugin that limits the rate of log consumption between plugins.
 type RateLimitPlugin struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicTransformer
 
 	interval time.Duration
 	burst    uint
-	isReady chan struct{}
-	cancel  context.CancelFunc
+	isReady  chan struct{}
+	cancel   context.CancelFunc
 }
 
 // Process will wait until a rate is met before sending an entry to the output.

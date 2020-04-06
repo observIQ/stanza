@@ -1,4 +1,4 @@
-package builtin
+package bundle
 
 import (
 	"github.com/bluemedora/bplogagent/entry"
@@ -12,13 +12,13 @@ func init() {
 
 // BundleInputConfig is the configuration of a bundle input plugin.
 type BundleInputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a bundle input plugin.
 func (c BundleInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +29,8 @@ func (c BundleInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	bundleInput := &BundleInput{
-		BasicIdentity: basicIdentity,
-		BasicInput:    basicInput,
+		BasicPlugin: basicPlugin,
+		BasicInput:  basicInput,
 	}
 
 	return bundleInput, nil
@@ -38,7 +38,7 @@ func (c BundleInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // BundleInput is a plugin that represents the receiving point of a bundle.
 type BundleInput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicInput
 }

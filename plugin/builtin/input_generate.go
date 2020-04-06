@@ -16,15 +16,15 @@ func init() {
 
 // GenerateInputConfig is the configuration of a generate input plugin.
 type GenerateInputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig    `mapstructure:",squash" yaml:",inline"`
-	Record                     map[string]interface{}
-	Count                      int `yaml:",omitempty"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	Record                   map[string]interface{}
+	Count                    int `yaml:",omitempty"`
 }
 
 // Build will build a generate input plugin.
 func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -35,17 +35,17 @@ func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	}
 
 	generateInput := &GenerateInput{
-		BasicIdentity: basicIdentity,
-		BasicInput:    basicInput,
-		record:        c.Record,
-		count:         c.Count,
+		BasicPlugin: basicPlugin,
+		BasicInput:  basicInput,
+		record:      c.Record,
+		count:       c.Count,
 	}
 	return generateInput, nil
 }
 
 // GenerateInput is a plugin that generates log entries.
 type GenerateInput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicInput
 	count  int
 	record map[string]interface{}

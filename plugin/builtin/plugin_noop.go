@@ -12,13 +12,13 @@ func init() {
 
 // NoopPluginConfig is the configuration of a noop plugin.
 type NoopPluginConfig struct {
-	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a noop plugin.
 func (c NoopPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (c NoopPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	noopPlugin := &NoopPlugin{
-		BasicIdentity:    basicIdentity,
+		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 	}
 
@@ -38,7 +38,7 @@ func (c NoopPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // NoopPlugin is a plugin that performs no operations on an entry.
 type NoopPlugin struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicTransformer
 }

@@ -19,14 +19,14 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials                string
-	ProjectID                  string `mapstructure:"project_id"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	Credentials              string
+	ProjectID                string `mapstructure:"project_id"`
 }
 
 // Build will build a google cloud output plugin.
 func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +42,9 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 	}
 
 	googleCloudOutput := &GoogleCloudOutput{
-		BasicIdentity: basicIdentity,
-		credentials:   c.Credentials,
-		projectID:     c.ProjectID,
+		BasicPlugin: basicPlugin,
+		credentials: c.Credentials,
+		projectID:   c.ProjectID,
 	}
 
 	return googleCloudOutput, nil
@@ -58,7 +58,7 @@ type GoogleCloudLogger interface {
 
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicOutput
 
 	credentials       string
@@ -95,7 +95,7 @@ func (p *GoogleCloudOutput) Stop() error {
 	return p.googleCloudLogger.Flush()
 }
 
-// Consume will send an entry to google cloud logging.
+// Process will send an entry to google cloud logging.
 func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
 	googleCloudLoggingEntry := logging.Entry{
 		Timestamp: entry.Timestamp,

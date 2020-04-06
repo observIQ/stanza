@@ -59,7 +59,7 @@ func (f FieldSelector) Delete(record map[string]interface{}) error {
 
 // TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	Field        FieldSelector
@@ -69,7 +69,7 @@ type TimeParserConfig struct {
 
 // Build will build a time parser plugin.
 func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	timeParserPlugin := &TimeParser{
-		BasicIdentity:    basicIdentity,
+		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
 		field:        c.Field,
@@ -101,7 +101,7 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // TimeParser is a plugin that parses time from a field.
 type TimeParser struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicTransformer
 

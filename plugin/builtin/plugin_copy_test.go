@@ -17,7 +17,7 @@ func NewFakeCopyPlugin() *CopyPlugin {
 	out2 := newFakeNullOutput()
 	out2.PluginID = "out2"
 	return &CopyPlugin{
-		BasicIdentity: helper.BasicIdentity{
+		BasicPlugin: helper.BasicPlugin{
 			PluginID:   "test",
 			PluginType: "copy",
 		},

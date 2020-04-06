@@ -15,13 +15,13 @@ func init() {
 
 // LoggerOutputConfig is the configuration of a logger output plugin.
 type LoggerOutputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
-	Level                      string `yaml:",omitempty"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	Level                    string `yaml:",omitempty"`
 }
 
 // Build will build a logger output plugin.
 func (c LoggerOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +52,8 @@ func (c LoggerOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	}
 
 	loggerOutput := &LoggerOutput{
-		BasicIdentity: basicIdentity,
-		logFunc:       logFunc,
+		BasicPlugin: basicPlugin,
+		logFunc:     logFunc,
 	}
 
 	return loggerOutput, nil
@@ -61,7 +61,7 @@ func (c LoggerOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 
 // LoggerOutput is a plugin that logs entries using the internal logger.
 type LoggerOutput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicOutput
 	logFunc func(string, ...interface{})

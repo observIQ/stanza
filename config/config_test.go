@@ -27,7 +27,7 @@ plugins:
 	expectedConfig := Config{
 		Plugins: []plugin.Config{
 			&builtin.GenerateInputConfig{
-				BasicIdentityConfig: helper.BasicIdentityConfig{
+				BasicPluginConfig: helper.BasicPluginConfig{
 					PluginID:   "mygenerate",
 					PluginType: "generate_input",
 				},

@@ -1,4 +1,4 @@
-package builtin
+package bundle
 
 import (
 	"github.com/bluemedora/bplogagent/entry"
@@ -12,18 +12,18 @@ func init() {
 
 // BundleOutputConfig is the configuration of a bundle output plugin.
 type BundleOutputConfig struct {
-	helper.BasicIdentityConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a bundle output plugin.
 func (c BundleOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	bundleOutput := &BundleOutput{
-		BasicIdentity: basicIdentity,
+		BasicPlugin: basicPlugin,
 	}
 
 	return bundleOutput, nil
@@ -31,7 +31,7 @@ func (c BundleOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 
 // BundleOutput is a plugin that outputs entries to a bundle.
 type BundleOutput struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicOutput
 	bundle *Bundle

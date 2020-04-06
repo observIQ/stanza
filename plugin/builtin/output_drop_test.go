@@ -6,9 +6,9 @@ import (
 
 func newFakeNullOutput() *DropOutput {
 	return &DropOutput{
-		BasicIdentity: helper.BasicIdentity{
+		BasicPlugin: helper.BasicPlugin{
 			PluginID:   "testnull",
-			PluginType: "null",
+			PluginType: "drop_output",
 		},
 	}
 }

@@ -15,7 +15,7 @@ func init() {
 
 // JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	helper.BasicIdentityConfig    `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
@@ -25,7 +25,7 @@ type JSONParserConfig struct {
 
 // Build will build a JSON parser plugin.
 func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicIdentity, err := c.BasicIdentityConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	plugin := &JSONParser{
-		BasicIdentity:    basicIdentity,
+		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
 		field:            c.Field,
@@ -49,7 +49,7 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // JSONParser is a plugin that parses JSON.
 type JSONParser struct {
-	helper.BasicIdentity
+	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicTransformer
 
