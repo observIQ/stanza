@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -19,7 +20,7 @@ func init() {
 type UDPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	Interface                string `yaml:",omitempty"`
+	Host                     string `yaml:",omitempty"`
 	Port                     int    `yaml:",omitempty"`
 }
 
@@ -39,9 +40,9 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, fmt.Errorf("missing field 'port'")
 	}
 
-	address := fmt.Sprintf("%s:%d", c.Interface, c.Port)
-	if _, err := net.ResolveUDPAddr("udp", address); err != nil {
-		return nil, fmt.Errorf("failed to resolve udp address %s: %s", address, err)
+	address, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.Host, c.Port))
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve address: %s", err)
 	}
 
 	udpInput := &UDPInput{
@@ -56,7 +57,7 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 type UDPInput struct {
 	helper.BasicPlugin
 	helper.BasicInput
-	address string
+	address *net.UDPAddr
 
 	connection net.PacketConn
 	cancel     context.CancelFunc
@@ -69,36 +70,29 @@ func (u *UDPInput) Start() error {
 	u.context, u.cancel = context.WithCancel(context.Background())
 	u.waitGroup = &sync.WaitGroup{}
 
-	conn, err := net.ListenPacket("udp", u.address)
+	conn, err := net.ListenUDP("udp", u.address)
 	if err != nil {
 		return fmt.Errorf("failed to open connection: %s", err)
 	}
 	u.connection = conn
 
-	u.goServe(conn)
+	u.goRead()
 	return nil
 }
 
-func (u *UDPInput) goServe(conn net.PacketConn) {
+// goRead will read entries from a connection in a go routine.
+func (u *UDPInput) goRead() {
 	u.waitGroup.Add(1)
-	pluginStopped := u.context.Done()
 
 	go func() {
 		defer u.waitGroup.Done()
 
 		for {
-			select {
-			case <-pluginStopped:
-				// stop reading from connection
+			entry, err := u.readEntry()
+			if err != nil && u.isExpectedClose(err) {
 				break
-			default:
-				// continue reading from connection
-			}
-
-			entry, err := u.readFrom(conn)
-			if err != nil {
-				u.Debugf("Failed to read from connection: %s", err)
-				break
+			} else if err != nil {
+				u.Errorf("Failed to read from connection: %s", err)
 			}
 
 			if err := u.Output.Process(entry); err != nil {
@@ -108,9 +102,10 @@ func (u *UDPInput) goServe(conn net.PacketConn) {
 	}()
 }
 
-func (u *UDPInput) readFrom(conn net.PacketConn) (*entry.Entry, error) {
+// readEntry will read log entries from the connection.
+func (u *UDPInput) readEntry() (*entry.Entry, error) {
 	buffer := make([]byte, 1024)
-	n, address, err := conn.ReadFrom(buffer)
+	n, address, err := u.connection.ReadFrom(buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -123,6 +118,11 @@ func (u *UDPInput) readFrom(conn net.PacketConn) (*entry.Entry, error) {
 	entry.Record["message"] = string(buffer[:n])
 	entry.Record["address"] = address.String()
 	return entry, nil
+}
+
+// isExpectedClose will determine if an error was the result of a closed connection.
+func (u *UDPInput) isExpectedClose(err error) bool {
+	return strings.Contains(err.Error(), "closed network connection")
 }
 
 // Stop will stop listening for udp messages.

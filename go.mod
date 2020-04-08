@@ -6,6 +6,8 @@ require (
 	cloud.google.com/go v0.38.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.4 // indirect
+	github.com/influxdata/go-syslog v1.0.1
+	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/json-iterator/go v1.1.9
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/spf13/pflag v1.0.5 // indirect
