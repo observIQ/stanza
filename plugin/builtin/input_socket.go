@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"regexp"
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -37,9 +36,8 @@ func (c SocketInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 		return nil, err
 	}
 
-	modeRegex := regexp.MustCompile(`^(udp)|(tcp)|(unix)$`)
-	if !modeRegex.MatchString(c.Mode) {
-		return nil, fmt.Errorf("unsupported mode %s", c.Mode)
+	if err := c.validateParams(); err != nil {
+		return nil, err
 	}
 
 	socketInput := &SocketInput{
@@ -49,6 +47,44 @@ func (c SocketInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 		address:     c.Address,
 	}
 	return socketInput, nil
+}
+
+// validateParams will validate the mode and address parameters.
+func (c SocketInputConfig) validateParams() error {
+	switch c.Mode {
+	case "udp":
+		return c.validateUDPAddr()
+	case "tcp":
+		return c.validateTCPAddr()
+	case "unix":
+		return c.validateUnixAddr()
+	default:
+		return fmt.Errorf("invalid mode %s", c.Mode)
+	}
+}
+
+// validateUDPAddr will determine if the address is valid for udp.
+func (c SocketInputConfig) validateUDPAddr() error {
+	if _, err := net.ResolveUDPAddr("udp", c.Address); err != nil {
+		return fmt.Errorf("failed to resolve %s udp address: %s", c.Address, err)
+	}
+	return nil
+}
+
+// validateUDPAddr will determine if the address is valid for tcp.
+func (c SocketInputConfig) validateTCPAddr() error {
+	if _, err := net.ResolveTCPAddr("tcp", c.Address); err != nil {
+		return fmt.Errorf("failed to resolve %s tcp address: %s", c.Address, err)
+	}
+	return nil
+}
+
+// validateUDPAddr will determine if the address is valid for unix.
+func (c SocketInputConfig) validateUnixAddr() error {
+	if _, err := net.ResolveUnixAddr("unix", c.Address); err != nil {
+		return fmt.Errorf("failed to resolve %s unix address: %s", c.Address, err)
+	}
+	return nil
 }
 
 // SocketInput is a plugin that listens to a socket for log entries.
