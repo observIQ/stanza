@@ -8,11 +8,9 @@ type Entry struct {
 	Record map[string]interface{} `json:"record"`
 }
 
-func CreateBasicEntry(message interface{}) Entry {
-	return Entry{
+func CreateBasicEntry() *Entry {
+	return &Entry{
 		Timestamp: time.Now(),
-		Record: map[string]interface{}{
-			"message": message,
-		},
+		Record:    map[string]interface{}{},
 	}
 }

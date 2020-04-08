@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	plugin.Register("socket_input", &GenerateInputConfig{})
+	plugin.Register("socket_input", &SocketInputConfig{})
 }
 
 // SocketInputConfig is the configuration of a socket input plugin.
@@ -169,8 +169,9 @@ func (s *SocketInput) goHandleConnection(conn net.Conn) {
 
 // sendToOutput will send a socket message to the connected output.
 func (s *SocketInput) sendToOutput(message []byte) {
-	entry := entry.CreateBasicEntry(message)
-	if err := s.Output.Process(&entry); err != nil {
+	entry := entry.CreateBasicEntry()
+	entry.Record["message"] = message
+	if err := s.Output.Process(entry); err != nil {
 		s.Errorf("output %s failed to process entry: %s", err)
 	}
 }
