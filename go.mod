@@ -6,6 +6,8 @@ require (
 	cloud.google.com/go v0.38.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.4 // indirect
+	github.com/influxdata/go-syslog v1.0.1
+	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/json-iterator/go v1.1.9
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -24,6 +26,6 @@ require (
 	google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c // indirect
 	google.golang.org/grpc v1.27.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
