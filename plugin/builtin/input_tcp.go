@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -21,8 +20,7 @@ func init() {
 type TCPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	Host                     string `yaml:",omitempty"`
-	Port                     int    `yaml:",omitempty"`
+	ListenAddress            string `mapstructure:"listen_address" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a tcp input plugin.
@@ -37,16 +35,19 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, err
 	}
 
-	address, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", c.Host, c.Port))
+	if c.ListenAddress == "" {
+		return nil, fmt.Errorf("missing field 'listen_address'")
+	}
+
+	address, err := net.ResolveTCPAddr("tcp", c.ListenAddress)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve address: %s", err)
+		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
 	tcpInput := &TCPInput{
 		BasicPlugin: basicPlugin,
 		BasicInput:  basicInput,
 		address:     address,
-		connections: make(map[string]net.Conn),
 	}
 	return tcpInput, nil
 }
@@ -57,11 +58,8 @@ type TCPInput struct {
 	helper.BasicInput
 	address *net.TCPAddr
 
-	listener    net.Listener
-	connections map[string]net.Conn
-
+	listener  net.Listener
 	cancel    context.CancelFunc
-	context   context.Context
 	waitGroup *sync.WaitGroup
 }
 
@@ -73,14 +71,15 @@ func (t *TCPInput) Start() error {
 	}
 
 	t.listener = listener
-	t.context, t.cancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	t.cancel = cancel
 	t.waitGroup = &sync.WaitGroup{}
-	t.goAcceptConnections()
+	t.goListen(ctx)
 	return nil
 }
 
-// goAcceptConnections will listen for tcp connections in a go routine.
-func (t *TCPInput) goAcceptConnections() {
+// goListenn will listen for tcp connections.
+func (t *TCPInput) goListen(ctx context.Context) {
 	t.waitGroup.Add(1)
 
 	go func() {
@@ -88,78 +87,71 @@ func (t *TCPInput) goAcceptConnections() {
 
 		for {
 			conn, err := t.listener.Accept()
-			if err != nil && t.isExpectedClose(err) {
+			if err != nil {
+				t.Debugf("Exiting listener: %s", err)
 				break
-			} else if err != nil {
-				t.Errorf("Failed to accept connection: %s", err)
 			}
 
-			t.addConnection(conn)
-			t.goHandleConnection(conn)
+			t.Debugf("Received connection: %s", conn.RemoteAddr().String())
+			subctx, cancel := context.WithCancel(ctx)
+			t.goHandleClose(subctx, conn)
+			t.goHandleMessages(conn, cancel)
 		}
 	}()
 }
 
-// goHandleConnection will read logs from a tcp connection in a go routine.
-func (t *TCPInput) goHandleConnection(conn net.Conn) {
+// goHandleClose will wait for the context to finish before closing a connection.
+func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
+	go func() {
+		select {
+		case <-ctx.Done():
+			t.Debugf("Closing connection: %s", conn.RemoteAddr().String())
+			if err := conn.Close(); err != nil {
+				t.Errorf("Failed to close connection: %s", err)
+			}
+		}
+	}()
+}
+
+// goHandleMessages will handles messages from a tcp connection.
+func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
 	t.waitGroup.Add(1)
 
 	go func() {
 		defer t.waitGroup.Done()
-		defer t.closeConnection(conn)
+		defer cancel()
 
+		reader := bufio.NewReaderSize(conn, 1024*64)
 		for {
-			entry, err := t.readEntry(conn)
-			if err != nil && t.isExpectedClose(err) {
+			entry, err := t.readEntry(conn, reader)
+			if err != nil {
+				t.Debugf("Exiting message handler: %s", err)
 				break
-			} else if err != nil {
-				t.Errorf("Failed to read from connection: %s", err)
 			}
 
 			if err := t.Output.Process(entry); err != nil {
-				t.Debugf("Output %s failed to process entry: %s", t.OutputID, err)
+				t.Errorf("Output %s failed to process entry: %s", t.OutputID, err)
 			}
 		}
 	}()
 }
 
 // readEntry will read a log entry from a TCP connection.
-func (t *TCPInput) readEntry(conn net.Conn) (*entry.Entry, error) {
-	reader := bufio.NewReaderSize(conn, 1024*64)
+func (t *TCPInput) readEntry(conn net.Conn, reader *bufio.Reader) (*entry.Entry, error) {
 	message, err := reader.ReadBytes('\n')
 	if err != nil {
 		return nil, err
 	}
 
-	entry := entry.CreateBasicEntry()
+	entry := entry.CreateNewEntry()
 	entry.Record["message"] = string(message)
-	entry.Record["address"] = conn.RemoteAddr().String()
+	entry.Record["source"] = conn.RemoteAddr().String()
 	return entry, nil
-}
-
-// addConnection will add a connection to the registry.
-func (t *TCPInput) addConnection(conn net.Conn) {
-	t.connections[conn.RemoteAddr().String()] = conn
-}
-
-// isExpectedClose will determine if an error was the result of a closed connection.
-func (t *TCPInput) isExpectedClose(err error) bool {
-	return strings.Contains(err.Error(), "closed network connection")
-}
-
-// closeConnection will close a connection and remove it from the registry.
-func (t *TCPInput) closeConnection(conn net.Conn) {
-	delete(t.connections, conn.RemoteAddr().String())
-	_ = conn.Close()
 }
 
 // Stop will stop listening for log entries over TCP.
 func (t *TCPInput) Stop() error {
 	t.cancel()
-
-	for _, conn := range t.connections {
-		t.closeConnection(conn)
-	}
 
 	if err := t.listener.Close(); err != nil {
 		return err

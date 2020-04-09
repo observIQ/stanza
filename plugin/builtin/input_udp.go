@@ -20,8 +20,7 @@ func init() {
 type UDPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	Host                     string `yaml:",omitempty"`
-	Port                     int    `yaml:",omitempty"`
+	ListenAddress            string `mapstructure:"listen_address" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a udp input plugin.
@@ -36,13 +35,13 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, err
 	}
 
-	if c.Port == 0 {
-		return nil, fmt.Errorf("missing field 'port'")
+	if c.ListenAddress == "" {
+		return nil, fmt.Errorf("missing field 'listen_address'")
 	}
 
-	address, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.Host, c.Port))
+	address, err := net.ResolveUDPAddr("udp", c.ListenAddress)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve address: %s", err)
+		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
 	udpInput := &UDPInput{
@@ -61,13 +60,12 @@ type UDPInput struct {
 
 	connection net.PacketConn
 	cancel     context.CancelFunc
-	context    context.Context
 	waitGroup  *sync.WaitGroup
 }
 
 // Start will start listening for messages on a socket.
 func (u *UDPInput) Start() error {
-	u.context, u.cancel = context.WithCancel(context.Background())
+	_, u.cancel = context.WithCancel(context.Background())
 	u.waitGroup = &sync.WaitGroup{}
 
 	conn, err := net.ListenUDP("udp", u.address)
@@ -76,12 +74,12 @@ func (u *UDPInput) Start() error {
 	}
 	u.connection = conn
 
-	u.goRead()
+	u.goHandleMessages()
 	return nil
 }
 
-// goRead will read entries from a connection in a go routine.
-func (u *UDPInput) goRead() {
+// goHandleMessages will handle messages from a udp connection.
+func (u *UDPInput) goHandleMessages() {
 	u.waitGroup.Add(1)
 
 	go func() {
@@ -90,13 +88,12 @@ func (u *UDPInput) goRead() {
 		for {
 			entry, err := u.readEntry()
 			if err != nil && u.isExpectedClose(err) {
+				u.Debugf("Exiting message handler: %s", err)
 				break
-			} else if err != nil {
-				u.Errorf("Failed to read from connection: %s", err)
 			}
 
 			if err := u.Output.Process(entry); err != nil {
-				u.Debugf("Output %s failed to process entry: %s", u.OutputID, err)
+				u.Errorf("Output %s failed to process entry: %s", u.OutputID, err)
 			}
 		}
 	}()
@@ -114,9 +111,9 @@ func (u *UDPInput) readEntry() (*entry.Entry, error) {
 	for ; (n > 0) && (buffer[n-1] < 32); n-- {
 	}
 
-	entry := entry.CreateBasicEntry()
+	entry := entry.CreateNewEntry()
 	entry.Record["message"] = string(buffer[:n])
-	entry.Record["address"] = address.String()
+	entry.Record["source"] = address.String()
 	return entry, nil
 }
 
