@@ -1,20 +1,20 @@
 package builtin
 
 import (
-	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/bluemedora/bplogagent/plugin/testutil"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
-func NewFakeJSONPlugin() *JSONParser {
+func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
+	mock := testutil.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
 		BasicPlugin: helper.BasicPlugin{
@@ -23,45 +23,55 @@ func NewFakeJSONPlugin() *JSONParser {
 			SugaredLogger: logger.Sugar(),
 		},
 		BasicTransformer: helper.BasicTransformer{
-			Output: nil,
+			Output: &mock,
 		},
-		field:            "testfield",
-		destinationField: "testparsed",
+		field:            entry.SingleFieldSelector([]string{"testfield"}),
+		destinationField: entry.SingleFieldSelector([]string{"testparsed"}),
 		json:             jsoniter.ConfigFastest,
-	}
+	}, &mock
 }
 
 func TestJSONImplementations(t *testing.T) {
 	assert.Implements(t, (*plugin.Plugin)(nil), new(JSONParser))
 }
 
-func BenchmarkJSONParser(b *testing.B) {
-	for _, ib := range standardInputterBenchmarks {
-		ib := ib
-		b.Run(ib.String(), func(b *testing.B) {
-			benchJSONParser(b, ib)
-		})
+func TestJSONParser(t *testing.T) {
+	cases := []struct {
+		name           string
+		inputRecord    map[string]interface{}
+		expectedRecord map[string]interface{}
+		errorExpected  bool
+	}{
+		{
+			"simple",
+			map[string]interface{}{
+				"testfield": `{}`,
+			},
+			map[string]interface{}{
+				"testfield":  `{}`,
+				"testparsed": `{}`,
+			},
+			false,
+		},
 	}
-}
 
-func benchJSONParser(b *testing.B, ib inputterBenchmark) {
-	copy := NewFakeJSONPlugin()
-	record := generateRandomNestedMap(ib.fields, ib.depth, ib.fieldLength)
-	marshalled, err := json.Marshal(record)
-	assert.NoError(b, err)
-	marshalledRecord := map[string]interface{}{
-		"testfield": string(marshalled),
-	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := entry.NewEntry()
+			input.Record = tc.inputRecord
 
-	b.SetBytes(ib.EstimatedBytes())
-	for i := 0; i < b.N; i++ {
-		err := copy.Process(&entry.Entry{
-			Timestamp: time.Now(),
-			Record:    marshalledRecord,
+			output := entry.NewEntry()
+			output.Record = tc.expectedRecord
+
+			parser, mockOutput := NewFakeJSONPlugin()
+			mockOutput.On("Process", output).Return(nil)
+
+			err := parser.Process(input)
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			mockOutput.AssertExpectations(t)
 		})
-
-		if err != nil {
-			b.FailNow()
-		}
 	}
 }
