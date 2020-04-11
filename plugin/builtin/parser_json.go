@@ -96,6 +96,6 @@ func (p *JSONParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 		return nil, fmt.Errorf("cannot parse field of type %T as JSON", message)
 	}
 
-	entry.Set(p.destinationField, parsedMessage)
+	entry.SetSafe(p.destinationField, parsedMessage)
 	return entry, nil
 }

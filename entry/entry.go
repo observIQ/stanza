@@ -23,9 +23,13 @@ func (entry *Entry) Get(selector FieldSelector) (interface{}, bool) {
 	return selector.Get(entry.Record)
 }
 
-// func (entry *Entry) Set(selector FieldSelector, val interface{}) interface{} {
-// 	return selector.Set(entry.Record, val)
-// }
+func (entry *Entry) SetSafe(selector FieldSelector, val interface{}) bool {
+	return selector.SetSafe(&entry.Record, val)
+}
+
+func (entry *Entry) Set(selector FieldSelector, val interface{}) {
+	selector.Set(&entry.Record, val)
+}
 
 // func (entry *Entry) Merge(selector FieldSelector, val map[string]interface{}) {
 // 	selector.Merge(entry.Record, val)

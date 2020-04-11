@@ -2,77 +2,107 @@ package entry
 
 type FieldSelector interface {
 	Get(Record) (interface{}, bool)
-	// Set(Record, interface{}) interface{}
+	SetSafe(*Record, interface{}) bool
+	Set(*Record, interface{})
 	// Merge(Record, map[string]interface{})
 }
 
+// TODO support arrays?
 type SingleFieldSelector []string
 
 func (s SingleFieldSelector) Get(record Record) (interface{}, bool) {
-	var next interface{} = record
+	var current interface{} = record
 	for _, str := range s {
-		mapNext, ok := next.(map[string]interface{})
+		mapNext, ok := current.(map[string]interface{})
 		if !ok {
 			// The current level is not a map,
 			return nil, false
 		}
 
-		next, ok = mapNext[str]
+		current, ok = mapNext[str]
 		if !ok {
+			// The current level's key does not exist
 			return nil, false
 		}
 	}
 
-	return next, true
+	return current, true
 }
 
-// func (s SingleFieldSelector) Set(record Record, val interface{}) interface{} {
-// 	var current interface{} = record
-// 	for i, str := range s {
-// 		if i == len(str)-1 {
-// 			// last string in selector
-// 			switch c := current.(type) {
-// 			case map[string]interface{}:
-// 				c[str] = val
-// 			default:
-// 				current = map[string]interface{}{
-// 					str: val,
-// 				}
-// 			}
+// SetSafe sets a key without overwriting any other records. It returns
+// whether the key was set
+func (s SingleFieldSelector) SetSafe(record *Record, val interface{}) bool {
+	if record == nil {
+		return false
+	}
 
-// 		}
-// 	}
+	if len(s) == 0 {
+		if *record != Record(nil) {
+			// don't overwrite record if it exists
+			return false
+		}
+		*record = Record(val)
+		return true
+	}
 
-// 	old := record
-// 	record = val
-// 	return old
-// }
+	var current interface{} = *record
+	for i, str := range s {
+		c, ok := current.(map[string]interface{})
+		if !ok {
+			return false
+		}
 
-// func (s SingleFieldSelector) Merge(record Record, val map[string]interface{}) {
-// 	var next map[string]interface{} = record
-// 	for i, str := range s {
-// 		if i == len(s) {
-// 			for k, v := range val {
-// 				next[k] = v
-// 			}
-// 		} else {
-// 			nextInterface, ok := next[str]
-// 			if !ok {
-// 				newMap := make(map[string]interface{})
-// 				next[str] = newMap
-// 				next = newMap
-// 			} else {
-// 				next, ok = nextInterface.(map[string]interface{})
-// 				if !ok {
-// 					newMap := make(map[string]interface{})
-// 					next[str] = newMap
-// 					next = newMap
-// 				}
-// 			}
-// 		}
-// 	}
+		if i == len(s)-1 {
+			c[str] = val
+			return true
+		}
 
-// 	for k, v := range val {
-// 		next[k] = v
-// 	}
-// }
+		current, ok = c[str]
+		if !ok {
+			return false
+		}
+	}
+
+	// we should never get here
+	return false
+
+}
+
+// Set sets a value, overwriting any intermediate values as necessary
+func (s SingleFieldSelector) Set(record *Record, val interface{}) {
+	if len(s) == 0 {
+		*record = Record(val)
+		return
+	}
+
+	var currentMap map[string]interface{}
+	var ok bool
+	currentMap, ok = (*record).(map[string]interface{})
+	if !ok {
+		currentMap = map[string]interface{}{}
+		*record = currentMap
+	}
+
+	for i, str := range s {
+		if i == len(s)-1 {
+			currentMap[str] = val
+			return
+		}
+
+		current, ok := currentMap[str]
+		if !ok {
+			current = map[string]interface{}{}
+			currentMap[str] = current
+		}
+
+		next, ok := current.(map[string]interface{})
+		if !ok {
+			next = map[string]interface{}{}
+			currentMap[str] = next
+		}
+
+		currentMap = next
+	}
+
+	return
+}
