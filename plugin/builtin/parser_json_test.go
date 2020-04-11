@@ -10,6 +10,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +50,20 @@ func TestJSONParser(t *testing.T) {
 			},
 			map[string]interface{}{
 				"testfield":  `{}`,
-				"testparsed": `{}`,
+				"testparsed": map[string]interface{}{},
+			},
+			false,
+		},
+		{
+			"nested",
+			map[string]interface{}{
+				"testfield": `{"superkey":"superval"}`,
+			},
+			map[string]interface{}{
+				"testfield": `{"superkey":"superval"}`,
+				"testparsed": map[string]interface{}{
+					"superkey": "superval",
+				},
 			},
 			false,
 		},
@@ -64,14 +78,17 @@ func TestJSONParser(t *testing.T) {
 			output.Record = tc.expectedRecord
 
 			parser, mockOutput := NewFakeJSONPlugin()
-			mockOutput.On("Process", output).Return(nil)
+			mockOutput.On("Process", mock.Anything).Run(func(args mock.Arguments) {
+				e := args[0].(*entry.Entry)
+				if !assert.Equal(t, tc.expectedRecord, e.Record) {
+					t.FailNow()
+				}
+			}).Return(nil)
 
 			err := parser.Process(input)
 			if !assert.NoError(t, err) {
 				return
 			}
-
-			mockOutput.AssertExpectations(t)
 		})
 	}
 }

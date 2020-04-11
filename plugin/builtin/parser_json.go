@@ -19,7 +19,7 @@ type JSONParserConfig struct {
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
-	Field            entry.FieldSelector
+	Field            *entry.FieldSelector
 	DestinationField *entry.FieldSelector
 }
 
@@ -35,15 +35,20 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
+	if c.Field == nil {
+		var fs entry.FieldSelector = entry.SingleFieldSelector([]string{})
+		c.Field = &fs
+	}
+
 	if c.DestinationField == nil {
-		*c.DestinationField = c.Field
+		*c.DestinationField = *c.Field
 	}
 
 	plugin := &JSONParser{
 		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
-		field:            c.Field,
+		field:            *c.Field,
 		destinationField: *c.DestinationField,
 		json:             jsoniter.ConfigFastest,
 	}
@@ -96,6 +101,6 @@ func (p *JSONParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 		return nil, fmt.Errorf("cannot parse field of type %T as JSON", message)
 	}
 
-	entry.SetSafe(p.destinationField, parsedMessage)
+	entry.Set(p.destinationField, parsedMessage)
 	return entry, nil
 }

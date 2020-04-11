@@ -69,7 +69,11 @@ func TestFileWatcherReadsLog(t *testing.T) {
 	logger := zaptest.NewLogger(t).Sugar()
 	outputFunc, entryChan := newOutputNotifier()
 	watcher := &FileWatcher{
-		path:             temp.Name(),
+		path: temp.Name(),
+		pathField: func() *entry.FieldSelector {
+			var fs entry.FieldSelector = entry.SingleFieldSelector([]string{"path"})
+			return &fs
+		}(),
 		offset:           0,
 		pollInterval:     time.Minute,
 		splitFunc:        bufio.ScanLines,
@@ -95,9 +99,9 @@ func TestFileWatcherReadsLog(t *testing.T) {
 	// Expect that log to come back parsed correctly
 	select {
 	case entry := <-entryChan:
-		assert.NotNil(t, entry.Record["message"])
-		assert.NotNil(t, entry.Record["path"])
-		assert.Equal(t, entry.Record["message"], "test log")
+		assert.NotNil(t, entry.Record.(map[string]interface{})["message"])
+		assert.NotNil(t, entry.Record.(map[string]interface{})["path"])
+		assert.Equal(t, entry.Record.(map[string]interface{})["message"], "test log")
 	case <-time.After(10 * time.Millisecond):
 		assert.FailNow(t, "Timed out waiting for entry to be read")
 	}
