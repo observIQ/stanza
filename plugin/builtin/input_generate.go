@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -18,7 +19,7 @@ func init() {
 type GenerateInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	Record                   map[string]interface{}
+	Record                   entry.Record
 	Count                    int `yaml:",omitempty"`
 }
 
@@ -48,7 +49,7 @@ type GenerateInput struct {
 	helper.BasicPlugin
 	helper.BasicInput
 	count  int
-	record map[string]interface{}
+	record entry.Record
 	cancel context.CancelFunc
 	wg     *sync.WaitGroup
 }
@@ -73,7 +74,7 @@ func (g *GenerateInput) Start() error {
 
 			entry := &entry.Entry{
 				Timestamp: time.Now(),
-				Record:    copyMap(g.record),
+				Record:    copyRecord(g.record),
 			}
 
 			err := g.Output.Process(entry)
@@ -97,6 +98,32 @@ func (g *GenerateInput) Stop() error {
 	g.cancel()
 	g.wg.Wait()
 	return nil
+}
+
+// TODO better copy record function
+func copyRecord(r entry.Record) entry.Record {
+	switch r := r.(type) {
+	case map[string]interface{}:
+		return copyMap(r)
+	case string:
+		return r
+	case []byte:
+		new := make([]byte, 0, len(r))
+		copy(new, r)
+		return new
+	default:
+		// fall back to JSON roundtrip
+		var i interface{}
+		b, err := json.Marshal(r)
+		if err != nil {
+			panic(err)
+		}
+		err = json.Unmarshal(b, &i)
+		if err != nil {
+			panic(err)
+		}
+		return i
+	}
 }
 
 // TODO This is a really dumb implementation right now.

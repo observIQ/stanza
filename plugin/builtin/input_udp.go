@@ -21,6 +21,8 @@ type UDPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 	ListenAddress            string `mapstructure:"listen_address" yaml:"listen_address,omitempty"`
+	MessageField             *entry.FieldSelector
+	SourceField              *entry.FieldSelector
 }
 
 // Build will build a udp input plugin.
@@ -39,15 +41,23 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, fmt.Errorf("missing field 'listen_address'")
 	}
 
+	var messageField entry.FieldSelector
+	if c.MessageField == nil {
+		fs := entry.SingleFieldSelector([]string{"message"})
+		messageField = &fs
+	}
+
 	address, err := net.ResolveUDPAddr("udp", c.ListenAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
 	udpInput := &UDPInput{
-		BasicPlugin: basicPlugin,
-		BasicInput:  basicInput,
-		address:     address,
+		BasicPlugin:  basicPlugin,
+		BasicInput:   basicInput,
+		address:      address,
+		messageField: messageField,
+		sourceField:  c.SourceField,
 	}
 	return udpInput, nil
 }
@@ -61,6 +71,9 @@ type UDPInput struct {
 	connection net.PacketConn
 	cancel     context.CancelFunc
 	waitGroup  *sync.WaitGroup
+
+	messageField entry.FieldSelector
+	sourceField  *entry.FieldSelector
 }
 
 // Start will start listening for messages on a socket.
@@ -111,9 +124,11 @@ func (u *UDPInput) readEntry() (*entry.Entry, error) {
 	for ; (n > 0) && (buffer[n-1] < 32); n-- {
 	}
 
-	entry := entry.CreateNewEntry()
-	entry.Record["message"] = string(buffer[:n])
-	entry.Record["source"] = address.String()
+	entry := entry.NewEntry()
+	entry.Set(u.messageField, buffer[:n])
+	if u.sourceField != nil {
+		entry.Set(*u.sourceField, address.String())
+	}
 	return entry, nil
 }
 

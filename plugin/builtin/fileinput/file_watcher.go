@@ -16,6 +16,7 @@ import (
 // a fallback for filesystems and platforms that don't support event notification
 type FileWatcher struct {
 	path             string
+	pathField        *entry.FieldSelector
 	offset           int64
 	pollInterval     time.Duration
 	splitFunc        bufio.SplitFunc
@@ -190,8 +191,11 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 			Timestamp: time.Now(),
 			Record: map[string]interface{}{
 				"message": message,
-				"path":    w.path, // TODO use absolute path?
 			},
+		}
+
+		if w.pathField != nil {
+			entry.Set(*w.pathField, w.path)
 		}
 
 		err := w.output(entry)

@@ -20,8 +20,8 @@ type SyslogParserConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
-	Field            string `yaml:",omitempty"`
-	DestinationField string `yaml:",omitempty"`
+	Field            *entry.FieldSelector
+	DestinationField *entry.FieldSelector
 	Protocol         string `yaml:",omitempty"`
 }
 
@@ -37,8 +37,13 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 		return nil, err
 	}
 
-	if c.Field == "" {
-		return nil, fmt.Errorf("missing field 'field'")
+	if c.Field == nil {
+		var fs entry.FieldSelector = entry.SingleFieldSelector([]string{})
+		c.Field = &fs
+	}
+
+	if c.DestinationField == nil {
+		*c.DestinationField = *c.Field
 	}
 
 	if c.Protocol == "" {
@@ -54,8 +59,8 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
-		field:            c.Field,
-		destinationField: c.DestinationField,
+		field:            *c.Field,
+		destinationField: *c.DestinationField,
 		machine:          machine,
 	}
 
@@ -79,8 +84,8 @@ type SyslogParser struct {
 	helper.BasicLifecycle
 	helper.BasicTransformer
 
-	field            string
-	destinationField string
+	field            entry.FieldSelector
+	destinationField entry.FieldSelector
 	machine          syslog.Machine
 }
 
@@ -106,22 +111,24 @@ func (s *SyslogParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 		return nil, err
 	}
 
-	newEntry := s.decorateEntry(entry, parsedValues)
-	return newEntry, nil
+	entry.Set(s.destinationField, parsedValues)
+	return entry, nil
 }
 
-func (s *SyslogParser) bytesFromField(entry *entry.Entry, field string) ([]byte, error) {
-	value, ok := entry.Record[field]
+func (s *SyslogParser) bytesFromField(entry *entry.Entry, field entry.FieldSelector) ([]byte, error) {
+	value, ok := entry.Get(field)
 	if !ok {
 		return nil, fmt.Errorf("field '%s' does not exist on the entry", field)
 	}
 
-	valueString, ok := value.(string)
-	if !ok {
-		return nil, fmt.Errorf("field '%s' is not a string", field)
+	switch v := value.(type) {
+	case string:
+		return []byte(v), nil
+	case []byte:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unable to parse field '%v' of type '%T'", field, value)
 	}
-
-	return []byte(valueString), nil
 }
 
 func (s *SyslogParser) parseAsMap(bytes []byte) (map[string]interface{}, error) {
@@ -161,15 +168,4 @@ func (s *SyslogParser) parseAsMap(bytes []byte) (map[string]interface{}, error) 
 	}
 
 	return nil, fmt.Errorf("parsed value was not rfc3164 or rfc5424 compliant")
-}
-
-func (s *SyslogParser) decorateEntry(entry *entry.Entry, values map[string]interface{}) *entry.Entry {
-	if s.destinationField == "" {
-		for key, value := range values {
-			entry.Record[key] = value
-		}
-	} else {
-		entry.Record[s.destinationField] = values
-	}
-	return entry
 }

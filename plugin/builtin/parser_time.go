@@ -13,58 +13,14 @@ func init() {
 	plugin.Register("time_parser", &TimeParserConfig{})
 }
 
-// TODO make this fully general (delete?) and move it out of this file
-type FieldSelector []string
-
-func (f FieldSelector) Select(record map[string]interface{}) (interface{}, error) {
-	for i, nested := range f {
-		recordInterface, ok := record[nested]
-		if !ok {
-			return nil, fmt.Errorf("field '%s' does not exist on record", nested)
-		}
-
-		if i == len(f)-1 {
-			return recordInterface, nil
-		}
-
-		record, ok = recordInterface.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("cannot continue traversing record because field '%s' is not a map", nested)
-		}
-	}
-
-	return nil, fmt.Errorf("should never get here")
-}
-
-func (f FieldSelector) Delete(record map[string]interface{}) error {
-	for i, nested := range f {
-		recordInterface, ok := record[nested]
-		if !ok {
-			return fmt.Errorf("field '%s' does not exist on record", nested)
-		}
-
-		if i == len(f)-1 {
-			delete(record, nested)
-			return nil
-		}
-
-		record, ok = recordInterface.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("cannot continue traversing record because field '%s' is not a map", nested)
-		}
-	}
-
-	return fmt.Errorf("should never get here")
-}
-
 // TimeParserConfig is the configuration of a time parser plugin.
+// TODO split this into a "parser" and a "promoter" plugin?
 type TimeParserConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
-	Field        FieldSelector
-	Layout       string
-	KeepOriginal bool `yaml:"keep_original"`
+	Field  entry.FieldSelector
+	Layout string
 }
 
 // Build will build a time parser plugin.
@@ -91,9 +47,8 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
-		field:        c.Field,
-		layout:       c.Layout,
-		keepOriginal: c.KeepOriginal,
+		field:  c.Field,
+		layout: c.Layout,
 	}
 
 	return timeParserPlugin, nil
@@ -105,9 +60,8 @@ type TimeParser struct {
 	helper.BasicLifecycle
 	helper.BasicTransformer
 
-	field        FieldSelector
-	layout       string
-	keepOriginal bool
+	field  entry.FieldSelector
+	layout string
 }
 
 // Process will parse time and send the entry to the next plugin.
@@ -123,9 +77,9 @@ func (p *TimeParser) Process(entry *entry.Entry) error {
 
 // Parse time will parse time and create a new entry.
 func (p *TimeParser) parseTime(entry *entry.Entry) (*entry.Entry, error) {
-	message, err := p.field.Select(entry.Record)
-	if err != nil {
-		return nil, fmt.Errorf("failed to select field: %s", err)
+	message, ok := entry.Get(p.field)
+	if !ok {
+		return nil, fmt.Errorf("field '%s' does not exist", p.field)
 	}
 
 	// TODO support bytes?
@@ -137,13 +91,6 @@ func (p *TimeParser) parseTime(entry *entry.Entry) (*entry.Entry, error) {
 	time, err := time.Parse(p.layout, messageString)
 	if err != nil {
 		return nil, fmt.Errorf("parsing time: %s", err)
-	}
-
-	if !p.keepOriginal {
-		err := p.field.Delete(entry.Record)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	entry.Timestamp = time

@@ -21,6 +21,8 @@ type TCPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 	ListenAddress            string `mapstructure:"listen_address" yaml:"listen_address,omitempty"`
+	MessageField             *entry.FieldSelector
+	SourceField              *entry.FieldSelector
 }
 
 // Build will build a tcp input plugin.
@@ -39,15 +41,25 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, fmt.Errorf("missing field 'listen_address'")
 	}
 
+	var messageField entry.FieldSelector
+	if c.MessageField == nil {
+		// TODO should we make the default just the root? And if so, how does
+		// that interact with the source field argument?
+		fs := entry.SingleFieldSelector([]string{"message"})
+		messageField = &fs
+	}
+
 	address, err := net.ResolveTCPAddr("tcp", c.ListenAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
 	tcpInput := &TCPInput{
-		BasicPlugin: basicPlugin,
-		BasicInput:  basicInput,
-		address:     address,
+		BasicPlugin:  basicPlugin,
+		BasicInput:   basicInput,
+		address:      address,
+		messageField: messageField,
+		sourceField:  c.SourceField,
 	}
 	return tcpInput, nil
 }
@@ -61,6 +73,9 @@ type TCPInput struct {
 	listener  net.Listener
 	cancel    context.CancelFunc
 	waitGroup *sync.WaitGroup
+
+	messageField entry.FieldSelector
+	sourceField  *entry.FieldSelector
 }
 
 // Start will start listening for log entries over tcp.
@@ -103,12 +118,10 @@ func (t *TCPInput) goListen(ctx context.Context) {
 // goHandleClose will wait for the context to finish before closing a connection.
 func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
 	go func() {
-		select {
-		case <-ctx.Done():
-			t.Debugf("Closing connection: %s", conn.RemoteAddr().String())
-			if err := conn.Close(); err != nil {
-				t.Errorf("Failed to close connection: %s", err)
-			}
+		<-ctx.Done()
+		t.Debugf("Closing connection: %s", conn.RemoteAddr().String())
+		if err := conn.Close(); err != nil {
+			t.Errorf("Failed to close connection: %s", err)
 		}
 	}()
 }
@@ -143,9 +156,11 @@ func (t *TCPInput) readEntry(conn net.Conn, reader *bufio.Reader) (*entry.Entry,
 		return nil, err
 	}
 
-	entry := entry.CreateNewEntry()
-	entry.Record["message"] = string(message)
-	entry.Record["source"] = conn.RemoteAddr().String()
+	entry := entry.NewEntry()
+	entry.Set(t.messageField, message)
+	if t.sourceField != nil {
+		entry.Set(*t.sourceField, conn.RemoteAddr().String())
+	}
 	return entry, nil
 }
 

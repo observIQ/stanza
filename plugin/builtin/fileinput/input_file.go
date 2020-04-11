@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
@@ -29,6 +30,7 @@ type FileInputConfig struct {
 	// TODO start from beginning once offsets are implemented
 	PollInterval float64                    `yaml:",omitempty"`
 	Multiline    *FileSourceMultilineConfig `yaml:",omitempty"`
+	PathField    *entry.FieldSelector
 }
 
 type FileSourceMultilineConfig struct {
@@ -108,6 +110,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
+		PathField:        c.PathField,
 		FingerprintBytes: 100,
 
 		fileCreated: make(chan string),
@@ -126,6 +129,7 @@ type FileInput struct {
 
 	Include          []string
 	Exclude          []string
+	PathField        *entry.FieldSelector
 	PollInterval     time.Duration
 	SplitFunc        bufio.SplitFunc
 	FingerprintBytes int64
@@ -246,6 +250,7 @@ func (f *FileInput) tryAddFile(ctx context.Context, path string, globCheck bool)
 	// Create the file watcher
 	watcher := &FileWatcher{
 		path:             path,
+		pathField:        f.PathField,
 		offset:           startingOffset,
 		pollInterval:     f.PollInterval,
 		splitFunc:        f.SplitFunc,

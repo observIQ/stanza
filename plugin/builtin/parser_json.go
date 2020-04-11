@@ -19,8 +19,8 @@ type JSONParserConfig struct {
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	// TODO design these params better
-	Field            string
-	DestinationField string
+	Field            *entry.FieldSelector
+	DestinationField *entry.FieldSelector
 }
 
 // Build will build a JSON parser plugin.
@@ -35,12 +35,21 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
+	if c.Field == nil {
+		var fs entry.FieldSelector = entry.SingleFieldSelector([]string{})
+		c.Field = &fs
+	}
+
+	if c.DestinationField == nil {
+		*c.DestinationField = *c.Field
+	}
+
 	plugin := &JSONParser{
 		BasicPlugin:      basicPlugin,
 		BasicTransformer: basicTransformer,
 
-		field:            c.Field,
-		destinationField: c.DestinationField,
+		field:            *c.Field,
+		destinationField: *c.DestinationField,
 		json:             jsoniter.ConfigFastest,
 	}
 
@@ -53,8 +62,8 @@ type JSONParser struct {
 	helper.BasicLifecycle
 	helper.BasicTransformer
 
-	field            string
-	destinationField string
+	field            entry.FieldSelector
+	destinationField entry.FieldSelector
 	json             jsoniter.API
 }
 
@@ -71,27 +80,27 @@ func (p *JSONParser) Process(entry *entry.Entry) error {
 
 // parse will parse an entry.
 func (p *JSONParser) parse(entry *entry.Entry) (*entry.Entry, error) {
-	message, ok := entry.Record[p.field]
+	message, ok := entry.Get(p.field)
 	if !ok {
 		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)
 	}
 
-	messageString, ok := message.(string)
-	if !ok {
-		return nil, fmt.Errorf("field '%s' can not be parsed as JSON because it is of type %T", p.field, message)
-	}
-
 	var parsedMessage map[string]interface{}
-	err := p.json.UnmarshalFromString(messageString, &parsedMessage)
-	if err != nil {
-		return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
+	switch m := message.(type) {
+	case string:
+		err := p.json.UnmarshalFromString(m, &parsedMessage)
+		if err != nil {
+			return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
+		}
+	case []byte:
+		err := p.json.Unmarshal(m, &parsedMessage)
+		if err != nil {
+			return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
+		}
+	default:
+		return nil, fmt.Errorf("cannot parse field of type %T as JSON", message)
 	}
 
-	if p.destinationField == "" {
-		entry.Record[p.field] = parsedMessage
-	} else {
-		entry.Record[p.destinationField] = parsedMessage
-	}
-
+	entry.Set(p.destinationField, parsedMessage)
 	return entry, nil
 }

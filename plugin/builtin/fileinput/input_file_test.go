@@ -105,7 +105,7 @@ func expectedLogsTest(t *testing.T, expected []string, generator func(source *Fi
 	mux := &sync.Mutex{}
 	mockOutput.On("Process", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		mux.Lock()
-		receivedMessages = append(receivedMessages, args.Get(0).(*entry.Entry).Record["message"].(string))
+		receivedMessages = append(receivedMessages, args.Get(0).(*entry.Entry).Record.(map[string]interface{})["message"].(string))
 		logReceived <- struct{}{}
 		mux.Unlock()
 	})
