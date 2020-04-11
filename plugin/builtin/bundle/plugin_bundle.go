@@ -93,7 +93,7 @@ func (c BundleConfig) renderPluginConfigs(bundles []*bundle.BundleDefinition) ([
 		Plugins []plugin.Config
 	}
 	err = v.UnmarshalExact(&pluginUnmarshaller, func(c *mapstructure.DecoderConfig) {
-		c.DecodeHook = plugin.ConfigDecoder
+		c.DecodeHook = mapstructure.ComposeDecodeHookFunc(plugin.ConfigDecoder, entry.FieldSelectorDecoder)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal from viper: %s", err)

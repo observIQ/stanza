@@ -57,7 +57,7 @@ func main() {
 
 	err = agent.Start()
 	if err != nil {
-		logger.Errorw("Failed to start log collector", "error", err)
+		logger.Errorw("Failed to start log collector", zap.Error(err))
 		return
 	}
 

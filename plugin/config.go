@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/bluemedora/bplogagent/bundle"
+	"github.com/bluemedora/bplogagent/entry"
 	"github.com/mitchellh/mapstructure"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
@@ -82,8 +83,17 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 	}
 
 	config := createConfig()
-	// TODO handle unused keys
-	err := mapstructure.Decode(data, &config)
+	// TODO handle unused fields
+	decoderCfg := &mapstructure.DecoderConfig{
+		Result:     &config,
+		DecodeHook: entry.FieldSelectorDecoder,
+	}
+	decoder, err := mapstructure.NewDecoder(decoderCfg)
+	if err != nil {
+		return nil, fmt.Errorf("build decoder: %w", err)
+	}
+
+	err = decoder.Decode(data)
 	if err != nil {
 		return nil, fmt.Errorf("decode plugin definition: %s", err)
 	}

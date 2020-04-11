@@ -57,7 +57,7 @@ func GetBundleDefinitions(bundleDir string, logger *zap.SugaredLogger) []*Bundle
 	bundleDefinitions := make([]*BundleDefinition, 0)
 	files, err := ioutil.ReadDir(bundleDir)
 	if err != nil {
-		logger.Errorw("Failed to get list of files", "error", err, "bundle_dir", bundleDir)
+		logger.Errorw("Failed to get list of files", "error", err, "bundle_path", bundleDir)
 	}
 
 	for _, file := range files {

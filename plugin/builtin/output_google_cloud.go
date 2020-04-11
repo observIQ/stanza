@@ -10,6 +10,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
+	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )
 
@@ -20,8 +21,13 @@ func init() {
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials              string
-	ProjectID                string `mapstructure:"project_id"`
+	Credentials              string              `mapstructure:"credentials"    yaml:"credentials"`
+	ProjectID                string              `mapstructure:"project_id"     yaml:"credentials"`
+	LogNameField             entry.FieldSelector `mapstructure:"log_name_field" yaml:"log_name_field"`
+	LabelsField              entry.FieldSelector `mapstructure:"labels_field"   yaml:"labels_field"`
+	SeverityField            entry.FieldSelector `mapstructure:"severity_field" yaml:"severity_field"`
+	TraceField               entry.FieldSelector `mapstructure:"trace_field"    yaml:"trace_field"`
+	SpanIDField              entry.FieldSelector `mapstructure:"span_id_field"  yaml:"span_id_field"`
 }
 
 // Build will build a google cloud output plugin.
@@ -45,6 +51,12 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 		BasicPlugin: basicPlugin,
 		credentials: c.Credentials,
 		projectID:   c.ProjectID,
+
+		logNameField:  c.LogNameField,
+		labelsField:   c.LabelsField,
+		severityField: c.SeverityField,
+		traceField:    c.TraceField,
+		spanIDField:   c.SpanIDField,
 	}
 
 	return googleCloudOutput, nil
@@ -64,6 +76,12 @@ type GoogleCloudOutput struct {
 	credentials       string
 	projectID         string
 	googleCloudLogger GoogleCloudLogger
+
+	logNameField  entry.FieldSelector
+	labelsField   entry.FieldSelector
+	severityField entry.FieldSelector
+	traceField    entry.FieldSelector
+	spanIDField   entry.FieldSelector
 }
 
 // Start will start the google cloud logger.
@@ -97,10 +115,60 @@ func (p *GoogleCloudOutput) Stop() error {
 
 // Process will send an entry to google cloud logging.
 func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
-	googleCloudLoggingEntry := logging.Entry{
+	cloudEntry := logging.Entry{
 		Timestamp: entry.Timestamp,
 		Payload:   entry.Record,
 		Severity:  logging.Info, // TODO calculate severity correctly
+	}
+
+	// TODO when using the logger.Write function, this doesn't work.
+	// We'll need to use the WriteLogEntries call directly I think
+
+	// if p.logNameField != nil {
+	// 	err := entry.Read(p.logNameField, &cloudEntry.LogName)
+	// 	if err != nil {
+	// 		p.Warnw("Failed to set log name", zap.Error(err))
+	// 	} else {
+	// 		entry.Delete(p.logNameField)
+	// 	}
+	// }
+
+	if p.labelsField != nil {
+		err := entry.Read(p.labelsField, &cloudEntry.Labels)
+		if err != nil {
+			p.Warnw("Failed to set labels", zap.Error(err))
+		} else {
+			entry.Delete(p.labelsField)
+		}
+	}
+
+	if p.traceField != nil {
+		err := entry.Read(p.traceField, &cloudEntry.Trace)
+		if err != nil {
+			p.Warnw("Failed to set trace", zap.Error(err))
+		} else {
+			entry.Delete(p.traceField)
+		}
+	}
+
+	if p.spanIDField != nil {
+		err := entry.Read(p.spanIDField, &cloudEntry.SpanID)
+		if err != nil {
+			p.Warnw("Failed to set span ID", zap.Error(err))
+		} else {
+			entry.Delete(p.spanIDField)
+		}
+	}
+
+	if p.severityField != nil {
+		var severityString string
+		err := entry.Read(p.severityField, &severityString)
+		if err != nil {
+			p.Warnw("Failed to set severity", zap.Error(err))
+		} else {
+			entry.Delete(p.severityField)
+		}
+		cloudEntry.Severity = logging.ParseSeverity(severityString)
 	}
 
 	// TODO how do we communicate which logs have been flushed?
@@ -114,7 +182,7 @@ func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
 	// Ideas for a library change:
 	// - Add a callback to each log entry
 	// - Create a Logger.LogMultipleSync() and do our own bundling
-	p.googleCloudLogger.Log(googleCloudLoggingEntry)
+	p.googleCloudLogger.Log(cloudEntry)
 
 	return nil
 }

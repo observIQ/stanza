@@ -19,7 +19,7 @@ func init() {
 type GenerateInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	Record                   entry.Record
+	Record                   map[string]interface{}
 	Count                    int `yaml:",omitempty"`
 }
 
