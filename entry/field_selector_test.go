@@ -75,6 +75,97 @@ func TestSingleFieldSelectorGet(t *testing.T) {
 	}
 }
 
+func TestSingleFieldSelectorDelete(t *testing.T) {
+	newStandardRecord := func() map[string]interface{} {
+		standardRecord := map[string]interface{}{
+			"testkey": "testval",
+			"testnested": map[string]interface{}{
+				"testnestedkey": "testnestedval",
+			},
+		}
+		return standardRecord
+	}
+
+	cases := []struct {
+		name             string
+		selector         SingleFieldSelector
+		record           interface{}
+		expectedRecord   interface{}
+		expectedReturned interface{}
+		expectedOk       bool
+	}{
+		{
+			"Simple",
+			[]string{"deletedKey"},
+			map[string]interface{}{
+				"deletedKey": "deletedVal",
+			},
+			map[string]interface{}{},
+			"deletedVal",
+			true,
+		},
+		{
+			"Empty Selector Empty Record",
+			[]string{},
+			nil,
+			map[string]interface{}{},
+			nil,
+			true,
+		},
+		{
+			"Empty selector Nonempty record",
+			[]string{},
+			newStandardRecord(),
+			map[string]interface{}{},
+			newStandardRecord(),
+			true,
+		},
+		{
+			"Empty map",
+			[]string{"deletedKey"},
+			map[string]interface{}{},
+			map[string]interface{}{},
+			nil,
+			false,
+		},
+		{
+			"Delete Nested Key",
+			[]string{"testnested", "testnestedkey"},
+			newStandardRecord(),
+			map[string]interface{}{
+				"testkey":    "testval",
+				"testnested": map[string]interface{}{},
+			},
+			"testnestedval",
+			true,
+		},
+		{
+			"Delete Nested Map",
+			[]string{"testnested"},
+			newStandardRecord(),
+			map[string]interface{}{
+				"testkey": "testval",
+			},
+			map[string]interface{}{
+				"testnestedkey": "testnestedval",
+			},
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			entry := NewEntry()
+			entry.Record = tc.record
+
+			deleted, ok := entry.Delete(tc.selector)
+			assert.Equal(t, tc.expectedOk, ok)
+			assert.Equal(t, tc.expectedReturned, deleted)
+			assert.Equal(t, tc.expectedRecord, entry.Record)
+		})
+	}
+}
+
 func TestSingleFieldSelectorSet(t *testing.T) {
 	standardRecord := map[string]interface{}{
 		"testkey": "testval",

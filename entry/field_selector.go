@@ -10,7 +10,13 @@ import (
 type FieldSelector interface {
 	Get(Record) (interface{}, bool)
 	Set(*Record, interface{})
+	Delete(*Record) (interface{}, bool)
 	// Merge(Record, map[string]interface{})
+}
+
+func NewSingleFieldSelector(fields ...string) FieldSelector {
+	fs := SingleFieldSelector(fields)
+	return &fs
 }
 
 // TODO support arrays?
@@ -72,6 +78,52 @@ func (s SingleFieldSelector) Set(record *Record, val interface{}) {
 	}
 
 	return
+}
+
+// Delete removes a field from a record. It returns the deleted field and
+// whether the field existed
+func (s SingleFieldSelector) Delete(record *Record) (interface{}, bool) {
+	if record == nil {
+		return nil, false
+	}
+
+	if len(s) == 0 {
+		old := *record
+		*record = Record(map[string]interface{}{})
+		return old, true
+	}
+
+	var currentMap map[string]interface{}
+	var ok bool
+	currentMap, ok = (*record).(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	for i, str := range s {
+		if i == len(s)-1 {
+			old, ok := currentMap[str]
+			if !ok {
+				return nil, false
+			}
+			delete(currentMap, str)
+			return old, true
+		}
+
+		current, ok := currentMap[str]
+		if !ok {
+			return nil, false
+		}
+
+		next, ok := current.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+
+		currentMap = next
+	}
+
+	return nil, false
 }
 
 var FieldSelectorDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {

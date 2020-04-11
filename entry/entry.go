@@ -27,6 +27,10 @@ func (entry *Entry) Set(selector FieldSelector, val interface{}) {
 	selector.Set(&entry.Record, val)
 }
 
+func (entry *Entry) Delete(selector FieldSelector) (interface{}, bool) {
+	return selector.Delete(&entry.Record)
+}
+
 // func (entry *Entry) Merge(selector FieldSelector, val map[string]interface{}) {
 // 	selector.Merge(entry.Record, val)
 // }
