@@ -26,7 +26,14 @@ func (entry *Entry) Get(selector FieldSelector) (interface{}, bool) {
 	return selector.Get(entry.Record)
 }
 
-// Only u
+func (entry *Entry) Set(selector FieldSelector, val interface{}) {
+	selector.Set(&entry.Record, val)
+}
+
+func (entry *Entry) Delete(selector FieldSelector) (interface{}, bool) {
+	return selector.Delete(&entry.Record)
+}
+
 func (entry *Entry) Read(selector FieldSelector, dest interface{}) error {
 	val, ok := entry.Get(selector)
 	if !ok {
@@ -47,7 +54,8 @@ func (entry *Entry) Read(selector FieldSelector, dest interface{}) error {
 			return fmt.Errorf("can not cast field '%s' of type '%T' to map[string]interface{}", selector, val)
 		}
 	case *map[string]string:
-		if m, ok := val.(map[string]interface{}); ok {
+		switch m := val.(type) {
+		case map[string]interface{}:
 			newDest := make(map[string]string)
 			for k, v := range m {
 				if vStr, ok := v.(string); ok {
@@ -57,7 +65,22 @@ func (entry *Entry) Read(selector FieldSelector, dest interface{}) error {
 				}
 			}
 			*dest = newDest
+		case map[interface{}]interface{}:
+			newDest := make(map[string]string)
+			for k, v := range m {
+				kStr, ok := k.(string)
+				if !ok {
+					return fmt.Errorf("can not cast map key of type '%T' to string", k)
+				}
+				vStr, ok := v.(string)
+				if !ok {
+					return fmt.Errorf("can not cast map value of type '%T' to string", v)
+				}
+				newDest[kStr] = vStr
+			}
+			*dest = newDest
 		}
+
 	case *interface{}:
 		*dest = val
 	default:
