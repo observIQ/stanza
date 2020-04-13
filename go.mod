@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.38.0
+	github.com/antonmedv/expr v1.8.2
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.4
 	github.com/hashicorp/go-uuid v1.0.2 // indirect

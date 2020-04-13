@@ -3,6 +3,7 @@ package builtin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,7 +39,7 @@ func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	generateInput := &GenerateInput{
 		BasicPlugin: basicPlugin,
 		BasicInput:  basicInput,
-		record:      c.Record,
+		record:      recursiveMapInterfaceToMapString(c.Record),
 		count:       c.Count,
 	}
 	return generateInput, nil
@@ -140,4 +141,27 @@ func copyMap(m map[string]interface{}) map[string]interface{} {
 	}
 
 	return cp
+}
+
+func recursiveMapInterfaceToMapString(m interface{}) interface{} {
+	switch m := m.(type) {
+	case map[string]interface{}:
+		newMap := make(map[string]interface{})
+		for k, v := range m {
+			newMap[k] = recursiveMapInterfaceToMapString(v)
+		}
+		return newMap
+	case map[interface{}]interface{}:
+		newMap := make(map[string]interface{})
+		for k, v := range m {
+			kStr, ok := k.(string)
+			if !ok {
+				kStr = fmt.Sprintf("%v", k)
+			}
+			newMap[kStr] = recursiveMapInterfaceToMapString(v)
+		}
+		return newMap
+	default:
+		return m
+	}
 }
