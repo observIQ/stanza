@@ -7,10 +7,10 @@ import (
 )
 
 func init() {
-	plugin.Register("restructure", &RestructureConfig{})
+	plugin.Register("restructure", &RestructurePluginConfig{})
 }
 
-type RestructureConfig struct {
+type RestructurePluginConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
@@ -25,7 +25,7 @@ type MoveConfig struct {
 }
 
 // Build will build a JSON parser plugin.
-func (c RestructureConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err
