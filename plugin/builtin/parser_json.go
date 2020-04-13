@@ -7,6 +7,7 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	jsoniter "github.com/json-iterator/go"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -41,7 +42,7 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	if c.DestinationField == nil {
-		*c.DestinationField = *c.Field
+		c.DestinationField = c.Field
 	}
 
 	plugin := &JSONParser{
@@ -71,8 +72,8 @@ type JSONParser struct {
 func (p *JSONParser) Process(entry *entry.Entry) error {
 	newEntry, err := p.parse(entry)
 	if err != nil {
-		// TODO option to allow
-		return err
+		p.Warnw("Failed to parse message", zap.Error(err), "message", entry)
+		return nil
 	}
 
 	return p.Output.Process(newEntry)

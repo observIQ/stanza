@@ -55,7 +55,6 @@ func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 type RouterPlugin struct {
 	helper.BasicPlugin
 	helper.BasicLifecycle
-	*zap.SugaredLogger
 
 	routes []*RouterPluginRoute
 }

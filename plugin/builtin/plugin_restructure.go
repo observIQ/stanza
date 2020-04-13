@@ -80,7 +80,7 @@ func (p *RestructurePlugin) Process(e *entry.Entry) error {
 		for _, retainSelector := range p.retain {
 			field, ok := e.Get(retainSelector)
 			if !ok {
-				p.Warn("Could not retain field '%s' because it does not exist", retainSelector)
+				// TODO log a message?
 				continue
 			}
 			newEntry.Set(retainSelector, field)

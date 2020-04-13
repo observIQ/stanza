@@ -42,7 +42,7 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	if c.DestinationField == nil {
-		*c.DestinationField = *c.Field
+		c.DestinationField = c.Field
 	}
 
 	if c.Regex == "" {

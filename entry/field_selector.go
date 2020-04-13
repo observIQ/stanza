@@ -136,6 +136,17 @@ var FieldSelectorDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t re
 		return SingleFieldSelector([]string{data.(string)}), nil
 	case reflect.TypeOf([]string{}):
 		return SingleFieldSelector(data.([]string)), nil
+	case reflect.TypeOf([]interface{}{}):
+		newSlice := make([]string, 0, len(data.([]interface{})))
+
+		for _, val := range data.([]interface{}) {
+			strVar, ok := val.(string)
+			if !ok {
+				return nil, fmt.Errorf("cannot use type '%T' as part of a field selector", val)
+			}
+			newSlice = append(newSlice, strVar)
+		}
+		return SingleFieldSelector(newSlice), nil
 	default:
 		return nil, fmt.Errorf("cannot unmarshal an entry.FieldSelector from type %s", f)
 	}
