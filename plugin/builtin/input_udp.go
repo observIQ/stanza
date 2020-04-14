@@ -42,8 +42,8 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	if c.MessageField == nil {
-		fs := entry.SingleFieldSelector([]string{"message"})
-		c.MessageField = &fs
+		fs := entry.FieldSelector([]string{"message"})
+		c.MessageField = fs
 	}
 
 	address, err := net.ResolveUDPAddr("udp", c.ListenAddress)

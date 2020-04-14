@@ -7,22 +7,29 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type FieldSelector interface {
-	Get(Record) (interface{}, bool)
-	Set(*Record, interface{})
-	Delete(*Record) (interface{}, bool)
-	// Merge(Record, map[string]interface{})
-}
-
-func NewSingleFieldSelector(fields ...string) FieldSelector {
-	fs := SingleFieldSelector(fields)
-	return &fs
-}
-
 // TODO support arrays?
-type SingleFieldSelector []string
+type FieldSelector []string
 
-func (s SingleFieldSelector) Get(record Record) (interface{}, bool) {
+// Parent returns the parent field selector of the field selector.
+// In the case that the field selector points to the root node,
+// it is a no-op
+func (s FieldSelector) Parent() FieldSelector {
+	if len(s) == 0 {
+		return s
+	}
+
+	return s[0 : len(s)-1]
+}
+
+// Child returns the selector for the child of the current field
+// selector with the given key
+func (s FieldSelector) Child(key string) FieldSelector {
+	newSelector := make([]string, len(s), len(s)+1)
+	copy(newSelector, s)
+	return append(newSelector, key)
+}
+
+func (s FieldSelector) Get(record Record) (interface{}, bool) {
 	var current interface{} = record
 	for _, str := range s {
 		mapNext, ok := current.(map[string]interface{})
@@ -42,7 +49,7 @@ func (s SingleFieldSelector) Get(record Record) (interface{}, bool) {
 }
 
 // Set sets a value, overwriting any intermediate values as necessary
-func (s SingleFieldSelector) Set(record *Record, val interface{}) {
+func (s FieldSelector) Set(record *Record, val interface{}) {
 	if len(s) == 0 {
 		*record = Record(val)
 		return
@@ -82,7 +89,7 @@ func (s SingleFieldSelector) Set(record *Record, val interface{}) {
 
 // Delete removes a field from a record. It returns the deleted field and
 // whether the field existed
-func (s SingleFieldSelector) Delete(record *Record) (interface{}, bool) {
+func (s FieldSelector) Delete(record *Record) (interface{}, bool) {
 	if record == nil {
 		return nil, false
 	}
@@ -133,9 +140,9 @@ var FieldSelectorDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t re
 
 	switch f {
 	case reflect.TypeOf(string("")):
-		return SingleFieldSelector([]string{data.(string)}), nil
+		return FieldSelector([]string{data.(string)}), nil
 	case reflect.TypeOf([]string{}):
-		return SingleFieldSelector(data.([]string)), nil
+		return FieldSelector(data.([]string)), nil
 	case reflect.TypeOf([]interface{}{}):
 		newSlice := make([]string, 0, len(data.([]interface{})))
 
@@ -146,7 +153,7 @@ var FieldSelectorDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t re
 			}
 			newSlice = append(newSlice, strVar)
 		}
-		return SingleFieldSelector(newSlice), nil
+		return FieldSelector(newSlice), nil
 	default:
 		return nil, fmt.Errorf("cannot unmarshal an entry.FieldSelector from type %s", f)
 	}

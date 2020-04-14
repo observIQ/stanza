@@ -38,7 +38,7 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	}
 
 	if c.Field == nil {
-		var fs entry.FieldSelector = entry.SingleFieldSelector([]string{})
+		var fs entry.FieldSelector = entry.FieldSelector([]string{})
 		c.Field = &fs
 	}
 

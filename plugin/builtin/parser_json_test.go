@@ -26,8 +26,8 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 		BasicTransformer: helper.BasicTransformer{
 			Output: &mock,
 		},
-		field:            entry.SingleFieldSelector([]string{"testfield"}),
-		destinationField: entry.SingleFieldSelector([]string{"testparsed"}),
+		field:            entry.FieldSelector([]string{"testfield"}),
+		destinationField: entry.FieldSelector([]string{"testparsed"}),
 		json:             jsoniter.ConfigFastest,
 	}, &mock
 }
