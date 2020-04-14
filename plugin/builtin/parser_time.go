@@ -94,6 +94,7 @@ func (p *TimeParser) parseTime(entry *entry.Entry) (*entry.Entry, error) {
 	}
 
 	entry.Timestamp = time
+	entry.Delete(p.field)
 
 	return entry, nil
 }

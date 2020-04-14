@@ -41,13 +41,13 @@ func BuildPlugins(configs []Config, context BuildContext) ([]Plugin, error) {
 }
 
 // configDefinitions is a registry of plugin types to plugin configs.
-var configDefinitions = make(map[string]func() Config)
+var configDefinitions = make(map[string]func() (Config, mapstructure.DecodeHookFunc))
 
 // Register will register a plugin config by plugin type.
-func Register(pluginType string, config Config) {
-	configDefinitions[pluginType] = func() Config {
+func Register(pluginType string, config Config, decoders ...mapstructure.DecodeHookFunc) {
+	configDefinitions[pluginType] = func() (Config, mapstructure.DecodeHookFunc) {
 		val := reflect.New(reflect.TypeOf(config).Elem()).Interface()
-		return val.(Config)
+		return val.(Config), mapstructure.ComposeDecodeHookFunc(decoders...)
 	}
 }
 
@@ -82,11 +82,11 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 		return nil, fmt.Errorf("unknown plugin config type %s", typeString)
 	}
 
-	config := createConfig()
+	config, decodeHook := createConfig()
 	// TODO handle unused fields
 	decoderCfg := &mapstructure.DecoderConfig{
 		Result:     &config,
-		DecodeHook: entry.FieldSelectorDecoder,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(decodeHook, entry.FieldSelectorDecoder),
 	}
 	decoder, err := mapstructure.NewDecoder(decoderCfg)
 	if err != nil {

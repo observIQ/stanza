@@ -37,7 +37,7 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	if c.Field == nil {
-		var fs entry.FieldSelector = entry.SingleFieldSelector([]string{})
+		var fs entry.FieldSelector = entry.FieldSelector([]string{})
 		c.Field = &fs
 	}
 
@@ -70,13 +70,13 @@ type JSONParser struct {
 
 // Process will parse an entry field as JSON.
 func (p *JSONParser) Process(entry *entry.Entry) error {
-	newEntry, err := p.parse(entry)
+	parsedEntry, err := p.parse(entry)
 	if err != nil {
 		p.Warnw("Failed to parse message", zap.Error(err), "message", entry)
-		return nil
+		return p.Output.Process(entry)
 	}
 
-	return p.Output.Process(newEntry)
+	return p.Output.Process(parsedEntry)
 }
 
 // parse will parse an entry.

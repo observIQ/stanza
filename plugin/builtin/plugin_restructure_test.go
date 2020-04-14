@@ -41,9 +41,7 @@ func TestRestructurePlugin(t *testing.T) {
 	}
 	cases := []struct {
 		name   string
-		move   []MoveConfig
-		remove []entry.FieldSelector
-		retain []entry.FieldSelector
+		ops    []Op
 		input  *entry.Entry
 		output *entry.Entry
 	}{
@@ -54,8 +52,8 @@ func TestRestructurePlugin(t *testing.T) {
 		},
 		{
 			name: "Remove",
-			remove: []entry.FieldSelector{
-				entry.NewSingleFieldSelector("nested"),
+			ops: []Op{
+				&OpRemove{[]string{"nested"}},
 			},
 			input: newTestEntry(),
 			output: func() *entry.Entry {
@@ -68,8 +66,8 @@ func TestRestructurePlugin(t *testing.T) {
 		},
 		{
 			name: "Retain",
-			retain: []entry.FieldSelector{
-				entry.NewSingleFieldSelector("key"),
+			ops: []Op{
+				&OpRetain{[]entry.FieldSelector{[]string{"key"}}},
 			},
 			input: newTestEntry(),
 			output: func() *entry.Entry {
@@ -82,10 +80,10 @@ func TestRestructurePlugin(t *testing.T) {
 		},
 		{
 			name: "Move",
-			move: []MoveConfig{
-				{
-					From: entry.NewSingleFieldSelector("key"),
-					To:   entry.NewSingleFieldSelector("newkey"),
+			ops: []Op{
+				&OpMove{
+					From: []string{"key"},
+					To:   []string{"newkey"},
 				},
 			},
 			input: newTestEntry(),
@@ -100,15 +98,30 @@ func TestRestructurePlugin(t *testing.T) {
 				return e
 			}(),
 		},
+		{
+			name: "Flatten",
+			ops: []Op{
+				&OpFlatten{
+					Field: []string{"nested"},
+				},
+			},
+			input: newTestEntry(),
+			output: func() *entry.Entry {
+				e := newTestEntry()
+				e.Record = map[string]interface{}{
+					"key":       "val",
+					"nestedkey": "nestedval",
+				}
+				return e
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 
 			plugin, mockOutput := NewFakeRestructurePlugin()
-			plugin.move = tc.move
-			plugin.remove = tc.remove
-			plugin.retain = tc.retain
+			plugin.ops = tc.ops
 
 			mockOutput.On("Process", mock.Anything).Run(func(args mock.Arguments) {
 				if !assert.Equal(t, tc.output, args[0].(*entry.Entry)) {

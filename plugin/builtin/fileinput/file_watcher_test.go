@@ -71,7 +71,7 @@ func TestFileWatcherReadsLog(t *testing.T) {
 	watcher := &FileWatcher{
 		path: temp.Name(),
 		pathField: func() *entry.FieldSelector {
-			var fs entry.FieldSelector = entry.SingleFieldSelector([]string{"path"})
+			var fs entry.FieldSelector = entry.FieldSelector([]string{"path"})
 			return &fs
 		}(),
 		offset:           0,

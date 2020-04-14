@@ -13,14 +13,15 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func main() {
-	logCfg := zap.NewDevelopmentConfig()
-	logCfg.EncoderConfig.TimeKey = ""
-	logCfg.EncoderConfig.CallerKey = ""
-	logCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	logCfg := zap.NewProductionConfig()
+	logCfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	// logCfg := zap.NewDevelopmentConfig()
+	// logCfg.EncoderConfig.TimeKey = ""
+	// logCfg.EncoderConfig.CallerKey = ""
+	// logCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	baseLogger, _ := logCfg.Build()
 	logger := baseLogger.Sugar()
 	defer func() {

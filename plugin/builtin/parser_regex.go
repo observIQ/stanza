@@ -37,7 +37,7 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	if c.Field == nil {
-		var fs entry.FieldSelector = entry.SingleFieldSelector([]string{})
+		var fs entry.FieldSelector = entry.FieldSelector([]string{})
 		c.Field = &fs
 	}
 

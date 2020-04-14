@@ -42,10 +42,8 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	if c.MessageField == nil {
-		// TODO should we make the default just the root? And if so, how does
-		// that interact with the source field argument?
-		fs := entry.SingleFieldSelector([]string{"message"})
-		c.MessageField = &fs
+		fs := entry.FieldSelector([]string{"message"})
+		c.MessageField = fs
 	}
 
 	address, err := net.ResolveTCPAddr("tcp", c.ListenAddress)

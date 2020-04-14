@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSingleFieldSelectorGet(t *testing.T) {
+func TestFieldSelectorGet(t *testing.T) {
 	standardRecord := map[string]interface{}{
 		"testkey": "testval",
 		"testnested": map[string]interface{}{
@@ -17,7 +17,7 @@ func TestSingleFieldSelectorGet(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		selector    SingleFieldSelector
+		selector    FieldSelector
 		record      interface{}
 		expectedVal interface{}
 		expectedOk  bool
@@ -75,7 +75,7 @@ func TestSingleFieldSelectorGet(t *testing.T) {
 	}
 }
 
-func TestSingleFieldSelectorDelete(t *testing.T) {
+func TestFieldSelectorDelete(t *testing.T) {
 	newStandardRecord := func() map[string]interface{} {
 		standardRecord := map[string]interface{}{
 			"testkey": "testval",
@@ -88,7 +88,7 @@ func TestSingleFieldSelectorDelete(t *testing.T) {
 
 	cases := []struct {
 		name             string
-		selector         SingleFieldSelector
+		selector         FieldSelector
 		record           interface{}
 		expectedRecord   interface{}
 		expectedReturned interface{}
@@ -166,7 +166,7 @@ func TestSingleFieldSelectorDelete(t *testing.T) {
 	}
 }
 
-func TestSingleFieldSelectorSet(t *testing.T) {
+func TestFieldSelectorSet(t *testing.T) {
 	standardRecord := map[string]interface{}{
 		"testkey": "testval",
 		"testnested": map[string]interface{}{
@@ -176,7 +176,7 @@ func TestSingleFieldSelectorSet(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		selector    SingleFieldSelector
+		selector    FieldSelector
 		record      interface{}
 		setTo       interface{}
 		expectedVal interface{}
@@ -255,7 +255,7 @@ func TestFieldSelectorDecode(t *testing.T) {
 			"simple",
 			map[string]interface{}{"fs": "test"},
 			decodeTarget{
-				Fs: SingleFieldSelector([]string{"test"}),
+				Fs: FieldSelector([]string{"test"}),
 			},
 			false,
 		},
@@ -263,7 +263,7 @@ func TestFieldSelectorDecode(t *testing.T) {
 			"multi",
 			map[string]interface{}{"fs": []string{"test1", "test2"}},
 			decodeTarget{
-				Fs: SingleFieldSelector([]string{"test1", "test2"}),
+				Fs: FieldSelector([]string{"test1", "test2"}),
 			},
 			false,
 		},
@@ -272,7 +272,7 @@ func TestFieldSelectorDecode(t *testing.T) {
 			map[string]interface{}{"fsptr": "test"},
 			decodeTarget{
 				Fsptr: func() *FieldSelector {
-					var fs FieldSelector = SingleFieldSelector([]string{"test"})
+					var fs FieldSelector = FieldSelector([]string{"test"})
 					return &fs
 				}(),
 			},
@@ -283,7 +283,7 @@ func TestFieldSelectorDecode(t *testing.T) {
 			map[string]interface{}{"fsptr": []string{"test1", "test2"}},
 			decodeTarget{
 				Fsptr: func() *FieldSelector {
-					var fs FieldSelector = SingleFieldSelector([]string{"test1", "test2"})
+					var fs FieldSelector = FieldSelector([]string{"test1", "test2"})
 					return &fs
 				}(),
 			},
