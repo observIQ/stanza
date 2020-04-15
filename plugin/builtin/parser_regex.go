@@ -7,7 +7,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -18,11 +17,8 @@ func init() {
 type RegexParserConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-
-	// TODO design these params better
-	Field            *entry.FieldSelector
-	DestinationField *entry.FieldSelector
-	Regex            string
+	helper.BasicParserConfig      `mapstructure:",squash" yaml:",inline"`
+	Regex                         string
 }
 
 // Build will build a regex parser plugin.
@@ -32,18 +28,9 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 		return nil, err
 	}
 
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	basicParser, err := c.BasicParserConfig.Build()
 	if err != nil {
 		return nil, err
-	}
-
-	if c.Field == nil {
-		var fs entry.FieldSelector = entry.FieldSelector([]string{})
-		c.Field = &fs
-	}
-
-	if c.DestinationField == nil {
-		c.DestinationField = c.Field
 	}
 
 	if c.Regex == "" {
@@ -56,12 +43,9 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	regexParser := &RegexParser{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-
-		field:            *c.Field,
-		destinationField: *c.DestinationField,
-		regexp:           r,
+		BasicPlugin: basicPlugin,
+		BasicParser: basicParser,
+		regexp:      r,
 	}
 
 	return regexParser, nil
@@ -71,41 +55,28 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 type RegexParser struct {
 	helper.BasicPlugin
 	helper.BasicLifecycle
-	helper.BasicTransformer
-
-	field            entry.FieldSelector
-	destinationField entry.FieldSelector
-	regexp           *regexp.Regexp
+	helper.BasicParser
+	regexp *regexp.Regexp
 }
 
-// Process will parse a field in the entry as regex
-func (p *RegexParser) Process(entry *entry.Entry) error {
-	newEntry, err := p.parse(entry)
-	if err != nil {
-		p.Warnw("Failed to parse as regex", zap.Error(err))
-		return p.Output.Process(entry)
-	}
-
-	return p.Output.Process(newEntry)
+// Process will parse an entry for regex.
+func (r *RegexParser) Process(entry *entry.Entry) error {
+	return r.BasicParser.ProcessWith(entry, r.parse)
 }
 
-func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
-	message, ok := entry.Get(p.field)
-	if !ok {
-		return nil, fmt.Errorf("field %s does not exist on the record", p.field)
-	}
-
+// parse will parse a value using the supplied regex.
+func (r *RegexParser) parse(value interface{}) (interface{}, error) {
 	var matches []string
-	switch m := message.(type) {
+	switch m := value.(type) {
 	case string:
-		matches = p.regexp.FindStringSubmatch(m)
+		matches = r.regexp.FindStringSubmatch(m)
 		if matches == nil {
-			return nil, fmt.Errorf("regex pattern does not match value '%s'", m)
+			return nil, fmt.Errorf("regex pattern does not match")
 		}
 	case []byte:
-		byteMatches := p.regexp.FindSubmatch(m)
+		byteMatches := r.regexp.FindSubmatch(m)
 		if byteMatches == nil {
-			return nil, fmt.Errorf("regex pattern does not match value '%s'", m)
+			return nil, fmt.Errorf("regex pattern does not match")
 		}
 
 		matches = make([]string, 0, len(byteMatches))
@@ -113,21 +84,19 @@ func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 			matches[i] = string(byteSlice)
 		}
 	default:
-		return nil, fmt.Errorf("field %s can not be parsed with regex because it is of type %T", p.field, message)
+		return nil, fmt.Errorf("type '%T' cannot be parsed as regex", value)
 	}
 
-	newFields := map[string]interface{}{}
-	for i, subexp := range p.regexp.SubexpNames() {
+	parsedValues := map[string]interface{}{}
+	for i, subexp := range r.regexp.SubexpNames() {
 		if i == 0 {
 			// Skip whole match
 			continue
 		}
-    if subexp != "" {
-      newFields[subexp] = matches[i]
-    }
+		if subexp != "" {
+			parsedValues[subexp] = matches[i]
+		}
 	}
 
-	entry.Set(p.destinationField, newFields)
-
-	return entry, nil
+	return parsedValues, nil
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	jsoniter "github.com/json-iterator/go"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -16,12 +15,8 @@ func init() {
 
 // JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-
-	// TODO design these params better
-	Field            *entry.FieldSelector
-	DestinationField *entry.FieldSelector
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a JSON parser plugin.
@@ -31,77 +26,49 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	basicParser, err := c.BasicParserConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	if c.Field == nil {
-		var fs entry.FieldSelector = entry.FieldSelector([]string{})
-		c.Field = &fs
+	jsonParser := &JSONParser{
+		BasicPlugin: basicPlugin,
+		BasicParser: basicParser,
+		json:        jsoniter.ConfigFastest,
 	}
 
-	if c.DestinationField == nil {
-		c.DestinationField = c.Field
-	}
-
-	plugin := &JSONParser{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-
-		field:            *c.Field,
-		destinationField: *c.DestinationField,
-		json:             jsoniter.ConfigFastest,
-	}
-
-	return plugin, nil
+	return jsonParser, nil
 }
 
 // JSONParser is a plugin that parses JSON.
 type JSONParser struct {
 	helper.BasicPlugin
 	helper.BasicLifecycle
-	helper.BasicTransformer
-
-	field            entry.FieldSelector
-	destinationField entry.FieldSelector
-	json             jsoniter.API
+	helper.BasicParser
+	json jsoniter.API
 }
 
-// Process will parse an entry field as JSON.
-func (p *JSONParser) Process(entry *entry.Entry) error {
-	parsedEntry, err := p.parse(entry)
-	if err != nil {
-		p.Warnw("Failed to parse message", zap.Error(err), "message", entry)
-		return p.Output.Process(entry)
-	}
-
-	return p.Output.Process(parsedEntry)
+// Process will parse an entry for JSON.
+func (j *JSONParser) Process(entry *entry.Entry) error {
+	return j.BasicParser.ProcessWith(entry, j.parse)
 }
 
-// parse will parse an entry.
-func (p *JSONParser) parse(entry *entry.Entry) (*entry.Entry, error) {
-	message, ok := entry.Get(p.field)
-	if !ok {
-		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)
-	}
-
-	var parsedMessage map[string]interface{}
-	switch m := message.(type) {
+// parse will parse a value as JSON.
+func (j *JSONParser) parse(value interface{}) (interface{}, error) {
+	var parsedValue map[string]interface{}
+	switch m := value.(type) {
 	case string:
-		err := p.json.UnmarshalFromString(m, &parsedMessage)
+		err := j.json.UnmarshalFromString(m, &parsedValue)
 		if err != nil {
-			return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
+			return nil, err
 		}
 	case []byte:
-		err := p.json.Unmarshal(m, &parsedMessage)
+		err := j.json.Unmarshal(m, &parsedValue)
 		if err != nil {
-			return nil, fmt.Errorf("parse field %s as JSON: %w", p.field, err)
+			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("cannot parse field of type %T as JSON", message)
+		return nil, fmt.Errorf("type %T cannot be parsed as JSON", value)
 	}
-
-	entry.Set(p.destinationField, parsedMessage)
-	return entry, nil
+	return parsedValue, nil
 }

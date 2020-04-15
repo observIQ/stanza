@@ -7,7 +7,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -15,13 +14,10 @@ func init() {
 }
 
 // TimeParserConfig is the configuration of a time parser plugin.
-// TODO split this into a "parser" and a "promoter" plugin?
 type TimeParserConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-
-	Field  entry.FieldSelector
-	Layout string
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	Layout                   string
 }
 
 // Build will build a time parser plugin.
@@ -31,71 +27,41 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	basicParser, err := c.BasicParserConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	if c.Field == nil {
-		return nil, fmt.Errorf("missing required field 'field'")
+	timeParser := &TimeParser{
+		BasicPlugin: basicPlugin,
+		BasicParser: basicParser,
+		layout:      c.Layout,
 	}
 
-	if c.Layout == "" {
-		return nil, fmt.Errorf("missing required field 'layout'")
-	}
-
-	timeParserPlugin := &TimeParser{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-
-		field:  c.Field,
-		layout: c.Layout,
-	}
-
-	return timeParserPlugin, nil
+	return timeParser, nil
 }
 
-// TimeParser is a plugin that parses time from a field.
+// TimeParser is a plugin that parses time from an entry.
 type TimeParser struct {
 	helper.BasicPlugin
 	helper.BasicLifecycle
-	helper.BasicTransformer
-
-	field  entry.FieldSelector
+	helper.BasicParser
 	layout string
 }
 
-// Process will parse time and send the entry to the next plugin.
-func (p *TimeParser) Process(entry *entry.Entry) error {
-	newEntry, err := p.parseTime(entry)
-	if err != nil {
-		p.Warnw("Failed to parse time", zap.Error(err), "entry", entry)
-		return p.Output.Process(entry)
-	}
-
-	return p.Output.Process(newEntry)
+// Process will parse time from an entry.
+func (t *TimeParser) Process(entry *entry.Entry) error {
+	return t.BasicParser.ProcessWith(entry, t.parse)
 }
 
-// Parse time will parse time and create a new entry.
-func (p *TimeParser) parseTime(entry *entry.Entry) (*entry.Entry, error) {
-	message, ok := entry.Get(p.field)
-	if !ok {
-		return nil, fmt.Errorf("field '%s' does not exist", p.field)
+// Parse will parse a value as a time.
+func (t *TimeParser) parse(value interface{}) (interface{}, error) {
+	switch v := value.(type) {
+	case string:
+		return time.Parse(t.layout, v)
+	case []byte:
+		return time.Parse(t.layout, string(v))
+	default:
+		return nil, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
-
-	// TODO support bytes?
-	messageString, ok := message.(string)
-	if !ok {
-		return nil, fmt.Errorf("field '%s' can not be parsed with regex because it is of type %T", p.field, message)
-	}
-
-	time, err := time.Parse(p.layout, messageString)
-	if err != nil {
-		return nil, fmt.Errorf("parsing time: %s", err)
-	}
-
-	entry.Timestamp = time
-	entry.Delete(p.field)
-
-	return entry, nil
 }
