@@ -145,7 +145,7 @@ func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
 		return err
 	}
 
-	return p.buffer.AddWait(context.TODO(), pbEntry, pbEntry.XXX_Size())
+	return p.buffer.AddWait(context.TODO(), pbEntry, 0)
 }
 
 func (p *GoogleCloudOutput) writeEntries(ctx context.Context, entries []*logpb.LogEntry) error {

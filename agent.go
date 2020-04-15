@@ -101,6 +101,17 @@ func openDatabase(file string) (*bbolt.DB, error) {
 		file = defaultDatabaseFile()
 	}
 
+	if _, err := os.Stat(filepath.Dir(file)); err != nil {
+		if os.IsNotExist(err) {
+			err := os.MkdirAll(filepath.Dir(file), 0666)
+			if err != nil {
+				return nil, fmt.Errorf("creating database directory: %s", err)
+			}
+		} else {
+			return nil, err
+		}
+	}
+
 	options := &bbolt.Options{Timeout: 1 * time.Second}
 	return bbolt.Open(file, 0666, options)
 }

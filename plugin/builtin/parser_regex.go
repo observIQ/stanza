@@ -93,7 +93,9 @@ func (r *RegexParser) parse(value interface{}) (interface{}, error) {
 			// Skip whole match
 			continue
 		}
-		parsedValues[subexp] = matches[i]
+		if subexp != "" {
+			parsedValues[subexp] = matches[i]
+		}
 	}
 
 	return parsedValues, nil
