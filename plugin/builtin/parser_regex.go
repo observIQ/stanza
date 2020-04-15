@@ -7,6 +7,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -81,8 +82,8 @@ type RegexParser struct {
 func (p *RegexParser) Process(entry *entry.Entry) error {
 	newEntry, err := p.parse(entry)
 	if err != nil {
-		// TODO allow continuing with best effort
-		return err
+		p.Warnw("Failed to parse as regex", zap.Error(err))
+		return p.Output.Process(entry)
 	}
 
 	return p.Output.Process(newEntry)
@@ -91,7 +92,7 @@ func (p *RegexParser) Process(entry *entry.Entry) error {
 func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 	message, ok := entry.Get(p.field)
 	if !ok {
-		return nil, fmt.Errorf("field '%s' does not exist on the record", p.field)
+		return nil, fmt.Errorf("field %s does not exist on the record", p.field)
 	}
 
 	var matches []string
@@ -99,12 +100,12 @@ func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 	case string:
 		matches = p.regexp.FindStringSubmatch(m)
 		if matches == nil {
-			return nil, fmt.Errorf("regex pattern does not match field")
+			return nil, fmt.Errorf("regex pattern does not match value '%s'", m)
 		}
 	case []byte:
 		byteMatches := p.regexp.FindSubmatch(m)
 		if byteMatches == nil {
-			return nil, fmt.Errorf("regex pattern does not match field")
+			return nil, fmt.Errorf("regex pattern does not match value '%s'", m)
 		}
 
 		matches = make([]string, 0, len(byteMatches))
@@ -112,7 +113,7 @@ func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 			matches[i] = string(byteSlice)
 		}
 	default:
-		return nil, fmt.Errorf("field '%s' can not be parsed with regex because it is of type %T", p.field, message)
+		return nil, fmt.Errorf("field %s can not be parsed with regex because it is of type %T", p.field, message)
 	}
 
 	newFields := map[string]interface{}{}

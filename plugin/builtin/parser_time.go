@@ -7,6 +7,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -68,8 +69,8 @@ type TimeParser struct {
 func (p *TimeParser) Process(entry *entry.Entry) error {
 	newEntry, err := p.parseTime(entry)
 	if err != nil {
-		// TODO allow continuing with best effort
-		return err
+		p.Warnw("Failed to parse time", zap.Error(err), "entry", entry)
+		return p.Output.Process(entry)
 	}
 
 	return p.Output.Process(newEntry)
