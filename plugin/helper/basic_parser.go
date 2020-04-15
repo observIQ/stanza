@@ -2,7 +2,6 @@ package helper
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -32,11 +31,12 @@ func (c BasicParserConfig) Build() (BasicParser, error) {
 	}
 
 	if c.OnError == "" {
-		c.OnError = "fail"
+		c.OnError = "ignore"
 	}
 
-	match, _ := regexp.Match(`^(fail|drop|ignore)$`, []byte(c.OnError))
-	if !match {
+	switch c.OnError {
+	case "fail", "drop", "ignore":
+	default:
 		return BasicParser{}, fmt.Errorf("on_error must have a value of fail, drop, or ignore")
 	}
 
