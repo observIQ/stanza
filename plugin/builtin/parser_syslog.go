@@ -17,12 +17,9 @@ func init() {
 
 // SyslogParserConfig is the configuration of a syslog parser plugin.
 type SyslogParserConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-
-	Field            *entry.FieldSelector
-	DestinationField *entry.FieldSelector
-	Protocol         string `yaml:",omitempty"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	Protocol                 string `yaml:",omitempty"`
 }
 
 // Build will build a JSON parser plugin.
@@ -32,18 +29,9 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 		return nil, err
 	}
 
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	basicParser, err := c.BasicParserConfig.Build()
 	if err != nil {
 		return nil, err
-	}
-
-	if c.Field == nil {
-		var fs entry.FieldSelector = entry.FieldSelector([]string{})
-		c.Field = &fs
-	}
-
-	if c.DestinationField == nil {
-		*c.DestinationField = *c.Field
 	}
 
 	if c.Protocol == "" {
@@ -56,12 +44,9 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	}
 
 	syslogParser := &SyslogParser{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-
-		field:            *c.Field,
-		destinationField: *c.DestinationField,
-		machine:          machine,
+		BasicPlugin: basicPlugin,
+		BasicParser: basicParser,
+		machine:     machine,
 	}
 
 	return syslogParser, nil
@@ -82,90 +67,67 @@ func (c SyslogParserConfig) buildMachine() (syslog.Machine, error) {
 type SyslogParser struct {
 	helper.BasicPlugin
 	helper.BasicLifecycle
-	helper.BasicTransformer
-
-	field            entry.FieldSelector
-	destinationField entry.FieldSelector
-	machine          syslog.Machine
+	helper.BasicParser
+	machine syslog.Machine
 }
 
 // Process will parse an entry field as syslog.
 func (s *SyslogParser) Process(entry *entry.Entry) error {
-	newEntry, err := s.parse(entry)
-	if err != nil {
-		return err
-	}
-
-	return s.Output.Process(newEntry)
+	return s.BasicParser.ProcessWith(entry, s.parse)
 }
 
-// parse will parse an entry.
-func (s *SyslogParser) parse(entry *entry.Entry) (*entry.Entry, error) {
-	bytes, err := s.bytesFromField(entry, s.field)
+// parse will parse a value as syslog.
+func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
+	bytes, err := s.toBytes(value)
 	if err != nil {
 		return nil, err
 	}
 
-	parsedValues, err := s.parseAsMap(bytes)
+	syslog, err := s.machine.Parse(bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	entry.Set(s.destinationField, parsedValues)
-	return entry, nil
-}
-
-func (s *SyslogParser) bytesFromField(entry *entry.Entry, field entry.FieldSelector) ([]byte, error) {
-	value, ok := entry.Get(field)
-	if !ok {
-		return nil, fmt.Errorf("field '%s' does not exist on the entry", field)
+	if message, ok := syslog.(*rfc3164.SyslogMessage); ok {
+		return map[string]interface{}{
+			"timestamp": message.Timestamp,
+			"priority":  message.Priority,
+			"facility":  message.Facility,
+			"severity":  message.Severity,
+			"hostname":  message.Hostname,
+			"appname":   message.Appname,
+			"proc_id":   message.ProcID,
+			"msg_id":    message.MsgID,
+			"message":   message.Message,
+		}, nil
 	}
 
+	if message, ok := syslog.(*rfc5424.SyslogMessage); ok {
+		return map[string]interface{}{
+			"timestamp":       message.Timestamp,
+			"priority":        message.Priority,
+			"facility":        message.Facility,
+			"severity":        message.Severity,
+			"hostname":        message.Hostname,
+			"appname":         message.Appname,
+			"proc_id":         message.ProcID,
+			"msg_id":          message.MsgID,
+			"message":         message.Message,
+			"structured_data": message.StructuredData,
+			"version":         message.Version,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("parsed value was not rfc3164 or rfc5424 compliant")
+}
+
+func (s *SyslogParser) toBytes(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 	case string:
 		return []byte(v), nil
 	case []byte:
 		return v, nil
 	default:
-		return nil, fmt.Errorf("unable to parse field '%v' of type '%T'", field, value)
+		return nil, fmt.Errorf("unable to convert type '%T' to bytes", value)
 	}
-}
-
-func (s *SyslogParser) parseAsMap(bytes []byte) (map[string]interface{}, error) {
-	parsedValue, err := s.machine.Parse(bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse as syslog: %s", err)
-	}
-
-	if syslogMessage, ok := parsedValue.(*rfc3164.SyslogMessage); ok {
-		return map[string]interface{}{
-			"timestamp": syslogMessage.Timestamp,
-			"priority":  syslogMessage.Priority,
-			"facility":  syslogMessage.Facility,
-			"severity":  syslogMessage.Severity,
-			"hostname":  syslogMessage.Hostname,
-			"appname":   syslogMessage.Appname,
-			"proc_id":   syslogMessage.ProcID,
-			"msg_id":    syslogMessage.MsgID,
-			"message":   syslogMessage.Message,
-		}, nil
-	}
-
-	if syslogMessage, ok := parsedValue.(*rfc5424.SyslogMessage); ok {
-		return map[string]interface{}{
-			"timestamp":       syslogMessage.Timestamp,
-			"priority":        syslogMessage.Priority,
-			"facility":        syslogMessage.Facility,
-			"severity":        syslogMessage.Severity,
-			"hostname":        syslogMessage.Hostname,
-			"appname":         syslogMessage.Appname,
-			"proc_id":         syslogMessage.ProcID,
-			"msg_id":          syslogMessage.MsgID,
-			"message":         syslogMessage.Message,
-			"structured_data": syslogMessage.StructuredData,
-			"version":         syslogMessage.Version,
-		}, nil
-	}
-
-	return nil, fmt.Errorf("parsed value was not rfc3164 or rfc5424 compliant")
 }

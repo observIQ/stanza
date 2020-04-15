@@ -23,12 +23,12 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 			PluginType:    "json_parser",
 			SugaredLogger: logger.Sugar(),
 		},
-		BasicTransformer: helper.BasicTransformer{
-			Output: &mock,
+		BasicParser: helper.BasicParser{
+			Output:    &mock,
+			ParseFrom: entry.FieldSelector([]string{"testfield"}),
+			ParseTo:   entry.FieldSelector([]string{"testparsed"}),
 		},
-		field:            entry.FieldSelector([]string{"testfield"}),
-		destinationField: entry.FieldSelector([]string{"testparsed"}),
-		json:             jsoniter.ConfigFastest,
+		json: jsoniter.ConfigFastest,
 	}, &mock
 }
 
