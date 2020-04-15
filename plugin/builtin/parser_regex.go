@@ -122,7 +122,9 @@ func (p *RegexParser) parse(entry *entry.Entry) (*entry.Entry, error) {
 			// Skip whole match
 			continue
 		}
-		newFields[subexp] = matches[i]
+    if subexp != "" {
+      newFields[subexp] = matches[i]
+    }
 	}
 
 	entry.Set(p.destinationField, newFields)
