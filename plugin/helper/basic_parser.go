@@ -107,8 +107,8 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 
 // HandleParserError will handle an error based on the `OnError` property
 func (p *BasicParser) HandleParserError(entry *entry.Entry, err error) error {
-	p.Errorw("Failed to parse entry", zap.Error(err), "entry", entry)
-	
+	p.Warnw("Failed to parse entry", zap.Error(err), "entry", entry)
+
 	if p.OnError == "fail" {
 		return err
 	}
