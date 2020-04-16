@@ -27,7 +27,7 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
-	basicParser, err := c.BasicParserConfig.Build()
+	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
 	if err != nil {
 		return nil, err
 	}

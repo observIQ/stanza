@@ -28,7 +28,7 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 		return nil, err
 	}
 
-	basicParser, err := c.BasicParserConfig.Build()
+	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
 	if err != nil {
 		return nil, err
 	}

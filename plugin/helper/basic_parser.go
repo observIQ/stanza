@@ -5,6 +5,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
+	"go.uber.org/zap"
 )
 
 // BasicParserConfig provides the basic implementation of a parser config.
@@ -16,7 +17,7 @@ type BasicParserConfig struct {
 }
 
 // Build will build a basic parser.
-func (c BasicParserConfig) Build() (BasicParser, error) {
+func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error) {
 	if c.OutputID == "" {
 		return BasicParser{}, fmt.Errorf("missing field 'output'")
 	}
@@ -41,10 +42,11 @@ func (c BasicParserConfig) Build() (BasicParser, error) {
 	}
 
 	basicParser := BasicParser{
-		OutputID:  c.OutputID,
-		ParseFrom: *c.ParseFrom,
-		ParseTo:   *c.ParseTo,
-		OnError:   c.OnError,
+		OutputID:      c.OutputID,
+		ParseFrom:     *c.ParseFrom,
+		ParseTo:       *c.ParseTo,
+		OnError:       c.OnError,
+		SugaredLogger: logger,
 	}
 
 	return basicParser, nil
@@ -57,6 +59,7 @@ type BasicParser struct {
 	ParseTo   entry.FieldSelector
 	OnError   string
 	Output    plugin.Plugin
+	*zap.SugaredLogger
 }
 
 // CanProcess will always return true for a parser plugin.
@@ -104,6 +107,8 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 
 // HandleParserError will handle an error based on the `OnError` property
 func (p *BasicParser) HandleParserError(entry *entry.Entry, err error) error {
+	p.Errorf("Failed to parse entry: %s", err)
+	
 	if p.OnError == "fail" {
 		return err
 	}
