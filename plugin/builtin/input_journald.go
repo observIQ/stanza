@@ -86,11 +86,26 @@ func (g *JournaldInput) Start() error {
 			default:
 			}
 
-			_, err := g.journal.Next()
+			num, err := g.journal.Next()
 			if err != nil {
 				g.Infow("Failed to advance journal cursor", zap.Error(err))
 				return
 			}
+
+			if num == 0 {
+				signal := make(chan struct{})
+				go func() {
+					g.journal.Wait(sdjournal.IndefiniteWait)
+					close(signal)
+				}()
+				select {
+				case <-signal:
+					continue
+				case <-ctx.Done():
+					return
+				}
+			}
+
 			jEntry, err := g.journal.GetEntry()
 			newRecord := make(map[string]interface{})
 			for k, v := range jEntry.Fields {
