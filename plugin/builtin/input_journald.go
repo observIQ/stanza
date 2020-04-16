@@ -112,7 +112,7 @@ func (g *JournaldInput) Start() error {
 				newRecord[k] = v
 			}
 			newEntry := entry.Entry{
-				Timestamp: time.Unix(0, int64(jEntry.RealtimeTimestamp)),
+				Timestamp: time.Unix(0, int64(jEntry.RealtimeTimestamp)*1000), // from microseconds
 				Record:    newRecord,
 			}
 
