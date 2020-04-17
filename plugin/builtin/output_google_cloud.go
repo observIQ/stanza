@@ -30,7 +30,7 @@ func init() {
 type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	Credentials              string              `mapstructure:"credentials"    yaml:"credentials"`
-	ProjectID                string              `mapstructure:"project_id"     yaml:"credentials"`
+	ProjectID                string              `mapstructure:"project_id"     yaml:"project_id"`
 	LogNameField             entry.FieldSelector `mapstructure:"log_name_field" yaml:"log_name_field"`
 	LabelsField              entry.FieldSelector `mapstructure:"labels_field"   yaml:"labels_field"`
 	SeverityField            entry.FieldSelector `mapstructure:"severity_field" yaml:"severity_field"`
