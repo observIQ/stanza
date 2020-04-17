@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/logging"
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -31,7 +30,7 @@ func init() {
 type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	Credentials              string              `mapstructure:"credentials"    yaml:"credentials"`
-	ProjectID                string              `mapstructure:"project_id"     yaml:"credentials"`
+	ProjectID                string              `mapstructure:"project_id"     yaml:"project_id"`
 	LogNameField             entry.FieldSelector `mapstructure:"log_name_field" yaml:"log_name_field"`
 	LabelsField              entry.FieldSelector `mapstructure:"labels_field"   yaml:"labels_field"`
 	SeverityField            entry.FieldSelector `mapstructure:"severity_field" yaml:"severity_field"`
@@ -69,12 +68,6 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 	}
 
 	return googleCloudOutput, nil
-}
-
-// GoogleCloudLogger is a logger that logs to google cloud.
-type GoogleCloudLogger interface {
-	Log(logging.Entry)
-	Flush() error
 }
 
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
@@ -154,6 +147,7 @@ func (p *GoogleCloudOutput) writeEntries(ctx context.Context, entries []*logpb.L
 		Entries:  entries,
 		Resource: globalResource(p.projectID),
 	}
+
 	_, err := p.client.WriteLogEntries(ctx, &req)
 	if err != nil {
 		return err
