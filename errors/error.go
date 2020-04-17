@@ -7,7 +7,6 @@ import (
 // AgentError is an error that occurs in the a log agent.
 type AgentError struct {
 	Description string
-	Cause       string
 	Suggestion  string
 	Details     ErrorDetails
 	Stack       ErrorStack
@@ -21,7 +20,6 @@ func (e AgentError) Error() string {
 // MarshalLogObject will define the representation of this error when logging.
 func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	encoder.AddString("description", e.Description)
-	encoder.AddString("cause", e.Cause)
 	encoder.AddString("suggestion", e.Suggestion)
 	encoder.AddObject("details", e.Details)
 	encoder.AddArray("stack", e.Stack)
@@ -39,10 +37,9 @@ func WithDetails(err error, keyValues ...string) error {
 }
 
 // NewError will create a new agent error.
-func NewError(description string, cause string, suggestion string, keyValues ...string) AgentError {
+func NewError(description string, suggestion string, keyValues ...string) AgentError {
 	return AgentError{
 		Description: description,
-		Cause:       cause,
 		Suggestion:  suggestion,
 		Details:     createDetails(keyValues),
 		Stack:       createStack(),

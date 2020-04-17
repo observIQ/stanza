@@ -15,8 +15,7 @@ func (c BasicTransformerConfig) Build() (BasicTransformer, error) {
 	if c.OutputID == "" {
 		return BasicTransformer{}, errors.NewError(
 			"Plugin config is missing the `output` field.",
-			"This error occurs when a plugin requires an output, but the `output` field is omitted in the config.",
-			"Please add a valid output to the plugin config.",
+			"Ensure that a valid `output` field exists on the plugin config.",
 		)
 	}
 

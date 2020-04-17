@@ -20,8 +20,7 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 	if c.OutputID == "" {
 		return BasicParser{}, errors.NewError(
 			"Plugin config is missing the `output` field.",
-			"This error occurs when a plugin requires an output, but the `output` field is omitted in the config.",
-			"Please add a valid output to the plugin config.",
+			"Ensure that a valid `output` field exists on the plugin config.",
 		)
 	}
 
@@ -43,8 +42,7 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 	default:
 		return BasicParser{}, errors.NewError(
 			"Plugin config has an invalid `on_error` field.",
-			"This occurs when a value other than fail, drop, or ignore is used for `on_error`.",
-			"Please ensure that the `on_error` field is set to fail, drop, or ignore.",
+			"Ensure that the `on_error` field is set to fail, drop, or ignore.",
 			"on_error", c.OnError,
 		)
 	}
@@ -102,9 +100,7 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 	if !ok {
 		err := errors.NewError(
 			"Log entry does not have the expected parse_from field.",
-			"This can occur if the parser is receiving an unorganized mixture of logs with variable fields.",
-			"Please ensure that all entries forwarded to this parser contain the parse_from field.",
-			"parse_from", p.ParseFrom.String(),
+			"Ensure that all entries forwarded to this parser contain the parse_from field.",
 		)
 		return p.HandleParserError(entry, err)
 	}

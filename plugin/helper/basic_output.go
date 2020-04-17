@@ -27,7 +27,6 @@ func (o *BasicOutput) Outputs() []plugin.Plugin {
 func (o *BasicOutput) SetOutputs(plugins []plugin.Plugin) error {
 	return errors.NewError(
 		"Plugin can not output, but is attempting to set an output.",
-		"This is an unexpected internal error.",
-		"Please submit a bug/issue.",
+		"This is an unexpected internal error. Please submit a bug/issue.",
 	)
 }

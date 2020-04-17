@@ -28,7 +28,7 @@ func createStack() []string {
 
 	for {
 		frame, more := frames.Next()
-		trace := fmt.Sprintf("%s (%d)", frame.Function, frame.Line)
+		trace := fmt.Sprintf("%s:%d", frame.Function, frame.Line)
 		stack = append(stack, trace)
 		if !more {
 			return stack

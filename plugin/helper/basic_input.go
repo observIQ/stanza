@@ -16,8 +16,7 @@ func (c BasicInputConfig) Build() (BasicInput, error) {
 	if c.OutputID == "" {
 		return BasicInput{}, errors.NewError(
 			"Plugin config is missing the `output` field.",
-			"This error occurs when a plugin requires an output, but the `output` field is omitted in the config.",
-			"Please add a valid output to the plugin config.",
+			"Ensure that a valid `output` field exists on the plugin config.",
 		)
 	}
 
@@ -43,8 +42,7 @@ func (i *BasicInput) CanProcess() bool {
 func (i *BasicInput) Process(entry *entry.Entry) error {
 	return errors.NewError(
 		"Plugin can not process logs.",
-		"This error can occur when logs are accidentally sent to a plugin that is only meant to produce logs.",
-		"Please ensure that plugin is not configured receive logs from other plugins",
+		"Ensure that plugin is not configured to receive logs from other plugins",
 	)
 }
 
@@ -76,8 +74,7 @@ func FindOutput(plugins []plugin.Plugin, outputID string) (plugin.Plugin, error)
 			if !plugin.CanProcess() {
 				return nil, errors.NewError(
 					"Input plugin could not use its designated output.",
-					"This error can occur when a user accidentally sets the output to a plugin that is only meant to produce logs.",
-					"Please verify that the output is a plugin that can process logs (such as a parser or destination).",
+					"Ensure that the output is a plugin that can process logs (such as a parser or destination).",
 					"output_id", outputID,
 				)
 			}
@@ -88,8 +85,7 @@ func FindOutput(plugins []plugin.Plugin, outputID string) (plugin.Plugin, error)
 
 	return nil, errors.NewError(
 		"Input plugin could not find its output plugin.",
-		"This error can occur when a user accidentally misspells the output id or has forgotten to include a plugin in the config.",
-		"Please verify that the output is spelled correctly and defined in the config.",
+		"Ensure that the output plugin is spelled correctly and defined in the config.",
 		"output_id", outputID,
 	)
 }

@@ -59,8 +59,7 @@ func addNodes(graph *simple.DirectedGraph, plugins []plugin.Plugin) error {
 		if graph.Node(pluginNode.ID()) != nil {
 			return errors.NewError(
 				"Plugin already exists in the pipeline.",
-				"This error can occur when users have configured more than one plugin with the same id.",
-				"Please ensure that all plugins are defined with a unique id.",
+				"Ensure that all plugins are defined only once with a unique id.",
 				"plugin_id", pluginNode.Plugin().ID(),
 			)
 		}
@@ -84,8 +83,7 @@ func connectNodes(graph *simple.DirectedGraph) error {
 	if _, err := topo.Sort(graph); err != nil {
 		return errors.NewError(
 			"Pipeline has a circular dependency.",
-			"This error can occur when plugins are unknowingly connected in an infinite loop.",
-			"Please ensure that all plugins are connected in a straight, acyclic line.",
+			"Ensure that all plugins are connected in a straight, acyclic line.",
 			"raw_error", err.Error(),
 		)
 	}
@@ -99,8 +97,7 @@ func connectNode(graph *simple.DirectedGraph, inputNode PluginNode) error {
 		if graph.Node(outputNodeID) == nil {
 			return errors.NewError(
 				"Plugins cannot be connected, because the output does not exist in the pipeline.",
-				"This error can occur if the output plugin has not been added to the pipeline.",
-				"Please ensure that the output plugin is defined.",
+				"Ensure that the output plugin is defined.",
 				"input_plugin", inputNode.Plugin().ID(),
 				"output_plugin", outputPluginID,
 			)
@@ -110,8 +107,7 @@ func connectNode(graph *simple.DirectedGraph, inputNode PluginNode) error {
 		if !outputNode.Plugin().CanProcess() {
 			return errors.NewError(
 				"Plugins cannot be connected, because the output plugin can not process logs.",
-				"This error can occur if the connected output is only meant to produce logs.",
-				"Please ensure that the output plugin can process logs.",
+				"Ensure that the output plugin can process logs (like a parser or destination).",
 				"input_plugin", inputNode.Plugin().ID(),
 				"output_plugin", outputPluginID,
 			)
@@ -120,8 +116,7 @@ func connectNode(graph *simple.DirectedGraph, inputNode PluginNode) error {
 		if graph.HasEdgeFromTo(inputNode.ID(), outputNodeID) {
 			return errors.NewError(
 				"Plugins cannot be connected, because a connection already exists.",
-				"This error can occur if a plugin connection is defined multiple times.",
-				"Please ensure that only a single connection exists between two plugins",
+				"Ensure that only a single connection exists between the two plugins",
 				"input_plugin", inputNode.Plugin().ID(),
 				"output_plugin", outputPluginID,
 			)

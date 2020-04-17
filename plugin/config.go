@@ -75,8 +75,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 	if !ok {
 		return nil, errors.NewError(
 			"Plugin config is missing a `type` field.",
-			"This error can occur when a user accidentally omits the `type` field from a plugin config.",
-			"Please ensure that all plugin configs have a type defined.",
+			"Ensure that all plugin configs have a `type` field defined.",
 		)
 	}
 
@@ -84,8 +83,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 	if !ok {
 		return nil, errors.NewError(
 			"Plugin config does not have a `type` field as a string.",
-			"This error can occur when a user enters a value other than a string for the `type` field.",
-			"Please ensure that all plugin configs have a `type` field formatted as a string.",
+			"Ensure that all plugin configs have a `type` field formatted as a string.",
 		)
 	}
 
@@ -93,8 +91,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 	if !ok {
 		return nil, errors.NewError(
 			"Plugin config has an unknown plugin type.",
-			"This error can occur when a user accidentally defines a plugin config with an unknown plugin type.",
-			"Please ensure that all plugin configs have known, valid types.",
+			"Ensure that all plugin configs have a known, valid type.",
 			"plugin_type", typeString,
 		)
 	}

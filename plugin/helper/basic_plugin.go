@@ -26,16 +26,14 @@ func (c BasicPluginConfig) Build(logger *zap.SugaredLogger) (BasicPlugin, error)
 	if c.PluginID == "" {
 		return BasicPlugin{}, errors.NewError(
 			"Plugin config is missing the `id` field.",
-			"This error occurs when a user accidentally omits the `id` field for a plugin.",
-			"Please ensure that all plugins have a defined `id` field.",
+			"Ensure that all plugins have a uniquely defined `id` field.",
 		)
 	}
 
 	if c.PluginType == "" {
 		return BasicPlugin{}, errors.NewError(
 			"Plugin config is missing the `type` field.",
-			"This error occurs when a user accidentally omits the `type` field for a plugin.",
-			"Please ensure that all plugins have a defined `type` field.",
+			"Ensure that all plugins have a defined `type` field.",
 		)
 	}
 
