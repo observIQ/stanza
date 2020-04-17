@@ -28,12 +28,15 @@ func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 
 // WithDetails will add details to an agent error.
 func WithDetails(err error, keyValues ...string) error {
-	if agentErr, ok := err.(AgentError); ok && len(keyValues) > 0 {
-		for i := 0; i+1 < len(keyValues); i += 2 {
-			agentErr.Details[keyValues[i]] = keyValues[i+1]
+	if agentErr, ok := err.(AgentError); ok {
+		if len(keyValues) > 0 {
+			for i := 0; i+1 < len(keyValues); i += 2 {
+				agentErr.Details[keyValues[i]] = keyValues[i+1]
+			}
 		}
+		return agentErr
 	}
-	return err
+	return NewError(err.Error(), "", keyValues...)
 }
 
 // NewError will create a new agent error.
