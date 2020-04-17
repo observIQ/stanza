@@ -176,7 +176,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		var rawLogName string
 		err := e.Read(p.logNameField, &rawLogName)
 		if err != nil {
-			p.Warnw("Failed to set log name", zap.Error(err))
+			p.Warnw("Failed to set log name", zap.Error(err), "entry", e)
 		} else {
 			newEntry.LogName = p.toLogNamePath(rawLogName)
 			e.Delete(p.logNameField)
@@ -186,7 +186,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 	if p.labelsField != nil {
 		err := e.Read(p.labelsField, &newEntry.Labels)
 		if err != nil {
-			p.Warnw("Failed to set labels", zap.Error(err))
+			p.Warnw("Failed to set labels", zap.Error(err), "entry", e)
 		} else {
 			e.Delete(p.labelsField)
 		}
@@ -196,7 +196,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		// TODO parse trace
 		err := e.Read(p.traceField, &newEntry.Trace)
 		if err != nil {
-			p.Warnw("Failed to set trace", zap.Error(err))
+			p.Warnw("Failed to set trace", zap.Error(err), "entry", e)
 		} else {
 			e.Delete(p.traceField)
 		}
@@ -205,7 +205,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 	if p.spanIDField != nil {
 		err := e.Read(p.spanIDField, &newEntry.SpanId)
 		if err != nil {
-			p.Warnw("Failed to set span ID", zap.Error(err))
+			p.Warnw("Failed to set span ID", zap.Error(err), "entry", e)
 		} else {
 			e.Delete(p.spanIDField)
 		}
@@ -215,14 +215,14 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		var severityString string
 		err := e.Read(p.severityField, &severityString)
 		if err != nil {
-			p.Warnw("Failed to set severity", zap.Error(err))
+			p.Warnw("Failed to set severity", zap.Error(err), "entry", e)
 		} else {
 			e.Delete(p.severityField)
 		}
 		// TODO parse severity
 		newEntry.Severity, err = parseSeverity(severityString)
 		if err != nil {
-			p.Warnw("Failed to parse severity", zap.Error(err))
+			p.Warnw("Failed to parse severity", zap.Error(err), "entry", e)
 		}
 	}
 

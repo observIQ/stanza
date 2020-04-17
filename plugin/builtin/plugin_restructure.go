@@ -57,7 +57,7 @@ func (p *RestructurePlugin) Process(e *entry.Entry) error {
 	for _, op := range p.ops {
 		err := op.Apply(e)
 		if err != nil {
-			p.Warnw("Failed to apply operation", zap.Error(err))
+			p.Warnw("Failed to apply operation", zap.Error(err), "entry", e)
 		}
 	}
 
