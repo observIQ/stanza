@@ -1,8 +1,7 @@
 package helper
 
 import (
-	"fmt"
-
+	"github.com/bluemedora/bplogagent/errors"
 	"go.uber.org/zap"
 )
 
@@ -25,11 +24,19 @@ func (c BasicPluginConfig) Type() string {
 // Build will build a basic plugin.
 func (c BasicPluginConfig) Build(logger *zap.SugaredLogger) (BasicPlugin, error) {
 	if c.PluginID == "" {
-		return BasicPlugin{}, fmt.Errorf("missing field 'id'")
+		return BasicPlugin{}, errors.NewError(
+			"Plugin config is missing the `id` field.",
+			"This error occurs when a user accidentally omits the `id` field for a plugin.",
+			"Please ensure that all plugins have a defined `id` field.",
+		)
 	}
 
 	if c.PluginType == "" {
-		return BasicPlugin{}, fmt.Errorf("missing field 'type'")
+		return BasicPlugin{}, errors.NewError(
+			"Plugin config is missing the `type` field.",
+			"This error occurs when a user accidentally omits the `type` field for a plugin.",
+			"Please ensure that all plugins have a defined `type` field.",
+		)
 	}
 
 	plugin := BasicPlugin{

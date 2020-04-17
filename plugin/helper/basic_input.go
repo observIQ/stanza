@@ -1,9 +1,8 @@
 package helper
 
 import (
-	"fmt"
-
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
@@ -15,7 +14,11 @@ type BasicInputConfig struct {
 // Build will build a base producer.
 func (c BasicInputConfig) Build() (BasicInput, error) {
 	if c.OutputID == "" {
-		return BasicInput{}, fmt.Errorf("missing field 'output'")
+		return BasicInput{}, errors.NewError(
+			"Plugin config is missing the `output` field.",
+			"This error occurs when a plugin requires an output, but the `output` field is omitted in the config.",
+			"Please add a valid output to the plugin config.",
+		)
 	}
 
 	basicInput := BasicInput{
@@ -38,7 +41,11 @@ func (i *BasicInput) CanProcess() bool {
 
 // Process will always return an error if called.
 func (i *BasicInput) Process(entry *entry.Entry) error {
-	return fmt.Errorf("%s can not process entries", i.OutputID)
+	return errors.NewError(
+		"Plugin can not process logs.",
+		"This error can occur when logs are accidentally sent to a plugin that is only meant to produce logs.",
+		"Please ensure that plugin is not configured receive logs from other plugins",
+	)
 }
 
 // CanOutput will always return true for an input plugin.
@@ -67,11 +74,22 @@ func FindOutput(plugins []plugin.Plugin, outputID string) (plugin.Plugin, error)
 	for _, plugin := range plugins {
 		if plugin.ID() == outputID {
 			if !plugin.CanProcess() {
-				return nil, fmt.Errorf("%s can not be an output", outputID)
+				return nil, errors.NewError(
+					"Input plugin could not use its designated output.",
+					"This error can occur when a user accidentally sets the output to a plugin that is only meant to produce logs.",
+					"Please verify that the output is a plugin that can process logs (such as a parser or destination).",
+					"output_id", outputID,
+				)
 			}
 
 			return plugin, nil
 		}
 	}
-	return nil, fmt.Errorf("unable to find output %s", outputID)
+
+	return nil, errors.NewError(
+		"Input plugin could not find its output plugin.",
+		"This error can occur when a user accidentally misspells the output id or has forgotten to include a plugin in the config.",
+		"Please verify that the output is spelled correctly and defined in the config.",
+		"output_id", outputID,
+	)
 }

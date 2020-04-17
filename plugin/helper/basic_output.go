@@ -1,8 +1,7 @@
 package helper
 
 import (
-	"fmt"
-
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
@@ -26,5 +25,9 @@ func (o *BasicOutput) Outputs() []plugin.Plugin {
 
 // SetOutputs will return an error if called.
 func (o *BasicOutput) SetOutputs(plugins []plugin.Plugin) error {
-	return fmt.Errorf("can not have outputs")
+	return errors.NewError(
+		"Plugin can not output, but is attempting to set an output.",
+		"This is an unexpected internal error.",
+		"Please submit a bug/issue.",
+	)
 }

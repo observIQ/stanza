@@ -1,9 +1,8 @@
 package helper
 
 import (
-	"fmt"
-
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"go.uber.org/zap"
 )
@@ -19,7 +18,11 @@ type BasicParserConfig struct {
 // Build will build a basic parser.
 func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error) {
 	if c.OutputID == "" {
-		return BasicParser{}, fmt.Errorf("missing field 'output'")
+		return BasicParser{}, errors.NewError(
+			"Plugin config is missing the `output` field.",
+			"This error occurs when a plugin requires an output, but the `output` field is omitted in the config.",
+			"Please add a valid output to the plugin config.",
+		)
 	}
 
 	if c.ParseFrom == nil {
@@ -38,7 +41,12 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 	switch c.OnError {
 	case "fail", "drop", "ignore":
 	default:
-		return BasicParser{}, fmt.Errorf("on_error must have a value of fail, drop, or ignore")
+		return BasicParser{}, errors.NewError(
+			"Plugin config has an invalid `on_error` field.",
+			"This occurs when a value other than fail, drop, or ignore is used for `on_error`.",
+			"Please ensure that the `on_error` field is set to fail, drop, or ignore.",
+			"on_error", c.OnError,
+		)
 	}
 
 	basicParser := BasicParser{
@@ -92,7 +100,12 @@ func (p *BasicParser) SetOutputs(plugins []plugin.Plugin) error {
 func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) error {
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
-		err := fmt.Errorf("parse_from field '%s' does not exist on the record", p.ParseFrom)
+		err := errors.NewError(
+			"Log entry does not have the expected parse_from field.",
+			"This can occur if the parser is receiving an unorganized mixture of logs with variable fields.",
+			"Please ensure that all entries forwarded to this parser contain the parse_from field.",
+			"parse_from", p.ParseFrom.String(),
+		)
 		return p.HandleParserError(entry, err)
 	}
 
@@ -107,8 +120,8 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 
 // HandleParserError will handle an error based on the `OnError` property
 func (p *BasicParser) HandleParserError(entry *entry.Entry, err error) error {
-	p.Errorf("Failed to parse entry: %s", err)
-	
+	p.Errorf("Failed to parse entry", zap.Any("error", err))
+
 	if p.OnError == "fail" {
 		return err
 	}

@@ -33,25 +33,29 @@ func (a *LogAgent) Start() error {
 
 	database, err := openDatabase(a.Config.DatabaseFile)
 	if err != nil {
-		return fmt.Errorf("open database: %s", err)
+		a.Errorw("Failed to open database", zap.Any("error", err))
+		return err
 	}
 	a.database = database
 
 	buildContext := newBuildContext(a.SugaredLogger, database, a.Config.BundlePath)
 	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
-		return fmt.Errorf("build plugins: %s", err)
+		a.Errorw("Failed to build plugins", zap.Any("error", err))
+		return err
 	}
 
 	pipeline, err := pipeline.NewPipeline(plugins)
 	if err != nil {
-		return fmt.Errorf("build pipeline: %s", err)
+		a.Errorw("Failed to build pipeline", zap.Any("error", err))
+		return err
 	}
 	a.pipeline = pipeline
 
 	err = a.pipeline.Start()
 	if err != nil {
-		return fmt.Errorf("start pipeline: %s", err)
+		a.Errorw("Failed to start pipeline", zap.Any("error", err))
+		return err
 	}
 
 	if dotGraph, err := pipeline.MarshalDot(); err == nil {

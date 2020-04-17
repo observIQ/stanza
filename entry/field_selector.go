@@ -3,6 +3,7 @@ package entry
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -131,6 +132,10 @@ func (s FieldSelector) Delete(record *Record) (interface{}, bool) {
 	}
 
 	return nil, false
+}
+
+func (s FieldSelector) String() string {
+	return strings.Join(s[:], ".")
 }
 
 var FieldSelectorDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {

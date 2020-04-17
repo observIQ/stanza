@@ -44,7 +44,7 @@ func main() {
 		cfg.DecodeHook = config.DecodeHookFunc
 	})
 	if err != nil {
-		logger.Errorw("Failed to unmarshal the config", "error", err)
+		logger.Errorw("Failed to unmarshal the config", zap.Any("error", err))
 		return
 	}
 
@@ -58,7 +58,7 @@ func main() {
 
 	err = agent.Start()
 	if err != nil {
-		logger.Errorw("Failed to start log collector", zap.Error(err))
+		logger.Errorw("Failed to start log agent", zap.Any("error", err))
 		return
 	}
 
