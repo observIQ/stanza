@@ -147,7 +147,7 @@ func (p *GoogleCloudOutput) writeEntries(ctx context.Context, entries []*logpb.L
 		Entries:  entries,
 		Resource: globalResource(p.projectID),
 	}
-	p.Errorw("Write log entries request", "req", req)
+
 	_, err := p.client.WriteLogEntries(ctx, &req)
 	if err != nil {
 		return err
