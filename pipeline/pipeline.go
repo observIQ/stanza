@@ -1,8 +1,7 @@
 package pipeline
 
 import (
-	"fmt"
-
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
@@ -25,7 +24,7 @@ func (p *Pipeline) Start() error {
 	for i := len(sortedNodes) - 1; i >= 0; i-- {
 		plugin := sortedNodes[i].(PluginNode).Plugin()
 		if err := plugin.Start(); err != nil {
-			return fmt.Errorf("%s failed to start: %s", plugin.ID(), err)
+			return err
 		}
 	}
 
@@ -58,7 +57,11 @@ func addNodes(graph *simple.DirectedGraph, plugins []plugin.Plugin) error {
 	for _, plugin := range plugins {
 		pluginNode := createPluginNode(plugin)
 		if graph.Node(pluginNode.ID()) != nil {
-			return fmt.Errorf("multiple plugins with id %s", plugin.ID())
+			return errors.NewError(
+				"Plugin already exists in the pipeline.",
+				"Ensure that all plugins are defined only once with a unique id.",
+				"plugin_id", pluginNode.Plugin().ID(),
+			)
 		}
 
 		graph.AddNode(pluginNode)
@@ -72,13 +75,17 @@ func connectNodes(graph *simple.DirectedGraph) error {
 	for nodes.Next() {
 		node := nodes.Node().(PluginNode)
 		if err := connectNode(graph, node); err != nil {
-			return fmt.Errorf("failed to connect %s to output: %s", node.Plugin().ID(), err)
+			return err
 		}
 	}
 
 	// TODO: Best error message for users explaining the circular chain.
 	if _, err := topo.Sort(graph); err != nil {
-		return fmt.Errorf("pipeline is not acyclic: %s", err)
+		return errors.NewError(
+			"Pipeline has a circular dependency.",
+			"Ensure that all plugins are connected in a straight, acyclic line.",
+			"raw_error", err.Error(),
+		)
 	}
 
 	return nil
@@ -88,16 +95,31 @@ func connectNodes(graph *simple.DirectedGraph) error {
 func connectNode(graph *simple.DirectedGraph, inputNode PluginNode) error {
 	for outputPluginID, outputNodeID := range inputNode.OutputIDs() {
 		if graph.Node(outputNodeID) == nil {
-			return fmt.Errorf("output %s is missing", outputPluginID)
+			return errors.NewError(
+				"Plugins cannot be connected, because the output does not exist in the pipeline.",
+				"Ensure that the output plugin is defined.",
+				"input_plugin", inputNode.Plugin().ID(),
+				"output_plugin", outputPluginID,
+			)
 		}
 
 		outputNode := graph.Node(outputNodeID).(PluginNode)
 		if !outputNode.Plugin().CanProcess() {
-			return fmt.Errorf("%s can not be an output", outputPluginID)
+			return errors.NewError(
+				"Plugins cannot be connected, because the output plugin can not process logs.",
+				"Ensure that the output plugin can process logs (like a parser or destination).",
+				"input_plugin", inputNode.Plugin().ID(),
+				"output_plugin", outputPluginID,
+			)
 		}
 
 		if graph.HasEdgeFromTo(inputNode.ID(), outputNodeID) {
-			return fmt.Errorf("output %s already exists", outputPluginID)
+			return errors.NewError(
+				"Plugins cannot be connected, because a connection already exists.",
+				"Ensure that only a single connection exists between the two plugins",
+				"input_plugin", inputNode.Plugin().ID(),
+				"output_plugin", outputPluginID,
+			)
 		}
 
 		edge := graph.NewEdge(inputNode, outputNode)
@@ -107,15 +129,15 @@ func connectNode(graph *simple.DirectedGraph, inputNode PluginNode) error {
 	return nil
 }
 
-// setOutputs will set the outputs on plugins that can output.
-func setOutputs(plugins []plugin.Plugin) error {
+// setPluginOutputs will set the outputs on plugins that can output.
+func setPluginOutputs(plugins []plugin.Plugin) error {
 	for _, plugin := range plugins {
 		if !plugin.CanOutput() {
 			continue
 		}
 
 		if err := plugin.SetOutputs(plugins); err != nil {
-			return fmt.Errorf("failed to set outputs for %s: %s", plugin.ID(), err)
+			return err
 		}
 	}
 	return nil
@@ -123,7 +145,7 @@ func setOutputs(plugins []plugin.Plugin) error {
 
 // NewPipeline creates a new pipeline of connected plugins.
 func NewPipeline(plugins []plugin.Plugin) (*Pipeline, error) {
-	if err := setOutputs(plugins); err != nil {
+	if err := setPluginOutputs(plugins); err != nil {
 		return nil, err
 	}
 

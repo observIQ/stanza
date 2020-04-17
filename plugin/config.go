@@ -6,6 +6,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/mitchellh/mapstructure"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
@@ -32,7 +33,10 @@ func BuildPlugins(configs []Config, context BuildContext) ([]Plugin, error) {
 	for _, config := range configs {
 		plugin, err := config.Build(context)
 		if err != nil {
-			return plugins, fmt.Errorf("failed to build %s: %s", config.ID(), err)
+			return plugins, errors.WithDetails(err,
+				"plugin_id", config.ID(),
+				"plugin_type", config.Type(),
+			)
 		}
 		plugins = append(plugins, plugin)
 	}
@@ -69,17 +73,27 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 
 	typeInterface, ok := d["type"]
 	if !ok {
-		return nil, fmt.Errorf("missing type field for plugin config")
+		return nil, errors.NewError(
+			"Plugin config is missing a `type` field.",
+			"Ensure that all plugin configs have a `type` field defined.",
+		)
 	}
 
 	typeString, ok := typeInterface.(string)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for plugin config type", typeInterface)
+		return nil, errors.NewError(
+			"Plugin config does not have a `type` field as a string.",
+			"Ensure that all plugin configs have a `type` field formatted as a string.",
+		)
 	}
 
 	createConfig, ok := configDefinitions[typeString]
 	if !ok {
-		return nil, fmt.Errorf("unknown plugin config type %s", typeString)
+		return nil, errors.NewError(
+			"Plugin config has an unknown plugin type.",
+			"Ensure that all plugin configs have a known, valid type.",
+			"plugin_type", typeString,
+		)
 	}
 
 	config, decodeHook := createConfig()

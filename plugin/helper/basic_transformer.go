@@ -1,8 +1,7 @@
 package helper
 
 import (
-	"fmt"
-
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
@@ -14,7 +13,10 @@ type BasicTransformerConfig struct {
 // Build will build a base producer.
 func (c BasicTransformerConfig) Build() (BasicTransformer, error) {
 	if c.OutputID == "" {
-		return BasicTransformer{}, fmt.Errorf("missing field 'output'")
+		return BasicTransformer{}, errors.NewError(
+			"Plugin config is missing the `output` field.",
+			"Ensure that a valid `output` field exists on the plugin config.",
+		)
 	}
 
 	basicTransformer := BasicTransformer{
