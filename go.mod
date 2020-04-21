@@ -5,10 +5,12 @@ go 1.13
 require (
 	cloud.google.com/go v0.38.0
 	github.com/antonmedv/expr v1.8.2
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
+	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200420061153-4ea3eecc9b5e
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.4
-	github.com/hashicorp/go-uuid v1.0.2 // indirect
-	github.com/influxdata/go-syslog v1.0.1
+	github.com/hashicorp/go-uuid v1.0.2
+	github.com/influxdata/go-syslog v1.0.1 // indirect
 	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/jcmturner/gofork v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.9
