@@ -1,9 +1,10 @@
 package builtin
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"strings"
+	"strconv"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
@@ -21,9 +22,15 @@ func init() {
 // ElasticOutputConfig is the configuration of an elasticsearch output plugin.
 type ElasticOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	elasticsearch.Config     `mapstructure:",squash" yaml:",inline"`
-	IndexField               entry.FieldSelector `mapstructure:"index_field" yaml:"index_field"`
-	IDField                  entry.FieldSelector `mapstructure:"id_field" yaml:"id_field"`
+
+	Addresses []string
+	Username  string
+	Password  string
+	CloudID   string `mapstructure:"cloud_id" yaml:"cloud_id"`
+	APIKey    string `mapstructure:"api_key" yaml:"api_key"`
+
+	IndexField entry.FieldSelector `mapstructure:"index_field" yaml:"index_field"`
+	IDField    entry.FieldSelector `mapstructure:"id_field" yaml:"id_field"`
 }
 
 // Build will build a logger output plugin.
@@ -33,7 +40,15 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 		return nil, err
 	}
 
-	client, err := elasticsearch.NewClient(c.Config)
+	cfg := elasticsearch.Config{
+		Addresses: c.Addresses,
+		Username:  c.Username,
+		Password:  c.Password,
+		CloudID:   c.CloudID,
+		APIKey:    c.APIKey,
+	}
+
+	client, err := elasticsearch.NewClient(cfg)
 	if err != nil {
 		return nil, errors.NewError(
 			"The elasticsearch client failed to initialize.",
@@ -83,19 +98,29 @@ func (e *ElasticOutput) Process(entry *entry.Entry) error {
 	request := esapi.IndexRequest{
 		Index:      index,
 		DocumentID: id,
-		Body:       strings.NewReader(string(json)),
+		Body:       bytes.NewReader(json),
 	}
 
 	res, err := request.Do(context.Background(), e.client)
 	if err != nil {
 		return errors.NewError(
-			"Client failed to submit entry to elasticsearch.",
+			"Client failed to submit request to elasticsearch.",
 			"Use the underlying error to troubleshoot the problem",
 			"underlying_error", err.Error(),
 		)
 	}
 
 	defer res.Body.Close()
+
+	if res.IsError() {
+		return errors.NewError(
+			"Request to elasticsearch returned a failure code.",
+			"Review status and status code for further details.",
+			"status_code", strconv.Itoa(res.StatusCode),
+			"status", res.Status(),
+		)
+	}
+
 	return nil
 }
 
