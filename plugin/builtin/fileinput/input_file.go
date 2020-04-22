@@ -22,15 +22,15 @@ func init() {
 }
 
 type FileInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash"    yaml:",inline"`
+	helper.BasicInputConfig  `mapstructure:",squash"    yaml:",inline"`
 
 	Include []string `yaml:",omitempty"`
 	Exclude []string `yaml:",omitempty"`
 	// TODO start from beginning once offsets are implemented
-	PollInterval float64                    `yaml:",omitempty"`
-	Multiline    *FileSourceMultilineConfig `yaml:",omitempty"`
-	PathField    *entry.FieldSelector
+	PollInterval float64                    `mapstructure:"poll_interval" yaml:",omitempty"`
+	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     yaml:"multiline,omitempty"`
+	PathField    *entry.FieldSelector       `mapstructure:"path_field"    yaml:"path_field"`
 }
 
 type FileSourceMultilineConfig struct {

@@ -2,6 +2,7 @@ package bplogagent
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -38,7 +39,7 @@ func (a *LogAgent) Start() error {
 	}
 	a.database = database
 
-	buildContext := newBuildContext(a.SugaredLogger, database, a.Config.BundlePath)
+	buildContext := newBuildContext(a.SugaredLogger, database, a.Config.BundleDir)
 	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
 		a.Errorw("Failed to build plugins", zap.Any("error", err))
@@ -58,10 +59,8 @@ func (a *LogAgent) Start() error {
 		return err
 	}
 
-	if dotGraph, err := pipeline.MarshalDot(); err == nil {
-		a.Infof("Pipeline:\n%s", dotGraph)
-	} else {
-		a.Errorf("Failed to render dot: %s", err)
+	if a.Config.PluginGraphOutput != "" {
+		a.writeDotGraph()
 	}
 
 	a.running = true
@@ -90,11 +89,27 @@ func (a *LogAgent) Status() struct{} {
 	return struct{}{}
 }
 
+func (a *LogAgent) writeDotGraph() {
+	dotGraph, err := a.pipeline.MarshalDot()
+	if err != nil {
+		a.Warnw("Failed to render dot graph representation of plugin graph", zap.Error(err))
+	}
+
+	err = ioutil.WriteFile(a.Config.PluginGraphOutput, dotGraph, 0666)
+	if err != nil {
+		a.Warnw("Failed to write dot graph to file", zap.Error(err))
+	}
+}
+
 // newBuildContext will create a new build context for building plugins.
-func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB, bundlePath string) pg.BuildContext {
+func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB, bundleDir string) pg.BuildContext {
+	var bundles []*bundle.BundleDefinition
+	if bundleDir != "" {
+		bundles = bundle.GetBundleDefinitions(bundleDir, logger)
+	}
 	return pg.BuildContext{
 		Logger:   logger,
-		Bundles:  bundle.GetBundleDefinitions(bundlePath, logger),
+		Bundles:  bundles,
 		Database: database,
 	}
 }
