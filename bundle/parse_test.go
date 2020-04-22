@@ -49,8 +49,6 @@ func newFakeBundleDefinition() *BundleDefinition {
 	schema, _ := gojsonschema.NewSchema(schemaLoader)
 	return &BundleDefinition{
 		BundleType:  "simple",
-		InputID:     "",
-		IsOutputter: true,
 
 		schema:   schema,
 		template: tmpl,
