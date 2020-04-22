@@ -19,9 +19,9 @@ func init() {
 // BundleConfig is the configuration of a bundle plugin.
 type BundleConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	BundleType               string `mapstructure:"bundle_type" yaml:"bundle_type"`
-	Params                   map[string]interface{}
-	OutputID                 string `mapstructure:"output" yaml:"output"`
+	BundleType               string                 `mapstructure:"bundle_type" yaml:"bundle_type"`
+	Params                   map[string]interface{} `mapstructure:"params"`
+	OutputID                 string                 `mapstructure:"output" yaml:"output"`
 }
 
 // Build will build a bundle plugin.

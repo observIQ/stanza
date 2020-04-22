@@ -15,9 +15,7 @@ import (
 
 type BundleDefinition struct {
 	// TODO should this be yaml rather than JSON?
-	BundleType  string `json:"bundle_type"`
-	InputID     string `json:"input_id"`
-	IsOutputter bool   `json:"is_outputter"`
+	BundleType string `json:"bundle_type"`
 
 	schema   *gojsonschema.Schema
 	template *template.Template
