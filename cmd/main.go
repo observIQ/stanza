@@ -30,11 +30,12 @@ func main() {
 		_ = logger.Sync()
 	}()
 
+	var cfg config.Config
 	var configFile string
 	flag.StringVar(&configFile, "config", "/etc/bplogagent/config.yml", "Path to the config file")
+	flag.StringVar(&cfg.PluginGraphOutput, "graph", "", "Path to output a dot formatted representation of the plugin graph")
 	flag.Parse()
 
-	var cfg config.Config
 	v := viper.New()
 	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
