@@ -52,7 +52,7 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	if err != nil {
 		return nil, errors.NewError(
 			"The elasticsearch client failed to initialize.",
-			"Use the underlying error message to troubleshoot the issue.",
+			"Review the underlying error message to troubleshoot the issue.",
 			"underlying_error", err.Error(),
 		)
 	}
@@ -105,7 +105,7 @@ func (e *ElasticOutput) Process(entry *entry.Entry) error {
 	if err != nil {
 		return errors.NewError(
 			"Client failed to submit request to elasticsearch.",
-			"Use the underlying error to troubleshoot the problem",
+			"Review the underlying error message to troubleshoot the issue",
 			"underlying_error", err.Error(),
 		)
 	}
