@@ -33,7 +33,7 @@ type ElasticOutputConfig struct {
 	IDField    entry.FieldSelector `mapstructure:"id_field" yaml:"id_field"`
 }
 
-// Build will build a logger output plugin.
+// Build will build an elasticsearch output plugin.
 func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
