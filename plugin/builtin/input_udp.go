@@ -10,6 +10,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -105,7 +106,7 @@ func (u *UDPInput) goHandleMessages() {
 			}
 
 			if err := u.Output.Process(entry); err != nil {
-				u.Errorf("Output %s failed to process entry: %s", u.OutputID, err)
+				u.Errorw("Output failed to process entry", zap.Any("error", err))
 			}
 		}
 	}()
