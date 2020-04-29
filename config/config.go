@@ -5,10 +5,10 @@ import (
 )
 
 type Config struct {
-	Plugins           []plugin.Config
-	PluginGraphOutput string `mapstructure:"graph"`
-	BundleDir         string `mapstructure:"bundle_dir" yaml:"bundle_dir,omitempty"`
-	DatabaseFile      string `mapstructure:"database_file" yaml:"database_file,omitempty"`
+	Plugins           []plugin.Config `mapstructure:"plugins"`
+	PluginGraphOutput string          `mapstructure:"graph"`
+	BundleDir         string          `mapstructure:"bundle_dir" yaml:"bundle_dir,omitempty"`
+	DatabaseFile      string          `mapstructure:"database_file" yaml:"database_file,omitempty"`
 }
 
 func (c Config) IsZero() bool {
