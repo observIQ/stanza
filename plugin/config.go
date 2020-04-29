@@ -57,21 +57,28 @@ func Register(pluginType string, config Config, decoders ...mapstructure.DecodeH
 
 // ConfigDecoder is a function that uses the config registry to unmarshal plugin configs.
 var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-	var m map[interface{}]interface{}
-	if f != reflect.TypeOf(m) {
-		return data, nil
-	}
-
 	if t.String() != "plugin.Config" {
 		return data, nil
 	}
 
-	d, ok := data.(map[interface{}]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected data type %T for plugin config", data)
+	var mapInterface map[interface{}]interface{}
+	var mapString map[string]interface{}
+	switch f {
+	case reflect.TypeOf(mapInterface):
+		for k, v := range data.(map[interface{}]interface{}) {
+			if kString, ok := k.(string); ok {
+				mapString[kString] = v
+			} else {
+				return nil, fmt.Errorf("map has non-string key")
+			}
+		}
+	case reflect.TypeOf(mapString):
+		mapString = data.(map[string]interface{})
+	default:
+		return data, nil
 	}
 
-	typeInterface, ok := d["type"]
+	typeInterface, ok := mapString["type"]
 	if !ok {
 		return nil, errors.NewError(
 			"Plugin config is missing a `type` field.",

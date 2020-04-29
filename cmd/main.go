@@ -20,6 +20,7 @@ func main() {
 	logCfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	logCfg.Sampling.Initial = 5
 	logCfg.Sampling.Thereafter = 100
+	logCfg.EncoderConfig.CallerKey = ""
 	// logCfg := zap.NewDevelopmentConfig()
 	// logCfg.EncoderConfig.TimeKey = ""
 	// logCfg.EncoderConfig.CallerKey = ""
