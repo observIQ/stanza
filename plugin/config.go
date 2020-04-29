@@ -65,6 +65,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 	var mapString map[string]interface{}
 	switch f {
 	case reflect.TypeOf(mapInterface):
+		mapString = make(map[string]interface{})
 		for k, v := range data.(map[interface{}]interface{}) {
 			if kString, ok := k.(string); ok {
 				mapString[kString] = v
