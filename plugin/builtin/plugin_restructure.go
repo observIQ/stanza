@@ -175,11 +175,22 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 		return data, nil
 	}
 
-	if f != reflect.TypeOf(map[interface{}]interface{}{}) {
-		return nil, fmt.Errorf("cannot unmarshal a builtin.Op from type %s", f)
+	var m map[string]interface{}
+	switch f {
+	case reflect.TypeOf(map[interface{}]interface{}{}):
+		m = make(map[string]interface{})
+		for k, v := range data.(map[interface{}]interface{}) {
+			if kString, ok := k.(string); ok {
+				m[kString] = v
+			} else {
+				return nil, fmt.Errorf("map has non-string key %v of type %T", k, k)
+			}
+		}
+	case reflect.TypeOf(map[string]interface{}{}):
+		m = data.(map[string]interface{})
+	default:
+		return data, nil
 	}
-
-	m := data.(map[interface{}]interface{})
 
 	var opType *string
 	var rawOp interface{}
@@ -188,12 +199,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 			return nil, fmt.Errorf("only one Op type can be defined per operation")
 		}
 
-		kStr, ok := k.(string)
-		if !ok {
-			return nil, fmt.Errorf("Op type must be a string")
-		}
-
-		opType = &kStr
+		opType = &k
 		rawOp = v
 	}
 
