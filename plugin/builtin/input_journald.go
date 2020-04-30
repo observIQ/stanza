@@ -52,7 +52,7 @@ func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	args = append(args, "--output=json")
 
 	// Continue watching logs until cancelled
-	args = append(args, "--follow", "--no-tail")
+	args = append(args, "--follow")
 
 	switch {
 	case c.Directory != nil:
