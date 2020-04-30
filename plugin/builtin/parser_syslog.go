@@ -19,7 +19,7 @@ func init() {
 type SyslogParserConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
-	Protocol                 string `yaml:",omitempty"`
+	Protocol                 string `mapstructure:"protocol" yaml:",omitempty"`
 }
 
 // Build will build a JSON parser plugin.
@@ -88,6 +88,7 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 		return nil, err
 	}
 
+	// TODO #172611733 message.Timestamp does not appear to have a year. This should be set to the current year
 	if message, ok := syslog.(*rfc3164.SyslogMessage); ok {
 		return map[string]interface{}{
 			"timestamp": message.Timestamp,

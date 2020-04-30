@@ -25,14 +25,16 @@ type FileInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash"    yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash"    yaml:",inline"`
 
-	Include []string `yaml:",omitempty"`
-	Exclude []string `yaml:",omitempty"`
+	Include []string `mapstructure:"include" yaml:",omitempty"`
+	Exclude []string `mapstructure:"exclude" yaml:",omitempty"`
 	// TODO start from beginning once offsets are implemented
+	// TODO make PollInterval a duration
 	PollInterval float64                    `mapstructure:"poll_interval" yaml:",omitempty"`
 	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     yaml:"multiline,omitempty"`
 	PathField    *entry.FieldSelector       `mapstructure:"path_field"    yaml:"path_field"`
 }
 
+// TODO timeout waiting for line start pattern?
 type FileSourceMultilineConfig struct {
 	LineStartPattern string `mapstructure:"line_start_pattern" yaml:"line_start_pattern"`
 	LineEndPattern   string `mapstructure:"line_end_pattern" yaml:"line_end_pattern"`
@@ -47,6 +49,10 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	basicInput, err := c.BasicInputConfig.Build()
 	if err != nil {
 		return nil, err
+	}
+
+	if len(c.Include) == 0 {
+		return nil, fmt.Errorf("required argument `include` is empty")
 	}
 
 	// Ensure includes can be parsed as globs

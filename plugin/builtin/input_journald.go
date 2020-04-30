@@ -177,8 +177,6 @@ func (plugin *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, strin
 		return nil, "", errors.New("cursor is not a string")
 	}
 
-	delete(record, "__CURSOR")
-
 	entry := &entry.Entry{
 		Timestamp: time.Unix(0, timestampInt*1000), // in microseconds
 		Record:    record,
