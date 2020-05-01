@@ -79,7 +79,7 @@ func connectNodes(graph *simple.DirectedGraph) error {
 		}
 	}
 
-	// TODO: Best error message for users explaining the circular chain.
+	// TODO #172624458 Error message should tell users what plugins formed a cycle
 	if _, err := topo.Sort(graph); err != nil {
 		return errors.NewError(
 			"Pipeline has a circular dependency.",

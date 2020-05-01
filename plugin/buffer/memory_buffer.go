@@ -32,7 +32,6 @@ func NewMemoryBuffer(entryType interface{}, handler func(context.Context, interf
 	}
 
 	bd := bundler.NewBundler(entryType, handleFunc)
-	// TODO allow this to be configurable
 	bd.HandlerLimit = 16
 	bd.BundleCountThreshold = 5000
 	bd.BufferedByteLimit = 1024 * 1024 * 128

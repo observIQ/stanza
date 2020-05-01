@@ -67,8 +67,11 @@ func (c BundleConfig) renderPluginConfigs(bundles []*bundle.BundleDefinition) ([
 	var bundleDefinition *bundle.BundleDefinition
 	for _, bundle := range bundles {
 		if c.BundleType == bundle.BundleType {
-			bundleDefinition = bundle
-			break // TODO warn on duplicate
+			if bundleDefinition == nil {
+				bundleDefinition = bundle
+			} else {
+				return nil, fmt.Errorf("more than one bundle found with type '%s'", c.BundleType)
+			}
 		}
 	}
 	if bundleDefinition == nil {
@@ -82,7 +85,7 @@ func (c BundleConfig) renderPluginConfigs(bundles []*bundle.BundleDefinition) ([
 	}
 
 	// Parse the rendered config
-	// TODO reuse this code
+	// TODO #172624874
 	v := viper.New()
 	v.SetConfigType("yaml")
 	err = v.ReadConfig(renderedConfig)

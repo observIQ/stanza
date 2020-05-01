@@ -45,8 +45,6 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 		return nil, err
 	}
 
-	// TODO configure bundle size
-	// TODO allow alternate credentials options (file, etc.)
 	if c.Credentials == "" {
 		return nil, errors.New("missing required configuration option credentials")
 	}
@@ -93,10 +91,6 @@ func (p *GoogleCloudOutput) Start() error {
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentialsJSON([]byte(p.credentials)))
 	options = append(options, option.WithUserAgent("BindPlaneLogAgent/2.0.0"))
-	// TODO WithCompressor is deprecated, and may be removed in favor of UseCompressor
-	// However, I can't seem to get UseCompressor to work, so skipping for now
-	// This seems to be causing flush to hang.
-	// options = append(options, option.WithGRPCDialOption(grpc.WithCompressor(grpc.NewGZIPCompressor())))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
 	defer cancel()
 
@@ -105,7 +99,6 @@ func (p *GoogleCloudOutput) Start() error {
 		return fmt.Errorf("create client: %w", err)
 	}
 	p.client = client
-	// TODO test connection?
 
 	p.buffer = buffer.NewMemoryBuffer(&logpb.LogEntry{}, func(ctx context.Context, entries interface{}) error {
 		castEntries := entries.([]*logpb.LogEntry)
@@ -168,8 +161,6 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry = &logpb.LogEntry{
 		Timestamp: ts,
-		// TODO this says it's required, but we can also set a default in the write entries request.
-		// Resource:  globalResource(p.projectID),
 	}
 
 	if p.logNameField != nil {
@@ -193,7 +184,6 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 	}
 
 	if p.traceField != nil {
-		// TODO parse trace
 		err := e.Read(p.traceField, &newEntry.Trace)
 		if err != nil {
 			p.Warnw("Failed to set trace", zap.Error(err), "entry", e)
@@ -219,7 +209,6 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		} else {
 			e.Delete(p.severityField)
 		}
-		// TODO parse severity
 		newEntry.Severity, err = parseSeverity(severityString)
 		if err != nil {
 			p.Warnw("Failed to parse severity", zap.Error(err), "entry", e)

@@ -63,7 +63,6 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 		// TODO actually test all these cases on every OS we support
 		// TODO actually test all these cases on weird filesystems (NFS, FUSE, etc)
 
-		// TODO reuse the timer? but be careful about draining -- see timer.Reset() docs
 		timer := time.NewTimer(w.pollInterval)
 
 		select {
@@ -99,8 +98,6 @@ func (w *FileWatcher) Watch(startCtx context.Context) error {
 }
 
 func (w *FileWatcher) checkReadFile(ctx context.Context) error {
-	// TODO ensure that none of the errors thrown in here are recoverable
-	// since returning an error triggers a return from the watch function
 	select {
 	case <-ctx.Done():
 		return nil
@@ -158,14 +155,11 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 	// TODO scanner.Buffer() to set max size
 
 	defer func() {
-		// TODO this will be very slow while the fingerprint hasn't stabilized
 		fingerprint, err := w.Fingerprint()
 		if err != nil {
 			w.Warnf("failed to get fingerprint", "error", err)
 		}
 
-		// TODO only doing this at the end of reads means that we can't guarantee
-		// no duplicate logs
 		err = w.offsetStore.SetOffset(fingerprint, w.offset)
 		if err != nil {
 			w.Warnf("failed to set offset", "error", err)
@@ -209,7 +203,7 @@ func (w *FileWatcher) readToEnd(ctx context.Context, file *os.File) error {
 
 func (w *FileWatcher) Fingerprint() ([]byte, error) {
 	if w.stableFingerprint == nil {
-		file, err := os.Open(w.path) // TODO handle error
+		file, err := os.Open(w.path)
 		if err != nil {
 			return nil, err
 		}
