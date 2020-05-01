@@ -44,7 +44,31 @@ Example categories include:
 ## How do I build a plugin?
 In order to build a plugin, follow these three steps:
 1. Build a unique plugin struct that satisfies the [plugin](plugin/plugin.go) interface. This struct will define what your plugin does when executed in the pipeline.
+
+```go
+type ExamplePlugin struct {
+	FilePath string
+}
+
+func (p *ExamplePlugin) Process(entry *entry.Entry) error {
+	// Processing logic
+}
+```
+
 2. Build a unique config struct that satisfies the [config](plugin/config.go) interface. This struct will define the parameters used to configure and build your plugin struct in step 1.
+
+```go
+type ExamplePluginConfig struct {
+	filePath string
+}
+
+func (c ExamplePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	return &ExamplePlugin{
+		filePath: c.FilePath,
+	}, nil
+}
+```
+
 3. Register your config struct in the plugin registry using an init hook. This will ensure that the agent knows about your plugin at runtime and can build it from a  YAML config.
 
 ```go
