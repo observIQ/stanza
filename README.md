@@ -52,3 +52,13 @@ We highly recommend that developers take advantage of [helpers](plugin/helper) w
 
 For example, almost all plugins should embed the [BasicPlugin](plugin/helper/basic_plugin.go) helper, as it provides simple functionality for returning a plugin id and plugin type.
 
+```go
+// ExamplePlugin is a basic plugin, with a basic lifecycle, that consumes
+// but doesn't send log entries. Rather than implementing every part of the plugin
+// interface, we can embed the following helpers to achieve this effect.
+type ExamplePlugin struct {
+	helper.BasicPlugin
+	helper.BasicLifecycle
+	helper.BasicOutput
+}
+```
