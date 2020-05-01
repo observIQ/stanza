@@ -35,11 +35,11 @@ All plugins are built with the agent. They are located within the [builtin](plug
 In terms of style, the name of each plugin file should be formatted as `{category}_{responsibility}.go`. By prefacing the file name with a category, plugins that share common traits can be grouped alphabetically.
 
 Example categories include:
-- input (for plugins that discover logs from an external location)
-- output (for plugins that send logs to an external location)
-- parser (for plugins that transform logs)
-- filter (for plugins that alter a log's path in the pipeline)
-- plugin (for plugins that don't fit into a category)
+- `input` (for plugins that discover logs from an external location)
+- `output` (for plugins that send logs to an external location)
+- `parser` (for plugins that transform logs)
+- `filter` (for plugins that alter a log's path in the pipeline)
+- `plugin` (for plugins that don't fit into a category)
 
 ## How do I build a plugin?
 In order to build a plugin, follow these three steps:
