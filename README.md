@@ -47,6 +47,12 @@ In order to build a plugin, follow these three steps:
 2. Build a unique config struct that satisfies the [config](plugin/config.go) interface. This struct will define the parameters used to configure and build your plugin struct in step 1.
 3. Register your config struct in the plugin registry using an init hook. This will ensure that the agent knows about your plugin at runtime and can build it from a  YAML config.
 
+```go
+func init() {
+	plugin.Register("example_plugin", &ExamplePluginConfig{})
+}
+```
+
 ## Any tips for building plugins?
 We highly recommend that developers take advantage of [helpers](plugin/helper) when building their plugins. Helpers are structs that help satisfy common behavior shared across many plugins. By embedding these structs, you can skip having to satisfy certain aspects of the `plugin` and `config` interfaces. 
 
