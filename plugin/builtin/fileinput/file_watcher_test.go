@@ -135,7 +135,7 @@ func TestFileWatcher_ExitOnFileDelete(t *testing.T) {
 	watcher := &FileWatcher{
 		path:             temp.Name(),
 		offset:           0,
-		pollInterval:     time.Minute,
+		pollInterval:     20 * time.Millisecond,
 		splitFunc:        bufio.ScanLines,
 		output:           outputFunc,
 		fingerprintBytes: 100,
