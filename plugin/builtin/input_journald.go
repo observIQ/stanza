@@ -87,7 +87,6 @@ type JournaldInput struct {
 
 // Start will start generating log entries.
 func (plugin *JournaldInput) Start() error {
-	// TODO protect against multiple starts?
 	ctx, cancel := context.WithCancel(context.Background())
 	plugin.cancel = cancel
 	plugin.wg = &sync.WaitGroup{}
@@ -127,7 +126,8 @@ func (plugin *JournaldInput) Start() error {
 				return
 			}
 
-			entry, _, err := plugin.parseJournalEntry(line) // TODO do something with the cursor
+			// TODO #172624646 use cursor for offset tracking
+			entry, _, err := plugin.parseJournalEntry(line)
 			if err != nil {
 				plugin.Warnw("Failed to parse journal entry", zap.Error(err))
 				continue

@@ -50,7 +50,6 @@ func (def *BundleDefinition) Validate(params map[string]interface{}) error {
 	return nil
 }
 
-// TODO find a more elegant way of logging than passing in a logger
 func GetBundleDefinitions(bundleDir string, logger *zap.SugaredLogger) []*BundleDefinition {
 	bundleDefinitions := make([]*BundleDefinition, 0)
 	files, err := ioutil.ReadDir(bundleDir)

@@ -57,7 +57,6 @@ type GenerateInput struct {
 
 // Start will start generating log entries.
 func (g *GenerateInput) Start() error {
-	// TODO protect against multiple starts?
 	ctx, cancel := context.WithCancel(context.Background())
 	g.cancel = cancel
 	g.wg = &sync.WaitGroup{}
@@ -101,7 +100,6 @@ func (g *GenerateInput) Stop() error {
 	return nil
 }
 
-// TODO better copy record function
 func copyRecord(r entry.Record) entry.Record {
 	switch r := r.(type) {
 	case map[string]interface{}:

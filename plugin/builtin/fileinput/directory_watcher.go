@@ -59,7 +59,6 @@ func (w *DirectoryWatcher) Watch(ctx context.Context) error {
 		case <-timer.C:
 		case err := <-w.watcher.Errors:
 			timer.Stop()
-			// TODO should we exit?
 			return err
 		}
 	}

@@ -225,7 +225,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode OpAdd: %s", err)
 		}
-		// TODO if add.Value is a map[interface{}]interface{}, convert it to map[string]interface{}
+		// TODO #172624630 if add.Value is a map[interface{}]interface{}, convert it to map[string]interface{}
 
 		if addRaw.Field == nil {
 			return nil, fmt.Errorf("decode OpAdd: missing required field 'field'")

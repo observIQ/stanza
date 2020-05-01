@@ -7,7 +7,6 @@ import (
 
 type Entry struct {
 	Timestamp time.Time `json:"timestamp"`
-	// TODO consider using a more allocation-efficient representation
 	Record Record `json:"record"`
 }
 

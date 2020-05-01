@@ -21,7 +21,6 @@ type FileOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	Path                     string `yaml:",omitempty"`
 	Format                   string `yaml:",omitempty"`
-	// TODO file permissions?
 }
 
 // Build will build a file output plugin.

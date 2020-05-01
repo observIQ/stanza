@@ -27,14 +27,12 @@ type FileInputConfig struct {
 
 	Include []string `mapstructure:"include" yaml:",omitempty"`
 	Exclude []string `mapstructure:"exclude" yaml:",omitempty"`
-	// TODO start from beginning once offsets are implemented
-	// TODO make PollInterval a duration
+	// TODO #172624929 make PollInterval a duration
 	PollInterval float64                    `mapstructure:"poll_interval" yaml:",omitempty"`
 	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     yaml:"multiline,omitempty"`
 	PathField    *entry.FieldSelector       `mapstructure:"path_field"    yaml:"path_field"`
 }
 
-// TODO timeout waiting for line start pattern?
 type FileSourceMultilineConfig struct {
 	LineStartPattern string `mapstructure:"line_start_pattern" yaml:"line_start_pattern"`
 	LineEndPattern   string `mapstructure:"line_end_pattern" yaml:"line_end_pattern"`
@@ -122,7 +120,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		fileCreated: make(chan string),
 		offsetStore: &OffsetStore{
 			db:     context.Database,
-			bucket: string(c.ID()), // TODO use bundle as prefix
+			bucket: string(c.ID()), // TODO #172624962 use bundle as prefix
 		},
 	}
 
@@ -171,8 +169,6 @@ func (f *FileInput) Start() error {
 		for _, match := range matches {
 			f.tryAddFile(ctx, match, true)
 		}
-
-		// TODO clear database of untracked offsets after initial startup
 
 		globTicker := time.NewTicker(f.PollInterval)
 		defer globTicker.Stop()
@@ -341,7 +337,6 @@ func (f *FileInput) checkPath(path string, checkCopy bool) (createWatcher bool, 
 }
 
 func fingerprint(numBytes int64, file *os.File) (fp []byte, stable bool) {
-	// TODO make sure resetting the seek location isn't messing with things
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
 		panic(err)
