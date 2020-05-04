@@ -6,13 +6,18 @@ require (
 	cloud.google.com/go v0.38.0
 	github.com/antonmedv/expr v1.8.2
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
+	github.com/dgraph-io/badger v1.6.1 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200420061153-4ea3eecc9b5e
+	github.com/elastic/go-ucfg v0.8.3 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/gofrs/uuid v3.2.0+incompatible // indirect
+	github.com/gojp/goreportcard v0.0.0-20200415071653-59167b516f3f // indirect
 	github.com/golang/protobuf v1.3.4
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/influxdata/go-syslog v1.0.1 // indirect
 	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/jcmturner/gofork v1.0.0 // indirect
+	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -30,7 +35,6 @@ require (
 	google.golang.org/api v0.20.0
 	google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c
 	google.golang.org/grpc v1.27.1 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
 	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
 	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
