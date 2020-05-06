@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/mitchellh/mapstructure"
@@ -21,7 +20,6 @@ type Config interface {
 
 // BuildContext supplies contextual resources when building a plugin.
 type BuildContext struct {
-	Bundles  []*bundle.BundleDefinition
 	Database *bbolt.DB
 	Logger   *zap.SugaredLogger
 }

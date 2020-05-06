@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bluemedora/bplogagent/bundle"
 	"github.com/bluemedora/bplogagent/config"
 	"github.com/bluemedora/bplogagent/pipeline"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -39,7 +38,7 @@ func (a *LogAgent) Start() error {
 	}
 	a.database = database
 
-	buildContext := newBuildContext(a.SugaredLogger, database, a.Config.BundleDir)
+	buildContext := newBuildContext(a.SugaredLogger, database)
 	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
 		a.Errorw("Failed to build plugins", zap.Any("error", err))
@@ -102,14 +101,9 @@ func (a *LogAgent) writeDotGraph() {
 }
 
 // newBuildContext will create a new build context for building plugins.
-func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB, bundleDir string) pg.BuildContext {
-	var bundles []*bundle.BundleDefinition
-	if bundleDir != "" {
-		bundles = bundle.GetBundleDefinitions(bundleDir, logger)
-	}
+func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB) pg.BuildContext {
 	return pg.BuildContext{
 		Logger:   logger,
-		Bundles:  bundles,
 		Database: database,
 	}
 }

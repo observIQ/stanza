@@ -120,7 +120,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		fileCreated: make(chan string),
 		offsetStore: &OffsetStore{
 			db:     context.Database,
-			bucket: string(c.ID()), // TODO #172624962 use bundle as prefix
+			bucket: string(c.ID()),
 		},
 	}
 
