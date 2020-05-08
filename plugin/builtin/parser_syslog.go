@@ -19,7 +19,8 @@ func init() {
 type SyslogParserConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
-	Protocol                 string `mapstructure:"protocol" yaml:",omitempty"`
+
+	Protocol string `mapstructure:"protocol" json:"protocol,omitempty" yaml:"protocol,omitempty"`
 }
 
 // Build will build a JSON parser plugin.

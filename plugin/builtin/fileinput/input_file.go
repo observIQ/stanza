@@ -22,20 +22,21 @@ func init() {
 }
 
 type FileInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash"    yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash"    yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 
-	Include []string `mapstructure:"include" yaml:",omitempty"`
-	Exclude []string `mapstructure:"exclude" yaml:",omitempty"`
+	Include []string `mapstructure:"include" json:"include,omitempty" yaml:"include,omitempty"`
+	Exclude []string `mapstructure:"exclude" json:"exclude,omitempty" yaml:"exclude,omitempty"`
+
 	// TODO #172624929 make PollInterval a duration
-	PollInterval float64                    `mapstructure:"poll_interval" yaml:",omitempty"`
-	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     yaml:"multiline,omitempty"`
-	PathField    *entry.FieldSelector       `mapstructure:"path_field"    yaml:"path_field"`
+	PollInterval float64                    `mapstructure:"poll_interval" json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
+	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     json:"multiline,omitempty"     yaml:"multiline,omitempty"`
+	PathField    *entry.FieldSelector       `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
 }
 
 type FileSourceMultilineConfig struct {
-	LineStartPattern string `mapstructure:"line_start_pattern" yaml:"line_start_pattern"`
-	LineEndPattern   string `mapstructure:"line_end_pattern" yaml:"line_end_pattern"`
+	LineStartPattern string `mapstructure:"line_start_pattern" json:"line_start_pattern" yaml:"line_start_pattern"`
+	LineEndPattern   string `mapstructure:"line_end_pattern"   json:"line_end_pattern"   yaml:"line_end_pattern"`
 }
 
 func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {

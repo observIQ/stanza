@@ -17,7 +17,8 @@ func init() {
 type TimeParserConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
-	Layout                   string
+
+	Layout string `mapstructure:"layout" json:"layout" yaml:"layout"`
 }
 
 // Build will build a time parser plugin.

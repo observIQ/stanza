@@ -1,10 +1,13 @@
 package entry
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func TestFieldSelectorGet(t *testing.T) {
@@ -318,6 +321,134 @@ func TestFieldSelectorDecode(t *testing.T) {
 			}
 
 			assert.Equal(t, tc.expected, target)
+		})
+	}
+}
+
+func TestFieldSelectorUnmarshalJSON(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    []byte
+		expected FieldSelector
+	}{
+		{
+			"simple string",
+			[]byte(`"message"`),
+			FieldSelector([]string{"message"}),
+		},
+		{
+			"nested string",
+			[]byte(`["message","nested"]`),
+			FieldSelector([]string{"message", "nested"}),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var f FieldSelector
+			err := json.Unmarshal(tc.input, &f)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, f)
+		})
+	}
+}
+
+func TestFieldSelectorMarshalJSON(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    FieldSelector
+		expected []byte
+	}{
+		{
+			"simple string",
+			FieldSelector([]string{"message"}),
+			[]byte(`"message"`),
+		},
+		{
+			"nested string",
+			FieldSelector([]string{"message", "nested"}),
+			[]byte(`["message","nested"]`),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := json.Marshal(tc.input)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, res)
+		})
+	}
+}
+
+func TestFieldSelectorUnmarshalYAML(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    []byte
+		expected FieldSelector
+	}{
+		{
+			"simple string",
+			[]byte(`"message"`),
+			FieldSelector([]string{"message"}),
+		},
+		{
+			"unquoted string",
+			[]byte(`message`),
+			FieldSelector([]string{"message"}),
+		},
+		{
+			"nested string",
+			[]byte(`["message","nested"]`),
+			FieldSelector([]string{"message", "nested"}),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var f FieldSelector
+			err := yaml.Unmarshal(tc.input, &f)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, f)
+		})
+	}
+}
+
+func TestFieldSelectorMarshalYAML(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    interface{}
+		expected []byte
+	}{
+		{
+			"simple string",
+			FieldSelector([]string{"message"}),
+			[]byte("message\n"),
+		},
+		{
+			"nested string",
+			FieldSelector([]string{"message", "nested"}),
+			[]byte("- message\n- nested\n"),
+		},
+		{
+			"nested string inline",
+			struct {
+				Field FieldSelector `yaml:"field,flow"`
+			}{
+				FieldSelector([]string{"message", "nested"}),
+			},
+			[]byte("field: [message, nested]\n"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := yaml.Marshal(tc.input)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, res)
 		})
 	}
 }

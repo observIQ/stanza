@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"os"
 	"os/signal"
 
@@ -10,9 +11,8 @@ import (
 
 	bpla "github.com/bluemedora/bplogagent"
 	"github.com/bluemedora/bplogagent/config"
-	"github.com/mitchellh/mapstructure"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -37,26 +37,19 @@ func main() {
 	flag.StringVar(&cfg.PluginGraphOutput, "graph", "", "Path to output a dot formatted representation of the plugin graph")
 	flag.Parse()
 
-	v := viper.New()
-	v.SetConfigFile(configFile)
-	err := v.ReadInConfig()
+	configContents, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		logger.Errorw("Failed to read the config", zap.Error(err))
-		return
-	}
-	err = v.Unmarshal(&cfg, func(cfg *mapstructure.DecoderConfig) {
-		cfg.DecodeHook = config.DecodeHookFunc
-	})
-	if err != nil {
-		logger.Errorw("Failed to unmarshal the config", zap.Any("error", err))
+		logger.Errorw("Failed to read config file", zap.Error(err))
 		return
 	}
 
-	// cfgYaml, err := yaml.Marshal(cfg)
-	// if err != nil {
-	// 	logger.Errorw("Failed to marshal yaml", "error", err)
-	// }
-	// logger.Infof("Unmarshalled the config:\n%s\n", string(cfgYaml))
+	err = yaml.Unmarshal(configContents, &cfg)
+	if err != nil {
+		logger.Errorw("Failed to parse config file", zap.Error(err))
+		return
+	}
+
+	logger.Debugw("Parsed config", "config", cfg)
 
 	agent := bpla.NewLogAgent(&cfg, logger)
 

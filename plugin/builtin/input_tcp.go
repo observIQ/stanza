@@ -21,9 +21,10 @@ func init() {
 type TCPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	ListenAddress            string              `mapstructure:"listen_address" yaml:"listen_address,omitempty"`
-	MessageField             entry.FieldSelector `mapstructure:"message_field"`
-	SourceField              entry.FieldSelector `mapstructure:"source_field"`
+
+	ListenAddress string              `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	MessageField  entry.FieldSelector `mapstructure:"message_field"  json:"message_field,omitempty"  yaml:"message_field,omitempty,flow"`
+	SourceField   entry.FieldSelector `mapstructure:"source_field"   json:"source_field,omitempty"   yaml:"source_field,omitempty,flow"`
 }
 
 // Build will build a tcp input plugin.

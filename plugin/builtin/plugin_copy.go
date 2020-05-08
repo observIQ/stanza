@@ -14,7 +14,7 @@ func init() {
 // CopyPluginConfig is the configuration of a copy plugin.
 type CopyPluginConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	OutputIDs                []string `mapstructure:"outputs" yaml:"outputs"`
+	OutputIDs                []string `mapstructure:"outputs" json:"outputs" yaml:"outputs"`
 }
 
 // Build will build a copy filter plugin.

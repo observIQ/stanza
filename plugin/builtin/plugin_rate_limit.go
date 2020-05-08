@@ -18,9 +18,10 @@ func init() {
 type RateLimitConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-	Rate                          float64
-	Interval                      float64
-	Burst                         uint
+
+	Rate     float64 `mapstructure:"rate"     json:"rate,omitempty"     yaml:"rate,omitempty"`
+	Interval float64 `mapstructure:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
+	Burst    uint    `mapstructure:"burst"    json:"burst,omitempty"    yaml:"burst,omitempty"`
 }
 
 // Build will build a rate limit plugin.

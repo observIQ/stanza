@@ -16,7 +16,8 @@ func init() {
 // LoggerOutputConfig is the configuration of a logger output plugin.
 type LoggerOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Level                    string `yaml:",omitempty"`
+
+	Level string `mapstructure:"level" json:"level,omitempty" yaml:"level,omitempty"`
 }
 
 // Build will build a logger output plugin.

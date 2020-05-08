@@ -17,12 +17,12 @@ func init() {
 
 type RouterPluginConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Routes                   []RouterPluginRouteConfig `mapstructure:"routes" yaml:"routes"`
+	Routes                   []RouterPluginRouteConfig `mapstructure:"routes" json:"routes" yaml:"routes"`
 }
 
 type RouterPluginRouteConfig struct {
-	Expression string `mapstructure:"expr" yaml:"expr"`
-	Output     string `mapstructure:"output" yaml:"output"`
+	Expression string `mapstructure:"expr" json:"expr" yaml:"expr"`
+	Output     string `mapstructure:"output" json:"output" yaml:"output"`
 }
 
 func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {

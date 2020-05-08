@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -131,6 +132,58 @@ func (s FieldSelector) Delete(record *Record) (interface{}, bool) {
 	}
 
 	return nil, false
+}
+
+/****************
+  Serialization
+****************/
+
+func (s *FieldSelector) UnmarshalJSON(raw []byte) error {
+	var simple string
+	errSimple := json.Unmarshal(raw, &simple)
+	if errSimple != nil {
+		var nested []string
+		errNested := json.Unmarshal(raw, &nested)
+		if errNested != nil {
+			return fmt.Errorf("cannot unmarshal into string or array of strings: %s, %s", errSimple, errNested)
+		}
+		*s = nested
+		return nil
+	}
+	*s = []string{simple}
+	return nil
+}
+
+func (s FieldSelector) MarshalJSON() ([]byte, error) {
+	if len(s) == 1 {
+		return []byte(fmt.Sprintf(`"%s"`, s[0])), nil
+	}
+
+	return json.Marshal([]string(s))
+}
+
+func (s *FieldSelector) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var simple string
+	errSimple := unmarshal(&simple)
+	if errSimple != nil {
+		var nested []string
+		errNested := unmarshal(&nested)
+		if errNested != nil {
+			return fmt.Errorf("cannot unmarshal into string or array of strings: %s, %s", errSimple, errNested)
+		}
+		*s = nested
+		return nil
+	}
+	*s = []string{simple}
+	return nil
+}
+
+func (s FieldSelector) MarshalYAML() (interface{}, error) {
+	if len(s) == 1 {
+		return s[0], nil
+	}
+
+	return s, nil
 }
 
 var FieldSelectorDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {

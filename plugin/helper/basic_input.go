@@ -8,7 +8,7 @@ import (
 
 // BasicInputConfig provides a basic implementation of an input config.
 type BasicInputConfig struct {
-	OutputID string `mapstructure:"output" yaml:"output"`
+	OutputID string `mapstructure:"output" json:"output" yaml:"output"`
 }
 
 // Build will build a base producer.

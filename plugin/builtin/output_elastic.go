@@ -23,14 +23,13 @@ func init() {
 type ElasticOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 
-	Addresses []string
-	Username  string
-	Password  string
-	CloudID   string `mapstructure:"cloud_id" yaml:"cloud_id"`
-	APIKey    string `mapstructure:"api_key" yaml:"api_key"`
-
-	IndexField entry.FieldSelector `mapstructure:"index_field" yaml:"index_field"`
-	IDField    entry.FieldSelector `mapstructure:"id_field" yaml:"id_field"`
+	Addresses  []string            `mapstructure:"addresses"   json:"addresses"             yaml:"addresses,flow"`
+	Username   string              `mapstructure:"username"    json:"username"              yaml:"username"`
+	Password   string              `mapstructure:"password"    json:"password"              yaml:"password"`
+	CloudID    string              `mapstructure:"cloud_id"    json:"cloud_id"              yaml:"cloud_id"`
+	APIKey     string              `mapstructure:"api_key"     json:"api_key"               yaml:"api_key"`
+	IndexField entry.FieldSelector `mapstructure:"index_field" json:"index_field,omitempty" yaml:"index_field,omitempty,flow"`
+	IDField    entry.FieldSelector `mapstructure:"id_field"    json:"id_field,omitempty"    yaml:"id_field,omitempty,flow"`
 }
 
 // Build will build an elasticsearch output plugin.

@@ -18,7 +18,8 @@ type RegexParserConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicParserConfig      `mapstructure:",squash" yaml:",inline"`
-	Regex                         string
+
+	Regex string `mapstructure:"regex" json:"regex" yaml:"regex"`
 }
 
 // Build will build a regex parser plugin.

@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -21,7 +22,7 @@ type RestructurePluginConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
-	Ops []Op `mapstructure:"ops" yaml:"ops"`
+	Ops []Op `mapstructure:"ops" json:"ops" yaml:"ops"`
 }
 
 func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -64,111 +65,127 @@ func (p *RestructurePlugin) Process(e *entry.Entry) error {
 	return p.Output.Process(e)
 }
 
-/*
- * Op Definitions
- */
+/*****************
+  Op Definitions
+*****************/
 
-type Op interface {
+type Op struct {
+	OpApplier
+}
+
+type OpApplier interface {
 	Apply(entry *entry.Entry) error
+	Type() string
 }
 
-type OpAdd struct {
-	Field     entry.FieldSelector
-	Value     interface{}
-	ValueExpr *vm.Program
+func (o *Op) UnmarshalJSON(raw []byte) error {
+	var typeDecoder map[string]rawMessage
+	err := json.Unmarshal(raw, &typeDecoder)
+	if err != nil {
+		return err
+	}
+
+	return o.unmarshalDecodedType(typeDecoder)
 }
 
-func (op *OpAdd) Apply(e *entry.Entry) error {
-	switch {
-	case op.Value != nil:
-		e.Set(op.Field, op.Value)
-	case op.ValueExpr != nil:
-		env := map[string]interface{}{
-			"record": e.Record,
+func (o *Op) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var typeDecoder map[string]rawMessage
+	err := unmarshal(&typeDecoder)
+	if err != nil {
+		return err
+	}
+
+	return o.unmarshalDecodedType(typeDecoder)
+}
+
+type rawMessage struct {
+	unmarshal func(interface{}) error
+}
+
+func (msg *rawMessage) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	msg.unmarshal = unmarshal
+	return nil
+}
+
+func (msg *rawMessage) UnmarshalJSON(raw []byte) error {
+	msg.unmarshal = func(dest interface{}) error {
+		return json.Unmarshal(raw, dest)
+	}
+	return nil
+}
+
+func (msg *rawMessage) Unmarshal(v interface{}) error {
+	return msg.unmarshal(v)
+}
+
+func (o *Op) unmarshalDecodedType(typeDecoder map[string]rawMessage) error {
+	var rawMessage rawMessage
+	var opType string
+	for k, v := range typeDecoder {
+		if opType != "" {
+			return fmt.Errorf("only one Op type can be defined per operation")
 		}
-		result, err := vm.Run(op.ValueExpr, env)
+		opType = k
+		rawMessage = v
+	}
+
+	if opType == "" {
+		return fmt.Errorf("no Op type defined")
+	}
+
+	var err error
+	switch opType {
+	case "move":
+		var move OpMove
+		err = rawMessage.Unmarshal(&move)
 		if err != nil {
-			return fmt.Errorf("evaluate value_expr: %s", err)
+			return err
 		}
-		e.Set(op.Field, result)
-	default:
-		// Should never reach here if we went through the unmarshalling code
-		return fmt.Errorf("neither value or value_expr are are set")
-	}
-
-	return nil
-}
-
-type OpRemove struct {
-	Field entry.FieldSelector
-}
-
-func (op *OpRemove) Apply(e *entry.Entry) error {
-	e.Delete(op.Field)
-	return nil
-}
-
-type OpRetain struct {
-	Fields []entry.FieldSelector
-}
-
-func (op *OpRetain) Apply(e *entry.Entry) error {
-	newEntry := entry.NewEntry()
-	newEntry.Timestamp = e.Timestamp
-	for _, field := range op.Fields {
-		val, ok := e.Get(field)
-		if !ok {
-			continue
+		o.OpApplier = &move
+	case "add":
+		var add OpAdd
+		err = rawMessage.Unmarshal(&add)
+		if err != nil {
+			return err
 		}
-		newEntry.Set(field, val)
+		o.OpApplier = &add
+	case "remove":
+		var remove OpRemove
+		err = rawMessage.Unmarshal(&remove)
+		if err != nil {
+			return err
+		}
+		o.OpApplier = &remove
+	case "retain":
+		var retain OpRetain
+		err = rawMessage.Unmarshal(&retain)
+		if err != nil {
+			return err
+		}
+		o.OpApplier = &retain
+	case "flatten":
+		var flatten OpFlatten
+		err = rawMessage.Unmarshal(&flatten)
+		if err != nil {
+			return err
+		}
+		o.OpApplier = &flatten
 	}
-	*e = *newEntry
+
 	return nil
 }
 
-type OpMove struct {
-	From entry.FieldSelector
-	To   entry.FieldSelector
+func (o Op) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		o.Type(): o.OpApplier,
+	})
 }
 
-func (op *OpMove) Apply(e *entry.Entry) error {
-	val, ok := e.Delete(op.From)
-	if !ok {
-		return fmt.Errorf("apply move: field %s does not exist on record", op.From)
-	}
-
-	e.Set(op.To, val)
-	return nil
+func (o Op) MarshalYAML() (interface{}, error) {
+	return map[string]interface{}{
+		o.Type(): o.OpApplier,
+	}, nil
 }
-
-type OpFlatten struct {
-	Field entry.FieldSelector
-}
-
-func (op *OpFlatten) Apply(e *entry.Entry) error {
-	parent := op.Field.Parent()
-	val, ok := e.Delete(op.Field)
-	if !ok {
-		// The field doesn't exist, so ignore it
-		return fmt.Errorf("apply flatten: field %s does not exist on record", op.Field)
-	}
-
-	valMap, ok := val.(map[string]interface{})
-	if !ok {
-		// The field we were asked to flatten was not a map, so put it back
-		e.Set(op.Field, val)
-		return fmt.Errorf("apply flatten: field %s is not a map", op.Field)
-	}
-
-	for k, v := range valMap {
-		e.Set(parent.Child(k), v)
-	}
-	return nil
-}
-
-/*
- * Decoding
- */
 
 var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 	if t.String() != "builtin.Op" {
@@ -214,7 +231,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode OpMove: %s", err)
 		}
-		return &move, nil
+		return Op{&move}, nil
 	case "add":
 		var addRaw struct {
 			Field     entry.FieldSelector
@@ -237,41 +254,41 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 		case addRaw.Value == nil && addRaw.ValueExpr == nil:
 			return nil, fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
 		case addRaw.Value != nil:
-			return &OpAdd{
+			return Op{&OpAdd{
 				Field: addRaw.Field,
 				Value: addRaw.Value,
-			}, nil
+			}}, nil
 		case addRaw.ValueExpr != nil:
 			compiled, err := expr.Compile(*addRaw.ValueExpr, expr.AllowUndefinedVariables())
 			if err != nil {
 				return nil, fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
 			}
-			return &OpAdd{
+			return Op{&OpAdd{
 				Field:     addRaw.Field,
 				ValueExpr: compiled,
-			}, nil
+			}}, nil
 		}
 	case "remove":
-		var field entry.FieldSelector
-		err := decodeWithFieldSelector(rawOp, &field)
+		var remove OpRemove
+		err := decodeWithFieldSelector(rawOp, &remove.Field)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode OpRemove: %s", err)
 		}
-		return &OpRemove{field}, nil
+		return Op{&remove}, nil
 	case "retain":
-		var fields []entry.FieldSelector
-		err := decodeWithFieldSelector(rawOp, &fields)
+		var retain OpRetain
+		err := decodeWithFieldSelector(rawOp, &retain.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode OpRetain: %s", err)
 		}
-		return &OpRetain{fields}, nil
+		return Op{&retain}, nil
 	case "flatten":
-		var field entry.FieldSelector
-		err := decodeWithFieldSelector(rawOp, &field)
+		var flatten OpFlatten
+		err := decodeWithFieldSelector(rawOp, &flatten.Field)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode Opflatten: %s", err)
+			return nil, fmt.Errorf("failed to decode OpFlatten: %s", err)
 		}
-		return &OpFlatten{field}, nil
+		return Op{&flatten}, nil
 	}
 
 	return nil, fmt.Errorf("unknown Op type %s", *opType)
@@ -289,4 +306,238 @@ func decodeWithFieldSelector(input, dest interface{}) error {
 	}
 
 	return decoder.Decode(input)
+}
+
+/******
+  Add
+******/
+
+type OpAdd struct {
+	Field     entry.FieldSelector
+	Value     interface{}
+	ValueExpr *vm.Program
+}
+
+func (op *OpAdd) Apply(e *entry.Entry) error {
+	switch {
+	case op.Value != nil:
+		e.Set(op.Field, op.Value)
+	case op.ValueExpr != nil:
+		env := map[string]interface{}{
+			"record": e.Record,
+		}
+		result, err := vm.Run(op.ValueExpr, env)
+		if err != nil {
+			return fmt.Errorf("evaluate value_expr: %s", err)
+		}
+		e.Set(op.Field, result)
+	default:
+		// Should never reach here if we went through the unmarshalling code
+		return fmt.Errorf("neither value or value_expr are are set")
+	}
+
+	return nil
+}
+
+func (op *OpAdd) Type() string {
+	return "add"
+}
+
+type opAddRaw struct {
+	Field     entry.FieldSelector
+	Value     interface{}
+	ValueExpr *string
+}
+
+func (op *OpAdd) UnmarshalJSON(raw []byte) error {
+	var addRaw opAddRaw
+	err := json.Unmarshal(raw, &addRaw)
+	if err != nil {
+		return fmt.Errorf("decode OpAdd: %s", err)
+	}
+
+	return op.unmarshalFromOpAddRaw(addRaw)
+}
+
+func (op *OpAdd) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var addRaw opAddRaw
+	err := unmarshal(&addRaw)
+	if err != nil {
+		return fmt.Errorf("decode OpAdd: %s", err)
+	}
+
+	return op.unmarshalFromOpAddRaw(addRaw)
+}
+
+func (op *OpAdd) unmarshalFromOpAddRaw(addRaw opAddRaw) error {
+	if addRaw.Field == nil {
+		return fmt.Errorf("decode OpAdd: missing required field 'field'")
+	}
+
+	switch {
+	case addRaw.Value != nil && addRaw.ValueExpr != nil:
+		return fmt.Errorf("decode OpAdd: only one of 'value' or 'value_expr' may be defined")
+	case addRaw.Value == nil && addRaw.ValueExpr == nil:
+		return fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
+	case addRaw.Value != nil:
+		op.Field = addRaw.Field
+		op.Value = addRaw.Value
+	case addRaw.ValueExpr != nil:
+		compiled, err := expr.Compile(*addRaw.ValueExpr, expr.AllowUndefinedVariables())
+		if err != nil {
+			return fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
+		}
+		op.Field = addRaw.Field
+		op.ValueExpr = compiled
+	}
+
+	return nil
+}
+
+/*********
+  Remove
+*********/
+
+type OpRemove struct {
+	Field entry.FieldSelector
+}
+
+func (op *OpRemove) Apply(e *entry.Entry) error {
+	e.Delete(op.Field)
+	return nil
+}
+
+func (op *OpRemove) Type() string {
+	return "remove"
+}
+
+func (op *OpRemove) UnmarshalJSON(raw []byte) error {
+	return json.Unmarshal(raw, &op.Field)
+}
+
+func (op *OpRemove) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&op.Field)
+}
+
+func (op OpRemove) MarshalJSON() ([]byte, error) {
+	return json.Marshal(op.Field)
+}
+
+func (op OpRemove) MarshalYAML() (interface{}, error) {
+	return op.Field, nil
+}
+
+/*********
+  Retain
+*********/
+
+type OpRetain struct {
+	Fields []entry.FieldSelector
+}
+
+func (op *OpRetain) Apply(e *entry.Entry) error {
+	newEntry := entry.NewEntry()
+	newEntry.Timestamp = e.Timestamp
+	for _, field := range op.Fields {
+		val, ok := e.Get(field)
+		if !ok {
+			continue
+		}
+		newEntry.Set(field, val)
+	}
+	*e = *newEntry
+	return nil
+}
+
+func (op *OpRetain) Type() string {
+	return "retain"
+}
+
+func (op *OpRetain) UnmarshalJSON(raw []byte) error {
+	return json.Unmarshal(raw, &op.Fields)
+}
+
+func (op *OpRetain) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&op.Fields)
+}
+
+func (op OpRetain) MarshalJSON() ([]byte, error) {
+	return json.Marshal(op.Fields)
+}
+
+func (op OpRetain) MarshalYAML() (interface{}, error) {
+	return op.Fields, nil
+}
+
+/*******
+  Move
+*******/
+
+type OpMove struct {
+	From entry.FieldSelector `json:"from" yaml:"from,flow"`
+	To   entry.FieldSelector `json:"to" yaml:"to,flow"`
+}
+
+func (op *OpMove) Apply(e *entry.Entry) error {
+	val, ok := e.Delete(op.From)
+	if !ok {
+		return fmt.Errorf("apply move: field %s does not exist on record", op.From)
+	}
+
+	e.Set(op.To, val)
+	return nil
+}
+
+func (op *OpMove) Type() string {
+	return "move"
+}
+
+/**********
+  Flatten
+**********/
+
+type OpFlatten struct {
+	Field entry.FieldSelector
+}
+
+func (op *OpFlatten) Apply(e *entry.Entry) error {
+	fs := entry.FieldSelector(op.Field)
+	parent := fs.Parent()
+	val, ok := e.Delete(fs)
+	if !ok {
+		// The field doesn't exist, so ignore it
+		return fmt.Errorf("apply flatten: field %s does not exist on record", fs)
+	}
+
+	valMap, ok := val.(map[string]interface{})
+	if !ok {
+		// The field we were asked to flatten was not a map, so put it back
+		e.Set(fs, val)
+		return fmt.Errorf("apply flatten: field %s is not a map", fs)
+	}
+
+	for k, v := range valMap {
+		e.Set(parent.Child(k), v)
+	}
+	return nil
+}
+
+func (op *OpFlatten) Type() string {
+	return "flatten"
+}
+
+func (op *OpFlatten) UnmarshalJSON(raw []byte) error {
+	return json.Unmarshal(raw, &op.Field)
+}
+
+func (op *OpFlatten) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&op.Field)
+}
+
+func (op OpFlatten) MarshalJSON() ([]byte, error) {
+	return json.Marshal(op.Field)
+}
+
+func (op OpFlatten) MarshalYAML() (interface{}, error) {
+	return op.Field, nil
 }

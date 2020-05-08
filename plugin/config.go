@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -9,10 +10,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
-// Config defines the configuration and build process of a plugin.
-type Config interface {
+type Config struct {
+	PluginBuilder `mapstructure:",squash" yaml:",inline"`
+}
+
+type PluginBuilder interface {
 	ID() string
 	Type() string
 	Build(BuildContext) (Plugin, error)
@@ -43,14 +48,78 @@ func BuildPlugins(configs []Config, context BuildContext) ([]Plugin, error) {
 }
 
 // configDefinitions is a registry of plugin types to plugin configs.
-var configDefinitions = make(map[string]func() (Config, mapstructure.DecodeHookFunc))
+var configDefinitions = make(map[string]func() (interface{}, mapstructure.DecodeHookFunc))
 
 // Register will register a plugin config by plugin type.
-func Register(pluginType string, config Config, decoders ...mapstructure.DecodeHookFunc) {
-	configDefinitions[pluginType] = func() (Config, mapstructure.DecodeHookFunc) {
+func Register(pluginType string, config PluginBuilder, decoders ...mapstructure.DecodeHookFunc) {
+	configDefinitions[pluginType] = func() (interface{}, mapstructure.DecodeHookFunc) {
 		val := reflect.New(reflect.TypeOf(config).Elem()).Interface()
-		return val.(Config), mapstructure.ComposeDecodeHookFunc(decoders...)
+		return val.(PluginBuilder), mapstructure.ComposeDecodeHookFunc(decoders...)
 	}
+}
+
+func (c *Config) UnmarshalJSON(raw []byte) error {
+	var typeDecoder struct {
+		Type string
+	}
+	err := json.Unmarshal(raw, &typeDecoder)
+	if err != nil {
+		return err
+	}
+
+	if typeDecoder.Type == "" {
+		return ErrMissingType
+	}
+
+	pluginBuilderGenerator, ok := configDefinitions[typeDecoder.Type]
+	if !ok {
+		return NewErrUnknownType(typeDecoder.Type)
+	}
+
+	pluginBuilder, _ := pluginBuilderGenerator()
+	err = json.Unmarshal(raw, pluginBuilder)
+	if err != nil {
+		return err
+	}
+
+	c.PluginBuilder = pluginBuilder.(PluginBuilder)
+	return nil
+}
+
+func (c Config) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.PluginBuilder)
+}
+
+func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var typeDecoder struct {
+		Type string
+	}
+	err := unmarshal(&typeDecoder)
+	if err != nil {
+		return err
+	}
+
+	if typeDecoder.Type == "" {
+		return ErrMissingType
+	}
+
+	pluginBuilderGenerator, ok := configDefinitions[typeDecoder.Type]
+	if !ok {
+		return NewErrUnknownType(typeDecoder.Type)
+	}
+
+	pluginBuilder, _ := pluginBuilderGenerator()
+	err = unmarshal(pluginBuilder)
+	if err != nil {
+		return err
+	}
+
+	c.PluginBuilder = pluginBuilder.(PluginBuilder)
+	return nil
+}
+
+func (c Config) MarshalYAML() ([]byte, error) {
+	return yaml.Marshal(c.PluginBuilder)
 }
 
 // ConfigDecoder is a function that uses the config registry to unmarshal plugin configs.
@@ -79,10 +148,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 
 	typeInterface, ok := mapString["type"]
 	if !ok {
-		return nil, errors.NewError(
-			"Plugin config is missing a `type` field.",
-			"Ensure that all plugin configs have a `type` field defined.",
-		)
+		return nil, ErrMissingType
 	}
 
 	typeString, ok := typeInterface.(string)
@@ -95,11 +161,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 
 	createConfig, ok := configDefinitions[typeString]
 	if !ok {
-		return nil, errors.NewError(
-			"Plugin config has an unknown plugin type.",
-			"Ensure that all plugin configs have a known, valid type.",
-			"plugin_type", typeString,
-		)
+		return nil, NewErrUnknownType(typeString)
 	}
 
 	config, decodeHook := createConfig()
@@ -117,5 +179,22 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 		return nil, fmt.Errorf("decode plugin definition: %s", err)
 	}
 
-	return config, nil
+	return &Config{config.(PluginBuilder)}, nil
+}
+
+/*********
+  Errors
+*********/
+
+var ErrMissingType = errors.NewError(
+	"Missing required field `type`.",
+	"Ensure that all plugin configs have a `type` field set",
+)
+
+func NewErrUnknownType(pluginType string) errors.AgentError {
+	return errors.NewError(
+		"Plugin config has an unknown plugin type.",
+		"Ensure that all plugin configs have a known, valid type.",
+		"plugin_type", pluginType,
+	)
 }

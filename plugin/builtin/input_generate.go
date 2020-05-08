@@ -20,8 +20,9 @@ func init() {
 type GenerateInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
-	Record                   map[string]interface{}
-	Count                    int `yaml:",omitempty"`
+
+	Record map[string]interface{} `mapstructure:"record" json:"record"          yaml:"record"`
+	Count  int                    `mapstructure:"count"  json:"count,omitempty" yaml:"count,omitempty"`
 }
 
 // Build will build a generate input plugin.

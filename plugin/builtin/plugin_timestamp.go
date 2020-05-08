@@ -17,8 +17,9 @@ func init() {
 type TimestampConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-	CopyFrom                      *entry.FieldSelector `mapstructure:"copy_from" yaml:"copy_from"`
-	RemoveField                   bool                 `mapstructure:"remove_field" yaml:"remove_field"`
+
+	CopyFrom    *entry.FieldSelector `mapstructure:"copy_from"    json:"copy_from"    yaml:"copy_from"`
+	RemoveField bool                 `mapstructure:"remove_field" json:"remove_field" yaml:"remove_field"`
 }
 
 // Build will build a timestamp plugin.

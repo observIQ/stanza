@@ -29,13 +29,14 @@ func init() {
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Credentials              string              `mapstructure:"credentials"    yaml:"credentials"`
-	ProjectID                string              `mapstructure:"project_id"     yaml:"project_id"`
-	LogNameField             entry.FieldSelector `mapstructure:"log_name_field" yaml:"log_name_field"`
-	LabelsField              entry.FieldSelector `mapstructure:"labels_field"   yaml:"labels_field"`
-	SeverityField            entry.FieldSelector `mapstructure:"severity_field" yaml:"severity_field"`
-	TraceField               entry.FieldSelector `mapstructure:"trace_field"    yaml:"trace_field"`
-	SpanIDField              entry.FieldSelector `mapstructure:"span_id_field"  yaml:"span_id_field"`
+
+	Credentials   string              `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
+	ProjectID     string              `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
+	LogNameField  entry.FieldSelector `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty,flow"`
+	LabelsField   entry.FieldSelector `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty,flow"`
+	SeverityField entry.FieldSelector `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty,flow"`
+	TraceField    entry.FieldSelector `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty,flow"`
+	SpanIDField   entry.FieldSelector `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty,flow"`
 }
 
 // Build will build a google cloud output plugin.

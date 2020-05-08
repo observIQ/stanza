@@ -9,10 +9,10 @@ import (
 
 // BasicParserConfig provides the basic implementation of a parser config.
 type BasicParserConfig struct {
-	OutputID  string               `mapstructure:"output" yaml:"output"`
-	ParseFrom *entry.FieldSelector `mapstructure:"parse_from" yaml:"parse_from"`
-	ParseTo   *entry.FieldSelector `mapstructure:"parse_to" yaml:"parse_to"`
-	OnError   string               `mapstructure:"on_error" yaml:"on_error"`
+	OutputID  string               `mapstructure:"output"     json:"output"     yaml:"output"`
+	ParseFrom *entry.FieldSelector `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from,flow"`
+	ParseTo   *entry.FieldSelector `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to,flow"`
+	OnError   string               `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
 }
 
 // Build will build a basic parser.
@@ -25,6 +25,7 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 	}
 
 	if c.ParseFrom == nil {
+		// TODO these shouldn't be pointers
 		var fs entry.FieldSelector = entry.FieldSelector([]string{})
 		c.ParseFrom = &fs
 	}
