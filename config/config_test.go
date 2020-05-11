@@ -50,9 +50,7 @@ var testRepresentativeJSON = []byte(`
     {
       "id": "my_file_input",
       "type": "file_input",
-      "include": [
-        "./testfile"
-      ],
+      "include": ["./testfile"],
       "output": "my_restructure"
     },
     {

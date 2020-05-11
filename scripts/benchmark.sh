@@ -11,7 +11,7 @@ echo "Downloading dependencies"
 gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
   'gsutil cp gs://bplogagent-logbench/LogBench /tmp/benchmark/LogBench && chmod +x /tmp/benchmark/LogBench'
 gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
-  'gsutil cp gs://bplogagent-logbench/config.yaml /tmp/benchmark/config.yaml'
+  'gsutil cp gs://bplogagent-logbench/config2.yaml /tmp/benchmark/config.yaml'
 
 echo "Running single-file benchmark"
 gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
