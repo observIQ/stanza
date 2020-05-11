@@ -10,11 +10,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	PluginBuilder `mapstructure:",squash" yaml:",inline"`
+	PluginBuilder `mapstructure:",squash"`
 }
 
 type PluginBuilder interface {
@@ -118,8 +117,8 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func (c Config) MarshalYAML() ([]byte, error) {
-	return yaml.Marshal(c.PluginBuilder)
+func (c Config) MarshalYAML() (interface{}, error) {
+	return c.PluginBuilder, nil
 }
 
 // ConfigDecoder is a function that uses the config registry to unmarshal plugin configs.
