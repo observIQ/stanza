@@ -2,10 +2,13 @@ package fileinput
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/md5"
+	"encoding/gob"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +18,8 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
+	"go.etcd.io/bbolt"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -28,10 +33,9 @@ type FileInputConfig struct {
 	Include []string `mapstructure:"include" json:"include,omitempty" yaml:"include,omitempty"`
 	Exclude []string `mapstructure:"exclude" json:"exclude,omitempty" yaml:"exclude,omitempty"`
 
-	// TODO #172624929 make PollInterval a duration
-	PollInterval float64                    `mapstructure:"poll_interval" json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
+	PollInterval *time.Duration             `mapstructure:"poll_interval" json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     json:"multiline,omitempty"     yaml:"multiline,omitempty"`
-	PathField    *entry.FieldSelector       `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
+	PathField    entry.FieldSelector        `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
 }
 
 type FileSourceMultilineConfig struct {
@@ -96,17 +100,12 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		}
 	}
 
-	// Parse the poll interval
-	if c.PollInterval < 0 {
-		return nil, fmt.Errorf("poll_interval must be greater than zero if configured")
+	var pollInterval time.Duration
+	if c.PollInterval == nil {
+		pollInterval = 200 * time.Millisecond
+	} else {
+		pollInterval = *c.PollInterval
 	}
-	pollInterval := func() time.Duration {
-		if c.PollInterval == 0 {
-			return 5 * time.Second
-		} else {
-			return time.Duration(float64(time.Second) * c.PollInterval)
-		}
-	}()
 
 	plugin := &FileInput{
 		BasicPlugin:      basicPlugin,
@@ -116,13 +115,10 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
 		PathField:        c.PathField,
-		FingerprintBytes: 100,
-
-		fileCreated: make(chan string),
-		offsetStore: &OffsetStore{
-			db:     context.Database,
-			bucket: string(c.ID()),
-		},
+		db:               context.Database,
+		runningFiles:     make(map[string]struct{}),
+		fileUpdateChan:   make(chan fileUpdateMessage, 10),
+		fingerprintBytes: 1000,
 	}
 
 	return plugin, nil
@@ -132,60 +128,63 @@ type FileInput struct {
 	helper.BasicPlugin
 	helper.BasicInput
 
-	Include          []string
-	Exclude          []string
-	PathField        *entry.FieldSelector
-	PollInterval     time.Duration
-	SplitFunc        bufio.SplitFunc
-	FingerprintBytes int64
+	Include      []string
+	Exclude      []string
+	PathField    entry.FieldSelector
+	PollInterval time.Duration
+	SplitFunc    bufio.SplitFunc
 
-	wg     *sync.WaitGroup
-	cancel context.CancelFunc
+	db *bbolt.DB
 
-	fileWatchers      []*FileWatcher
-	fileMux           sync.Mutex
-	directoryWatchers map[string]*DirectoryWatcher
-	directoryMux      sync.Mutex
+	runningFiles map[string]struct{}
+	knownFiles   map[string]*knownFileInfo
 
-	fileCreated chan string
+	fileUpdateChan   chan fileUpdateMessage
+	fingerprintBytes int64
 
-	offsetStore *OffsetStore
+	wg       *sync.WaitGroup
+	readerWg *sync.WaitGroup
+	cancel   context.CancelFunc
 }
 
 func (f *FileInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
 	f.wg = &sync.WaitGroup{}
+	f.readerWg = &sync.WaitGroup{}
 
-	f.fileWatchers = make([]*FileWatcher, 0)
-	f.directoryWatchers = make(map[string]*DirectoryWatcher, 0)
+	var err error
+	f.knownFiles, err = f.readKnownFiles()
+	if err != nil {
+		return fmt.Errorf("failed to read known files from database")
+	}
 
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
-		defer f.Info("Exiting glob updater")
-
-		// Do it once first for responsive startup
-		matches := globMatches(f.Include, f.Exclude)
-		for _, match := range matches {
-			f.tryAddFile(ctx, match, true)
-		}
 
 		globTicker := time.NewTicker(f.PollInterval)
 		defer globTicker.Stop()
 
+		// All accesses to runningFiles and knownFiles should be done from
+		// this goroutine. That means that all private methods of FileInput
+		// are unsafe to call from multiple goroutines. Changes to these
+		// maps should be done through the fileUpdateChan.
 		for {
 			select {
 			case <-ctx.Done():
+				f.drainMessages()
+				f.readerWg.Wait()
+				f.syncKnownFiles()
 				return
 			case <-globTicker.C:
-				matches := globMatches(f.Include, f.Exclude)
+				matches := getMatches(f.Include, f.Exclude)
 				for _, match := range matches {
-					f.tryAddFile(ctx, match, true)
+					f.checkFile(ctx, match)
 				}
-			case path := <-f.fileCreated:
-				f.Debugw("Received file created notification", "path", path)
-				f.tryAddFile(ctx, path, false)
+				f.syncKnownFiles()
+			case message := <-f.fileUpdateChan:
+				f.updateFile(message)
 			}
 		}
 	}()
@@ -201,215 +200,300 @@ func (f *FileInput) Stop() error {
 	return nil
 }
 
-// globMatches queries the filesystem for any files that match one of the
-// include patterns, but do not match any of the exclude patterns
-func globMatches(includes []string, excludes []string) []string {
-	matched := []string{}
-	for _, includePattern := range includes {
-		matches, _ := filepath.Glob(includePattern)
-		for _, path := range matches {
-			fileInfo, err := os.Stat(path)
-			if err != nil || fileInfo.IsDir() {
-				continue // skip directories
-			}
-			if isExcluded(path, excludes) {
-				continue // skip excluded
-			}
-			matched = append(matched, path)
-		}
-	}
-	return matched
-}
+// checkFile is not safe to call from multiple goroutines
+func (f *FileInput) checkFile(ctx context.Context, path string) {
 
-// isExcluded checks if the path is matched by any of the exclude patterns
-func isExcluded(path string, excludes []string) bool {
-	for _, excludePattern := range excludes {
-		// error already checked in build step
-		if exclude, _ := filepath.Match(excludePattern, path); exclude {
-			return true
-		}
+	// Check if the file is currently being read
+	if _, ok := f.runningFiles[path]; ok {
+		return // file is already being read
 	}
 
-	return false
-}
+	// If the path is known, start from last offset
+	knownFile, isKnown := f.knownFiles[path]
 
-//
-func (f *FileInput) tryAddFile(ctx context.Context, path string, globCheck bool) {
-	// Skip the path if it's excluded
-	if isExcluded(path, f.Exclude) {
-		f.Debugw("Skipping excluded file", "path", path)
-		return
-	}
-
-	// Add the file's directory so we can get faster notifications
-	f.tryAddDirectory(ctx, filepath.Dir(path))
-
-	// Check if we should start watching the file
-	createWatcher, startingOffset, err := f.checkPath(path, !globCheck)
-	if err != nil || !createWatcher {
-		return
-	}
-
-	// Create the file watcher
-	watcher := &FileWatcher{
-		path:             path,
-		pathField:        f.PathField,
-		offset:           startingOffset,
-		pollInterval:     f.PollInterval,
-		splitFunc:        f.SplitFunc,
-		output:           f.Output.Process,
-		fingerprintBytes: f.FingerprintBytes,
-		offsetStore:      f.offsetStore,
-		SugaredLogger:    f.SugaredLogger.With("path", path),
-	}
-
-	// Save a reference
-	fp, _ := watcher.Fingerprint()
-	f.Infow("Watching file", "path", watcher.path, "offset", watcher.offset, "fingerprint", fp)
-	f.overwriteFileWatcher(watcher)
-
-	// Start the watcher
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
-		defer f.Debugw("File watcher stopped", "path", path)
-		defer f.removeFileWatcher(watcher)
-
-		err := watcher.Watch(ctx)
+	// If the path is new, check if it was from a known file that was rotated
+	var err error
+	if !isKnown {
+		knownFile, err = newKnownFileInfo(path, f.fingerprintBytes)
 		if err != nil {
-			if pathError, ok := err.(*os.PathError); ok && pathError.Err.Error() == "no such file or directory" {
-				f.Debugw("File deleted before it could be read", "path", path)
-			} else {
-				f.Warnw("Watch failed", "error", err)
+			f.Warnw("Failed to get info for file", zap.Error(err))
+			return
+		}
+
+		for _, knownInfo := range f.knownFiles {
+			if knownFile.fingerprintMatches(knownInfo) || knownFile.smallFileContentsMatches(knownInfo) {
+				// The file was rotated, so update the path
+				knownInfo.Path = path
+				knownFile = knownInfo
+				break
 			}
 		}
-	}()
+	}
+
+	f.runningFiles[path] = struct{}{}
+	f.knownFiles[path] = knownFile
+	f.readerWg.Add(1)
+	go func(ctx context.Context, path string, offset int64) {
+		defer f.readerWg.Done()
+		messenger := f.newFileUpdateMessenger(path)
+		err := ReadToEnd(ctx, path, knownFile.Offset, messenger, f.SplitFunc, f.PathField, f.Output)
+		if err != nil {
+			f.Warnw("Failed to read log file", zap.Error(err))
+		}
+	}(ctx, path, knownFile.Offset)
 }
 
-func (f *FileInput) checkPath(path string, checkCopy bool) (createWatcher bool, startingOffset int64, err error) {
+func (f *FileInput) updateFile(message fileUpdateMessage) {
+	if message.finished {
+		delete(f.runningFiles, message.path)
+		return
+	}
+
+	knownFile := f.knownFiles[message.path]
+
+	if message.newOffset < knownFile.Offset {
+		// The file was truncated or rotated
+
+		newKnownFile, err := newKnownFileInfo(message.path, f.fingerprintBytes)
+		if err != nil {
+			f.Warnw("Failed to generate new file info", zap.Error(err))
+			return
+		}
+		f.knownFiles[message.path] = newKnownFile
+		return
+	}
+
+	if knownFile.Offset < f.fingerprintBytes && message.newOffset > f.fingerprintBytes {
+		// The file graduated from small file to fingerprinted file
+
+		file, err := os.Open(message.path)
+		if err != nil {
+			f.Warnw("Failed to open file for fingerprinting", zap.Error(err))
+			return
+		}
+		defer file.Close()
+		knownFile.Fingerprint, err = fingerprintFile(file, f.fingerprintBytes)
+		if err != nil {
+			f.Warnw("Failed to fingerprint file", zap.Error(err))
+			return
+		}
+		knownFile.IsSmallFile = false
+	} else if message.newOffset < f.fingerprintBytes {
+		// The file is a small file
+
+		file, err := os.Open(message.path)
+		if err != nil {
+			f.Warnw("Failed to open small file for content tracking", zap.Error(err))
+			return
+		}
+		defer file.Close()
+
+		knownFile.SmallFileContents, err = ioutil.ReadAll(file)
+		if err != nil {
+			f.Warnw("Failed to read small file for content tracking")
+			return
+		}
+		knownFile.IsSmallFile = true
+	}
+
+	knownFile.Offset = message.newOffset
+}
+
+func (f *FileInput) drainMessages() {
+	done := make(chan struct{})
+	go func() {
+		f.readerWg.Wait()
+		close(done)
+	}()
+
+	for {
+		select {
+		case <-done:
+			return
+		case message := <-f.fileUpdateChan:
+			f.updateFile(message)
+		}
+	}
+}
+
+var knownFilesKey = []byte(`knownFiles`)
+
+func (f *FileInput) syncKnownFiles() {
+	err := f.db.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(f.ID()))
+		if err != nil {
+			return err
+		}
+
+		var buf bytes.Buffer
+		enc := gob.NewEncoder(&buf)
+		err = enc.Encode(f.knownFiles)
+		if err != nil {
+			return err
+		}
+		return bucket.Put(knownFilesKey, buf.Bytes())
+	})
+	if err != nil {
+		f.Warnw("Failed to sync known files to database", zap.Error(err))
+	}
+}
+
+func (f *FileInput) readKnownFiles() (map[string]*knownFileInfo, error) {
+	var knownFiles map[string]*knownFileInfo
+	err := f.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(f.ID()))
+		if b == nil {
+			knownFiles = make(map[string]*knownFileInfo)
+			return nil
+		}
+
+		encoded := b.Get(knownFilesKey)
+		if encoded == nil {
+			knownFiles = make(map[string]*knownFileInfo)
+			return nil
+		}
+
+		dec := gob.NewDecoder(bytes.NewReader(encoded))
+		return dec.Decode(&knownFiles)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get known files from database: %s", err)
+	}
+
+	return knownFiles, err
+}
+
+func (f *FileInput) newFileUpdateMessenger(path string) fileUpdateMessenger {
+	return fileUpdateMessenger{
+		path: path,
+		c:    f.fileUpdateChan,
+	}
+}
+
+type knownFileInfo struct {
+	Path              string
+	IsSmallFile       bool
+	Fingerprint       []byte
+	SmallFileContents []byte
+	Offset            int64
+}
+
+func newKnownFileInfo(path string, fingerprintBytes int64) (*knownFileInfo, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return false, 0, err
+		return nil, err
 	}
 	defer file.Close()
 
-	fileInfo, err := file.Stat()
+	stat, err := file.Stat()
 	if err != nil {
-		return false, 0, err
+		return nil, err
 	}
 
-	// If zero size, skip fingerprinting
-	if fileInfo.Size() == 0 {
-		for _, watcher := range f.fileWatchers {
-			if watcher.path == path {
-				return false, 0, nil
-			}
-		}
-		return true, 0, nil
+	var fingerprint []byte
+	var smallFileContents []byte
+	isSmallFile := false
+	if stat.Size() > fingerprintBytes {
+		fingerprint, err = fingerprintFile(file, fingerprintBytes)
+	} else {
+		isSmallFile = true
+		smallFileContents, err = ioutil.ReadAll(file)
 	}
-
-	fingerprint, _ := fingerprint(f.FingerprintBytes, file)
-
-	// Skip if fingerprint and path are the same
-	for _, watcher := range f.fileWatchers {
-		if watcher.path == path {
-			watcherFP, err := watcher.Fingerprint()
-			if err != nil {
-				f.Debug("Failed to get watcher fingerprint", "error", err)
-				continue
-			}
-
-			if string(watcherFP) == string(fingerprint) {
-				return false, 0, nil
-			}
-		}
-	}
-
-	// Detect file rotation (offset is stored but path is different)
-	offset, err := f.offsetStore.GetOffset(fingerprint)
 	if err != nil {
-		f.Warnw("Failed to get offset for fingerprint", "error", err)
-	}
-	if offset != nil {
-		return true, *offset, nil
+		return nil, err
 	}
 
-	return true, 0, nil
+	return &knownFileInfo{
+		Path:              path,
+		Fingerprint:       fingerprint,
+		SmallFileContents: smallFileContents,
+		IsSmallFile:       isSmallFile,
+		Offset:            0,
+	}, nil
 }
 
-func fingerprint(numBytes int64, file *os.File) (fp []byte, stable bool) {
+func (i *knownFileInfo) smallFileContentsMatches(other *knownFileInfo) bool {
+	if !(i.IsSmallFile && other.IsSmallFile) {
+		return false
+	}
+
+	// compare the smaller of the two known files
+	var s int
+	if len(i.SmallFileContents) > len(other.SmallFileContents) {
+		s = len(other.SmallFileContents)
+	} else {
+		s = len(i.SmallFileContents)
+	}
+
+	return bytes.Equal(i.SmallFileContents[:s], other.SmallFileContents[:s])
+}
+
+func (i *knownFileInfo) fingerprintMatches(other *knownFileInfo) bool {
+	if i.IsSmallFile || other.IsSmallFile {
+		return false
+	}
+	return bytes.Equal(i.Fingerprint, other.Fingerprint)
+}
+
+func fingerprintFile(file *os.File, numBytes int64) ([]byte, error) {
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	hash := md5.New()
 
 	buffer := make([]byte, numBytes)
-	bytesRead, _ := io.ReadFull(file, buffer)
-	// TODO what if the file is empty?
+	io.ReadFull(file, buffer)
 	hash.Write(buffer)
-	return hash.Sum(nil), int64(bytesRead) >= numBytes
+	return hash.Sum(nil), nil
 }
 
-func (f *FileInput) tryAddDirectory(ctx context.Context, path string) {
+type fileUpdateMessage struct {
+	path      string
+	newOffset int64
+	finished  bool
+}
 
-	_, ok := f.directoryWatchers[path]
-	if ok {
-		return
+type fileUpdateMessenger struct {
+	c    chan fileUpdateMessage
+	path string
+}
+
+func (f *fileUpdateMessenger) SetOffset(offset int64) {
+	f.c <- fileUpdateMessage{
+		path:      f.path,
+		newOffset: offset,
 	}
+}
 
-	watcher, err := NewDirectoryWatcher(path, f)
-	if err != nil {
-		f.Warnw("Failed to create directory watcher", "error", err)
-		return
+func (f *fileUpdateMessenger) FinishedReading() {
+	f.c <- fileUpdateMessage{
+		path:     f.path,
+		finished: true,
 	}
-
-	f.directoryWatchers[path] = watcher
-	f.Infow("Watching directory", "path", path)
-
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
-		defer f.Debugw("Directory watcher stopped", "path", path)
-		defer f.removeDirectoryWatcher(watcher)
-
-		err := watcher.Watch(ctx)
-		if err != nil {
-			f.Warnw("Directory watch failed", "error", err)
-		}
-	}()
 }
 
-func (f *FileInput) removeDirectoryWatcher(directoryWatcher *DirectoryWatcher) {
-	f.directoryMux.Lock()
-	delete(f.directoryWatchers, directoryWatcher.path)
-	f.directoryMux.Unlock()
-}
+func getMatches(includes, excludes []string) []string {
+	all := make([]string, 0, len(includes))
+	for _, include := range includes {
+		matches, _ := filepath.Glob(include) // compile error checked in build
+	INCLUDE:
+		for _, match := range matches {
+			for _, exclude := range excludes {
+				if itMatches, _ := filepath.Match(exclude, match); itMatches {
+					break INCLUDE
+				}
+			}
 
-func (f *FileInput) removeFileWatcher(watcher *FileWatcher) {
-	f.fileMux.Lock()
-	for i, trackedWatcher := range f.fileWatchers {
-		if trackedWatcher == watcher {
-			trackedWatcher.Exit()
-			f.fileWatchers = append(f.fileWatchers[:i], f.fileWatchers[i+1:]...)
-		}
-	}
-	f.fileMux.Unlock()
-}
+			for _, existing := range all {
+				if existing == match {
+					break INCLUDE
+				}
+			}
 
-func (f *FileInput) overwriteFileWatcher(watcher *FileWatcher) {
-	f.fileMux.Lock()
-	overwritten := false
-	for i, trackedWatcher := range f.fileWatchers {
-		if trackedWatcher.path == watcher.path {
-			trackedWatcher.Exit()
-			f.fileWatchers[i] = watcher
-			overwritten = true
+			all = append(all, match)
 		}
 	}
 
-	if !overwritten {
-		f.fileWatchers = append(f.fileWatchers, watcher)
-	}
-	f.fileMux.Unlock()
+	return all
 }

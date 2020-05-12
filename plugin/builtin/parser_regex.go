@@ -15,9 +15,8 @@ func init() {
 
 // RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig      `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
 
 	Regex string `mapstructure:"regex" json:"regex" yaml:"regex"`
 }

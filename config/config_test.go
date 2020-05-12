@@ -50,9 +50,7 @@ var testRepresentativeJSON = []byte(`
     {
       "id": "my_file_input",
       "type": "file_input",
-      "include": [
-        "./testfile"
-      ],
+      "include": ["./testfile"],
       "output": "my_restructure"
     },
     {
@@ -190,7 +188,6 @@ func TestUnmarshalRepresentativeConfig(t *testing.T) {
 }
 
 func TestUnmarshalRepresentativeConfigYAML(t *testing.T) {
-
 	var cfg Config
 	err := yaml.Unmarshal(testRepresentativeYAML, &cfg)
 	require.NoError(t, err)
@@ -199,10 +196,32 @@ func TestUnmarshalRepresentativeConfigYAML(t *testing.T) {
 }
 
 func TestUnmarshalRepresentativeConfigJSON(t *testing.T) {
-
 	var cfg Config
 	err := json.Unmarshal(testRepresentativeJSON, &cfg)
 	require.NoError(t, err)
 
 	require.Equal(t, testParsedRepresentativeConfig, cfg)
+}
+
+func TestRoundTripRepresentativeConfigYAML(t *testing.T) {
+	marshalled, err := yaml.Marshal(testParsedRepresentativeConfig)
+	require.NoError(t, err)
+
+	var cfg Config
+	err = yaml.Unmarshal(marshalled, &cfg)
+	require.NoError(t, err)
+
+	require.Equal(t, testParsedRepresentativeConfig, cfg)
+}
+
+func TestRoundTripRepresentativeConfigJSON(t *testing.T) {
+	marshalled, err := json.Marshal(testParsedRepresentativeConfig)
+	require.NoError(t, err)
+
+	var cfg Config
+	err = json.Unmarshal(marshalled, &cfg)
+	require.NoError(t, err)
+
+	require.Equal(t, testParsedRepresentativeConfig, cfg)
+
 }
