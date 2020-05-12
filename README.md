@@ -1,3 +1,5 @@
+![Go](https://github.com/bluemedora/bplogagent/workflows/Go/badge.svg)
+
 # Bindplane Log Agent
 ## How do I run the agent?
 - Run: `go run ./cmd --config {config_file_location}`
