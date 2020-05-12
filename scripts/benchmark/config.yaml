@@ -1,0 +1,12 @@
+plugins:
+  - id: fileinput
+    type: file_input
+    include: ["stream*.log"]
+    output: google_cloud
+
+  - id: google_cloud
+    type: google_cloud_output
+    project_id: ***REMOVED***
+    credentials: >-
+      ***REMOVED***
+database_file: /home/djaglowski/benchmark/logagent.db
