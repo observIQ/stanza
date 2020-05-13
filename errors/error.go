@@ -20,9 +20,15 @@ func (e AgentError) Error() string {
 // MarshalLogObject will define the representation of this error when logging.
 func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	encoder.AddString("description", e.Description)
-	encoder.AddString("suggestion", e.Suggestion)
-	encoder.AddObject("details", e.Details)
-	encoder.AddArray("stack", e.Stack)
+
+	if e.Suggestion != "" {
+		encoder.AddString("suggestion", e.Suggestion)
+	}
+
+	if len(e.Details) != 0 {
+		encoder.AddObject("details", e.Details)
+	}
+
 	return nil
 }
 
