@@ -18,7 +18,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.5.1
-	go.etcd.io/bbolt v1.3.3
+	go.etcd.io/bbolt v1.3.4
 	go.uber.org/goleak v1.0.0
 	go.uber.org/zap v1.15.0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
