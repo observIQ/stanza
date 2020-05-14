@@ -5,9 +5,8 @@ go 1.13
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43 // indirect
-	github.com/antonmedv/expr v1.4.5
-	github.com/awslabs/amazon-log-agent-benchmark-tool v0.0.0-20200505071244-c5f96e667e52 // indirect
 	github.com/antonmedv/expr v1.8.2
+	github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514193154-0e775be46b89 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
 	github.com/elastic/go-sysinfo v1.1.0 // indirect
