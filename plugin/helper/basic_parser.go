@@ -10,8 +10,9 @@ import (
 // BasicParserConfig provides the basic implementation of a parser config.
 type BasicParserConfig struct {
 	OutputID  string      `mapstructure:"output"     json:"output"     yaml:"output"`
-	ParseFrom entry.Field `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from,flow"`
-	ParseTo   entry.Field `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to,flow"`
+	ParseFrom entry.Field `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from"`
+	ParseTo   entry.Field `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to"`
+	Preserve  bool        `mapstructure:"preserve"   json:"preserve"   yaml:"preserve"`
 	OnError   string      `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
 }
 
@@ -42,6 +43,7 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 		OutputID:      c.OutputID,
 		ParseFrom:     c.ParseFrom,
 		ParseTo:       c.ParseTo,
+		Preserve:      c.Preserve,
 		OnError:       c.OnError,
 		SugaredLogger: logger,
 	}
@@ -54,6 +56,7 @@ type BasicParser struct {
 	OutputID  string
 	ParseFrom entry.Field
 	ParseTo   entry.Field
+	Preserve  bool
 	OnError   string
 	Output    plugin.Plugin
 	*zap.SugaredLogger
@@ -100,6 +103,10 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 	newValue, err := parseFunc(value)
 	if err != nil {
 		return p.HandleParserError(entry, err)
+	}
+
+	if !p.Preserve {
+		entry.Delete(p.ParseFrom)
 	}
 
 	entry.Set(p.ParseTo, newValue)
