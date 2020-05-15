@@ -7,8 +7,8 @@ import (
 
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Record    map[string]interface{} `json:"record"`
+	Timestamp time.Time   `json:"timestamp"`
+	Record    interface{} `json:"record"`
 }
 
 // New will create a new log entry with current timestamp and an empty record.
@@ -23,8 +23,8 @@ func (entry *Entry) Get(path Field) (interface{}, bool) {
 	return path.Get(entry)
 }
 
-func (entry *Entry) Set(path Field, val interface{}) error {
-	return path.Set(entry, val)
+func (entry *Entry) Set(path Field, val interface{}) {
+	path.Set(entry, val)
 }
 
 func (entry *Entry) Delete(path Field) (interface{}, bool) {

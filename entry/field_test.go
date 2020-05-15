@@ -27,7 +27,7 @@ func TestFieldGet(t *testing.T) {
 	cases := []struct {
 		name        string
 		field       Field
-		record      map[string]interface{}
+		record      interface{}
 		expectedVal interface{}
 		expectedOk  bool
 	}{
@@ -46,28 +46,28 @@ func TestFieldGet(t *testing.T) {
 			true,
 		},
 		{
-			"SimpleKey",
+			"SimpleField",
 			[]string{"simple_key"},
 			testRecord(),
 			"simple_value",
 			true,
 		},
 		{
-			"MapKey",
+			"MapField",
 			[]string{"map_key"},
 			testRecord(),
 			nestedMap(),
 			true,
 		},
 		{
-			"NestedKey",
+			"NestedField",
 			[]string{"map_key", "nested_key"},
 			testRecord(),
 			"nested_value",
 			true,
 		},
 		{
-			"MissingKey",
+			"MissingField",
 			[]string{"invalid"},
 			testRecord(),
 			nil,
@@ -79,6 +79,13 @@ func TestFieldGet(t *testing.T) {
 			testRecord(),
 			nil,
 			false,
+		},
+		{
+			"RawField",
+			[]string{},
+			"raw string",
+			"raw string",
+			true,
 		},
 	}
 
@@ -102,7 +109,7 @@ func TestFieldDelete(t *testing.T) {
 	cases := []struct {
 		name             string
 		field            Field
-		record           map[string]interface{}
+		record           interface{}
 		expectedRecord   interface{}
 		expectedReturned interface{}
 		expectedOk       bool
@@ -121,7 +128,7 @@ func TestFieldDelete(t *testing.T) {
 			"EmptyRecordAndField",
 			[]string{},
 			map[string]interface{}{},
-			map[string]interface{}{},
+			nil,
 			map[string]interface{}{},
 			true,
 		},
@@ -129,7 +136,7 @@ func TestFieldDelete(t *testing.T) {
 			"EmptyRecordAndNilField",
 			nil,
 			map[string]interface{}{},
-			map[string]interface{}{},
+			nil,
 			map[string]interface{}{},
 			true,
 		},
@@ -137,7 +144,7 @@ func TestFieldDelete(t *testing.T) {
 			"EmptyField",
 			[]string{},
 			testRecord(),
-			map[string]interface{}{},
+			nil,
 			testRecord(),
 			true,
 		},
@@ -188,46 +195,41 @@ func TestFieldDelete(t *testing.T) {
 func TestFieldSet(t *testing.T) {
 	cases := []struct {
 		name        string
-		selector    Field
-		record      map[string]interface{}
+		field       Field
+		record      interface{}
 		setTo       interface{}
 		expectedVal interface{}
-		expectedErr bool
 	}{
 		{
-			"RootFieldRawValue",
+			"OverwriteMap",
 			[]string{},
 			testRecord(),
 			"new_value",
-			testRecord(),
-			true,
-		},
-		{
-			"NilFieldRawValue",
-			nil,
-			testRecord(),
 			"new_value",
-			testRecord(),
-			true,
 		},
 		{
-			"RootFieldMapValue",
+			"OverwriteRaw",
+			[]string{},
+			"raw_value",
+			"new_value",
+			"new_value",
+		},
+		{
+			"NewMapValue",
 			[]string{},
 			map[string]interface{}{},
 			testRecord(),
 			testRecord(),
-			false,
 		},
 		{
-			"EmptyMap",
+			"NewRootField",
 			[]string{"new_key"},
 			map[string]interface{}{},
 			"new_value",
 			map[string]interface{}{"new_key": "new_value"},
-			false,
 		},
 		{
-			"NestedMap",
+			"NewNestedField",
 			[]string{"new_key", "nested_key"},
 			map[string]interface{}{},
 			"nested_value",
@@ -236,7 +238,6 @@ func TestFieldSet(t *testing.T) {
 					"nested_key": "nested_value",
 				},
 			},
-			false,
 		},
 		{
 			"OverwriteNestedMap",
@@ -247,7 +248,6 @@ func TestFieldSet(t *testing.T) {
 				"simple_key": "simple_value",
 				"map_key":    "new_value",
 			},
-			false,
 		},
 		{
 			"MergedNestedValue",
@@ -263,7 +263,6 @@ func TestFieldSet(t *testing.T) {
 					"merged_key": "merged_value",
 				},
 			},
-			false,
 		},
 	}
 
@@ -271,14 +270,7 @@ func TestFieldSet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			entry := New()
 			entry.Record = tc.record
-
-			err := entry.Set(tc.selector, tc.setTo)
-			if tc.expectedErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-
+			entry.Set(tc.field, tc.setTo)
 			assert.Equal(t, tc.expectedVal, entry.Record)
 		})
 	}

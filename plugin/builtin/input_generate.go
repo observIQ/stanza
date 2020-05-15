@@ -2,6 +2,8 @@ package builtin
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,7 +40,7 @@ func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	generateInput := &GenerateInput{
 		BasicPlugin: basicPlugin,
 		BasicInput:  basicInput,
-		record:      c.Record,
+		record:      recursiveMapInterfaceToMapString(c.Record),
 		count:       c.Count,
 	}
 	return generateInput, nil
@@ -49,7 +51,7 @@ type GenerateInput struct {
 	helper.BasicPlugin
 	helper.BasicInput
 	count  int
-	record map[string]interface{}
+	record interface{}
 	cancel context.CancelFunc
 	wg     *sync.WaitGroup
 }
@@ -73,7 +75,7 @@ func (g *GenerateInput) Start() error {
 
 			entry := &entry.Entry{
 				Timestamp: time.Now(),
-				Record:    copyMap(g.record),
+				Record:    copyRecord(g.record),
 			}
 
 			err := g.Output.Process(entry)
@@ -99,6 +101,31 @@ func (g *GenerateInput) Stop() error {
 	return nil
 }
 
+func copyRecord(r interface{}) interface{} {
+	switch r := r.(type) {
+	case map[string]interface{}:
+		return copyMap(r)
+	case string:
+		return r
+	case []byte:
+		new := make([]byte, 0, len(r))
+		copy(new, r)
+		return new
+	default:
+		// fall back to JSON roundtrip
+		var i interface{}
+		b, err := json.Marshal(r)
+		if err != nil {
+			panic(err)
+		}
+		err = json.Unmarshal(b, &i)
+		if err != nil {
+			panic(err)
+		}
+		return i
+	}
+}
+
 // TODO This is a really dumb implementation right now.
 // Should this do something different with pointers or arrays?
 func copyMap(m map[string]interface{}) map[string]interface{} {
@@ -113,4 +140,27 @@ func copyMap(m map[string]interface{}) map[string]interface{} {
 	}
 
 	return cp
+}
+
+func recursiveMapInterfaceToMapString(m interface{}) interface{} {
+	switch m := m.(type) {
+	case map[string]interface{}:
+		newMap := make(map[string]interface{})
+		for k, v := range m {
+			newMap[k] = recursiveMapInterfaceToMapString(v)
+		}
+		return newMap
+	case map[interface{}]interface{}:
+		newMap := make(map[string]interface{})
+		for k, v := range m {
+			kStr, ok := k.(string)
+			if !ok {
+				kStr = fmt.Sprintf("%v", k)
+			}
+			newMap[kStr] = recursiveMapInterfaceToMapString(v)
+		}
+		return newMap
+	default:
+		return m
+	}
 }

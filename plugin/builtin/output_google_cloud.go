@@ -30,8 +30,8 @@ func init() {
 type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 
-	Credentials   string              `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
-	ProjectID     string              `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
+	Credentials   string      `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
+	ProjectID     string      `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
 	LogNameField  entry.Field `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty,flow"`
 	LabelsField   entry.Field `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty,flow"`
 	SeverityField entry.Field `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty,flow"`
@@ -223,9 +223,18 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 			err = fmt.Errorf(r.(string))
 		}
 	}()
+	switch p := e.Record.(type) {
+	case string:
+		newEntry.Payload = &logpb.LogEntry_TextPayload{TextPayload: p}
+	case []byte:
+		newEntry.Payload = &logpb.LogEntry_TextPayload{TextPayload: string(p)}
+	case map[string]interface{}:
+		s := jsonMapToProtoStruct(p)
+		newEntry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: s}
+	default:
+		return nil, fmt.Errorf("cannot convert record of type %T to a protobuf representation", e.Record)
+	}
 
-	s := jsonMapToProtoStruct(e.Record)
-	newEntry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: s}
 	return newEntry, nil
 }
 

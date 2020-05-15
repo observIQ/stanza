@@ -64,42 +64,44 @@ func (f Field) Get(entry *Entry) (interface{}, bool) {
 
 // Set will set a value on an entry's record using the field.
 // It will overwrite intermediate values as necessary.
-func (f Field) Set(entry *Entry, value interface{}) error {
-	mapValue, isMapValue := value.(map[string]interface{})
+func (f Field) Set(entry *Entry, value interface{}) {
+	if f.IsRoot() {
+		entry.Record = value
+		return
+	}
 
+	mapValue, isMapValue := value.(map[string]interface{})
 	if isMapValue {
 		f.Merge(entry, mapValue)
-		return nil
+		return
 	}
 
-	if f.IsRoot() {
-		return errors.NewError(
-			"cannot write a raw value to the root level of a record",
-			"ensure that a non-root field is defined for raw values",
-			"value_type", fmt.Sprintf("%T", value),
-			"field", toJSONDot(f),
-		)
+	currentMap, ok := entry.Record.(map[string]interface{})
+	if !ok {
+		currentMap = map[string]interface{}{}
+		entry.Record = currentMap
 	}
 
-	currentMap := entry.Record
 	for i, key := range f {
 		if i == len(f)-1 {
 			currentMap[key] = value
-			return nil
+			return
 		}
-		currentMap = f.getOrCreateMap(currentMap, key)
+		currentMap = f.getNestedMap(currentMap, key)
 	}
-
-	return nil
 }
 
-// Merge will attempt to merge the contents of a map into the specified field.
+// Merge will attempt to merge the contents of a map into an entry's record.
 // It will overwrite any intermediate values as necessary.
 func (f Field) Merge(entry *Entry, mapValues map[string]interface{}) {
-	currentMap := entry.Record
+	currentMap, ok := entry.Record.(map[string]interface{})
+	if !ok {
+		currentMap = map[string]interface{}{}
+		entry.Record = currentMap
+	}
 
 	for _, key := range f {
-		currentMap = f.getOrCreateMap(currentMap, key)
+		currentMap = f.getNestedMap(currentMap, key)
 	}
 
 	for key, value := range mapValues {
@@ -112,34 +114,34 @@ func (f Field) Merge(entry *Entry, mapValues map[string]interface{}) {
 func (f Field) Delete(entry *Entry) (interface{}, bool) {
 	if f.IsRoot() {
 		oldRecord := entry.Record
-		entry.Record = map[string]interface{}{}
+		entry.Record = nil
 		return oldRecord, true
 	}
 
-	currentRecord := entry.Record
+	currentValue := entry.Record
 	for i, key := range f {
-		currentValue, ok := currentRecord[key]
+		currentMap, ok := currentValue.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+
+		currentValue, ok = currentMap[key]
 		if !ok {
 			return nil, false
 		}
 
 		if i == len(f)-1 {
-			delete(currentRecord, key)
+			delete(currentMap, key)
 			return currentValue, true
-		}
-
-		currentRecord, ok = currentValue.(map[string]interface{})
-		if !ok {
-			return nil, false
 		}
 	}
 
 	return nil, false
 }
 
-// getOrCreateMap will get the next map assigned to a key.
-// It will create a map at this key, if one does not already exist.
-func (f Field) getOrCreateMap(currentMap map[string]interface{}, key string) map[string]interface{} {
+// getNestedMap will get a nested map assigned to a key.
+// If the map does not exist, it will create and return it.
+func (f Field) getNestedMap(currentMap map[string]interface{}, key string) map[string]interface{} {
 	currentValue, ok := currentMap[key]
 	if !ok {
 		currentMap[key] = map[string]interface{}{}

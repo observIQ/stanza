@@ -36,14 +36,10 @@ type BasicInput struct {
 	Output   plugin.Plugin
 }
 
-// Write will format an entry from a raw value and send it to the connected output.
+// Write will create an entry using the write_to field and send it to the connected output.
 func (i *BasicInput) Write(value interface{}) error {
 	entry := entry.New()
-
-	if err := entry.Set(i.WriteTo, value); err != nil {
-		return err
-	}
-
+	entry.Set(i.WriteTo, value)
 	return i.Output.Process(entry)
 }
 

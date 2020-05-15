@@ -24,14 +24,6 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 		)
 	}
 
-	if c.ParseFrom.IsRoot() {
-		return BasicParser{}, errors.NewError(
-			"Plugin config has an invalid `parse_from` field. This field should point to a raw string or byte value.",
-			"Ensure that `parse_from` is set to a non-root field.",
-			"parse_from", c.ParseFrom.String(),
-		)
-	}
-
 	if c.OnError == "" {
 		c.OnError = "ignore"
 	}
@@ -110,10 +102,7 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 		return p.HandleParserError(entry, err)
 	}
 
-	if err := entry.Set(p.ParseTo, newValue); err != nil {
-		return p.HandleParserError(entry, err)
-	}
-
+	entry.Set(p.ParseTo, newValue)
 	return p.Output.Process(entry)
 }
 

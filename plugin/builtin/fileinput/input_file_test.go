@@ -159,7 +159,7 @@ func expectedLogsTest(t *testing.T, expected []string, generator func(source *Fi
 	receivedMessages := make([]string, 0, 1000)
 	logReceived := make(chan string, 1000)
 	mockOutput.On("Process", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		logReceived <- args.Get(0).(*entry.Entry).Record["message"].(string)
+		logReceived <- args.Get(0).(*entry.Entry).Record.(map[string]interface{})["message"].(string)
 	})
 
 	wg := &sync.WaitGroup{}
