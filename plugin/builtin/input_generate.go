@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
@@ -73,13 +71,8 @@ func (g *GenerateInput) Start() error {
 			default:
 			}
 
-			entry := &entry.Entry{
-				Timestamp: time.Now(),
-				Record:    copyRecord(g.record),
-			}
-
-			err := g.Output.Process(entry)
-			if err != nil {
+			record := copyRecord(g.record)
+			if err := g.Write(record); err != nil {
 				g.Warnw("process entry", "error", err)
 			}
 

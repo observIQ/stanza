@@ -5,13 +5,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
-func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField entry.Field, output plugin.Plugin) error {
+func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField entry.Field, basicInput helper.BasicInput) error {
 	defer messenger.FinishedReading()
 
 	select {
@@ -63,18 +62,9 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 		}
 
 		message := scanner.Text()
-		entry := &entry.Entry{
-			Timestamp: time.Now(),
-			Record: map[string]interface{}{
-				"message": message,
-			},
-		}
 
-		if pathField != nil {
-			entry.Set(pathField, path)
-		}
-
-		err := output.Process(entry)
+		// TODO: Discuss handling of path field with team
+		err := basicInput.Write(message)
 		if err != nil {
 			return err
 		}

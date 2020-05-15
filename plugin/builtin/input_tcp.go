@@ -7,7 +7,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"go.uber.org/zap"
@@ -22,9 +21,7 @@ type TCPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 
-	ListenAddress string     `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
-	MessageField  entry.Field `mapstructure:"message_field"  json:"message_field,omitempty"  yaml:"message_field,omitempty,flow"`
-	SourceField   entry.Field `mapstructure:"source_field"   json:"source_field,omitempty"   yaml:"source_field,omitempty,flow"`
+	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a tcp input plugin.
@@ -43,22 +40,15 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, fmt.Errorf("missing field 'listen_address'")
 	}
 
-	if c.MessageField == nil {
-		fs := entry.Field([]string{"message"})
-		c.MessageField = fs
-	}
-
 	address, err := net.ResolveTCPAddr("tcp", c.ListenAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
 	tcpInput := &TCPInput{
-		BasicPlugin:  basicPlugin,
-		BasicInput:   basicInput,
-		address:      address,
-		messageField: c.MessageField,
-		sourceField:  c.SourceField,
+		BasicPlugin: basicPlugin,
+		BasicInput:  basicInput,
+		address:     address,
 	}
 	return tcpInput, nil
 }
@@ -72,9 +62,6 @@ type TCPInput struct {
 	listener  net.Listener
 	cancel    context.CancelFunc
 	waitGroup *sync.WaitGroup
-
-	messageField entry.Field
-	sourceField  entry.Field
 }
 
 // Start will start listening for log entries over tcp.
@@ -135,32 +122,27 @@ func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
 
 		reader := bufio.NewReaderSize(conn, 1024*64)
 		for {
-			entry, err := t.readEntry(conn, reader)
+			message, err := t.readMessage(conn, reader)
 			if err != nil {
 				t.Debugf("Exiting message handler: %s", err)
 				break
 			}
 
-			if err := t.Output.Process(entry); err != nil {
-				t.Errorw("Output failed to process entry", zap.Any("error", err))
+			if err := t.Write(message); err != nil {
+				t.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}
 	}()
 }
 
-// readEntry will read a log entry from a TCP connection.
-func (t *TCPInput) readEntry(conn net.Conn, reader *bufio.Reader) (*entry.Entry, error) {
+// readMessage will read a log message from a TCP connection.
+func (t *TCPInput) readMessage(conn net.Conn, reader *bufio.Reader) (string, error) {
 	message, err := reader.ReadBytes('\n')
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	entry := entry.New()
-	entry.Set(t.messageField, message)
-	if t.sourceField != nil {
-		entry.Set(t.sourceField, conn.RemoteAddr().String())
-	}
-	return entry, nil
+	return string(message), nil
 }
 
 // Stop will stop listening for log entries over TCP.
