@@ -30,6 +30,11 @@ plugins:
     type: elastic_output
 ```
 
+If you have [`graphviz`](https://graphviz.org/) installed, you can view the plugin graph with a command like:
+```bash
+bplogagent graph --config './config.yaml' | dot -Tsvg -o /tmp/graph.svg && open /tmp/graph.svg
+```
+
 ## What is a plugin?
 A plugin is the most basic unit of log monitoring. Each plugin fulfills only a single responsibility, such as reading lines from a file, or parsing JSON from a field. These plugins are then chained together in a pipeline to achieve a desired result.
 
