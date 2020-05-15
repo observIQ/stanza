@@ -166,7 +166,7 @@ var ConfigDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.T
 	config, decodeHook := createConfig()
 	decoderCfg := &mapstructure.DecoderConfig{
 		Result:     &config,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(decodeHook, entry.FieldSelectorDecoder),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(decodeHook, entry.FieldDecoder),
 	}
 	decoder, err := mapstructure.NewDecoder(decoderCfg)
 	if err != nil {

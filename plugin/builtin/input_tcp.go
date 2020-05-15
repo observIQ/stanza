@@ -22,9 +22,9 @@ type TCPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 
-	ListenAddress string              `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
-	MessageField  entry.FieldSelector `mapstructure:"message_field"  json:"message_field,omitempty"  yaml:"message_field,omitempty,flow"`
-	SourceField   entry.FieldSelector `mapstructure:"source_field"   json:"source_field,omitempty"   yaml:"source_field,omitempty,flow"`
+	ListenAddress string     `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	MessageField  entry.Field `mapstructure:"message_field"  json:"message_field,omitempty"  yaml:"message_field,omitempty,flow"`
+	SourceField   entry.Field `mapstructure:"source_field"   json:"source_field,omitempty"   yaml:"source_field,omitempty,flow"`
 }
 
 // Build will build a tcp input plugin.
@@ -44,7 +44,7 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	if c.MessageField == nil {
-		fs := entry.FieldSelector([]string{"message"})
+		fs := entry.Field([]string{"message"})
 		c.MessageField = fs
 	}
 
@@ -73,8 +73,8 @@ type TCPInput struct {
 	cancel    context.CancelFunc
 	waitGroup *sync.WaitGroup
 
-	messageField entry.FieldSelector
-	sourceField  entry.FieldSelector
+	messageField entry.Field
+	sourceField  entry.Field
 }
 
 // Start will start listening for log entries over tcp.
@@ -155,7 +155,7 @@ func (t *TCPInput) readEntry(conn net.Conn, reader *bufio.Reader) (*entry.Entry,
 		return nil, err
 	}
 
-	entry := entry.NewEntry()
+	entry := entry.New()
 	entry.Set(t.messageField, message)
 	if t.sourceField != nil {
 		entry.Set(t.sourceField, conn.RemoteAddr().String())

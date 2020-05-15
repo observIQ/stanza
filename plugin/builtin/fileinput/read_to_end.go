@@ -11,7 +11,7 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
-func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField entry.FieldSelector, output plugin.Plugin) error {
+func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField entry.Field, output plugin.Plugin) error {
 	defer messenger.FinishedReading()
 
 	select {

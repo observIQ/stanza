@@ -74,7 +74,7 @@ func TestRestructurePlugin(t *testing.T) {
 			name: "Retain",
 			ops: []Op{
 				{
-					&OpRetain{[]entry.FieldSelector{[]string{"key"}}},
+					&OpRetain{[]entry.Field{[]string{"key"}}},
 				},
 			},
 			input: newTestEntry(),
@@ -237,7 +237,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRetain{
-					Fields: []entry.FieldSelector{[]string{"message"}},
+					Fields: []entry.Field{[]string{"message"}},
 				},
 			},
 			errorRequirement: require.NoError,
@@ -249,7 +249,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRetain{
-					Fields: []entry.FieldSelector{[]string{"message"}},
+					Fields: []entry.Field{[]string{"message"}},
 				},
 			},
 			errorRequirement: require.NoError,
@@ -261,7 +261,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRetain{
-					Fields: []entry.FieldSelector{[]string{"message"}},
+					Fields: []entry.Field{[]string{"message"}},
 				},
 			},
 			errorRequirement: require.NoError,

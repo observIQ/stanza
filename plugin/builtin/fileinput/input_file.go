@@ -35,7 +35,7 @@ type FileInputConfig struct {
 
 	PollInterval *time.Duration             `mapstructure:"poll_interval" json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     json:"multiline,omitempty"     yaml:"multiline,omitempty"`
-	PathField    entry.FieldSelector        `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
+	PathField    entry.Field                 `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
 }
 
 type FileSourceMultilineConfig struct {
@@ -130,7 +130,7 @@ type FileInput struct {
 
 	Include      []string
 	Exclude      []string
-	PathField    entry.FieldSelector
+	PathField    entry.Field
 	PollInterval time.Duration
 	SplitFunc    bufio.SplitFunc
 

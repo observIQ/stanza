@@ -25,8 +25,8 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 		},
 		BasicParser: helper.BasicParser{
 			Output:    &mock,
-			ParseFrom: entry.FieldSelector([]string{"testfield"}),
-			ParseTo:   entry.FieldSelector([]string{"testparsed"}),
+			ParseFrom: entry.Field([]string{"testfield"}),
+			ParseTo:   entry.Field([]string{"testparsed"}),
 		},
 		json: jsoniter.ConfigFastest,
 	}, &mock
@@ -71,10 +71,10 @@ func TestJSONParser(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			input := entry.NewEntry()
+			input := entry.New()
 			input.Record = tc.inputRecord
 
-			output := entry.NewEntry()
+			output := entry.New()
 			output.Record = tc.expectedRecord
 
 			parser, mockOutput := NewFakeJSONPlugin()

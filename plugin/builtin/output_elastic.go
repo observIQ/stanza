@@ -23,13 +23,13 @@ func init() {
 type ElasticOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 
-	Addresses  []string            `mapstructure:"addresses"   json:"addresses"             yaml:"addresses,flow"`
-	Username   string              `mapstructure:"username"    json:"username"              yaml:"username"`
-	Password   string              `mapstructure:"password"    json:"password"              yaml:"password"`
-	CloudID    string              `mapstructure:"cloud_id"    json:"cloud_id"              yaml:"cloud_id"`
-	APIKey     string              `mapstructure:"api_key"     json:"api_key"               yaml:"api_key"`
-	IndexField entry.FieldSelector `mapstructure:"index_field" json:"index_field,omitempty" yaml:"index_field,omitempty,flow"`
-	IDField    entry.FieldSelector `mapstructure:"id_field"    json:"id_field,omitempty"    yaml:"id_field,omitempty,flow"`
+	Addresses  []string   `mapstructure:"addresses"   json:"addresses"             yaml:"addresses,flow"`
+	Username   string     `mapstructure:"username"    json:"username"              yaml:"username"`
+	Password   string     `mapstructure:"password"    json:"password"              yaml:"password"`
+	CloudID    string     `mapstructure:"cloud_id"    json:"cloud_id"              yaml:"cloud_id"`
+	APIKey     string     `mapstructure:"api_key"     json:"api_key"               yaml:"api_key"`
+	IndexField entry.Field `mapstructure:"index_field" json:"index_field,omitempty" yaml:"index_field,omitempty,flow"`
+	IDField    entry.Field `mapstructure:"id_field"    json:"id_field,omitempty"    yaml:"id_field,omitempty,flow"`
 }
 
 // Build will build an elasticsearch output plugin.
@@ -73,8 +73,8 @@ type ElasticOutput struct {
 	helper.BasicOutput
 
 	client     *elasticsearch.Client
-	indexField entry.FieldSelector
-	idField    entry.FieldSelector
+	indexField entry.Field
+	idField    entry.Field
 }
 
 // Process will send entries to elasticsearch.
@@ -129,7 +129,7 @@ func (e *ElasticOutput) FindIndex(entry *entry.Entry) (string, error) {
 		return "default", nil
 	}
 
-	value, ok := e.indexField.Get(entry.Record)
+	value, ok := e.indexField.Get(entry)
 	if !ok {
 		return "", errors.NewError(
 			"Failed to extract index from record.",
@@ -154,7 +154,7 @@ func (e *ElasticOutput) FindID(entry *entry.Entry) (string, error) {
 		return uuid.GenerateUUID()
 	}
 
-	value, ok := e.idField.Get(entry.Record)
+	value, ok := e.idField.Get(entry)
 	if !ok {
 		return "", errors.NewError(
 			"Failed to extract id from record.",

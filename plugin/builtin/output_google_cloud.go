@@ -32,11 +32,11 @@ type GoogleCloudOutputConfig struct {
 
 	Credentials   string              `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
 	ProjectID     string              `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
-	LogNameField  entry.FieldSelector `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty,flow"`
-	LabelsField   entry.FieldSelector `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty,flow"`
-	SeverityField entry.FieldSelector `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty,flow"`
-	TraceField    entry.FieldSelector `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty,flow"`
-	SpanIDField   entry.FieldSelector `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty,flow"`
+	LogNameField  entry.Field `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty,flow"`
+	LabelsField   entry.Field `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty,flow"`
+	SeverityField entry.Field `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty,flow"`
+	TraceField    entry.Field `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty,flow"`
+	SpanIDField   entry.Field `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty,flow"`
 }
 
 // Build will build a google cloud output plugin.
@@ -77,11 +77,11 @@ type GoogleCloudOutput struct {
 	credentials string
 	projectID   string
 
-	logNameField  entry.FieldSelector
-	labelsField   entry.FieldSelector
-	severityField entry.FieldSelector
-	traceField    entry.FieldSelector
-	spanIDField   entry.FieldSelector
+	logNameField  entry.Field
+	labelsField   entry.Field
+	severityField entry.Field
+	traceField    entry.Field
+	spanIDField   entry.Field
 
 	buffer buffer.Buffer
 	client *vkit.Client
@@ -223,18 +223,9 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 			err = fmt.Errorf(r.(string))
 		}
 	}()
-	switch p := e.Record.(type) {
-	case string:
-		newEntry.Payload = &logpb.LogEntry_TextPayload{TextPayload: p}
-	case []byte:
-		newEntry.Payload = &logpb.LogEntry_TextPayload{TextPayload: string(p)}
-	case map[string]interface{}:
-		s := jsonMapToProtoStruct(p)
-		newEntry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: s}
-	default:
-		return nil, fmt.Errorf("cannot convert record of type %T to a protobuf representation", e.Record)
-	}
 
+	s := jsonMapToProtoStruct(e.Record)
+	newEntry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: s}
 	return newEntry, nil
 }
 

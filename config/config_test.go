@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -18,28 +19,27 @@ var testRepresentativeYAML = []byte(`
 plugins:
   - id: my_file_input
     type: file_input
+    output: my_restructure
+    write_to: message
     include:
       - "./testfile"
-    output: my_restructure
-
   - id: my_restructure
     type: restructure
     output: my_logger
     ops:
       - add:
-          field: ["message", "nested"]
+          field: "message.nested"
           value: "testvalue"
       - add:
-          field: ["message", "nested2"]
+          field: "message.nested2"
           value: "testvalue2"
-      - remove: ["message", "nested2"]
+      - remove: "message.nested2"
       - move:
-          from: ["message", "nested"]
-          to: ["message", "nested3"]
+          from: "message.nested"
+          to: "message.nested3"
       - retain:
-        - ["message", "nested3"]
+        - "message.nested3"
       - flatten: "message"
-
   - id: my_logger
     type: logger_output
 `)
@@ -50,7 +50,8 @@ var testRepresentativeJSON = []byte(`
     {
       "id": "my_file_input",
       "type": "file_input",
-      "include": ["./testfile"],
+			"include": ["./testfile"],
+			"write_to": "message",
       "output": "my_restructure"
     },
     {
@@ -60,28 +61,28 @@ var testRepresentativeJSON = []byte(`
       "ops": [
         {
           "add": {
-            "field": ["message", "nested"],
+            "field": "message.nested",
             "value": "testvalue"
           }
         },
         {
           "add": {
-            "field": ["message", "nested2"],
+            "field": "message.nested2",
             "value": "testvalue2"
           }
         },
         {
-          "remove": ["message", "nested2"]
+          "remove": "message.nested2"
         },
         {
           "move": {
-            "from": ["message", "nested"],
-            "to": ["message", "nested3"]
+            "from": "message.nested",
+            "to": "message.nested3"
           }
         },
         {
           "retain": [
-            ["message", "nested3"]
+						"message.nested3"
           ]
         },
         {
@@ -107,6 +108,7 @@ var testParsedRepresentativeConfig = Config{
 				},
 				BasicInputConfig: helper.BasicInputConfig{
 					OutputID: "my_restructure",
+					WriteTo:  entry.Field([]string{"message"}),
 				},
 				Include: []string{"./testfile"},
 			},
@@ -123,35 +125,35 @@ var testParsedRepresentativeConfig = Config{
 				Ops: []builtin.Op{
 					{
 						OpApplier: &builtin.OpAdd{
-							Field: entry.FieldSelector([]string{"message", "nested"}),
+							Field: entry.Field([]string{"message", "nested"}),
 							Value: "testvalue",
 						},
 					},
 					{
 						OpApplier: &builtin.OpAdd{
-							Field: entry.FieldSelector([]string{"message", "nested2"}),
+							Field: entry.Field([]string{"message", "nested2"}),
 							Value: "testvalue2",
 						},
 					},
 					{
 						OpApplier: &builtin.OpRemove{
-							Field: []string{"message", "nested2"},
+							Field: entry.Field([]string{"message", "nested2"}),
 						},
 					},
 					{
 						OpApplier: &builtin.OpMove{
-							From: entry.FieldSelector([]string{"message", "nested"}),
-							To:   entry.FieldSelector([]string{"message", "nested3"}),
+							From: entry.Field([]string{"message", "nested"}),
+							To:   entry.Field([]string{"message", "nested3"}),
 						},
 					},
 					{
 						OpApplier: &builtin.OpRetain{
-							Fields: []entry.FieldSelector{[]string{"message", "nested3"}},
+							Fields: []entry.Field{[]string{"message", "nested3"}},
 						},
 					},
 					{
 						OpApplier: &builtin.OpFlatten{
-							Field: []string{"message"},
+							Field: entry.Field([]string{"message"}),
 						},
 					},
 				},
@@ -206,6 +208,8 @@ func TestUnmarshalRepresentativeConfigJSON(t *testing.T) {
 func TestRoundTripRepresentativeConfigYAML(t *testing.T) {
 	marshalled, err := yaml.Marshal(testParsedRepresentativeConfig)
 	require.NoError(t, err)
+
+	fmt.Print(string(marshalled))
 
 	var cfg Config
 	err = yaml.Unmarshal(marshalled, &cfg)

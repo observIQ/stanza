@@ -89,7 +89,7 @@ func (p *CopyPlugin) SetOutputs(plugins []plugin.Plugin) error {
 func copyEntry(e *entry.Entry) *entry.Entry {
 	newEntry := entry.Entry{}
 	newEntry.Timestamp = e.Timestamp
-	newEntry.Record = copyRecord(e.Record)
+	newEntry.Record = copyMap(e.Record)
 
 	return &newEntry
 }
