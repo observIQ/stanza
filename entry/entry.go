@@ -19,20 +19,20 @@ func New() *Entry {
 	}
 }
 
-func (entry *Entry) Get(path Field) (interface{}, bool) {
-	return path.Get(entry)
+func (entry *Entry) Get(field Field) (interface{}, bool) {
+	return field.Get(entry)
 }
 
-func (entry *Entry) Set(path Field, val interface{}) {
-	path.Set(entry, val)
+func (entry *Entry) Set(field Field, val interface{}) {
+	field.Set(entry, val)
 }
 
-func (entry *Entry) Delete(path Field) (interface{}, bool) {
-	return path.Delete(entry)
+func (entry *Entry) Delete(field Field) (interface{}, bool) {
+	return field.Delete(entry)
 }
 
-func (entry *Entry) Read(path Field, dest interface{}) error {
-	val, ok := entry.Get(path)
+func (entry *Entry) Read(field Field, dest interface{}) error {
+	val, ok := entry.Get(field)
 	if !ok {
 		return fmt.Errorf("Field does not exist")
 	}
@@ -42,13 +42,13 @@ func (entry *Entry) Read(path Field, dest interface{}) error {
 		if str, ok := val.(string); ok {
 			*dest = str
 		} else {
-			return fmt.Errorf("can not cast field '%s' of type '%T' to string", path, val)
+			return fmt.Errorf("can not cast field '%s' of type '%T' to string", field, val)
 		}
 	case *map[string]interface{}:
 		if m, ok := val.(map[string]interface{}); ok {
 			*dest = m
 		} else {
-			return fmt.Errorf("can not cast field '%s' of type '%T' to map[string]interface{}", path, val)
+			return fmt.Errorf("can not cast field '%s' of type '%T' to map[string]interface{}", field, val)
 		}
 	case *map[string]string:
 		switch m := val.(type) {
