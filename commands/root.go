@@ -66,6 +66,8 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 
 	cfg, err := config.ReadConfigsFromGlobs(flags.ConfigFiles)
 	if err != nil {
+		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
+		os.Exit(1)
 	}
 
 	agent := agent.NewLogAgent(cfg, logger)

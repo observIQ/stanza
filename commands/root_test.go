@@ -26,8 +26,8 @@ database_file: "%s"
 plugins:
   - id: file_input
     type: file_input
-		include: ["%s"]
-		write_to: message
+    include: ["%s"]
+    write_to: message
     output: file_output
 
   - id: file_output
