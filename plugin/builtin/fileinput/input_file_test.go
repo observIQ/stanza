@@ -64,6 +64,8 @@ func TestFileSource_Build(t *testing.T) {
 	db, cleanup := newTempDB()
 	defer cleanup()
 
+	pathField := entry.NewField("testpath")
+
 	sourceConfig := &FileInputConfig{
 		BasicPluginConfig: helper.BasicPluginConfig{
 			PluginID:   "testfile",
@@ -77,7 +79,7 @@ func TestFileSource_Build(t *testing.T) {
 			d := 10 * time.Millisecond
 			return &d
 		}(),
-		PathField: []string{"testpath"},
+		PathField: &pathField,
 	}
 
 	context := plugin.BuildContext{
@@ -93,7 +95,7 @@ func TestFileSource_Build(t *testing.T) {
 	fileInput := source.(*FileInput)
 	require.Equal(t, fileInput.Output, mockOutput)
 	require.Equal(t, fileInput.Include, []string{"/var/log/testpath.*"})
-	require.Equal(t, fileInput.PathField, entry.FieldSelector([]string{"testpath"}))
+	require.Equal(t, fileInput.PathField, sourceConfig.PathField)
 	require.Equal(t, fileInput.PollInterval, 10*time.Millisecond)
 	require.Equal(t, fileInput.db, db)
 }
@@ -159,7 +161,7 @@ func expectedLogsTest(t *testing.T, expected []string, generator func(source *Fi
 	receivedMessages := make([]string, 0, 1000)
 	logReceived := make(chan string, 1000)
 	mockOutput.On("Process", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		logReceived <- args.Get(0).(*entry.Entry).Record.(map[string]interface{})["message"].(string)
+		logReceived <- args.Get(0).(*entry.Entry).Record.(string)
 	})
 
 	wg := &sync.WaitGroup{}

@@ -58,7 +58,7 @@ func TestRestructurePlugin(t *testing.T) {
 			name: "Remove",
 			ops: []Op{
 				{
-					&OpRemove{[]string{"nested"}},
+					&OpRemove{entry.NewField("nested")},
 				},
 			},
 			input: newTestEntry(),
@@ -74,7 +74,7 @@ func TestRestructurePlugin(t *testing.T) {
 			name: "Retain",
 			ops: []Op{
 				{
-					&OpRetain{[]entry.FieldSelector{[]string{"key"}}},
+					&OpRetain{[]entry.Field{entry.NewField("key")}},
 				},
 			},
 			input: newTestEntry(),
@@ -91,8 +91,8 @@ func TestRestructurePlugin(t *testing.T) {
 			ops: []Op{
 				{
 					&OpMove{
-						From: []string{"key"},
-						To:   []string{"newkey"},
+						From: entry.NewField("key"),
+						To:   entry.NewField("newkey"),
 					},
 				},
 			},
@@ -113,7 +113,7 @@ func TestRestructurePlugin(t *testing.T) {
 			ops: []Op{
 				{
 					&OpFlatten{
-						Field: []string{"nested"},
+						Field: entry.NewField("nested"),
 					},
 				},
 			},
@@ -164,7 +164,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpAdd{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 					Value: "newvalue",
 				},
 			},
@@ -180,7 +180,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpAdd{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 					Value: "newvalue",
 				},
 			},
@@ -196,7 +196,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpAdd{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 					ValueExpr: func() *vm.Program {
 						prog, err := expr.Compile(`"newvalue"`)
 						require.NoError(t, err)
@@ -213,7 +213,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRemove{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 				},
 			},
 			errorRequirement: require.NoError,
@@ -225,7 +225,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRemove{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 				},
 			},
 			errorRequirement: require.NoError,
@@ -237,7 +237,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRetain{
-					Fields: []entry.FieldSelector{[]string{"message"}},
+					Fields: []entry.Field{entry.NewField("message")},
 				},
 			},
 			errorRequirement: require.NoError,
@@ -249,7 +249,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRetain{
-					Fields: []entry.FieldSelector{[]string{"message"}},
+					Fields: []entry.Field{entry.NewField("message")},
 				},
 			},
 			errorRequirement: require.NoError,
@@ -261,7 +261,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpRetain{
-					Fields: []entry.FieldSelector{[]string{"message"}},
+					Fields: []entry.Field{entry.NewField("message")},
 				},
 			},
 			errorRequirement: require.NoError,
@@ -276,8 +276,8 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpMove{
-					From: []string{"message"},
-					To:   []string{"message2"},
+					From: entry.NewField("message"),
+					To:   entry.NewField("message2"),
 				},
 			},
 			errorRequirement: require.NoError,
@@ -292,8 +292,8 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpMove{
-					From: []string{"message"},
-					To:   []string{"message2"},
+					From: entry.NewField("message"),
+					To:   entry.NewField("message2"),
 				},
 			},
 			errorRequirement: require.NoError,
@@ -305,7 +305,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpFlatten{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 				},
 			},
 			errorRequirement: require.NoError,
@@ -317,7 +317,7 @@ func TestRestructureOpDecodeHook(t *testing.T) {
 			},
 			expected: Op{
 				&OpFlatten{
-					Field: []string{"message"},
+					Field: entry.NewField("message"),
 				},
 			},
 			errorRequirement: require.NoError,

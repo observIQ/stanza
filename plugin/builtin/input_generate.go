@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
@@ -51,7 +49,7 @@ type GenerateInput struct {
 	helper.BasicPlugin
 	helper.BasicInput
 	count  int
-	record entry.Record
+	record interface{}
 	cancel context.CancelFunc
 	wg     *sync.WaitGroup
 }
@@ -73,13 +71,8 @@ func (g *GenerateInput) Start() error {
 			default:
 			}
 
-			entry := &entry.Entry{
-				Timestamp: time.Now(),
-				Record:    copyRecord(g.record),
-			}
-
-			err := g.Output.Process(entry)
-			if err != nil {
+			record := copyRecord(g.record)
+			if err := g.Write(record); err != nil {
 				g.Warnw("process entry", "error", err)
 			}
 
@@ -101,7 +94,7 @@ func (g *GenerateInput) Stop() error {
 	return nil
 }
 
-func copyRecord(r entry.Record) entry.Record {
+func copyRecord(r interface{}) interface{} {
 	switch r := r.(type) {
 	case map[string]interface{}:
 		return copyMap(r)

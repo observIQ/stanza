@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"go.uber.org/zap"
@@ -22,9 +21,7 @@ type UDPInputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
 
-	ListenAddress string              `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
-	MessageField  entry.FieldSelector `mapstructure:"message_field"  json:"message_field,omitempty"  yaml:"message_field,omitempty,flow"`
-	SourceField   entry.FieldSelector `mapstructure:"source_field"   json:"source_field,omitempty"   yaml:"source_field,omitempty,flow"`
+	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a udp input plugin.
@@ -43,22 +40,15 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 		return nil, fmt.Errorf("missing field 'listen_address'")
 	}
 
-	if c.MessageField == nil {
-		fs := entry.FieldSelector([]string{"message"})
-		c.MessageField = fs
-	}
-
 	address, err := net.ResolveUDPAddr("udp", c.ListenAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
 	udpInput := &UDPInput{
-		BasicPlugin:  basicPlugin,
-		BasicInput:   basicInput,
-		address:      address,
-		messageField: c.MessageField,
-		sourceField:  c.SourceField,
+		BasicPlugin: basicPlugin,
+		BasicInput:  basicInput,
+		address:     address,
 	}
 	return udpInput, nil
 }
@@ -72,9 +62,6 @@ type UDPInput struct {
 	connection net.PacketConn
 	cancel     context.CancelFunc
 	waitGroup  *sync.WaitGroup
-
-	messageField entry.FieldSelector
-	sourceField  entry.FieldSelector
 }
 
 // Start will start listening for messages on a socket.
@@ -100,37 +87,32 @@ func (u *UDPInput) goHandleMessages() {
 		defer u.waitGroup.Done()
 
 		for {
-			entry, err := u.readEntry()
+			message, err := u.readMessage()
 			if err != nil && u.isExpectedClose(err) {
 				u.Debugf("Exiting message handler: %s", err)
 				break
 			}
 
-			if err := u.Output.Process(entry); err != nil {
-				u.Errorw("Output failed to process entry", zap.Any("error", err))
+			if err := u.Write(message); err != nil {
+				u.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}
 	}()
 }
 
-// readEntry will read log entries from the connection.
-func (u *UDPInput) readEntry() (*entry.Entry, error) {
+// readMessage will read log messages from the connection.
+func (u *UDPInput) readMessage() (string, error) {
 	buffer := make([]byte, 1024)
-	n, address, err := u.connection.ReadFrom(buffer)
+	n, _, err := u.connection.ReadFrom(buffer)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Remove trailing characters and NULs
 	for ; (n > 0) && (buffer[n-1] < 32); n-- {
 	}
 
-	entry := entry.NewEntry()
-	entry.Set(u.messageField, buffer[:n])
-	if u.sourceField != nil {
-		entry.Set(u.sourceField, address.String())
-	}
-	return entry, nil
+	return string(buffer[:n]), nil
 }
 
 // isExpectedClose will determine if an error was the result of a closed connection.

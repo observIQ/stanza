@@ -9,10 +9,11 @@ import (
 
 // BasicParserConfig provides the basic implementation of a parser config.
 type BasicParserConfig struct {
-	OutputID  string               `mapstructure:"output"     json:"output"     yaml:"output"`
-	ParseFrom *entry.FieldSelector `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from,flow"`
-	ParseTo   *entry.FieldSelector `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to,flow"`
-	OnError   string               `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
+	OutputID  string      `mapstructure:"output"     json:"output"     yaml:"output"`
+	ParseFrom entry.Field `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from"`
+	ParseTo   entry.Field `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to"`
+	Preserve  bool        `mapstructure:"preserve"   json:"preserve"   yaml:"preserve"`
+	OnError   string      `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
 }
 
 // Build will build a basic parser.
@@ -22,16 +23,6 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 			"Plugin config is missing the `output` field.",
 			"Ensure that a valid `output` field exists on the plugin config.",
 		)
-	}
-
-	if c.ParseFrom == nil {
-		// TODO these shouldn't be pointers
-		var fs entry.FieldSelector = entry.FieldSelector([]string{})
-		c.ParseFrom = &fs
-	}
-
-	if c.ParseTo == nil {
-		c.ParseTo = c.ParseFrom
 	}
 
 	if c.OnError == "" {
@@ -50,8 +41,9 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 
 	basicParser := BasicParser{
 		OutputID:      c.OutputID,
-		ParseFrom:     *c.ParseFrom,
-		ParseTo:       *c.ParseTo,
+		ParseFrom:     c.ParseFrom,
+		ParseTo:       c.ParseTo,
+		Preserve:      c.Preserve,
 		OnError:       c.OnError,
 		SugaredLogger: logger,
 	}
@@ -62,8 +54,9 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 // BasicParser provides a basic implementation of a parser plugin.
 type BasicParser struct {
 	OutputID  string
-	ParseFrom entry.FieldSelector
-	ParseTo   entry.FieldSelector
+	ParseFrom entry.Field
+	ParseTo   entry.Field
+	Preserve  bool
 	OnError   string
 	Output    plugin.Plugin
 	*zap.SugaredLogger
@@ -102,6 +95,7 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 		err := errors.NewError(
 			"Log entry does not have the expected parse_from field.",
 			"Ensure that all entries forwarded to this parser contain the parse_from field.",
+			"parse_from", p.ParseFrom.String(),
 		)
 		return p.HandleParserError(entry, err)
 	}
@@ -109,6 +103,10 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 	newValue, err := parseFunc(value)
 	if err != nil {
 		return p.HandleParserError(entry, err)
+	}
+
+	if !p.Preserve {
+		entry.Delete(p.ParseFrom)
 	}
 
 	entry.Set(p.ParseTo, newValue)

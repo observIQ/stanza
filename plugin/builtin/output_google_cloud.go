@@ -30,13 +30,13 @@ func init() {
 type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
 
-	Credentials   string              `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
-	ProjectID     string              `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
-	LogNameField  entry.FieldSelector `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty,flow"`
-	LabelsField   entry.FieldSelector `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty,flow"`
-	SeverityField entry.FieldSelector `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty,flow"`
-	TraceField    entry.FieldSelector `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty,flow"`
-	SpanIDField   entry.FieldSelector `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty,flow"`
+	Credentials   string       `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
+	ProjectID     string       `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
+	LogNameField  *entry.Field `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty"`
+	LabelsField   *entry.Field `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty"`
+	SeverityField *entry.Field `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty"`
+	TraceField    *entry.Field `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty"`
+	SpanIDField   *entry.Field `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty"`
 }
 
 // Build will build a google cloud output plugin.
@@ -77,11 +77,11 @@ type GoogleCloudOutput struct {
 	credentials string
 	projectID   string
 
-	logNameField  entry.FieldSelector
-	labelsField   entry.FieldSelector
-	severityField entry.FieldSelector
-	traceField    entry.FieldSelector
-	spanIDField   entry.FieldSelector
+	logNameField  *entry.Field
+	labelsField   *entry.Field
+	severityField *entry.Field
+	traceField    *entry.Field
+	spanIDField   *entry.Field
 
 	buffer buffer.Buffer
 	client *vkit.Client
@@ -166,49 +166,49 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	if p.logNameField != nil {
 		var rawLogName string
-		err := e.Read(p.logNameField, &rawLogName)
+		err := e.Read(*p.logNameField, &rawLogName)
 		if err != nil {
 			p.Warnw("Failed to set log name", zap.Error(err), "entry", e)
 		} else {
 			newEntry.LogName = p.toLogNamePath(rawLogName)
-			e.Delete(p.logNameField)
+			e.Delete(*p.logNameField)
 		}
 	}
 
 	if p.labelsField != nil {
-		err := e.Read(p.labelsField, &newEntry.Labels)
+		err := e.Read(*p.labelsField, &newEntry.Labels)
 		if err != nil {
 			p.Warnw("Failed to set labels", zap.Error(err), "entry", e)
 		} else {
-			e.Delete(p.labelsField)
+			e.Delete(*p.labelsField)
 		}
 	}
 
 	if p.traceField != nil {
-		err := e.Read(p.traceField, &newEntry.Trace)
+		err := e.Read(*p.traceField, &newEntry.Trace)
 		if err != nil {
 			p.Warnw("Failed to set trace", zap.Error(err), "entry", e)
 		} else {
-			e.Delete(p.traceField)
+			e.Delete(*p.traceField)
 		}
 	}
 
 	if p.spanIDField != nil {
-		err := e.Read(p.spanIDField, &newEntry.SpanId)
+		err := e.Read(*p.spanIDField, &newEntry.SpanId)
 		if err != nil {
 			p.Warnw("Failed to set span ID", zap.Error(err), "entry", e)
 		} else {
-			e.Delete(p.spanIDField)
+			e.Delete(*p.spanIDField)
 		}
 	}
 
 	if p.severityField != nil {
 		var severityString string
-		err := e.Read(p.severityField, &severityString)
+		err := e.Read(*p.severityField, &severityString)
 		if err != nil {
 			p.Warnw("Failed to set severity", zap.Error(err), "entry", e)
 		} else {
-			e.Delete(p.severityField)
+			e.Delete(*p.severityField)
 		}
 		newEntry.Severity, err = parseSeverity(severityString)
 		if err != nil {
