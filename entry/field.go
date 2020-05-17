@@ -72,16 +72,17 @@ func (f Field) Get(entry *Entry) (interface{}, bool) {
 }
 
 // Set will set a value on an entry's record using the field.
-// It will overwrite intermediate values as necessary.
-func (f Field) Set(entry *Entry, value interface{}) {
-	if f.IsRoot() {
-		entry.Record = value
+// If a key already exists, it will be overwritten.
+// If mergeMaps is set to true, map values will be merged together.
+func (f Field) Set(entry *Entry, value interface{}, mergeMaps bool) {
+	mapValue, isMapValue := value.(map[string]interface{})
+	if isMapValue && mergeMaps {
+		f.Merge(entry, mapValue)
 		return
 	}
 
-	mapValue, isMapValue := value.(map[string]interface{})
-	if isMapValue {
-		f.Merge(entry, mapValue)
+	if f.IsRoot() {
+		entry.Record = value
 		return
 	}
 

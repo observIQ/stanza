@@ -24,7 +24,7 @@ func (entry *Entry) Get(field Field) (interface{}, bool) {
 }
 
 func (entry *Entry) Set(field Field, val interface{}) {
-	field.Set(entry, val)
+	field.Set(entry, val, true)
 }
 
 func (entry *Entry) Delete(field Field) (interface{}, bool) {

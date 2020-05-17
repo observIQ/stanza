@@ -35,8 +35,8 @@ plugins:
           value: "testvalue2"
       - remove: "message.nested2"
       - move:
-          from: "message.nested"
-          to: "message.nested3"
+          from: $.message.nested
+          to: message.nested3
       - retain:
         - "message.nested3"
       - flatten: "message"
