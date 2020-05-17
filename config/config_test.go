@@ -2,7 +2,9 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -220,12 +222,103 @@ func TestRoundTripRepresentativeConfigJSON(t *testing.T) {
 	marshalled, err := json.Marshal(testParsedRepresentativeConfig)
 	require.NoError(t, err)
 
-	fmt.Print(string(marshalled))
-
 	var cfg Config
 	err = json.Unmarshal(marshalled, &cfg)
 	require.NoError(t, err)
 
 	require.Equal(t, testParsedRepresentativeConfig, cfg)
+}
+
+func TestReadConfigsFromGlobs(t *testing.T) {
+
+	output1 := []byte(`
+plugins:
+  - id: output1
+    type: logger_output
+`)
+
+	file1 := []byte(`
+database_file: test1.db
+plugins:
+  - id: fileinput1
+    type: file_input
+    output: output1
+`)
+
+	file2 := []byte(`
+database_file: test2.db
+plugins:
+  - id: fileinput2
+    type: file_input
+    output: output1
+`)
+
+	cases := []struct {
+		name                 string
+		globs                []string
+		expectedPluginIDs    []string
+		expectedDatabaseFile string
+		expectedError        require.ErrorAssertionFunc
+	}{
+		{
+			"multiple inputs",
+			[]string{"file1", "file2", "output1"},
+			[]string{"fileinput1", "fileinput2", "output1"},
+			"test2.db",
+			require.NoError,
+		},
+		{
+			"single input",
+			[]string{"file1", "output1"},
+			[]string{"fileinput1", "output1"},
+			"test1.db",
+			require.NoError,
+		},
+		{
+			"globbed inputs",
+			[]string{"file*", "output1"},
+			[]string{"fileinput1", "fileinput2", "output1"},
+			"test2.db", // because glob returns in lexicographical order
+			require.NoError,
+		},
+		{
+			"globbed all",
+			[]string{"*"},
+			[]string{"fileinput1", "fileinput2", "output1"},
+			"test2.db", // because glob returns in lexicographical order
+			require.NoError,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a temp dir
+			dir, err := ioutil.TempDir("", "")
+			require.NoError(t, err)
+			defer os.RemoveAll(dir)
+
+			// Write the config files to the temp dir
+			ioutil.WriteFile(filepath.Join(dir, "output1"), output1, 0666)
+			ioutil.WriteFile(filepath.Join(dir, "file1"), file1, 0666)
+			ioutil.WriteFile(filepath.Join(dir, "file2"), file2, 0666)
+
+			// Prefix the globs with the temp dir
+			globs := make([]string, len(tc.globs))
+			for i, glob := range tc.globs {
+				globs[i] = filepath.Join(dir, glob)
+			}
+			cfg, err := ReadConfigsFromGlobs(globs)
+			tc.expectedError(t, err)
+
+			// Pull out the plugin IDs from the unmarshaled plugins
+			pluginIDs := make([]string, len(cfg.Plugins))
+			for i, plugin := range cfg.Plugins {
+				pluginIDs[i] = plugin.ID()
+			}
+
+			require.Equal(t, tc.expectedDatabaseFile, cfg.DatabaseFile)
+			require.ElementsMatch(t, tc.expectedPluginIDs, pluginIDs)
+		})
+	}
 
 }

@@ -95,7 +95,7 @@ func TestFileSource_Build(t *testing.T) {
 	fileInput := source.(*FileInput)
 	require.Equal(t, fileInput.Output, mockOutput)
 	require.Equal(t, fileInput.Include, []string{"/var/log/testpath.*"})
-	require.Equal(t, fileInput.PathField, entry.NewField("testpath"))
+	require.Equal(t, fileInput.PathField, sourceConfig.PathField)
 	require.Equal(t, fileInput.PollInterval, 10*time.Millisecond)
 	require.Equal(t, fileInput.db, db)
 }

@@ -114,7 +114,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
-		PathField:        *c.PathField,
+		PathField:        c.PathField,
 		db:               context.Database,
 		runningFiles:     make(map[string]struct{}),
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
@@ -130,7 +130,7 @@ type FileInput struct {
 
 	Include      []string
 	Exclude      []string
-	PathField    entry.Field
+	PathField    *entry.Field
 	PollInterval time.Duration
 	SplitFunc    bufio.SplitFunc
 

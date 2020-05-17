@@ -1,8 +1,7 @@
-package bplogagent
+package agent
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,10 +57,6 @@ func (a *LogAgent) Start() error {
 		return err
 	}
 
-	if a.Config.PluginGraphOutput != "" {
-		a.writeDotGraph()
-	}
-
 	a.running = true
 	a.Info("Agent started")
 	return nil
@@ -86,18 +81,6 @@ func (a *LogAgent) Stop() {
 // Status will return the status of the agent.
 func (a *LogAgent) Status() struct{} {
 	return struct{}{}
-}
-
-func (a *LogAgent) writeDotGraph() {
-	dotGraph, err := a.pipeline.MarshalDot()
-	if err != nil {
-		a.Warnw("Failed to render dot graph representation of plugin graph", zap.Error(err))
-	}
-
-	err = ioutil.WriteFile(a.Config.PluginGraphOutput, dotGraph, 0666)
-	if err != nil {
-		a.Warnw("Failed to write dot graph to file", zap.Error(err))
-	}
 }
 
 // newBuildContext will create a new build context for building plugins.
