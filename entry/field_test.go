@@ -33,56 +33,49 @@ func TestFieldGet(t *testing.T) {
 	}{
 		{
 			"EmptyField",
-			[]string{},
-			testRecord(),
-			testRecord(),
-			true,
-		},
-		{
-			"NilField",
-			nil,
+			NewField(),
 			testRecord(),
 			testRecord(),
 			true,
 		},
 		{
 			"SimpleField",
-			[]string{"simple_key"},
+			NewField("simple_key"),
 			testRecord(),
 			"simple_value",
 			true,
 		},
 		{
 			"MapField",
-			[]string{"map_key"},
+			NewField("map_key"),
 			testRecord(),
 			nestedMap(),
 			true,
 		},
 		{
 			"NestedField",
-			[]string{"map_key", "nested_key"},
+			NewField("map_key", "nested_key"),
 			testRecord(),
 			"nested_value",
 			true,
 		},
 		{
 			"MissingField",
-			[]string{"invalid"},
+			NewField("invalid"),
 			testRecord(),
 			nil,
 			false,
 		},
 		{
 			"InvalidField",
-			[]string{"simple_key", "nested_key"},
+			NewField("simple_key", "nested_key"),
 			testRecord(),
 			nil,
 			false,
 		},
 		{
 			"RawField",
-			[]string{},
+			NewField(),
 			"raw string",
 			"raw string",
 			true,
@@ -116,7 +109,7 @@ func TestFieldDelete(t *testing.T) {
 	}{
 		{
 			"SimpleKey",
-			[]string{"simple_key"},
+			NewField("simple_key"),
 			testRecord(),
 			map[string]interface{}{
 				"map_key": nestedMap(),
@@ -126,15 +119,7 @@ func TestFieldDelete(t *testing.T) {
 		},
 		{
 			"EmptyRecordAndField",
-			[]string{},
-			map[string]interface{}{},
-			nil,
-			map[string]interface{}{},
-			true,
-		},
-		{
-			"EmptyRecordAndNilField",
-			nil,
+			NewField(),
 			map[string]interface{}{},
 			nil,
 			map[string]interface{}{},
@@ -142,7 +127,7 @@ func TestFieldDelete(t *testing.T) {
 		},
 		{
 			"EmptyField",
-			[]string{},
+			NewField(),
 			testRecord(),
 			nil,
 			testRecord(),
@@ -150,7 +135,7 @@ func TestFieldDelete(t *testing.T) {
 		},
 		{
 			"MissingKey",
-			[]string{"missing_key"},
+			NewField("missing_key"),
 			testRecord(),
 			testRecord(),
 			nil,
@@ -158,7 +143,7 @@ func TestFieldDelete(t *testing.T) {
 		},
 		{
 			"NestedKey",
-			[]string{"map_key", "nested_key"},
+			NewField("map_key", "nested_key"),
 			testRecord(),
 			map[string]interface{}{
 				"simple_key": "simple_value",
@@ -169,7 +154,7 @@ func TestFieldDelete(t *testing.T) {
 		},
 		{
 			"MapKey",
-			[]string{"map_key"},
+			NewField("map_key"),
 			testRecord(),
 			map[string]interface{}{
 				"simple_key": "simple_value",
@@ -202,35 +187,35 @@ func TestFieldSet(t *testing.T) {
 	}{
 		{
 			"OverwriteMap",
-			[]string{},
+			NewField(),
 			testRecord(),
 			"new_value",
 			"new_value",
 		},
 		{
 			"OverwriteRaw",
-			[]string{},
+			NewField(),
 			"raw_value",
 			"new_value",
 			"new_value",
 		},
 		{
 			"NewMapValue",
-			[]string{},
+			NewField(),
 			map[string]interface{}{},
 			testRecord(),
 			testRecord(),
 		},
 		{
 			"NewRootField",
-			[]string{"new_key"},
+			NewField("new_key"),
 			map[string]interface{}{},
 			"new_value",
 			map[string]interface{}{"new_key": "new_value"},
 		},
 		{
 			"NewNestedField",
-			[]string{"new_key", "nested_key"},
+			NewField("new_key", "nested_key"),
 			map[string]interface{}{},
 			"nested_value",
 			map[string]interface{}{
@@ -241,7 +226,7 @@ func TestFieldSet(t *testing.T) {
 		},
 		{
 			"OverwriteNestedMap",
-			[]string{"map_key"},
+			NewField("map_key"),
 			testRecord(),
 			"new_value",
 			map[string]interface{}{
@@ -251,7 +236,7 @@ func TestFieldSet(t *testing.T) {
 		},
 		{
 			"MergedNestedValue",
-			[]string{"map_key"},
+			NewField("map_key"),
 			testRecord(),
 			map[string]interface{}{
 				"merged_key": "merged_value",
@@ -292,7 +277,7 @@ func TestFieldDecode(t *testing.T) {
 			"NilField",
 			map[string]interface{}{"field": nil},
 			decodeTarget{
-				Field: Field(nil),
+				FieldPtr: nil,
 			},
 			false,
 		},
@@ -300,7 +285,7 @@ func TestFieldDecode(t *testing.T) {
 			"EmptyField",
 			map[string]interface{}{"field": ""},
 			decodeTarget{
-				Field: Field([]string{""}),
+				Field: NewField(""),
 			},
 			false,
 		},
@@ -308,7 +293,7 @@ func TestFieldDecode(t *testing.T) {
 			"RootField",
 			map[string]interface{}{"field": "$"},
 			decodeTarget{
-				Field: Field(nil),
+				Field: NewField([]string{}...),
 			},
 			false,
 		},
@@ -316,7 +301,7 @@ func TestFieldDecode(t *testing.T) {
 			"SimpleField",
 			map[string]interface{}{"field": "test"},
 			decodeTarget{
-				Field: Field([]string{"test"}),
+				Field: NewField("test"),
 			},
 			false,
 		},
@@ -324,7 +309,7 @@ func TestFieldDecode(t *testing.T) {
 			"ComplexField",
 			map[string]interface{}{"field": "$.test1.test2"},
 			decodeTarget{
-				Field: Field([]string{"test1", "test2"}),
+				Field: NewField("test1", "test2"),
 			},
 			false,
 		},
@@ -332,7 +317,7 @@ func TestFieldDecode(t *testing.T) {
 			"ComplexFieldWithRoot",
 			map[string]interface{}{"field": "test1.test2"},
 			decodeTarget{
-				Field: Field([]string{"test1", "test2"}),
+				Field: NewField("test1", "test2"),
 			},
 			false,
 		},
@@ -341,7 +326,7 @@ func TestFieldDecode(t *testing.T) {
 			map[string]interface{}{"fieldPtr": "test"},
 			decodeTarget{
 				FieldPtr: func() *Field {
-					var field = Field([]string{"test"})
+					var field = NewField("test")
 					return &field
 				}(),
 			},
@@ -352,7 +337,7 @@ func TestFieldDecode(t *testing.T) {
 			map[string]interface{}{"fieldPtr": "test1.test2"},
 			decodeTarget{
 				FieldPtr: func() *Field {
-					var field = Field([]string{"test1", "test2"})
+					var field = NewField("test1", "test2")
 					return &field
 				}(),
 			},
@@ -400,17 +385,17 @@ func TestFieldUnmarshalJSON(t *testing.T) {
 		{
 			"SimpleField",
 			[]byte(`"test1"`),
-			Field([]string{"test1"}),
+			NewField("test1"),
 		},
 		{
 			"ComplexField",
 			[]byte(`"test1.test2"`),
-			Field([]string{"test1", "test2"}),
+			NewField("test1", "test2"),
 		},
 		{
 			"RootField",
 			[]byte(`"$"`),
-			Field([]string{}),
+			NewField([]string{}...),
 		},
 	}
 
@@ -433,12 +418,12 @@ func TestFieldMarshalJSON(t *testing.T) {
 	}{
 		{
 			"SimpleField",
-			Field([]string{"test1"}),
+			NewField("test1"),
 			[]byte(`"test1"`),
 		},
 		{
 			"ComplexField",
-			Field([]string{"test1", "test2"}),
+			NewField("test1", "test2"),
 			[]byte(`"test1.test2"`),
 		},
 	}
@@ -462,27 +447,27 @@ func TestFieldUnmarshalYAML(t *testing.T) {
 		{
 			"SimpleField",
 			[]byte(`"test1"`),
-			Field([]string{"test1"}),
+			NewField("test1"),
 		},
 		{
 			"UnquotedField",
 			[]byte(`test1`),
-			Field([]string{"test1"}),
+			NewField("test1"),
 		},
 		{
 			"RootField",
 			[]byte(`"$"`),
-			Field([]string{}),
+			NewField([]string{}...),
 		},
 		{
 			"ComplexField",
 			[]byte(`"test1.test2"`),
-			Field([]string{"test1", "test2"}),
+			NewField("test1", "test2"),
 		},
 		{
 			"ComplexFieldWithRoot",
 			[]byte(`"$.test1.test2"`),
-			Field([]string{"test1", "test2"}),
+			NewField("test1", "test2"),
 		},
 	}
 
@@ -505,22 +490,17 @@ func TestFieldMarshalYAML(t *testing.T) {
 	}{
 		{
 			"SimpleField",
-			Field([]string{"test1"}),
+			NewField("test1"),
 			[]byte("test1\n"),
 		},
 		{
 			"ComplexField",
-			Field([]string{"test1", "test2"}),
+			NewField("test1", "test2"),
 			[]byte("test1.test2\n"),
 		},
 		{
 			"EmptyField",
-			Field([]string{}),
-			[]byte("$\n"),
-		},
-		{
-			"NilField",
-			Field(nil),
+			NewField(),
 			[]byte("$\n"),
 		},
 	}

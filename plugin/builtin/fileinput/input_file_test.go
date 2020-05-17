@@ -64,6 +64,8 @@ func TestFileSource_Build(t *testing.T) {
 	db, cleanup := newTempDB()
 	defer cleanup()
 
+	pathField := entry.NewField("testpath")
+
 	sourceConfig := &FileInputConfig{
 		BasicPluginConfig: helper.BasicPluginConfig{
 			PluginID:   "testfile",
@@ -77,7 +79,7 @@ func TestFileSource_Build(t *testing.T) {
 			d := 10 * time.Millisecond
 			return &d
 		}(),
-		PathField: []string{"testpath"},
+		PathField: &pathField,
 	}
 
 	context := plugin.BuildContext{
@@ -93,7 +95,7 @@ func TestFileSource_Build(t *testing.T) {
 	fileInput := source.(*FileInput)
 	require.Equal(t, fileInput.Output, mockOutput)
 	require.Equal(t, fileInput.Include, []string{"/var/log/testpath.*"})
-	require.Equal(t, fileInput.PathField, entry.Field([]string{"testpath"}))
+	require.Equal(t, fileInput.PathField, entry.NewField("testpath"))
 	require.Equal(t, fileInput.PollInterval, 10*time.Millisecond)
 	require.Equal(t, fileInput.db, db)
 }

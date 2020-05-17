@@ -13,7 +13,9 @@ import (
 // Field represents a potential field on an entry's record.
 // It is used to get, set, and delete values at this field.
 // It is deserialized from JSON dot notation.
-type Field []string
+type Field struct {
+	Keys []string
+}
 
 // Parent returns the parent of the current field.
 // In the case that the record field points to the root node, it is a no-op.
@@ -22,19 +24,21 @@ func (f Field) Parent() Field {
 		return f
 	}
 
-	return f[0 : len(f)-1]
+	keys := f.Keys[0 : f.Length()-1]
+	return NewField(keys...)
 }
 
 // Child returns a child of the current field using the given key.
 func (f Field) Child(key string) Field {
-	child := make([]string, len(f), len(f)+1)
-	copy(child, f)
-	return append(child, key)
+	child := make([]string, f.Length(), f.Length()+1)
+	copy(child, f.Keys)
+	keys := append(child, key)
+	return NewField(keys...)
 }
 
 // IsRoot returns a boolean indicating if this is a root level field.
 func (f Field) IsRoot() bool {
-	return len(f) == 0
+	return f.Length() == 0
 }
 
 // String returns the string representation of this field.
@@ -42,12 +46,17 @@ func (f Field) String() string {
 	return toJSONDot(f)
 }
 
+// Length returns the number of keys in the field.
+func (f Field) Length() int {
+	return len(f.Keys)
+}
+
 // Get will retreive a value from an entry's record using the field.
 // It will return the value and whether the field existed.
 func (f Field) Get(entry *Entry) (interface{}, bool) {
 	var currentValue interface{} = entry.Record
 
-	for _, key := range f {
+	for _, key := range f.Keys {
 		currentRecord, ok := currentValue.(map[string]interface{})
 		if !ok {
 			return nil, false
@@ -82,8 +91,8 @@ func (f Field) Set(entry *Entry, value interface{}) {
 		entry.Record = currentMap
 	}
 
-	for i, key := range f {
-		if i == len(f)-1 {
+	for i, key := range f.Keys {
+		if i == f.Length()-1 {
 			currentMap[key] = value
 			return
 		}
@@ -100,7 +109,7 @@ func (f Field) Merge(entry *Entry, mapValues map[string]interface{}) {
 		entry.Record = currentMap
 	}
 
-	for _, key := range f {
+	for _, key := range f.Keys {
 		currentMap = f.getNestedMap(currentMap, key)
 	}
 
@@ -119,7 +128,7 @@ func (f Field) Delete(entry *Entry) (interface{}, bool) {
 	}
 
 	currentValue := entry.Record
-	for i, key := range f {
+	for i, key := range f.Keys {
 		currentMap, ok := currentValue.(map[string]interface{})
 		if !ok {
 			return nil, false
@@ -130,7 +139,7 @@ func (f Field) Delete(entry *Entry) (interface{}, bool) {
 			return nil, false
 		}
 
-		if i == len(f)-1 {
+		if i == f.Length()-1 {
 			delete(currentMap, key)
 			return currentValue, true
 		}
@@ -201,7 +210,7 @@ func fromJSONDot(value string) Field {
 		keys = keys[1:]
 	}
 
-	return keys
+	return NewField(keys...)
 }
 
 // toJSONDot returns the JSON dot notation for a field.
@@ -210,7 +219,14 @@ func toJSONDot(field Field) string {
 		return "$"
 	}
 
-	return strings.Join(field, ".")
+	return strings.Join(field.Keys, ".")
+}
+
+// NewField creates a new field from an ordered array of keys.
+func NewField(keys ...string) Field {
+	return Field{
+		Keys: keys,
+	}
 }
 
 // FieldDecoder is a custom decoder hook used by mapstructure to decode fields.

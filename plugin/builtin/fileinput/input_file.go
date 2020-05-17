@@ -35,7 +35,7 @@ type FileInputConfig struct {
 
 	PollInterval *time.Duration             `mapstructure:"poll_interval" json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 	Multiline    *FileSourceMultilineConfig `mapstructure:"multiline"     json:"multiline,omitempty"     yaml:"multiline,omitempty"`
-	PathField    entry.Field                `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
+	PathField    *entry.Field               `mapstructure:"path_field"    json:"path_field,omitempty"    yaml:"path_field,omitempty,flow"`
 }
 
 type FileSourceMultilineConfig struct {
@@ -114,7 +114,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
-		PathField:        c.PathField,
+		PathField:        *c.PathField,
 		db:               context.Database,
 		runningFiles:     make(map[string]struct{}),
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),

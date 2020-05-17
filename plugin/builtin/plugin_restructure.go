@@ -234,7 +234,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 		return Op{&move}, nil
 	case "add":
 		var addRaw struct {
-			Field     entry.Field
+			Field     *entry.Field
 			Value     interface{}
 			ValueExpr *string `mapstructure:"value_expr"`
 		}
@@ -255,7 +255,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 			return nil, fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
 		case addRaw.Value != nil:
 			return Op{&OpAdd{
-				Field: addRaw.Field,
+				Field: *addRaw.Field,
 				Value: addRaw.Value,
 			}}, nil
 		case addRaw.ValueExpr != nil:
@@ -264,7 +264,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 				return nil, fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
 			}
 			return Op{&OpAdd{
-				Field:     addRaw.Field,
+				Field:     *addRaw.Field,
 				ValueExpr: compiled,
 			}}, nil
 		}
@@ -344,7 +344,7 @@ func (op *OpAdd) Type() string {
 }
 
 type opAddRaw struct {
-	Field     entry.Field
+	Field     *entry.Field
 	Value     interface{}
 	ValueExpr *string
 }
@@ -380,14 +380,14 @@ func (op *OpAdd) unmarshalFromOpAddRaw(addRaw opAddRaw) error {
 	case addRaw.Value == nil && addRaw.ValueExpr == nil:
 		return fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
 	case addRaw.Value != nil:
-		op.Field = addRaw.Field
+		op.Field = *addRaw.Field
 		op.Value = addRaw.Value
 	case addRaw.ValueExpr != nil:
 		compiled, err := expr.Compile(*addRaw.ValueExpr, expr.AllowUndefinedVariables())
 		if err != nil {
 			return fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
 		}
-		op.Field = addRaw.Field
+		op.Field = *addRaw.Field
 		op.ValueExpr = compiled
 	}
 

@@ -108,7 +108,7 @@ var testParsedRepresentativeConfig = Config{
 				},
 				BasicInputConfig: helper.BasicInputConfig{
 					OutputID: "my_restructure",
-					WriteTo:  entry.Field([]string{"message"}),
+					WriteTo:  entry.Field(entry.NewField("message")),
 				},
 				Include: []string{"./testfile"},
 			},
@@ -125,35 +125,35 @@ var testParsedRepresentativeConfig = Config{
 				Ops: []builtin.Op{
 					{
 						OpApplier: &builtin.OpAdd{
-							Field: entry.Field([]string{"message", "nested"}),
+							Field: entry.NewField("message", "nested"),
 							Value: "testvalue",
 						},
 					},
 					{
 						OpApplier: &builtin.OpAdd{
-							Field: entry.Field([]string{"message", "nested2"}),
+							Field: entry.NewField("message", "nested2"),
 							Value: "testvalue2",
 						},
 					},
 					{
 						OpApplier: &builtin.OpRemove{
-							Field: entry.Field([]string{"message", "nested2"}),
+							Field: entry.NewField("message", "nested2"),
 						},
 					},
 					{
 						OpApplier: &builtin.OpMove{
-							From: entry.Field([]string{"message", "nested"}),
-							To:   entry.Field([]string{"message", "nested3"}),
+							From: entry.NewField("message", "nested"),
+							To:   entry.NewField("message", "nested3"),
 						},
 					},
 					{
 						OpApplier: &builtin.OpRetain{
-							Fields: []entry.Field{[]string{"message", "nested3"}},
+							Fields: []entry.Field{entry.NewField("message", "nested3")},
 						},
 					},
 					{
 						OpApplier: &builtin.OpFlatten{
-							Field: entry.Field([]string{"message"}),
+							Field: entry.NewField("message"),
 						},
 					},
 				},
@@ -209,8 +209,6 @@ func TestRoundTripRepresentativeConfigYAML(t *testing.T) {
 	marshalled, err := yaml.Marshal(testParsedRepresentativeConfig)
 	require.NoError(t, err)
 
-	fmt.Print(string(marshalled))
-
 	var cfg Config
 	err = yaml.Unmarshal(marshalled, &cfg)
 	require.NoError(t, err)
@@ -221,6 +219,8 @@ func TestRoundTripRepresentativeConfigYAML(t *testing.T) {
 func TestRoundTripRepresentativeConfigJSON(t *testing.T) {
 	marshalled, err := json.Marshal(testParsedRepresentativeConfig)
 	require.NoError(t, err)
+
+	fmt.Print(string(marshalled))
 
 	var cfg Config
 	err = json.Unmarshal(marshalled, &cfg)

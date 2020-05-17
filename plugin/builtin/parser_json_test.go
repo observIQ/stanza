@@ -25,8 +25,8 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 		},
 		BasicParser: helper.BasicParser{
 			Output:    &mock,
-			ParseFrom: entry.Field([]string{"testfield"}),
-			ParseTo:   entry.Field([]string{"testparsed"}),
+			ParseFrom: entry.NewField("testfield"),
+			ParseTo:   entry.NewField("testparsed"),
 		},
 		json: jsoniter.ConfigFastest,
 	}, &mock
@@ -49,7 +49,6 @@ func TestJSONParser(t *testing.T) {
 				"testfield": `{}`,
 			},
 			map[string]interface{}{
-				"testfield":  `{}`,
 				"testparsed": map[string]interface{}{},
 			},
 			false,
@@ -60,7 +59,6 @@ func TestJSONParser(t *testing.T) {
 				"testfield": `{"superkey":"superval"}`,
 			},
 			map[string]interface{}{
-				"testfield": `{"superkey":"superval"}`,
 				"testparsed": map[string]interface{}{
 					"superkey": "superval",
 				},
