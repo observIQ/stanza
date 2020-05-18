@@ -2,7 +2,10 @@
 
 package plugin
 
-import "github.com/bluemedora/bplogagent/entry"
+import (
+	"github.com/bluemedora/bplogagent/entry"
+	"go.uber.org/zap"
+)
 
 // Plugin is a log monitoring component.
 type Plugin interface {
@@ -27,4 +30,7 @@ type Plugin interface {
 	CanProcess() bool
 	// Process will process an entry from a plugin.
 	Process(*entry.Entry) error
+
+	// Logger returns the plugin's logger
+	Logger() *zap.SugaredLogger
 }

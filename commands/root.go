@@ -30,6 +30,7 @@ func NewRootCmd() *cobra.Command {
 		Use:   "bplogagent [-c ./config.yaml]",
 		Short: "A log parser and router",
 		Long:  "A log parser and router",
+		Args:  cobra.NoArgs,
 		Run:   func(command *cobra.Command, args []string) { runRoot(command, args, rootFlags) },
 	}
 
@@ -44,6 +45,7 @@ func NewRootCmd() *cobra.Command {
 
 	graph := &cobra.Command{
 		Use:   "graph",
+		Args:  cobra.NoArgs,
 		Short: "Export a dot-formatted representation of the plugin graph",
 		Run:   func(command *cobra.Command, args []string) { runGraph(command, args, graphFlags) },
 	}
@@ -69,6 +71,7 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		logger.Errorw("Failed to read config", zap.Any("error", err))
 		os.Exit(1)
 	}
+	logger.Debugw("Parsed config", "config", cfg)
 
 	agent := agent.NewLogAgent(cfg, logger)
 	err = agent.Start()
@@ -91,7 +94,7 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		logger.Debug("Received an interrupt signal. Attempting to shut down gracefully")
+		logger.Info("Received an interrupt signal. Attempting to shut down gracefully")
 		cancel()
 	}()
 	<-ctx.Done()
@@ -105,6 +108,9 @@ func newDefaultLoggerAt(level zapcore.Level) *zap.SugaredLogger {
 	logCfg.Sampling.Thereafter = 100
 	logCfg.EncoderConfig.CallerKey = ""
 	logCfg.EncoderConfig.StacktraceKey = ""
+	logCfg.EncoderConfig.TimeKey = "timestamp"
+	logCfg.EncoderConfig.MessageKey = "message"
+	logCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	// logCfg := zap.NewDevelopmentConfig()
 	// logCfg.EncoderConfig.TimeKey = ""
 	// logCfg.EncoderConfig.CallerKey = ""

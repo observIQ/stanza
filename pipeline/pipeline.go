@@ -23,9 +23,11 @@ func (p *Pipeline) Start() error {
 	sortedNodes, _ := topo.Sort(p.Graph)
 	for i := len(sortedNodes) - 1; i >= 0; i-- {
 		plugin := sortedNodes[i].(PluginNode).Plugin()
+		plugin.Logger().Debug("Starting plugin")
 		if err := plugin.Start(); err != nil {
 			return err
 		}
+		plugin.Logger().Debug("Started plugin")
 	}
 
 	p.running = true
@@ -41,7 +43,9 @@ func (p *Pipeline) Stop() {
 	sortedNodes, _ := topo.Sort(p.Graph)
 	for _, node := range sortedNodes {
 		plugin := node.(PluginNode).Plugin()
+		plugin.Logger().Debug("Stopping plugin")
 		plugin.Stop()
+		plugin.Logger().Debug("Stopped plugin")
 	}
 
 	p.running = false
@@ -59,7 +63,7 @@ func addNodes(graph *simple.DirectedGraph, plugins []plugin.Plugin) error {
 		if graph.Node(pluginNode.ID()) != nil {
 			return errors.NewError(
 				"Plugin already exists in the pipeline.",
-				"Ensure that all plugins are defined only once with a unique id.",
+				"Ensure that each plugin has a unique `id`.",
 				"plugin_id", pluginNode.Plugin().ID(),
 			)
 		}
@@ -137,7 +141,7 @@ func setPluginOutputs(plugins []plugin.Plugin) error {
 		}
 
 		if err := plugin.SetOutputs(plugins); err != nil {
-			return err
+			return errors.WithDetails(err, "plugin_id", plugin.ID())
 		}
 	}
 	return nil

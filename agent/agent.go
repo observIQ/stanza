@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/config"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/pipeline"
 	pg "github.com/bluemedora/bplogagent/plugin"
 	_ "github.com/bluemedora/bplogagent/plugin/builtin" // register plugins
@@ -40,14 +41,12 @@ func (a *LogAgent) Start() error {
 	buildContext := newBuildContext(a.SugaredLogger, database)
 	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
-		a.Errorw("Failed to build plugins", zap.Any("error", err))
-		return err
+		return errors.Wrap(err, "Build plugins")
 	}
 
 	pipeline, err := pipeline.NewPipeline(plugins)
 	if err != nil {
-		a.Errorw("Failed to build pipeline", zap.Any("error", err))
-		return err
+		return errors.Wrap(err, "Build pipeline")
 	}
 	a.pipeline = pipeline
 

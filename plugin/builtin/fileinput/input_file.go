@@ -192,10 +192,8 @@ func (f *FileInput) Start() error {
 }
 
 func (f *FileInput) Stop() error {
-	f.Info("Stopping source")
 	f.cancel()
 	f.wg.Wait()
-	f.Info("Stopped source")
 	return nil
 }
 
