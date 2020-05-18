@@ -66,7 +66,7 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 
 	cfg, err := config.ReadConfigsFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
+		logger.Errorw("Failed to read config", zap.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -91,6 +91,7 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
+		logger.Debug("Received an interrupt signal. Attempting to shut down gracefully")
 		cancel()
 	}()
 	<-ctx.Done()

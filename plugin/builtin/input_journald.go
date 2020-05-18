@@ -67,6 +67,7 @@ func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	journaldInput := &JournaldInput{
 		BasicPlugin: basicPlugin,
 		BasicInput:  basicInput,
+		persist:     helper.NewScopedBBoltPersister(context.Database, c.ID()),
 		binary:      "journalctl",
 		args:        args,
 		json:        jsoniter.ConfigFastest,
@@ -81,29 +82,45 @@ type JournaldInput struct {
 	binary string
 	args   []string
 
-	json   jsoniter.API
-	cancel context.CancelFunc
-	wg     *sync.WaitGroup
+	persist helper.Persister
+	json    jsoniter.API
+	cancel  context.CancelFunc
+	wg      *sync.WaitGroup
 }
+
+var lastReadCursorKey = "lastReadCursor"
 
 // Start will start generating log entries.
 func (plugin *JournaldInput) Start() error {
+	plugin.Debugw("Starting journald", "args", plugin.args)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	plugin.cancel = cancel
 	plugin.wg = &sync.WaitGroup{}
 
-	plugin.Debugw("Starting journald", "args", plugin.args)
+	err := plugin.persist.Load()
+	if err != nil {
+		return err
+	}
+
+	// Start from a cursor if there is a saved offset
+	res := plugin.persist.Get(lastReadCursorKey)
+	if res != nil {
+		plugin.args = append(plugin.args, "--after-cursor", string(res))
+	}
+
+	// Start journalctl
 	cmd := exec.Command(plugin.binary, plugin.args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to get journalctl stdout: %s", err)
 	}
-
 	err = cmd.Start()
 	if err != nil {
 		return fmt.Errorf("start journalctl: %s", err)
 	}
 
+	// Clean up subprocess on exit
 	plugin.wg.Add(1)
 	go func() {
 		defer plugin.wg.Done()
@@ -112,9 +129,25 @@ func (plugin *JournaldInput) Start() error {
 		_, _ = cmd.Process.Wait()
 	}()
 
+	// Start a goroutine to periodically flush the offsets
 	plugin.wg.Add(1)
 	go func() {
 		defer plugin.wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second):
+				plugin.syncOffsets()
+			}
+		}
+	}()
+
+	// Start the reader goroutine
+	plugin.wg.Add(1)
+	go func() {
+		defer plugin.wg.Done()
+		defer plugin.syncOffsets()
 
 		stdoutBuf := bufio.NewReader(stdout)
 
@@ -127,12 +160,12 @@ func (plugin *JournaldInput) Start() error {
 				return
 			}
 
-			// TODO #172624646 use cursor for offset tracking
-			entry, _, err := plugin.parseJournalEntry(line)
+			entry, cursor, err := plugin.parseJournalEntry(line)
 			if err != nil {
 				plugin.Warnw("Failed to parse journal entry", zap.Error(err))
 				continue
 			}
+			plugin.persist.Set(lastReadCursorKey, []byte(cursor))
 
 			err = plugin.Output.Process(entry)
 			if err != nil {
@@ -145,49 +178,47 @@ func (plugin *JournaldInput) Start() error {
 }
 
 func (plugin *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, string, error) {
-	var record map[string]interface{}
+	var record map[string]string
 	err := plugin.json.Unmarshal(line, &record)
 	if err != nil {
 		return nil, "", err
 	}
 
-	timestampInterface, ok := record["__REALTIME_TIMESTAMP"]
+	timestamp, ok := record["__REALTIME_TIMESTAMP"]
 	if !ok {
 		return nil, "", errors.New("journald record missing __REALTIME_TIMESTAMP field")
 	}
 
-	timestampString, ok := timestampInterface.(string)
-	if !ok {
-		return nil, "", errors.New("timestamp is not a string")
-	}
-
-	timestampInt, err := strconv.ParseInt(timestampString, 10, 64)
+	timestampInt, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
 		return nil, "", fmt.Errorf("parse timestamp: %s", err)
 	}
 
 	delete(record, "__REALTIME_TIMESTAMP")
 
-	cursorInterface, ok := record["__CURSOR"]
+	cursor, ok := record["__CURSOR"]
 	if !ok {
 		return nil, "", errors.New("journald record missing __CURSOR field")
 	}
 
-	cursor, ok := cursorInterface.(string)
-	if !ok {
-		return nil, "", errors.New("cursor is not a string")
+	entry := &entry.Entry{
+		Timestamp: time.Unix(0, timestampInt*1000), // in microseconds
 	}
-
-	entry := entry.New()
-	entry.Timestamp = time.Unix(0, timestampInt*1000)
 	entry.Set(plugin.WriteTo, record)
 
 	return entry, cursor, nil
 }
 
+func (plugin *JournaldInput) syncOffsets() {
+	err := plugin.persist.Sync()
+	if err != nil {
+		plugin.Errorw("Failed to sync offsets", zap.Error(err))
+	}
+}
+
 // Stop will stop generating logs.
-func (g *JournaldInput) Stop() error {
-	g.cancel()
-	g.wg.Wait()
+func (plugin *JournaldInput) Stop() error {
+	plugin.cancel()
+	plugin.wg.Wait()
 	return nil
 }

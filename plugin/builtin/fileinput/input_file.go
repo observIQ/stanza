@@ -18,7 +18,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
 
@@ -114,8 +113,8 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
+		persist:          helper.NewScopedBBoltPersister(context.Database, c.ID()),
 		PathField:        c.PathField,
-		db:               context.Database,
 		runningFiles:     make(map[string]struct{}),
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
 		fingerprintBytes: 1000,
@@ -134,7 +133,7 @@ type FileInput struct {
 	PollInterval time.Duration
 	SplitFunc    bufio.SplitFunc
 
-	db *bbolt.DB
+	persist helper.Persister
 
 	runningFiles map[string]struct{}
 	knownFiles   map[string]*knownFileInfo
@@ -156,7 +155,7 @@ func (f *FileInput) Start() error {
 	var err error
 	f.knownFiles, err = f.readKnownFiles()
 	if err != nil {
-		return fmt.Errorf("failed to read known files from database")
+		return fmt.Errorf("failed to read known files from database: %s", err)
 	}
 
 	f.wg.Add(1)
@@ -316,51 +315,41 @@ func (f *FileInput) drainMessages() {
 	}
 }
 
-var knownFilesKey = []byte(`knownFiles`)
+var knownFilesKey = "knownFiles"
 
 func (f *FileInput) syncKnownFiles() {
-	err := f.db.Update(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(f.ID()))
-		if err != nil {
-			return err
-		}
-
-		var buf bytes.Buffer
-		enc := gob.NewEncoder(&buf)
-		err = enc.Encode(f.knownFiles)
-		if err != nil {
-			return err
-		}
-		return bucket.Put(knownFilesKey, buf.Bytes())
-	})
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(f.knownFiles)
 	if err != nil {
-		f.Warnw("Failed to sync known files to database", zap.Error(err))
+		f.Errorw("Failed to encode known files", zap.Error(err))
+		return
 	}
+
+	f.persist.Set(knownFilesKey, buf.Bytes())
+	f.persist.Sync()
 }
 
 func (f *FileInput) readKnownFiles() (map[string]*knownFileInfo, error) {
-	var knownFiles map[string]*knownFileInfo
-	err := f.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(f.ID()))
-		if b == nil {
-			knownFiles = make(map[string]*knownFileInfo)
-			return nil
-		}
-
-		encoded := b.Get(knownFilesKey)
-		if encoded == nil {
-			knownFiles = make(map[string]*knownFileInfo)
-			return nil
-		}
-
-		dec := gob.NewDecoder(bytes.NewReader(encoded))
-		return dec.Decode(&knownFiles)
-	})
+	err := f.persist.Load()
 	if err != nil {
-		return nil, fmt.Errorf("get known files from database: %s", err)
+		return nil, err
 	}
 
-	return knownFiles, err
+	var knownFiles map[string]*knownFileInfo
+	encoded := f.persist.Get(knownFilesKey)
+	if encoded == nil {
+		knownFiles = make(map[string]*knownFileInfo)
+		return knownFiles, nil
+	}
+
+	dec := gob.NewDecoder(bytes.NewReader(encoded))
+	err = dec.Decode(&knownFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	return knownFiles, nil
 }
 
 func (f *FileInput) newFileUpdateMessenger(path string) fileUpdateMessenger {

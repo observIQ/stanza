@@ -45,7 +45,7 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Pl
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     10 * time.Millisecond,
-		db:               db,
+		persist:          helper.NewScopedBBoltPersister(db, "testfile"),
 		runningFiles:     make(map[string]struct{}),
 		knownFiles:       make(map[string]*knownFileInfo),
 		fileUpdateChan:   make(chan fileUpdateMessage),
@@ -97,7 +97,6 @@ func TestFileSource_Build(t *testing.T) {
 	require.Equal(t, fileInput.Include, []string{"/var/log/testpath.*"})
 	require.Equal(t, fileInput.PathField, sourceConfig.PathField)
 	require.Equal(t, fileInput.PollInterval, 10*time.Millisecond)
-	require.Equal(t, fileInput.db, db)
 }
 
 func newTempDir() (tempDir string, cleanup func()) {
@@ -317,6 +316,8 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 
 		_, err = temp1.WriteString("testlog1\n")
 		require.NoError(t, err)
+		_, err = temp1.WriteString("testlog2\n")
+		require.NoError(t, err)
 
 		err = source.Start()
 		require.NoError(t, err)
@@ -338,15 +339,10 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// Write to original and new file
-		_, err = temp1.WriteString("testlog2\n")
-		require.NoError(t, err)
 		_, err = temp1.WriteString("testlog3\n")
 		require.NoError(t, err)
 		_, err = temp2.WriteString("testlog4\n")
 		require.NoError(t, err)
-		_, err = temp2.WriteString("testlog5\n")
-		require.NoError(t, err)
-
 	}
 
 	// testlog1 and testlog2 should only show up once
@@ -355,7 +351,6 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		"testlog2",
 		"testlog3",
 		"testlog4",
-		"testlog5",
 	}
 
 	expectedLogsTest(t, expectedMessages, generate)
