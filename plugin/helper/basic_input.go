@@ -8,19 +8,21 @@ import (
 
 // BasicInputConfig provides a basic implementation of an input config.
 type BasicInputConfig struct {
-	OutputID string `mapstructure:"output" json:"output" yaml:"output"`
+	WriteTo  entry.Field `mapstructure:"write_to" json:"write_to" yaml:"write_to"`
+	OutputID string      `mapstructure:"output" json:"output" yaml:"output"`
 }
 
 // Build will build a base producer.
 func (c BasicInputConfig) Build() (BasicInput, error) {
 	if c.OutputID == "" {
 		return BasicInput{}, errors.NewError(
-			"Plugin config is missing the `output` field.",
+			"Plugin config is missing the `output` field. This field determines where to send incoming logs.",
 			"Ensure that a valid `output` field exists on the plugin config.",
 		)
 	}
 
 	basicInput := BasicInput{
+		WriteTo:  c.WriteTo,
 		OutputID: c.OutputID,
 	}
 
@@ -29,8 +31,16 @@ func (c BasicInputConfig) Build() (BasicInput, error) {
 
 // BasicInput provides a basic implementation of an input plugin.
 type BasicInput struct {
+	WriteTo  entry.Field
 	OutputID string
 	Output   plugin.Plugin
+}
+
+// Write will create an entry using the write_to field and send it to the connected output.
+func (i *BasicInput) Write(value interface{}) error {
+	entry := entry.New()
+	entry.Set(i.WriteTo, value)
+	return i.Output.Process(entry)
 }
 
 // CanProcess will always return false for an input plugin.

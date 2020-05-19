@@ -1,6 +1,8 @@
 package errors
 
 import (
+	"fmt"
+
 	"go.uber.org/zap/zapcore"
 )
 
@@ -20,9 +22,15 @@ func (e AgentError) Error() string {
 // MarshalLogObject will define the representation of this error when logging.
 func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	encoder.AddString("description", e.Description)
-	encoder.AddString("suggestion", e.Suggestion)
-	encoder.AddObject("details", e.Details)
-	encoder.AddArray("stack", e.Stack)
+
+	if e.Suggestion != "" {
+		encoder.AddString("suggestion", e.Suggestion)
+	}
+
+	if len(e.Details) != 0 {
+		encoder.AddObject("details", e.Details)
+	}
+
 	return nil
 }
 
@@ -39,12 +47,21 @@ func WithDetails(err error, keyValues ...string) error {
 	return NewError(err.Error(), "", keyValues...)
 }
 
+// Wrap adds context to the description for richer logs
+func Wrap(err error, context string) error {
+	if agentErr, ok := err.(AgentError); ok {
+		agentErr.Description = fmt.Sprintf("%s: %s", context, agentErr.Description)
+		return agentErr
+	}
+
+	return NewError(fmt.Sprintf("%s: %s", context, err.Error()), "")
+}
+
 // NewError will create a new agent error.
 func NewError(description string, suggestion string, keyValues ...string) AgentError {
 	return AgentError{
 		Description: description,
 		Suggestion:  suggestion,
 		Details:     createDetails(keyValues),
-		Stack:       createStack(),
 	}
 }

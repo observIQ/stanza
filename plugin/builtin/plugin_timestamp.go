@@ -18,8 +18,8 @@ type TimestampConfig struct {
 	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
 	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
 
-	CopyFrom    *entry.FieldSelector `mapstructure:"copy_from"    json:"copy_from"    yaml:"copy_from"`
-	RemoveField bool                 `mapstructure:"remove_field" json:"remove_field" yaml:"remove_field"`
+	CopyFrom    *entry.Field `mapstructure:"copy_from"    json:"copy_from"    yaml:"copy_from"`
+	RemoveField bool         `mapstructure:"remove_field" json:"remove_field" yaml:"remove_field"`
 }
 
 // Build will build a timestamp plugin.
@@ -35,8 +35,8 @@ func (c TimestampConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}
 
 	if c.CopyFrom == nil {
-		var fs entry.FieldSelector = entry.FieldSelector([]string{})
-		c.CopyFrom = &fs
+		var path entry.Field = entry.NewField()
+		c.CopyFrom = &path
 	}
 
 	timestampPlugin := &TimestampPlugin{
@@ -54,7 +54,7 @@ type TimestampPlugin struct {
 	helper.BasicPlugin
 	helper.BasicLifecycle
 	helper.BasicTransformer
-	CopyFrom    entry.FieldSelector
+	CopyFrom    entry.Field
 	RemoveField bool
 }
 

@@ -234,7 +234,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 		return Op{&move}, nil
 	case "add":
 		var addRaw struct {
-			Field     entry.FieldSelector
+			Field     *entry.Field
 			Value     interface{}
 			ValueExpr *string `mapstructure:"value_expr"`
 		}
@@ -255,7 +255,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 			return nil, fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
 		case addRaw.Value != nil:
 			return Op{&OpAdd{
-				Field: addRaw.Field,
+				Field: *addRaw.Field,
 				Value: addRaw.Value,
 			}}, nil
 		case addRaw.ValueExpr != nil:
@@ -264,7 +264,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 				return nil, fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
 			}
 			return Op{&OpAdd{
-				Field:     addRaw.Field,
+				Field:     *addRaw.Field,
 				ValueExpr: compiled,
 			}}, nil
 		}
@@ -297,7 +297,7 @@ var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type,
 func decodeWithFieldSelector(input, dest interface{}) error {
 	cfg := &mapstructure.DecoderConfig{
 		Result:     dest,
-		DecodeHook: entry.FieldSelectorDecoder,
+		DecodeHook: entry.FieldDecoder,
 	}
 
 	decoder, err := mapstructure.NewDecoder(cfg)
@@ -313,7 +313,7 @@ func decodeWithFieldSelector(input, dest interface{}) error {
 ******/
 
 type OpAdd struct {
-	Field     entry.FieldSelector
+	Field     entry.Field
 	Value     interface{}
 	ValueExpr *vm.Program
 }
@@ -344,7 +344,7 @@ func (op *OpAdd) Type() string {
 }
 
 type opAddRaw struct {
-	Field     entry.FieldSelector
+	Field     *entry.Field
 	Value     interface{}
 	ValueExpr *string
 }
@@ -380,14 +380,14 @@ func (op *OpAdd) unmarshalFromOpAddRaw(addRaw opAddRaw) error {
 	case addRaw.Value == nil && addRaw.ValueExpr == nil:
 		return fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
 	case addRaw.Value != nil:
-		op.Field = addRaw.Field
+		op.Field = *addRaw.Field
 		op.Value = addRaw.Value
 	case addRaw.ValueExpr != nil:
 		compiled, err := expr.Compile(*addRaw.ValueExpr, expr.AllowUndefinedVariables())
 		if err != nil {
 			return fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
 		}
-		op.Field = addRaw.Field
+		op.Field = *addRaw.Field
 		op.ValueExpr = compiled
 	}
 
@@ -399,7 +399,7 @@ func (op *OpAdd) unmarshalFromOpAddRaw(addRaw opAddRaw) error {
 *********/
 
 type OpRemove struct {
-	Field entry.FieldSelector
+	Field entry.Field
 }
 
 func (op *OpRemove) Apply(e *entry.Entry) error {
@@ -424,7 +424,7 @@ func (op OpRemove) MarshalJSON() ([]byte, error) {
 }
 
 func (op OpRemove) MarshalYAML() (interface{}, error) {
-	return op.Field, nil
+	return op.Field.String(), nil
 }
 
 /*********
@@ -432,11 +432,11 @@ func (op OpRemove) MarshalYAML() (interface{}, error) {
 *********/
 
 type OpRetain struct {
-	Fields []entry.FieldSelector
+	Fields []entry.Field
 }
 
 func (op *OpRetain) Apply(e *entry.Entry) error {
-	newEntry := entry.NewEntry()
+	newEntry := entry.New()
 	newEntry.Timestamp = e.Timestamp
 	for _, field := range op.Fields {
 		val, ok := e.Get(field)
@@ -474,8 +474,8 @@ func (op OpRetain) MarshalYAML() (interface{}, error) {
 *******/
 
 type OpMove struct {
-	From entry.FieldSelector `json:"from" yaml:"from,flow"`
-	To   entry.FieldSelector `json:"to" yaml:"to,flow"`
+	From entry.Field `json:"from" yaml:"from,flow"`
+	To   entry.Field `json:"to" yaml:"to,flow"`
 }
 
 func (op *OpMove) Apply(e *entry.Entry) error {
@@ -497,11 +497,11 @@ func (op *OpMove) Type() string {
 **********/
 
 type OpFlatten struct {
-	Field entry.FieldSelector
+	Field entry.Field
 }
 
 func (op *OpFlatten) Apply(e *entry.Entry) error {
-	fs := entry.FieldSelector(op.Field)
+	fs := entry.Field(op.Field)
 	parent := fs.Parent()
 	val, ok := e.Delete(fs)
 	if !ok {
@@ -539,5 +539,5 @@ func (op OpFlatten) MarshalJSON() ([]byte, error) {
 }
 
 func (op OpFlatten) MarshalYAML() (interface{}, error) {
-	return op.Field, nil
+	return op.Field.String(), nil
 }

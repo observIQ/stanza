@@ -33,7 +33,8 @@ func (c BasicPluginConfig) Build(logger *zap.SugaredLogger) (BasicPlugin, error)
 	if c.PluginType == "" {
 		return BasicPlugin{}, errors.NewError(
 			"Plugin config is missing the `type` field.",
-			"Ensure that all plugins have a defined `type` field.",
+			"",
+			"plugin_id", c.PluginID,
 		)
 	}
 
@@ -61,4 +62,9 @@ func (b *BasicPlugin) ID() string {
 // Type will return the plugin type.
 func (b *BasicPlugin) Type() string {
 	return b.PluginType
+}
+
+// Logger returns the plugin's scoped logger to satisfy plugin.Plugin
+func (b *BasicPlugin) Logger() *zap.SugaredLogger {
+	return b.SugaredLogger
 }

@@ -1,13 +1,13 @@
-package bplogagent
+package agent
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/bluemedora/bplogagent/config"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/pipeline"
 	pg "github.com/bluemedora/bplogagent/plugin"
 	_ "github.com/bluemedora/bplogagent/plugin/builtin" // register plugins
@@ -41,14 +41,12 @@ func (a *LogAgent) Start() error {
 	buildContext := newBuildContext(a.SugaredLogger, database)
 	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
 	if err != nil {
-		a.Errorw("Failed to build plugins", zap.Any("error", err))
-		return err
+		return errors.Wrap(err, "Build plugins")
 	}
 
 	pipeline, err := pipeline.NewPipeline(plugins)
 	if err != nil {
-		a.Errorw("Failed to build pipeline", zap.Any("error", err))
-		return err
+		return errors.Wrap(err, "Build pipeline")
 	}
 	a.pipeline = pipeline
 
@@ -56,10 +54,6 @@ func (a *LogAgent) Start() error {
 	if err != nil {
 		a.Errorw("Failed to start pipeline", zap.Any("error", err))
 		return err
-	}
-
-	if a.Config.PluginGraphOutput != "" {
-		a.writeDotGraph()
 	}
 
 	a.running = true
@@ -86,18 +80,6 @@ func (a *LogAgent) Stop() {
 // Status will return the status of the agent.
 func (a *LogAgent) Status() struct{} {
 	return struct{}{}
-}
-
-func (a *LogAgent) writeDotGraph() {
-	dotGraph, err := a.pipeline.MarshalDot()
-	if err != nil {
-		a.Warnw("Failed to render dot graph representation of plugin graph", zap.Error(err))
-	}
-
-	err = ioutil.WriteFile(a.Config.PluginGraphOutput, dotGraph, 0666)
-	if err != nil {
-		a.Warnw("Failed to write dot graph to file", zap.Error(err))
-	}
 }
 
 // newBuildContext will create a new build context for building plugins.
