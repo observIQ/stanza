@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -69,7 +70,7 @@ type LoggerOutput struct {
 }
 
 // Process will log entries received.
-func (o *LoggerOutput) Process(entry *entry.Entry) error {
+func (o *LoggerOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	o.logFunc("Received log", "entry", entry)
 	return nil
 }

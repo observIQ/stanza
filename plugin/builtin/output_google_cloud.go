@@ -28,7 +28,8 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `mapstructure:",squash"  yaml:",inline"`
+	buffer.BufferConfig      `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
 	Credentials   string       `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
 	ProjectID     string       `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
@@ -54,17 +55,24 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 		return nil, errors.New("missing required configuration option project_id")
 	}
 
-	googleCloudOutput := &GoogleCloudOutput{
-		BasicPlugin: basicPlugin,
-		credentials: c.Credentials,
-		projectID:   c.ProjectID,
+	newBuffer, err := c.BufferConfig.Build()
+	if err != nil {
+		return nil, err
+	}
 
+	googleCloudOutput := &GoogleCloudOutput{
+		BasicPlugin:   basicPlugin,
+		Buffer:        newBuffer,
+		credentials:   c.Credentials,
+		projectID:     c.ProjectID,
 		logNameField:  c.LogNameField,
 		labelsField:   c.LabelsField,
 		severityField: c.SeverityField,
 		traceField:    c.TraceField,
 		spanIDField:   c.SpanIDField,
 	}
+
+	newBuffer.SetHandler(googleCloudOutput.WriteEntries)
 
 	return googleCloudOutput, nil
 }
@@ -73,6 +81,7 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 type GoogleCloudOutput struct {
 	helper.BasicPlugin
 	helper.BasicOutput
+	buffer.Buffer
 
 	credentials string
 	projectID   string
@@ -83,7 +92,6 @@ type GoogleCloudOutput struct {
 	traceField    *entry.Field
 	spanIDField   *entry.Field
 
-	buffer buffer.Buffer
 	client *vkit.Client
 }
 
@@ -101,16 +109,6 @@ func (p *GoogleCloudOutput) Start() error {
 	}
 	p.client = client
 
-	p.buffer = buffer.NewMemoryBuffer(&logpb.LogEntry{}, func(ctx context.Context, entries interface{}) error {
-		castEntries := entries.([]*logpb.LogEntry)
-		err := p.writeEntries(ctx, castEntries)
-		if err != nil {
-			p.Warnw("Failed to flush", zap.Error(err))
-			return err
-		}
-		return nil
-	})
-
 	return nil
 }
 
@@ -118,27 +116,27 @@ func (p *GoogleCloudOutput) Start() error {
 func (p *GoogleCloudOutput) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := p.buffer.Flush(ctx)
+	err := p.Buffer.Flush(ctx)
 	if err != nil {
 		p.Warnw("Failed to flush", zap.Error(err))
 	}
 	return p.client.Close()
 }
 
-// Process will send an entry to google cloud logging.
-func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
-	pbEntry, err := p.createProtobufEntry(entry)
-	if err != nil {
-		return err
+func (p *GoogleCloudOutput) WriteEntries(ctx context.Context, entries []*entry.Entry) error {
+	pbEntries := make([]*logpb.LogEntry, 0, len(entries))
+	for _, entry := range entries {
+		pbEntry, err := p.createProtobufEntry(entry)
+		if err != nil {
+			p.Errorw("Failed to create protobuf entry. Dropping entry", zap.Any("error", err))
+			continue
+		}
+		pbEntries = append(pbEntries, pbEntry)
 	}
 
-	return p.buffer.AddWait(context.TODO(), pbEntry, 0)
-}
-
-func (p *GoogleCloudOutput) writeEntries(ctx context.Context, entries []*logpb.LogEntry) error {
 	req := logpb.WriteLogEntriesRequest{
 		LogName:  p.toLogNamePath("default"),
-		Entries:  entries,
+		Entries:  pbEntries,
 		Resource: globalResource(p.projectID),
 	}
 

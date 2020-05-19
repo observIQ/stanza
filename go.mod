@@ -5,7 +5,9 @@ go 1.13
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/antonmedv/expr v1.4.5
+	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
+	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2

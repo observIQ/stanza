@@ -3,6 +3,8 @@
 package plugin
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"go.uber.org/zap"
 )
@@ -29,8 +31,7 @@ type Plugin interface {
 	// CanProcess indicates if the plugin will process entries from other plugins.
 	CanProcess() bool
 	// Process will process an entry from a plugin.
-	Process(*entry.Entry) error
-
+	Process(context.Context, *entry.Entry) error
 	// Logger returns the plugin's logger
 	Logger() *zap.SugaredLogger
 }

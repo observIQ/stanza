@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -51,8 +52,8 @@ type TimeParser struct {
 }
 
 // Process will parse time from an entry.
-func (t *TimeParser) Process(entry *entry.Entry) error {
-	return t.BasicParser.ProcessWith(entry, t.parse)
+func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return t.BasicParser.ProcessWith(ctx, entry, t.parse)
 }
 
 // Parse will parse a value as a time.

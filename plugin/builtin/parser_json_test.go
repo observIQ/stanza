@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -76,14 +77,14 @@ func TestJSONParser(t *testing.T) {
 			output.Record = tc.expectedRecord
 
 			parser, mockOutput := NewFakeJSONPlugin()
-			mockOutput.On("Process", mock.Anything).Run(func(args mock.Arguments) {
-				e := args[0].(*entry.Entry)
+			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+				e := args[1].(*entry.Entry)
 				if !assert.Equal(t, tc.expectedRecord, e.Record) {
 					t.FailNow()
 				}
 			}).Return(nil)
 
-			err := parser.Process(input)
+			err := parser.Process(context.Background(), input)
 			if !assert.NoError(t, err) {
 				return
 			}

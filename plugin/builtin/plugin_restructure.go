@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -54,7 +55,7 @@ type RestructurePlugin struct {
 	ops []Op
 }
 
-func (p *RestructurePlugin) Process(e *entry.Entry) error {
+func (p *RestructurePlugin) Process(ctx context.Context, e *entry.Entry) error {
 	for _, op := range p.ops {
 		err := op.Apply(e)
 		if err != nil {
@@ -62,7 +63,7 @@ func (p *RestructurePlugin) Process(e *entry.Entry) error {
 		}
 	}
 
-	return p.Output.Process(e)
+	return p.Output.Process(ctx, e)
 }
 
 /*****************

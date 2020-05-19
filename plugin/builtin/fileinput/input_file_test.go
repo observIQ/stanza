@@ -75,10 +75,9 @@ func TestFileSource_Build(t *testing.T) {
 			OutputID: "mock",
 		},
 		Include: []string{"/var/log/testpath.*"},
-		PollInterval: func() *time.Duration {
-			d := 10 * time.Millisecond
-			return &d
-		}(),
+		PollInterval: &plugin.Duration{
+			Duration: 10 * time.Millisecond,
+		},
 		PathField: &pathField,
 	}
 
@@ -159,8 +158,8 @@ func expectedLogsTest(t *testing.T, expected []string, generator func(source *Fi
 
 	receivedMessages := make([]string, 0, 1000)
 	logReceived := make(chan string, 1000)
-	mockOutput.On("Process", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		logReceived <- args.Get(0).(*entry.Entry).Record.(string)
+	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		logReceived <- args.Get(1).(*entry.Entry).Record.(string)
 	})
 
 	wg := &sync.WaitGroup{}

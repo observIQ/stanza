@@ -1,6 +1,8 @@
 package builtin
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
@@ -37,6 +39,6 @@ type DropOutput struct {
 }
 
 // Process will drop the incoming entry.
-func (p *DropOutput) Process(entry *entry.Entry) error {
+func (p *DropOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	return nil
 }
