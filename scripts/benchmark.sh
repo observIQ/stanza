@@ -49,9 +49,9 @@ gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o
 echo "Running single-file benchmark (60 seconds per test)"
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \
   'set -m
-  ~/benchmark/logbench -log stream.log -rate 100 -t 60s -r 30s -f 2s -out ~/benchmark/out/results1.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes1 2>&1 &
+  ~/benchmark/logbench -log stream.log -rate 100,1k,10k -t 60s -r 30s -f 2s -out ~/benchmark/out/results1.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes1 2>&1 &
   sleep 10;
-  curl http://localhost:6060/debug/pprof/profile?seconds=40 > ~/benchmark/out/profile1 ; 
+  curl http://localhost:6060/debug/pprof/profile?seconds=160 > ~/benchmark/out/profile1 ; 
   fg ; ' > /dev/null
 
 echo "Retrieving results"
@@ -60,9 +60,9 @@ gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/ou
 echo "Running 10-file benchmark (60 seconds per test)"
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \
   'set -m
-  ~/benchmark/logbench -log $(echo stream{1..10}.log | tr " " ,) -rate 100 -t 60s -r 30s -f 2s -out ~/benchmark/out/results10.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes10 2>&1 &
+  ~/benchmark/logbench -log $(echo stream{1..10}.log | tr " " ,) -rate 100,1k,10k -t 60s -r 30s -f 2s -out ~/benchmark/out/results10.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes10 2>&1 &
   sleep 10;
-  curl http://localhost:6060/debug/pprof/profile?seconds=40 > ~/benchmark/out/profile10 ; 
+  curl http://localhost:6060/debug/pprof/profile?seconds=160 > ~/benchmark/out/profile10 ; 
   fg ; ' > /dev/null
 
 echo "Retrieving results"
