@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -86,7 +87,7 @@ func (fo *FileOutput) Stop() error {
 }
 
 // Process will write an entry to the output file.
-func (fo *FileOutput) Process(entry *entry.Entry) error {
+func (fo *FileOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	fo.mux.Lock()
 
 	if fo.tmpl != nil {

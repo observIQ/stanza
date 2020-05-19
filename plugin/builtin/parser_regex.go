@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -60,8 +61,8 @@ type RegexParser struct {
 }
 
 // Process will parse an entry for regex.
-func (r *RegexParser) Process(entry *entry.Entry) error {
-	return r.BasicParser.ProcessWith(entry, r.parse)
+func (r *RegexParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return r.BasicParser.ProcessWith(ctx, entry, r.parse)
 }
 
 // parse will parse a value using the supplied regex.

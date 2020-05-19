@@ -7,8 +7,10 @@ require (
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43 // indirect
 	github.com/antonmedv/expr v1.8.2
 	github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514193154-0e775be46b89 // indirect
+	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
+	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2
@@ -25,6 +27,7 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c // indirect
 	golang.org/x/tools v0.0.0-20200513201620-d5fe73897c97 // indirect
 	gonum.org/v1/gonum v0.6.2

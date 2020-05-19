@@ -72,8 +72,8 @@ func (g *GenerateInput) Start() error {
 			}
 
 			record := copyRecord(g.record)
-			if err := g.Write(record); err != nil {
-				g.Warnw("process entry", "error", err)
+			if err := g.Write(ctx, record); err != nil {
+				g.Warnw("Failed to process entry", "error", err)
 			}
 
 			i++

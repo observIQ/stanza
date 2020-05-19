@@ -43,8 +43,8 @@ gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o
 gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/bplogagent $INSTANCE:~/benchmark/ > /dev/null
 gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/logbench $INSTANCE:~/benchmark/ > /dev/null
 gcloud beta compute scp --project $PROJECT --zone $ZONE $BPLOG_ROOT/scripts/benchmark/config.yaml $INSTANCE:~/benchmark/config.yaml > /dev/null
-gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark' > /dev/null
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'mkdir ~/benchmark/out' > /dev/null
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark' > /dev/null
 
 echo "Running single-file benchmark (60 seconds per test)"
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \

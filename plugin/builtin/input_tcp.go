@@ -96,7 +96,7 @@ func (t *TCPInput) goListen(ctx context.Context) {
 			t.Debugf("Received connection: %s", conn.RemoteAddr().String())
 			subctx, cancel := context.WithCancel(ctx)
 			t.goHandleClose(subctx, conn)
-			t.goHandleMessages(conn, cancel)
+			t.goHandleMessages(subctx, conn, cancel)
 		}
 	}()
 }
@@ -113,7 +113,7 @@ func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
 }
 
 // goHandleMessages will handles messages from a tcp connection.
-func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
+func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel context.CancelFunc) {
 	t.waitGroup.Add(1)
 
 	go func() {
@@ -128,7 +128,7 @@ func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
 				break
 			}
 
-			if err := t.Write(message); err != nil {
+			if err := t.Write(ctx, message); err != nil {
 				t.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}

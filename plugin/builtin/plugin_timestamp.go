@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -59,7 +60,7 @@ type TimestampPlugin struct {
 }
 
 // Process will wait until a rate is met before sending an entry to the output.
-func (t *TimestampPlugin) Process(entry *entry.Entry) error {
+func (t *TimestampPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	value, ok := entry.Get(t.CopyFrom)
 	if !ok {
 		return fmt.Errorf("copy_from field '%s' does not exist on the record", t.CopyFrom)
@@ -76,5 +77,5 @@ func (t *TimestampPlugin) Process(entry *entry.Entry) error {
 		entry.Delete(t.CopyFrom)
 	}
 
-	return t.Output.Process(entry)
+	return t.Output.Process(ctx, entry)
 }

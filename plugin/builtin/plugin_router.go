@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/antonmedv/expr"
@@ -69,7 +70,7 @@ func (p *RouterPlugin) CanProcess() bool {
 	return true
 }
 
-func (p *RouterPlugin) Process(entry *entry.Entry) error {
+func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	env := map[string]interface{}{
 		"record": entry.Record,
 	}
@@ -83,7 +84,7 @@ func (p *RouterPlugin) Process(entry *entry.Entry) error {
 
 		// we compile the expression with "AsBool", so this should be safe
 		if matches.(bool) {
-			err := route.Output.Process(entry)
+			err := route.Output.Process(ctx, entry)
 			if err != nil {
 				return err
 			}

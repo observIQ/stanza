@@ -167,7 +167,7 @@ func (plugin *JournaldInput) Start() error {
 			}
 			plugin.persist.Set(lastReadCursorKey, []byte(cursor))
 
-			err = plugin.Output.Process(entry)
+			err = plugin.Output.Process(ctx, entry)
 			if err != nil {
 				plugin.Infow("Failed to process entry: %s", zap.Error(err))
 			}

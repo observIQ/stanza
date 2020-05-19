@@ -6,13 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/builtin"
 	"github.com/bluemedora/bplogagent/plugin/builtin/fileinput"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -21,6 +21,7 @@ var testRepresentativeYAML = []byte(`
 plugins:
   - id: my_file_input
     type: file_input
+    poll_interval: 1s
     output: my_restructure
     write_to: message
     include:
@@ -52,7 +53,8 @@ var testRepresentativeJSON = []byte(`
     {
       "id": "my_file_input",
       "type": "file_input",
-			"include": ["./testfile"],
+      "poll_interval": "1s",
+      "include": ["./testfile"],
 			"write_to": "message",
       "output": "my_restructure"
     },
@@ -113,6 +115,9 @@ var testParsedRepresentativeConfig = Config{
 					WriteTo:  entry.Field(entry.NewField("message")),
 				},
 				Include: []string{"./testfile"},
+				PollInterval: &plugin.Duration{
+					Duration: time.Second,
+				},
 			},
 		},
 		{
@@ -170,25 +175,6 @@ var testParsedRepresentativeConfig = Config{
 			},
 		},
 	},
-}
-
-func TestUnmarshalRepresentativeConfig(t *testing.T) {
-
-	var mapConfig map[string]interface{}
-	err := yaml.Unmarshal(testRepresentativeYAML, &mapConfig)
-	require.NoError(t, err)
-
-	var cfg Config
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:     &cfg,
-		DecodeHook: DecodeHookFunc,
-	})
-	require.NoError(t, err)
-
-	err = decoder.Decode(mapConfig)
-	require.NoError(t, err)
-
-	require.Equal(t, testParsedRepresentativeConfig, cfg)
 }
 
 func TestUnmarshalRepresentativeConfigYAML(t *testing.T) {
