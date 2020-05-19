@@ -52,8 +52,7 @@ func (a *LogAgent) Start() error {
 
 	err = a.pipeline.Start()
 	if err != nil {
-		a.Errorw("Failed to start pipeline", zap.Any("error", err))
-		return err
+		return errors.Wrap(err, "Start pipeline")
 	}
 
 	a.running = true

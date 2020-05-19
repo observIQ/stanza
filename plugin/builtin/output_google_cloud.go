@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 	sev "google.golang.org/genproto/googleapis/logging/type"
@@ -31,28 +33,51 @@ type GoogleCloudOutputConfig struct {
 	helper.BasicPluginConfig `mapstructure:",squash"  yaml:",inline"`
 	buffer.BufferConfig      `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
-	Credentials   string       `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
-	ProjectID     string       `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
-	LogNameField  *entry.Field `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty"`
-	LabelsField   *entry.Field `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty"`
-	SeverityField *entry.Field `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty"`
-	TraceField    *entry.Field `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty"`
-	SpanIDField   *entry.Field `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty"`
+	Credentials     string       `mapstructure:"credentials"      json:"credentials,omitempty"      yaml:"credentials,omitempty"`
+	CredentialsFile string       `mapstructure:"credentials_file" json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
+	ProjectID       string       `mapstructure:"project_id"       json:"project_id"                 yaml:"project_id"`
+	LogNameField    *entry.Field `mapstructure:"log_name_field"   json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
+	LabelsField     *entry.Field `mapstructure:"labels_field"     json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
+	SeverityField   *entry.Field `mapstructure:"severity_field"   json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
+	TraceField      *entry.Field `mapstructure:"trace_field"      json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
+	SpanIDField     *entry.Field `mapstructure:"span_id_field"    json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 }
 
 // Build will build a google cloud output plugin.
-func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
+	basicPlugin, err := c.BasicPluginConfig.Build(buildContext.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	if c.Credentials == "" {
-		return nil, errors.New("missing required configuration option credentials")
-	}
-
 	if c.ProjectID == "" {
 		return nil, errors.New("missing required configuration option project_id")
+	}
+
+	var credentials *google.Credentials
+	scope := "https://www.googleapis.com/auth/logging.write"
+	switch {
+	case c.Credentials != "" && c.CredentialsFile != "":
+		return nil, errors.New("at most one of credentials or credentials_file can be configured")
+	case c.Credentials != "":
+		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(c.Credentials), scope)
+		if err != nil {
+			return nil, fmt.Errorf("parse credentials: %s", err)
+		}
+	case c.CredentialsFile != "":
+		credentialsBytes, err := ioutil.ReadFile(c.CredentialsFile)
+		if err != nil {
+			return nil, fmt.Errorf("read credentials file: %s", err)
+		}
+		credentials, err = google.CredentialsFromJSON(context.Background(), credentialsBytes, scope)
+		if err != nil {
+			return nil, fmt.Errorf("parse credentials: %s", err)
+		}
+	default:
+		credentials, err = google.FindDefaultCredentials(context.Background(), scope)
+		if err != nil {
+			return nil, fmt.Errorf("get default credentials: %s", err)
+		}
 	}
 
 	newBuffer, err := c.BufferConfig.Build()
@@ -62,9 +87,9 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 
 	googleCloudOutput := &GoogleCloudOutput{
 		BasicPlugin:   basicPlugin,
-		Buffer:        newBuffer,
-		credentials:   c.Credentials,
+		credentials:   credentials,
 		projectID:     c.ProjectID,
+		Buffer:        newBuffer,
 		logNameField:  c.LogNameField,
 		labelsField:   c.LabelsField,
 		severityField: c.SeverityField,
@@ -72,7 +97,7 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 		spanIDField:   c.SpanIDField,
 	}
 
-	newBuffer.SetHandler(googleCloudOutput.WriteEntries)
+	newBuffer.SetHandler(googleCloudOutput)
 
 	return googleCloudOutput, nil
 }
@@ -83,7 +108,7 @@ type GoogleCloudOutput struct {
 	helper.BasicOutput
 	buffer.Buffer
 
-	credentials string
+	credentials *google.Credentials
 	projectID   string
 
 	logNameField  *entry.Field
@@ -98,7 +123,7 @@ type GoogleCloudOutput struct {
 // Start will start the google cloud logger.
 func (p *GoogleCloudOutput) Start() error {
 	options := make([]option.ClientOption, 0, 2)
-	options = append(options, option.WithCredentialsJSON([]byte(p.credentials)))
+	options = append(options, option.WithCredentials(p.credentials))
 	options = append(options, option.WithUserAgent("BindPlaneLogAgent/2.0.0"))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
 	defer cancel()
@@ -108,6 +133,16 @@ func (p *GoogleCloudOutput) Start() error {
 		return fmt.Errorf("create client: %w", err)
 	}
 	p.client = client
+
+	// Test writing a log message
+	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(time.Second*10))
+	defer cancel()
+	testEntry := entry.New()
+	testEntry.Record = map[string]interface{}{"message": "Test connection"}
+	err = p.ProcessMulti(ctx, []*entry.Entry{testEntry})
+	if err != nil {
+		return fmt.Errorf("test connection: %s", err)
+	}
 
 	return nil
 }
@@ -123,7 +158,7 @@ func (p *GoogleCloudOutput) Stop() error {
 	return p.client.Close()
 }
 
-func (p *GoogleCloudOutput) WriteEntries(ctx context.Context, entries []*entry.Entry) error {
+func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
 	pbEntries := make([]*logpb.LogEntry, 0, len(entries))
 	for _, entry := range entries {
 		pbEntry, err := p.createProtobufEntry(entry)
@@ -142,7 +177,7 @@ func (p *GoogleCloudOutput) WriteEntries(ctx context.Context, entries []*entry.E
 
 	_, err := p.client.WriteLogEntries(ctx, &req)
 	if err != nil {
-		return err
+		return fmt.Errorf("write log entries: %s", err)
 	}
 
 	return nil
