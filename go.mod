@@ -5,7 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43 // indirect
-	github.com/antonmedv/expr v1.8.2	
+	github.com/antonmedv/expr v1.8.2
 	github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514193154-0e775be46b89 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
@@ -17,7 +17,6 @@ require (
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/sanity-io/litter v1.2.0 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.5.1

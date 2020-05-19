@@ -18,6 +18,15 @@ if ! [ -x "$(command -v dot)" ]; then
   exit 1
 fi
 
+output_dir="$BPLOG_ROOT/tmp/$run_time"
+mkdir -p $output_dir
+
+echo "Building Log Agent"
+GOOS=linux go build -o /tmp/bplogagent $BPLOG_ROOT/main.go
+
+echo "Building LogBench"
+GOOS=linux go build -o /tmp/logbench github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/
+
 echo "Creating Instance: $INSTANCE [$PROJECT] [$ZONE]"
 gcloud beta compute instances create --verbosity=error \
   --project=$PROJECT --zone=$ZONE $INSTANCE --preemptible \
@@ -29,47 +38,35 @@ until gcloud beta compute ssh --verbosity=critical --project $PROJECT --zone $ZO
   echo "VM not ready. Waiting..."  
 done
 
-echo "Building log agent"
-GOOS=linux go build -o /tmp/bplogagent $BPLOG_ROOT/cmd
-
-echo "Building benchmark tool"
-GOOS=linux go build -o /tmp/logbench github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/
-
 echo "Setting up benchmark test"
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'rm -rf ~/benchmark && mkdir ~/benchmark' > /dev/null
-gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/bplogagent $INSTANCE:~/benchmark > /dev/null
-gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/logbench $INSTANCE:~/benchmark/LogBench > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/bplogagent $INSTANCE:~/benchmark/ > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/logbench $INSTANCE:~/benchmark/ > /dev/null
 gcloud beta compute scp --project $PROJECT --zone $ZONE $BPLOG_ROOT/scripts/benchmark/config.yaml $INSTANCE:~/benchmark/config.yaml > /dev/null
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark' > /dev/null
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'mkdir ~/benchmark/out' > /dev/null
 
 echo "Running single-file benchmark (60 seconds per test)"
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \
   'set -m
-  ~/benchmark/LogBench -log stream.log -rate 100,1k,10k,100k -t 60s -r 30s -f 2s -out ~/benchmark/results1.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/notes1 2>&1 &
+  ~/benchmark/logbench -log stream.log -rate 100 -t 60s -r 30s -f 2s -out ~/benchmark/out/results1.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes1 2>&1 &
   sleep 10;
-  curl http://localhost:6060/debug/pprof/profile?seconds=220 > ~/benchmark/profile1 ; 
+  curl http://localhost:6060/debug/pprof/profile?seconds=40 > ~/benchmark/out/profile1 ; 
   fg ; ' > /dev/null
 
 echo "Retrieving results"
-gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/results1 $output_dir > /dev/null
-gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/notes1 $output_dir > /dev/null
-gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/profile1 $output_dir > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/out/* $output_dir > /dev/null
 
 echo "Running 10-file benchmark (60 seconds per test)"
 gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \
   'set -m
-  ~/benchmark/LogBench -log $(echo stream{1..10}.log | tr " " ,) -rate 100,1k,10k,100k -t 60s -r 30s -f 2s -out ~/benchmark/results10.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/notes10 2>&1 &
+  ~/benchmark/logbench -log $(echo stream{1..10}.log | tr " " ,) -rate 100 -t 60s -r 30s -f 2s -out ~/benchmark/out/results10.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes10 2>&1 &
   sleep 10;
-  curl http://localhost:6060/debug/pprof/profile?seconds=220 > ~/benchmark/profile10 ; 
+  curl http://localhost:6060/debug/pprof/profile?seconds=40 > ~/benchmark/out/profile10 ; 
   fg ; ' > /dev/null
 
-output_dir="$BPLOG_ROOT/tmp/$run_time"
-mkdir -p $output_dir
-
 echo "Retrieving results"
-gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/results10 $output_dir > /dev/null
-gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/notes10 $output_dir > /dev/null
-gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/profile10 $output_dir > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/out/* $output_dir > /dev/null
 
 echo "Cleaning up instance"
 gcloud beta compute instances delete --quiet --project $PROJECT --zone=$ZONE $INSTANCE
