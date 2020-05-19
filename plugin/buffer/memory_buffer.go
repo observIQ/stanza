@@ -3,10 +3,12 @@ package buffer
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/cenkalti/backoff/v4"
+	"go.uber.org/zap"
 	"google.golang.org/api/support/bundler"
 )
 
@@ -20,19 +22,29 @@ func NewMemoryBuffer(config *BufferConfig) *MemoryBuffer {
 	return &MemoryBuffer{config: config}
 }
 
-func (m *MemoryBuffer) SetHandler(handler func(context.Context, []*entry.Entry) error) {
+type BundleHandler interface {
+	ProcessMulti(context.Context, []*entry.Entry) error
+	Logger() *zap.SugaredLogger
+}
+
+func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
 	ctx, cancel := context.WithCancel(context.Background())
+	currentBundleID := int64(0)
 	handleFunc := func(entries interface{}) {
+		bundleID := atomic.AddInt64(&currentBundleID, 1)
 		b := backoff.NewExponentialBackOff()
 		for {
-			err := handler(ctx, entries.([]*entry.Entry))
+			err := handler.ProcessMulti(ctx, entries.([]*entry.Entry))
 			if err != nil {
 				duration := b.NextBackOff()
 				if duration == backoff.Stop {
+					handler.Logger().Errorw("Failed to flush bundle. Not retrying because we are beyond max backoff", zap.Error(err), "bundle_id", bundleID)
 					break
 				} else {
+					handler.Logger().Warnw("Failed to flush bundle", zap.Error(err), "backoff_time", duration.String(), "bundle_id", bundleID)
 					select {
 					case <-ctx.Done():
+						handler.Logger().Debugw("Flush retry cancelled by context", "bundle_id", bundleID)
 						return
 					case <-time.After(duration):
 						continue
@@ -76,5 +88,5 @@ func (b *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
 		panic("must call SetHandler before any calls to Process")
 	}
 
-	return b.AddWait(ctx, entry, 0) // TODO calculate size?
+	return b.AddWait(ctx, entry, 100) // TODO calculate size accurately?
 }

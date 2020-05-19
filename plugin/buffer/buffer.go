@@ -14,7 +14,7 @@ type Buffer interface {
 	Flush(context.Context) error
 	Add(interface{}, int) error
 	AddWait(context.Context, interface{}, int) error
-	SetHandler(func(context.Context, []*entry.Entry) error)
+	SetHandler(BundleHandler)
 	Process(context.Context, *entry.Entry) error
 }
 

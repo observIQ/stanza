@@ -10,9 +10,28 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 )
 
+type bufferHandler struct {
+	flushed []*entry.Entry
+	mux     sync.Mutex
+	notify  chan struct{}
+}
+
+func (b *bufferHandler) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
+	b.mux.Lock()
+	b.flushed = append(b.flushed, entries...)
+	b.mux.Unlock()
+	b.notify <- struct{}{}
+	return nil
+}
+
+func (b *bufferHandler) Logger() *zap.SugaredLogger {
+	return nil
+
+}
 func TestBuffer(t *testing.T) {
 	config := &BufferConfig{}
 	config.setDefaults()
@@ -23,16 +42,11 @@ func TestBuffer(t *testing.T) {
 	buf := NewMemoryBuffer(config)
 	numEntries := 10000
 
-	flushed := make([]*entry.Entry, 0, numEntries)
-	flushedMux := sync.Mutex{}
-	notify := make(chan struct{})
-	buf.SetHandler(func(ctx context.Context, entries []*entry.Entry) error {
-		flushedMux.Lock()
-		flushed = append(flushed, entries...)
-		flushedMux.Unlock()
-		notify <- struct{}{}
-		return nil
-	})
+	bh := bufferHandler{
+		flushed: make([]*entry.Entry, 0),
+		notify:  make(chan struct{}),
+	}
+	buf.SetHandler(&bh)
 
 	for i := 0; i < numEntries; i++ {
 		err := buf.AddWait(context.Background(), entry.New(), 0)
@@ -41,13 +55,13 @@ func TestBuffer(t *testing.T) {
 
 	for {
 		select {
-		case <-notify:
-			flushedMux.Lock()
-			if len(flushed) == numEntries {
-				flushedMux.Unlock()
+		case <-bh.notify:
+			bh.mux.Lock()
+			if len(bh.flushed) == numEntries {
+				bh.mux.Unlock()
 				return
 			}
-			flushedMux.Unlock()
+			bh.mux.Unlock()
 		case <-time.After(time.Second):
 			require.FailNow(t, "timed out waiting for all entries to be flushed")
 		}
