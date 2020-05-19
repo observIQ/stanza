@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -73,8 +74,8 @@ type SyslogParser struct {
 }
 
 // Process will parse an entry field as syslog.
-func (s *SyslogParser) Process(entry *entry.Entry) error {
-	return s.BasicParser.ProcessWith(entry, s.parse)
+func (s *SyslogParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return s.BasicParser.ProcessWith(ctx, entry, s.parse)
 }
 
 // parse will parse a value as syslog.

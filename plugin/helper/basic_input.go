@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -37,10 +39,10 @@ type BasicInput struct {
 }
 
 // Write will create an entry using the write_to field and send it to the connected output.
-func (i *BasicInput) Write(value interface{}) error {
+func (i *BasicInput) Write(ctx context.Context, value interface{}) error {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
-	return i.Output.Process(entry)
+	return i.Output.Process(ctx, entry)
 }
 
 // CanProcess will always return false for an input plugin.
@@ -49,7 +51,7 @@ func (i *BasicInput) CanProcess() bool {
 }
 
 // Process will always return an error if called.
-func (i *BasicInput) Process(entry *entry.Entry) error {
+func (i *BasicInput) Process(ctx context.Context, entry *entry.Entry) error {
 	return errors.NewError(
 		"Plugin can not process logs.",
 		"Ensure that plugin is not configured to receive logs from other plugins",

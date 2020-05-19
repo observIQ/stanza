@@ -78,7 +78,7 @@ type ElasticOutput struct {
 }
 
 // Process will send entries to elasticsearch.
-func (e *ElasticOutput) Process(entry *entry.Entry) error {
+func (e *ElasticOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	json, err := json.Marshal(entry)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (e *ElasticOutput) Process(entry *entry.Entry) error {
 		Body:       bytes.NewReader(json),
 	}
 
-	res, err := request.Do(context.Background(), e.client)
+	res, err := request.Do(ctx, e.client)
 	if err != nil {
 		return errors.NewError(
 			"Client failed to submit request to elasticsearch.",

@@ -66,7 +66,8 @@ type UDPInput struct {
 
 // Start will start listening for messages on a socket.
 func (u *UDPInput) Start() error {
-	_, u.cancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	u.cancel = cancel
 	u.waitGroup = &sync.WaitGroup{}
 
 	conn, err := net.ListenUDP("udp", u.address)
@@ -75,12 +76,12 @@ func (u *UDPInput) Start() error {
 	}
 	u.connection = conn
 
-	u.goHandleMessages()
+	u.goHandleMessages(ctx)
 	return nil
 }
 
 // goHandleMessages will handle messages from a udp connection.
-func (u *UDPInput) goHandleMessages() {
+func (u *UDPInput) goHandleMessages(ctx context.Context) {
 	u.waitGroup.Add(1)
 
 	go func() {
@@ -93,7 +94,7 @@ func (u *UDPInput) goHandleMessages() {
 				break
 			}
 
-			if err := u.Write(message); err != nil {
+			if err := u.Write(ctx, message); err != nil {
 				u.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}

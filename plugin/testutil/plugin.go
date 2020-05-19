@@ -3,6 +3,8 @@
 package testutil
 
 import (
+	context "context"
+
 	entry "github.com/bluemedora/bplogagent/entry"
 	mock "github.com/stretchr/testify/mock"
 
@@ -90,13 +92,13 @@ func (_m *Plugin) Outputs() []plugin.Plugin {
 	return r0
 }
 
-// Process provides a mock function with given fields: _a0
-func (_m *Plugin) Process(_a0 *entry.Entry) error {
-	ret := _m.Called(_a0)
+// Process provides a mock function with given fields: _a0, _a1
+func (_m *Plugin) Process(_a0 context.Context, _a1 *entry.Entry) error {
+	ret := _m.Called(_a0, _a1)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*entry.Entry) error); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(context.Context, *entry.Entry) error); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}

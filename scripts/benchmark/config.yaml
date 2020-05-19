@@ -6,7 +6,7 @@ plugins:
 
   - id: google_cloud
     type: google_cloud_output
-    project_id: ***REMOVED***
-    credentials: >-
-      ***REMOVED***
+    project_id: bplogagent-benchmark
+    # credentials found automatically on gce instance
+
 database_file: /home/djaglowski/benchmark/logagent.db

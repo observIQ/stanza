@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -49,8 +50,8 @@ type JSONParser struct {
 }
 
 // Process will parse an entry for JSON.
-func (j *JSONParser) Process(entry *entry.Entry) error {
-	return j.BasicParser.ProcessWith(entry, j.parse)
+func (j *JSONParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return j.BasicParser.ProcessWith(ctx, entry, j.parse)
 }
 
 // parse will parse a value as JSON.

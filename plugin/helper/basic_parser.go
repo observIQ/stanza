@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -89,7 +91,7 @@ func (p *BasicParser) SetOutputs(plugins []plugin.Plugin) error {
 }
 
 // ProcessWith will process an entry with a parser function and forward the results to the output plugin.
-func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) error {
+func (p *BasicParser) ProcessWith(ctx context.Context, entry *entry.Entry, parseFunc ParseFunction) error {
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
 		err := errors.NewError(
@@ -97,12 +99,12 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 			"Ensure that all entries forwarded to this parser contain the parse_from field.",
 			"parse_from", p.ParseFrom.String(),
 		)
-		return p.HandleParserError(entry, err)
+		return p.HandleParserError(ctx, entry, err)
 	}
 
 	newValue, err := parseFunc(value)
 	if err != nil {
-		return p.HandleParserError(entry, err)
+		return p.HandleParserError(ctx, entry, err)
 	}
 
 	if !p.Preserve {
@@ -110,11 +112,11 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 	}
 
 	entry.Set(p.ParseTo, newValue)
-	return p.Output.Process(entry)
+	return p.Output.Process(ctx, entry)
 }
 
 // HandleParserError will handle an error based on the `OnError` property
-func (p *BasicParser) HandleParserError(entry *entry.Entry, err error) error {
+func (p *BasicParser) HandleParserError(ctx context.Context, entry *entry.Entry, err error) error {
 	p.Warnw("Failed to parse entry", zap.Any("error", err), "entry", entry)
 
 	if p.OnError == "fail" {
@@ -125,7 +127,7 @@ func (p *BasicParser) HandleParserError(entry *entry.Entry, err error) error {
 		return nil
 	}
 
-	return p.Output.Process(entry)
+	return p.Output.Process(ctx, entry)
 }
 
 // ParseFunction is function that parses a raw value.
