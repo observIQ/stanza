@@ -9,4 +9,4 @@ plugins:
     project_id: bplogagent-benchmark
     # credentials found automatically on gce instance
 
-database_file: /home/djaglowski/benchmark/logagent.db
+database_file: ./logagent.db
