@@ -4,13 +4,9 @@ go 1.13
 
 require (
 	cloud.google.com/go/logging v1.0.0
-	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43 // indirect
 	github.com/antonmedv/expr v1.8.2
-	github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514193154-0e775be46b89 // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2
-	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
-	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2
