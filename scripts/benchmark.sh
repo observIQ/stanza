@@ -1,39 +1,87 @@
 #!/bin/bash
 
-echo "Building log agent"
-GOOS=linux go build -o /tmp/bplogagent ../cmd
+BPLOG_ROOT="$GOPATH/src/github.com/bluemedora/bplogagent"
 
-echo "Copying log agent"
-gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- 'rm -rf /tmp/benchmark && mkdir /tmp/benchmark'
-gcloud beta compute --project "***REMOVED***" scp --zone "us-east1-b" /tmp/bplogagent 'instance-1:/tmp/benchmark'
+run_time=$(date +%Y-%m-%d-%H-%M-%S)
 
-echo "Downloading dependencies"
-gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
-  'gsutil cp gs://bplogagent-logbench/LogBench /tmp/benchmark/LogBench && chmod +x /tmp/benchmark/LogBench'
-gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
-  'gsutil cp gs://bplogagent-logbench/config2.yaml /tmp/benchmark/config.yaml'
+PROJECT="bplogagent-benchmark"
+ZONE="us-central1-a"
+INSTANCE="rhel6-$run_time"
 
-echo "Running single-file benchmark"
-gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
-  'set -m ;
-  cd /tmp/benchmark ;
-  /tmp/benchmark/LogBench -log stream.log -rate 100 -t 60s -r 30s -f 2s /tmp/benchmark/bplogagent --config /tmp/benchmark/config.yaml > output1 &
+if ! [ -x "$(command -v gcloud)" ]; then
+  echo 'Error: gcloud is not installed.' >&2
+  exit 1
+fi
+
+if ! [ -x "$(command -v dot)" ]; then
+  echo 'Error: dot is not installed.' >&2
+  exit 1
+fi
+
+output_dir="$BPLOG_ROOT/tmp/$run_time"
+mkdir -p $output_dir
+
+echo "Building Log Agent"
+GOOS=linux go build -o /tmp/bplogagent $BPLOG_ROOT/main.go
+
+echo "Building LogBench"
+GOOS=linux go build -o /tmp/logbench github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/
+
+echo "Creating Instance: $INSTANCE [$PROJECT] [$ZONE]"
+gcloud beta compute instances create --verbosity=error \
+  --project=$PROJECT --zone=$ZONE $INSTANCE --preemptible \
+  --image=rhel-6-v20200402 --image-project=rhel-cloud \
+  --machine-type=n1-standard-1 --boot-disk-size=200GB > /dev/null
+
+echo "Waiting for instance to be ready"
+until gcloud beta compute ssh --verbosity=critical --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'echo "Ready"'; do
+  echo "VM not ready. Waiting..."  
+done
+
+echo "Setting up benchmark test"
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'rm -rf ~/benchmark && mkdir ~/benchmark' > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/bplogagent $INSTANCE:~/benchmark/ > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE /tmp/logbench $INSTANCE:~/benchmark/ > /dev/null
+gcloud beta compute scp --project $PROJECT --zone $ZONE $BPLOG_ROOT/scripts/benchmark/config.yaml $INSTANCE:~/benchmark/config.yaml > /dev/null
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'mkdir ~/benchmark/out' > /dev/null
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark' > /dev/null
+
+echo "Running single-file benchmark (60 seconds per test)"
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \
+  'set -m
+  ~/benchmark/logbench -log stream.log -rate 100,1k,10k -t 60s -r 30s -f 2s -out ~/benchmark/out/results1.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes1 2>&1 &
   sleep 10;
-  curl http://localhost:6060/debug/pprof/profile?seconds=30 > /tmp/benchmark/profile1 ;
-  fg ; '
-
-echo "Running 20-file benchmark"
-gcloud beta compute --project "***REMOVED***" ssh --zone "us-east1-b" 'instance-1' -- \
-  'set -m ;
-  cd /tmp/benchmark ;
-  /tmp/benchmark/LogBench -log $(echo stream{1..20}.log | tr " " ,) -rate 100 -t 60s -r 30s -f 2s /tmp/benchmark/bplogagent --config /tmp/benchmark/config.yaml > output20 &
-  sleep 10;
-  curl http://localhost:6060/debug/pprof/profile?seconds=30 > /tmp/benchmark/profile20 ;
-  fg ; '
+  curl http://localhost:6060/debug/pprof/profile?seconds=160 > ~/benchmark/out/profile1 ; 
+  fg ; ' > /dev/null
 
 echo "Retrieving results"
-output_dir="/tmp/benchmark/$(date +%Y-%m-%d_%H-%M-%S)"
-mkdir -p $output_dir
-gcloud beta compute --project "***REMOVED***" scp --zone "us-east1-b" 'instance-1:/tmp/benchmark/output*' "$output_dir"
-gcloud beta compute --project "***REMOVED***" scp --zone "us-east1-b" 'instance-1:/tmp/benchmark/profile*' "$output_dir"
-echo "Results are located in $output_dir"
+gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/out/* $output_dir > /dev/null
+
+echo "Running 10-file benchmark (60 seconds per test)"
+gcloud beta compute ssh --project $PROJECT --zone $ZONE $INSTANCE --ssh-flag="-o LogLevel=QUIET" -- \
+  'set -m
+  ~/benchmark/logbench -log $(echo stream{1..10}.log | tr " " ,) -rate 100,1k,10k -t 60s -r 30s -f 2s -out ~/benchmark/out/results10.json ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes10 2>&1 &
+  sleep 10;
+  curl http://localhost:6060/debug/pprof/profile?seconds=160 > ~/benchmark/out/profile10 ; 
+  fg ; ' > /dev/null
+
+echo "Retrieving results"
+gcloud beta compute scp --project $PROJECT --zone $ZONE $INSTANCE:~/benchmark/out/* $output_dir > /dev/null
+
+echo "Cleaning up instance"
+gcloud beta compute instances delete --quiet --project $PROJECT --zone=$ZONE $INSTANCE
+
+echo
+echo "Result files"
+echo "  $output_dir/results1.json"
+echo "  $output_dir/results10.json"
+
+echo
+echo "stdout"
+echo "  $output_dir/notes1"
+echo "  $output_dir/notes10"
+
+echo
+echo "Profiles can be accessed with the following commands"
+echo "  go tool pprof -http localhost:6001 $output_dir/profile1"
+echo "  go tool pprof -http localhost:6010 $output_dir/profile10"
