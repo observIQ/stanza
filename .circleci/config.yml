@@ -42,10 +42,7 @@ jobs:
           command: tar -C ~ -xzf go1.13.11.darwin-amd64.tar.gz
       - run: 
           name: Add golang to path
-          command: export PATH=$PATH:~/go/bin
-      - run: 
-          name: Refresh profile
-          command: source ~/.profile
+          command: export PATH=$PATH:~/go/bin      
       - run: 
           name: Get dependencies
           command: go get -v -t -d ./...      
