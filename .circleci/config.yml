@@ -10,4 +10,5 @@ jobs:
       - checkout # check out source code to working directory
 
       - run: go get -v -t -d ./...
-      - run: go test -v ./... && exit 1
+      - run: go test -race -v ./...
+      - run: go build -v -o ./main.out ./
