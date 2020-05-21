@@ -255,6 +255,9 @@ func TestFileSource_MoveFile(t *testing.T) {
 		_, err = temp1.WriteString("testlog1\n")
 		require.NoError(t, err)
 
+		err = temp1.Close()
+		require.NoError(t, err)
+
 		err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
 		require.NoError(t, err)
 
