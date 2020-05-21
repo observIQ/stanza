@@ -39,10 +39,10 @@ jobs:
           command: curl -SL https://dl.google.com/go/go1.13.11.darwin-amd64.tar.gz -o go1.13.11.darwin-amd64.tar.gz
       - run:          
           name: Extract golang
-          command: tar -C /usr/local -xzf go1.13.11.darwin-amd64.tar.gz
+          command: tar -C ~ -xzf go1.13.11.darwin-amd64.tar.gz
       - run: 
           name: Add golang to path
-          command: export PATH=$PATH:/usr/local/go/bin
+          command: export PATH=$PATH:~/go/bin
       - run: 
           name: Refresh profile
           command: source ~/.profile
