@@ -1,14 +1,56 @@
-# https://circleci.com/docs/2.0/language-go/ 
-version: 2
-jobs:
-  build:
-    docker:      
-      - image: circleci/golang:1.13
-    
-    working_directory: /go/src/github.com/bluemedora/bplogagent
-    steps:
-      - checkout # check out source code to working directory
+version: 2.1
 
-      - run: go get -v -t -d ./...
-      - run: go test -race -v ./...
+orbs:
+  win: circleci/windows@2.4.0
+
+executors:
+  golang:
+    docker:
+      - image: circleci/golang:1.13
+  mac:
+    macos:
+      xcode: 11.4.1
+
+jobs:
+
+  build:
+    executor: golang
+    steps:
+      - checkout
+
+      - run: go get -v -t -d ./...      
       - run: go build -v -o ./main.out ./
+
+  test-linux:
+    executor: golang
+
+    steps:
+      - checkout
+      - run: go get -v -t -d ./...      
+      - run: go test -race -v ./...
+
+  test-macos:
+    executor: mac
+
+    steps:
+      - checkout
+      - run: go get -v -t -d ./...      
+      - run: go test -race -v ./...
+
+  test-windows:
+    executor: win/default
+      
+    steps:
+      - checkout      
+      - run:
+          name: Upgrade golang
+          shell: powershell.exe
+          command: choco upgrade golang --version=1.13
+      - run:
+          name: Get
+          shell: powershell.exe
+          command: go get -v -t -d ./...
+      - run:
+          name: Unit tests
+          shell: powershell.exe
+          command: go test ./...
