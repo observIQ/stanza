@@ -35,7 +35,10 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Download and extract golang
+          name: Download golang
+          command: curl -SL https://dl.google.com/go/go1.13.11.darwin-amd64.tar.gz -o go1.13.11.darwin-amd64.tar.gz
+      - run:          
+          name: Extract golang
           command: tar -C /usr/local -xzf go1.13.11.darwin-amd64.tar.gz
       - run: 
           name: Add golang to path
