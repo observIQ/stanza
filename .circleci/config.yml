@@ -18,16 +18,21 @@ jobs:
     steps:
       - checkout
 
-      - run: go get -v -t -d ./...      
-      - run: go build -v -o ./main.out ./
+      - run: 
+          name: Get dependencies
+          command: go get -v -t -d ./...      
+      - run: 
+          name: Build
+          command: go build -v -o ./main.out ./
 
   test-linux:
     executor: golang
 
     steps:
-      - checkout
-      - run: go get -v -t -d ./...      
-      - run: go test -race -v ./...
+      - checkout   
+      - run: 
+          name: Unit tests
+          command: go test -race -v ./...
 
   test-macos:
     executor: mac
@@ -44,7 +49,7 @@ jobs:
           name: Add golang to path
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV          
       - run: 
-          name: Run tests
+          name: Unit tests
           command: go test -race -v ./...
 
   test-windows:
@@ -55,15 +60,11 @@ jobs:
       - run:
           name: Upgrade golang
           shell: powershell.exe
-          command: choco upgrade golang --version=1.13
-      - run:
-          name: Get
-          shell: powershell.exe
-          command: go get -v -t -d ./...
+          command: choco upgrade golang --version=1.13      
       - run:
           name: Unit tests
           shell: powershell.exe
-          command: go test ./...
+          command: go test -race -v ./...
 
 workflows:
   version: 2
