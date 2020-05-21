@@ -34,8 +34,21 @@ jobs:
 
     steps:
       - checkout
-      - run: go get -v -t -d ./...      
-      - run: go test -race -v ./...
+      - run: 
+          name: Download and extract golang
+          command: tar -C /usr/local -xzf go1.13.11.darwin-amd64.tar.gz
+      - run: 
+          name: Add golang to path
+          command: export PATH=$PATH:/usr/local/go/bin
+      - run: 
+          name: Refresh profile
+          command: source ~/.profile
+      - run: 
+          name: Get dependencies
+          command: go get -v -t -d ./...      
+      - run: 
+          name: Run tests
+          command: go test -race -v ./...
 
   test-windows:
     executor: win/default
