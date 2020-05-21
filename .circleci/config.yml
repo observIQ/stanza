@@ -1,17 +1,13 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
+# https://circleci.com/docs/2.0/language-go/ 
 version: 2
 jobs:
   build:
-    docker:
-      # specify the version
+    docker:      
       - image: circleci/golang:1.13
     
     working_directory: /go/src/github.com/bluemedora/bplogagent
     steps:
-      - checkout
+      - checkout # check out source code to working directory
 
-      # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
-      - run: go test -v ./...
+      - run: go test -v ./... && exit 1
