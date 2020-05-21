@@ -54,3 +54,12 @@ jobs:
           name: Unit tests
           shell: powershell.exe
           command: go test ./...
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test-linux
+      - test-macos
+      - test-windows
