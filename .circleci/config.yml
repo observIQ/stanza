@@ -61,6 +61,10 @@ jobs:
           name: Upgrade golang
           shell: powershell.exe
           command: choco upgrade golang --version=1.13      
+      - run: 
+          name: Get dependencies
+          shell: powershell.exe
+          command: go get -v -t -d ./...      
       - run:
           name: Unit tests
           shell: powershell.exe
