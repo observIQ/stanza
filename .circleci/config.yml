@@ -27,8 +27,6 @@ jobs:
 
   test-linux:
     executor: golang
-    environment:
-      CC_TEST_REPORTER_ID: ***REMOVED***
 
     steps:
       - checkout
