@@ -18,28 +18,38 @@ jobs:
     steps:
       - checkout
 
-      - run: 
+      - run:
           name: Get dependencies
           command: go get -v -t -d ./...
-      - run: 
+      - run:
           name: Build
           command: go build -v -o ./main.out ./
 
   test-linux:
     executor: golang
+    environment:
+      CC_TEST_REPORTER_ID: ***REMOVED***
 
     steps:
       - checkout
-      - run: 
+      - run:
+          name: Install Code Climate Test Reporter
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 -o ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+            ./cc-test-reporter before-build
+      - run:
           name: Unit tests
-          command: go test -race -v ./...
+          command: |
+            go test -race -v -coverprofile=c.out ./...
+            ./cc-test-reporter after-build --coverage-input-type gocov -p github.com/bluemedora/bplogagent/
 
   test-macos:
     executor: mac
-    
+
     steps:
       - checkout
-      - run: 
+      - run:
           name: Download golang
           command: curl -SL https://dl.google.com/go/go1.13.11.darwin-amd64.tar.gz -o go1.13.11.darwin-amd64.tar.gz
       - run:
@@ -65,7 +75,7 @@ jobs:
           name: Install GCC
           shell: powershell.exe
           command: choco install mingw
-      - run: 
+      - run:
           name: Get dependencies
           shell: powershell.exe
           command: go get -v -t -d ./...
