@@ -20,7 +20,7 @@ jobs:
 
       - run: 
           name: Get dependencies
-          command: go get -v -t -d ./...      
+          command: go get -v -t -d ./...
       - run: 
           name: Build
           command: go build -v -o ./main.out ./
@@ -29,42 +29,45 @@ jobs:
     executor: golang
 
     steps:
-      - checkout   
+      - checkout
       - run: 
           name: Unit tests
           command: go test -race -v ./...
 
   test-macos:
     executor: mac
-
+    
     steps:
       - checkout
       - run: 
           name: Download golang
           command: curl -SL https://dl.google.com/go/go1.13.11.darwin-amd64.tar.gz -o go1.13.11.darwin-amd64.tar.gz
-      - run:          
+      - run:
           name: Extract golang
           command: tar -C ~ -xzf go1.13.11.darwin-amd64.tar.gz
-      - run: 
+      - run:
           name: Add golang to path
-          command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV          
-      - run: 
+          command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
+      - run:
           name: Unit tests
           command: go test -race -v ./...
 
   test-windows:
     executor: win/default
-      
+
+    environment:
+       CGO_ENABLED: "0"
+
     steps:
-      - checkout      
+      - checkout
       - run:
           name: Upgrade golang
           shell: powershell.exe
-          command: choco upgrade golang --version=1.13      
+          command: choco upgrade golang --version=1.13
       - run: 
           name: Get dependencies
           shell: powershell.exe
-          command: go get -v -t -d ./...      
+          command: go get -v -t -d ./...
       - run:
           name: Unit tests
           shell: powershell.exe
