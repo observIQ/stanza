@@ -64,7 +64,11 @@ jobs:
       - run:
           name: Install GCC
           shell: powershell.exe
-          command: choco install mingw      
+          command: choco install mingw
+      - run: 
+          name: Get dependencies
+          shell: powershell.exe
+          command: go get -v -t -d ./...
       - run:
           name: Unit tests
           shell: powershell.exe
