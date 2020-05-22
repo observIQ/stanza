@@ -55,15 +55,16 @@ jobs:
   test-windows:
     executor: win/default
 
-    environment:
-       CGO_ENABLED: "0"
-
     steps:
       - checkout
       - run:
           name: Upgrade golang
           shell: powershell.exe
           command: choco upgrade golang --version=1.13
+      - run:
+          name: Install GCC
+          shell: powershell.exe
+          command: choco install mingw
       - run: 
           name: Get dependencies
           shell: powershell.exe
