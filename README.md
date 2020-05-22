@@ -1,4 +1,4 @@
-![Go](https://github.com/bluemedora/bplogagent/workflows/Go/badge.svg)
+[![<BlueMedora>](https://circleci.com/gh/BlueMedora/bplogagent.svg?style=svg)](https://app.circleci.com/pipelines/github/BlueMedora/bplogagent)
 
 # Bindplane Log Agent
 
