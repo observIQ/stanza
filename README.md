@@ -1,4 +1,4 @@
-[![<BlueMedora>](https://circleci.com/gh/BlueMedora/bplogagent.svg?style=svg&circle-token=b3a927f2797a62157b99f1e592edc0b14b764e8c)](https://app.circleci.com/pipelines/github/BlueMedora/bplogagent)
+[![<BlueMedora>](https://circleci.com/gh/BlueMedora/bplogagent.svg?style=shield&circle-token=b3a927f2797a62157b99f1e592edc0b14b764e8c)](https://app.circleci.com/pipelines/github/BlueMedora/bplogagent)
 
 # Bindplane Log Agent
 
