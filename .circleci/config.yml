@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.4.0
+  codecov: codecov/codecov@1.0.2
 
 executors:
   golang:
@@ -31,16 +32,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Code Climate Test Reporter
-          command: |
-            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 -o ./cc-test-reporter
-            chmod +x ./cc-test-reporter
-            ./cc-test-reporter before-build
-      - run:
           name: Unit tests
           command: |
-            go test -race -v -coverprofile=c.out -coverpkg ./... ./...
-            ./cc-test-reporter after-build --coverage-input-type gocov -p github.com/bluemedora/bplogagent/
+            go test -race -v -coverprofile coverage.txt -coverpkg ./... ./...
+      - codecov/upload:
+          file: ./coverage.txt
 
   test-macos:
     executor: mac
