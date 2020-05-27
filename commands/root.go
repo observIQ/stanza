@@ -3,11 +3,15 @@ package commands
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/pprof"
+	"sync"
+	"time"
 
 	agent "github.com/bluemedora/bplogagent/agent"
 	"github.com/bluemedora/bplogagent/config"
@@ -17,9 +21,13 @@ import (
 )
 
 type RootFlags struct {
-	ConfigFiles []string
-	PprofPort   int
-	Debug       bool
+	ConfigFiles        []string
+	PprofPort          int
+	CPUProfile         string
+	CPUProfileDuration time.Duration
+	MemProfile         string
+	MemProfileDelay    time.Duration
+	Debug              bool
 }
 
 func NewRootCmd() *cobra.Command {
@@ -36,8 +44,19 @@ func NewRootCmd() *cobra.Command {
 
 	rootFlagSet := root.PersistentFlags()
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"/etc/bplogagent/bplogagent.yaml"}, "path to a config file") // TODO default locations
-	rootFlagSet.IntVar(&rootFlags.PprofPort, "pprof_port", 0, "listen port for pprof profiling")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
+
+	// Profiling flags
+	rootFlagSet.IntVar(&rootFlags.PprofPort, "pprof_port", 0, "listen port for pprof profiling")
+	rootFlagSet.MarkHidden("pprof_port")
+	rootFlagSet.StringVar(&rootFlags.CPUProfile, "cpu_profile", "", "path to cpu profile output")
+	rootFlagSet.MarkHidden("cpu_profile")
+	rootFlagSet.DurationVar(&rootFlags.CPUProfileDuration, "cpu_profile_duration", 60*time.Second, "duration to run the cpu profile")
+	rootFlagSet.MarkHidden("cpu_profile_duration")
+	rootFlagSet.StringVar(&rootFlags.MemProfile, "mem_profile", "", "path to memory profile output")
+	rootFlagSet.MarkHidden("mem_profile")
+	rootFlagSet.DurationVar(&rootFlags.MemProfileDelay, "mem_profile_delay", 10*time.Second, "time to wait before writing a memory profile")
+	rootFlagSet.MarkHidden("mem_profile_delay")
 
 	graphFlags := &GraphFlags{
 		RootFlags: rootFlags,
@@ -80,14 +99,6 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	// Start the profiler http server
-	if flags.PprofPort != 0 {
-		runtime.SetBlockProfileRate(10000)
-		go func() {
-			logger.Info(http.ListenAndServe(fmt.Sprintf(":%d", flags.PprofPort), nil))
-		}()
-	}
-
 	// Wait for interrupt or command cancelled
 	ctx, cancel := context.WithCancel(command.Context())
 	go func() {
@@ -97,8 +108,12 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		logger.Info("Received an interrupt signal. Attempting to shut down gracefully")
 		cancel()
 	}()
+
+	profilingWg := startProfiling(ctx, flags, logger)
+
 	<-ctx.Done()
 	agent.Stop()
+	profilingWg.Wait()
 }
 
 func newDefaultLoggerAt(level zapcore.Level) *zap.SugaredLogger {
@@ -117,4 +132,82 @@ func newDefaultLoggerAt(level zapcore.Level) *zap.SugaredLogger {
 	// logCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	baseLogger, _ := logCfg.Build()
 	return baseLogger.Sugar()
+}
+
+func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLogger) *sync.WaitGroup {
+	wg := &sync.WaitGroup{}
+
+	// Start pprof listening on port
+	if flags.PprofPort != 0 {
+		// pprof endpoints registered by importing net/pprof
+		var srv http.Server
+		srv.Addr = fmt.Sprintf(":%d", flags.PprofPort)
+
+		wg.Add(1)
+		go func() {
+			logger.Info(srv.ListenAndServe())
+		}()
+
+		wg.Add(1)
+		go func() {
+			<-ctx.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err := srv.Shutdown(ctx)
+			if err != nil {
+				logger.Warnw("Errored shutting down pprof server", zap.Error(err))
+			}
+		}()
+	}
+
+	// Start CPU profile for configured duration
+	if flags.CPUProfile != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			f, err := os.Create(flags.CPUProfile)
+			if err != nil {
+				logger.Errorw("Failed to create CPU profile", zap.Error(err))
+			}
+			defer f.Close()
+
+			if err := pprof.StartCPUProfile(f); err != nil {
+				log.Fatal("could not start CPU profile: ", err)
+			}
+
+			select {
+			case <-ctx.Done():
+			case <-time.After(flags.CPUProfileDuration):
+			}
+			pprof.StopCPUProfile()
+		}()
+	}
+
+	// Start memory profile after configured delay
+	if flags.MemProfile != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			select {
+			case <-ctx.Done():
+			case <-time.After(flags.MemProfileDelay):
+			}
+
+			f, err := os.Create(flags.MemProfile)
+			if err != nil {
+				logger.Errorw("Failed to create memory profile", zap.Error(err))
+			}
+			defer f.Close() // error handling omitted for example
+
+			runtime.GC() // get up-to-date statistics
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Fatal("could not write memory profile: ", err)
+			}
+		}()
+	}
+
+	return wg
+
 }
