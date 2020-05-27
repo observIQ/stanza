@@ -16,7 +16,16 @@ type GraphFlags struct {
 	*RootFlags
 }
 
-func runGraph(command *cobra.Command, args []string, flags *GraphFlags) error {
+func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "graph",
+		Args:  cobra.NoArgs,
+		Short: "Export a dot-formatted representation of the plugin graph",
+		Run:   func(command *cobra.Command, args []string) { runGraph(command, args, rootFlags) },
+	}
+}
+
+func runGraph(command *cobra.Command, args []string, flags *RootFlags) error {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
 		logger = newDefaultLoggerAt(zapcore.DebugLevel)

@@ -11,11 +11,11 @@ import (
 
 // BasicParserConfig provides the basic implementation of a parser config.
 type BasicParserConfig struct {
-	OutputID  string      `mapstructure:"output"     json:"output"     yaml:"output"`
-	ParseFrom entry.Field `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from"`
-	ParseTo   entry.Field `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to"`
-	Preserve  bool        `mapstructure:"preserve"   json:"preserve"   yaml:"preserve"`
-	OnError   string      `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
+	OutputID  string      `json:"output"     yaml:"output"`
+	ParseFrom entry.Field `json:"parse_from" yaml:"parse_from"`
+	ParseTo   entry.Field `json:"parse_to"   yaml:"parse_to"`
+	Preserve  bool        `json:"preserve"   yaml:"preserve"`
+	OnError   string      `json:"on_error"   yaml:"on_error"`
 }
 
 // Build will build a basic parser.

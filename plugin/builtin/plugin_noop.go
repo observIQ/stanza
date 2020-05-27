@@ -14,8 +14,8 @@ func init() {
 
 // NoopPluginConfig is the configuration of a noop plugin.
 type NoopPluginConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `yaml:",inline"`
+	helper.BasicTransformerConfig `yaml:",inline"`
 }
 
 // Build will build a noop plugin.

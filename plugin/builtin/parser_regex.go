@@ -16,10 +16,10 @@ func init() {
 
 // RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicParserConfig `yaml:",inline"`
 
-	Regex string `mapstructure:"regex" json:"regex" yaml:"regex"`
+	Regex string `json:"regex" yaml:"regex"`
 }
 
 // Build will build a regex parser plugin.
@@ -80,7 +80,7 @@ func (r *RegexParser) parse(value interface{}) (interface{}, error) {
 			return nil, fmt.Errorf("regex pattern does not match")
 		}
 
-		matches = make([]string, 0, len(byteMatches))
+		matches = make([]string, len(byteMatches))
 		for i, byteSlice := range byteMatches {
 			matches[i] = string(byteSlice)
 		}

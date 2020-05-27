@@ -39,7 +39,7 @@ jobs:
       - run:
           name: Unit tests
           command: |
-            go test -race -v -coverprofile=c.out ./...
+            go test -race -v -coverprofile=c.out -coverpkg ./... ./...
             ./cc-test-reporter after-build --coverage-input-type gocov -p github.com/bluemedora/bplogagent/
 
   test-macos:

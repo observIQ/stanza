@@ -21,15 +21,15 @@ func init() {
 
 // ElasticOutputConfig is the configuration of an elasticsearch output plugin.
 type ElasticOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
 
-	Addresses  []string     `mapstructure:"addresses"   json:"addresses"             yaml:"addresses,flow"`
-	Username   string       `mapstructure:"username"    json:"username"              yaml:"username"`
-	Password   string       `mapstructure:"password"    json:"password"              yaml:"password"`
-	CloudID    string       `mapstructure:"cloud_id"    json:"cloud_id"              yaml:"cloud_id"`
-	APIKey     string       `mapstructure:"api_key"     json:"api_key"               yaml:"api_key"`
-	IndexField *entry.Field `mapstructure:"index_field" json:"index_field,omitempty" yaml:"index_field,omitempty"`
-	IDField    *entry.Field `mapstructure:"id_field"    json:"id_field,omitempty"    yaml:"id_field,omitempty"`
+	Addresses  []string     `json:"addresses"             yaml:"addresses,flow"`
+	Username   string       `json:"username"              yaml:"username"`
+	Password   string       `json:"password"              yaml:"password"`
+	CloudID    string       `json:"cloud_id"              yaml:"cloud_id"`
+	APIKey     string       `json:"api_key"               yaml:"api_key"`
+	IndexField *entry.Field `json:"index_field,omitempty" yaml:"index_field,omitempty"`
+	IDField    *entry.Field `json:"id_field,omitempty"    yaml:"id_field,omitempty"`
 }
 
 // Build will build an elasticsearch output plugin.

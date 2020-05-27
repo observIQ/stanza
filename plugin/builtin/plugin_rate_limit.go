@@ -16,12 +16,12 @@ func init() {
 
 // RateLimitConfig is the configuration of a rate filter plugin.
 type RateLimitConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig      `yaml:",inline"`
+	helper.BasicTransformerConfig `yaml:",inline"`
 
-	Rate     float64         `mapstructure:"rate"     json:"rate,omitempty"     yaml:"rate,omitempty"`
-	Interval plugin.Duration `mapstructure:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
-	Burst    uint            `mapstructure:"burst"    json:"burst,omitempty"    yaml:"burst,omitempty"`
+	Rate     float64         `json:"rate,omitempty"     yaml:"rate,omitempty"`
+	Interval plugin.Duration `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Burst    uint            `json:"burst,omitempty"    yaml:"burst,omitempty"`
 }
 
 // Build will build a rate limit plugin.

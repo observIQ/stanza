@@ -58,17 +58,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet.DurationVar(&rootFlags.MemProfileDelay, "mem_profile_delay", 10*time.Second, "time to wait before writing a memory profile")
 	rootFlagSet.MarkHidden("mem_profile_delay")
 
-	graphFlags := &GraphFlags{
-		RootFlags: rootFlags,
-	}
-
-	graph := &cobra.Command{
-		Use:   "graph",
-		Args:  cobra.NoArgs,
-		Short: "Export a dot-formatted representation of the plugin graph",
-		Run:   func(command *cobra.Command, args []string) { runGraph(command, args, graphFlags) },
-	}
-
+	graph := NewGraphCommand(rootFlags)
 	root.AddCommand(graph)
 
 	return root

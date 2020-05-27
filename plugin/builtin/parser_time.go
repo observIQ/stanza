@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
@@ -16,10 +17,10 @@ func init() {
 
 // TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicParserConfig `yaml:",inline"`
 
-	Layout string `mapstructure:"layout" json:"layout" yaml:"layout"`
+	Layout string `json:"layout" yaml:"layout"`
 }
 
 // Build will build a time parser plugin.
@@ -32,6 +33,13 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.Layout == "" {
+		return nil, errors.NewError("Missing required configuration parameter `layout`", "",
+			"plugin_id", c.PluginID,
+			"plugin_type", c.PluginType,
+		)
 	}
 
 	timeParser := &TimeParser{

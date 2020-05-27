@@ -244,35 +244,30 @@ plugins:
 		globs                []string
 		expectedPluginIDs    []string
 		expectedDatabaseFile string
-		expectedError        require.ErrorAssertionFunc
 	}{
 		{
 			"multiple inputs",
 			[]string{"file1", "file2", "output1"},
 			[]string{"fileinput1", "fileinput2", "output1"},
 			"test2.db",
-			require.NoError,
 		},
 		{
 			"single input",
 			[]string{"file1", "output1"},
 			[]string{"fileinput1", "output1"},
 			"test1.db",
-			require.NoError,
 		},
 		{
 			"globbed inputs",
 			[]string{"file*", "output1"},
 			[]string{"fileinput1", "fileinput2", "output1"},
 			"test2.db", // because glob returns in lexicographical order
-			require.NoError,
 		},
 		{
 			"globbed all",
 			[]string{"*"},
 			[]string{"fileinput1", "fileinput2", "output1"},
 			"test2.db", // because glob returns in lexicographical order
-			require.NoError,
 		},
 	}
 
@@ -294,7 +289,7 @@ plugins:
 				globs[i] = filepath.Join(dir, glob)
 			}
 			cfg, err := ReadConfigsFromGlobs(globs)
-			tc.expectedError(t, err)
+			require.NoError(t, err)
 
 			// Pull out the plugin IDs from the unmarshaled plugins
 			pluginIDs := make([]string, len(cfg.Plugins))
@@ -306,5 +301,4 @@ plugins:
 			require.ElementsMatch(t, tc.expectedPluginIDs, pluginIDs)
 		})
 	}
-
 }

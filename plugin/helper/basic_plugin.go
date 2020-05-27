@@ -7,8 +7,8 @@ import (
 
 // BasicPluginConfig provides a basic implemention for a plugin config.
 type BasicPluginConfig struct {
-	PluginID   string `mapstructure:"id"   json:"id"   yaml:"id"`
-	PluginType string `mapstructure:"type" json:"type" yaml:"type"`
+	PluginID   string `json:"id"   yaml:"id"`
+	PluginType string `json:"type" yaml:"type"`
 }
 
 // ID will return the plugin id.

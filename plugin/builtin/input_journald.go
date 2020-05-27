@@ -26,11 +26,11 @@ func init() {
 }
 
 type JournaldInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicInputConfig  `yaml:",inline"`
 
-	Directory *string  `mapstructure:"directory" json:"directory,omitempty" yaml:"directory,omitempty"`
-	Files     []string `mapstructure:"files"     json:"files,omitempty"     yaml:"files,omitempty"`
+	Directory *string  `json:"directory,omitempty" yaml:"directory,omitempty"`
+	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
 }
 
 func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {

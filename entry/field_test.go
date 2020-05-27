@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -261,121 +260,6 @@ func TestFieldSet(t *testing.T) {
 	}
 }
 
-func TestFieldDecode(t *testing.T) {
-	type decodeTarget struct {
-		Field    Field
-		FieldPtr *Field
-	}
-
-	cases := []struct {
-		name        string
-		input       map[string]interface{}
-		expected    decodeTarget
-		expectedErr bool
-	}{
-		{
-			"NilField",
-			map[string]interface{}{"field": nil},
-			decodeTarget{
-				FieldPtr: nil,
-			},
-			false,
-		},
-		{
-			"EmptyField",
-			map[string]interface{}{"field": ""},
-			decodeTarget{
-				Field: NewField(""),
-			},
-			false,
-		},
-		{
-			"RootField",
-			map[string]interface{}{"field": "$"},
-			decodeTarget{
-				Field: NewField([]string{}...),
-			},
-			false,
-		},
-		{
-			"SimpleField",
-			map[string]interface{}{"field": "test"},
-			decodeTarget{
-				Field: NewField("test"),
-			},
-			false,
-		},
-		{
-			"ComplexField",
-			map[string]interface{}{"field": "$.test1.test2"},
-			decodeTarget{
-				Field: NewField("test1", "test2"),
-			},
-			false,
-		},
-		{
-			"ComplexFieldWithRoot",
-			map[string]interface{}{"field": "test1.test2"},
-			decodeTarget{
-				Field: NewField("test1", "test2"),
-			},
-			false,
-		},
-		{
-			"SimpleFieldPointer",
-			map[string]interface{}{"fieldPtr": "test"},
-			decodeTarget{
-				FieldPtr: func() *Field {
-					var field = NewField("test")
-					return &field
-				}(),
-			},
-			false,
-		},
-		{
-			"ComplexFieldPointer",
-			map[string]interface{}{"fieldPtr": "test1.test2"},
-			decodeTarget{
-				FieldPtr: func() *Field {
-					var field = NewField("test1", "test2")
-					return &field
-				}(),
-			},
-			false,
-		},
-		{
-			"InvalidDecodeType",
-			map[string]interface{}{"fieldPtr": []byte("test1")},
-			decodeTarget{},
-			true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			var target decodeTarget
-			cfg := &mapstructure.DecoderConfig{
-				Result:     &target,
-				DecodeHook: FieldDecoder,
-			}
-
-			decoder, err := mapstructure.NewDecoder(cfg)
-			if !assert.NoError(t, err) {
-				t.FailNow()
-			}
-
-			err = decoder.Decode(tc.input)
-			if tc.expectedErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-
-			assert.Equal(t, tc.expected, target)
-		})
-	}
-}
-
 func TestFieldUnmarshalJSON(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -513,4 +397,21 @@ func TestFieldMarshalYAML(t *testing.T) {
 			require.Equal(t, tc.expected, res)
 		})
 	}
+}
+
+func TestFieldParent(t *testing.T) {
+	t.Run("Simple", func(t *testing.T) {
+		field := Field{[]string{"child"}}
+		require.Equal(t, Field{[]string{}}, field.Parent())
+	})
+
+	t.Run("Root", func(t *testing.T) {
+		field := Field{[]string{}}
+		require.Equal(t, Field{[]string{}}, field.Parent())
+	})
+}
+
+func TestFieldChild(t *testing.T) {
+	field := Field{[]string{"parent"}}
+	require.Equal(t, Field{[]string{"parent", "child"}}, field.Child("child"))
 }

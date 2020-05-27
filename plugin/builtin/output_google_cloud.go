@@ -16,6 +16,7 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	gax "github.com/googleapis/gax-go"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -30,17 +31,17 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash"  yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
 	buffer.BufferConfig      `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
-	Credentials     string       `mapstructure:"credentials"      json:"credentials,omitempty"      yaml:"credentials,omitempty"`
-	CredentialsFile string       `mapstructure:"credentials_file" json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
-	ProjectID       string       `mapstructure:"project_id"       json:"project_id"                 yaml:"project_id"`
-	LogNameField    *entry.Field `mapstructure:"log_name_field"   json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
-	LabelsField     *entry.Field `mapstructure:"labels_field"     json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
-	SeverityField   *entry.Field `mapstructure:"severity_field"   json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
-	TraceField      *entry.Field `mapstructure:"trace_field"      json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
-	SpanIDField     *entry.Field `mapstructure:"span_id_field"    json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
+	Credentials     string       `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
+	CredentialsFile string       `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
+	ProjectID       string       `json:"project_id"                 yaml:"project_id"`
+	LogNameField    *entry.Field `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
+	LabelsField     *entry.Field `json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
+	SeverityField   *entry.Field `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
+	TraceField      *entry.Field `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
+	SpanIDField     *entry.Field `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 }
 
 // Build will build a google cloud output plugin.
@@ -54,47 +55,22 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		return nil, errors.New("missing required configuration option project_id")
 	}
 
-	var credentials *google.Credentials
-	scope := "https://www.googleapis.com/auth/logging.write"
-	switch {
-	case c.Credentials != "" && c.CredentialsFile != "":
-		return nil, errors.New("at most one of credentials or credentials_file can be configured")
-	case c.Credentials != "":
-		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(c.Credentials), scope)
-		if err != nil {
-			return nil, fmt.Errorf("parse credentials: %s", err)
-		}
-	case c.CredentialsFile != "":
-		credentialsBytes, err := ioutil.ReadFile(c.CredentialsFile)
-		if err != nil {
-			return nil, fmt.Errorf("read credentials file: %s", err)
-		}
-		credentials, err = google.CredentialsFromJSON(context.Background(), credentialsBytes, scope)
-		if err != nil {
-			return nil, fmt.Errorf("parse credentials: %s", err)
-		}
-	default:
-		credentials, err = google.FindDefaultCredentials(context.Background(), scope)
-		if err != nil {
-			return nil, fmt.Errorf("get default credentials: %s", err)
-		}
-	}
-
 	newBuffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	googleCloudOutput := &GoogleCloudOutput{
-		BasicPlugin:   basicPlugin,
-		credentials:   credentials,
-		projectID:     c.ProjectID,
-		Buffer:        newBuffer,
-		logNameField:  c.LogNameField,
-		labelsField:   c.LabelsField,
-		severityField: c.SeverityField,
-		traceField:    c.TraceField,
-		spanIDField:   c.SpanIDField,
+		BasicPlugin:     basicPlugin,
+		credentials:     c.Credentials,
+		credentialsFile: c.CredentialsFile,
+		projectID:       c.ProjectID,
+		Buffer:          newBuffer,
+		logNameField:    c.LogNameField,
+		labelsField:     c.LabelsField,
+		severityField:   c.SeverityField,
+		traceField:      c.TraceField,
+		spanIDField:     c.SpanIDField,
 	}
 
 	newBuffer.SetHandler(googleCloudOutput)
@@ -108,8 +84,9 @@ type GoogleCloudOutput struct {
 	helper.BasicOutput
 	buffer.Buffer
 
-	credentials *google.Credentials
-	projectID   string
+	credentials     string
+	credentialsFile string
+	projectID       string
 
 	logNameField  *entry.Field
 	labelsField   *entry.Field
@@ -117,13 +94,45 @@ type GoogleCloudOutput struct {
 	traceField    *entry.Field
 	spanIDField   *entry.Field
 
-	client *vkit.Client
+	client CloudLoggingClient
+}
+
+type CloudLoggingClient interface {
+	Close() error
+	WriteLogEntries(context.Context, *logpb.WriteLogEntriesRequest, ...gax.CallOption) (*logpb.WriteLogEntriesResponse, error)
 }
 
 // Start will start the google cloud logger.
 func (p *GoogleCloudOutput) Start() error {
+	var credentials *google.Credentials
+	var err error
+	scope := "https://www.googleapis.com/auth/logging.write"
+	switch {
+	case p.credentials != "" && p.credentialsFile != "":
+		return errors.New("at most one of credentials or credentials_file can be configured")
+	case p.credentials != "":
+		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(p.credentials), scope)
+		if err != nil {
+			return fmt.Errorf("parse credentials: %s", err)
+		}
+	case p.credentialsFile != "":
+		credentialsBytes, err := ioutil.ReadFile(p.credentialsFile)
+		if err != nil {
+			return fmt.Errorf("read credentials file: %s", err)
+		}
+		credentials, err = google.CredentialsFromJSON(context.Background(), credentialsBytes, scope)
+		if err != nil {
+			return fmt.Errorf("parse credentials: %s", err)
+		}
+	default:
+		credentials, err = google.FindDefaultCredentials(context.Background(), scope)
+		if err != nil {
+			return fmt.Errorf("get default credentials: %s", err)
+		}
+	}
+
 	options := make([]option.ClientOption, 0, 2)
-	options = append(options, option.WithCredentials(p.credentials))
+	options = append(options, option.WithCredentials(credentials))
 	options = append(options, option.WithUserAgent("BindPlaneLogAgent/2.0.0"))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
 	defer cancel()

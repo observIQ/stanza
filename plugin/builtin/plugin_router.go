@@ -17,13 +17,13 @@ func init() {
 }
 
 type RouterPluginConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	Routes                   []RouterPluginRouteConfig `mapstructure:"routes" json:"routes" yaml:"routes"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	Routes                   []RouterPluginRouteConfig `json:"routes" yaml:"routes"`
 }
 
 type RouterPluginRouteConfig struct {
-	Expression string `mapstructure:"expr" json:"expr" yaml:"expr"`
-	Output     string `mapstructure:"output" json:"output" yaml:"output"`
+	Expression string `json:"expr"   yaml:"expr"`
+	Output     string `json:"output" yaml:"output"`
 }
 
 func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -72,7 +72,7 @@ func (p *RouterPlugin) CanProcess() bool {
 
 func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	env := map[string]interface{}{
-		"record": entry.Record,
+		"$": entry.Record,
 	}
 
 	for _, route := range p.routes {

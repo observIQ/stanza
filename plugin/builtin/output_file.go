@@ -19,10 +19,10 @@ func init() {
 
 // FileOutputConfig is the configuration of a file output pluginn.
 type FileOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
 
-	Path   string `mapstructure:"path" json:"path" yaml:"path"`
-	Format string `mapstructure:"format" json:"format,omitempty" path:"format,omitempty"`
+	Path   string `json:"path" yaml:"path"`
+	Format string `json:"format,omitempty" path:"format,omitempty"`
 }
 
 // Build will build a file output plugin.

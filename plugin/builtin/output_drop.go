@@ -14,7 +14,7 @@ func init() {
 
 // DropOutputConfig is the configuration of a drop output plugin.
 type DropOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
 }
 
 // Build will build a drop output plugin.

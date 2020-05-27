@@ -16,8 +16,8 @@ func init() {
 
 // JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicParserConfig `yaml:",inline"`
 }
 
 // Build will build a JSON parser plugin.

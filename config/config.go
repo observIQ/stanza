@@ -10,8 +10,8 @@ import (
 )
 
 type Config struct {
-	Plugins      []plugin.Config `mapstructure:"plugins"       json:"plugins"                 yaml:"plugins"`
-	DatabaseFile string          `mapstructure:"database_file" json:"database_file,omitempty" yaml:"database_file,omitempty"`
+	Plugins      []plugin.Config `json:"plugins"                 yaml:"plugins"`
+	DatabaseFile string          `json:"database_file,omitempty" yaml:"database_file,omitempty"`
 }
 
 func NewConfig() *Config {
@@ -19,8 +19,6 @@ func NewConfig() *Config {
 		Plugins: make([]plugin.Config, 0, 10),
 	}
 }
-
-var DecodeHookFunc = plugin.ConfigDecoder
 
 func ReadConfigsFromGlobs(globs []string) (*Config, error) {
 	paths := make([]string, 0, len(globs))

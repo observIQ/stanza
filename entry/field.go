@@ -3,11 +3,7 @@ package entry
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
-
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/mitchellh/mapstructure"
 )
 
 // Field represents a potential field on an entry's record.
@@ -228,20 +224,4 @@ func NewField(keys ...string) Field {
 	return Field{
 		Keys: keys,
 	}
-}
-
-// FieldDecoder is a custom decoder hook used by mapstructure to decode fields.
-var FieldDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-	if t.String() != "entry.Field" {
-		return data, nil
-	}
-
-	if reflect.TypeOf(string("")) == f {
-		return fromJSONDot(data.(string)), nil
-	}
-
-	return nil, errors.NewError(
-		"failed to unmarshal field from type",
-		"ensure that all fields are encoded as strings",
-		"type", f.String())
 }

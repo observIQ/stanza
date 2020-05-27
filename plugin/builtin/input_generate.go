@@ -16,15 +16,15 @@ func init() {
 
 // GenerateInputConfig is the configuration of a generate input plugin.
 type GenerateInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicInputConfig  `yaml:",inline"`
 
-	Record interface{} `mapstructure:"record" json:"record"          yaml:"record"`
-	Count  int         `mapstructure:"count"  json:"count,omitempty" yaml:"count,omitempty"`
+	Record interface{} `json:"record"          yaml:"record"`
+	Count  int         `json:"count,omitempty" yaml:"count,omitempty"`
 }
 
 // Build will build a generate input plugin.
-func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+func (c *GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
 	if err != nil {
 		return nil, err

@@ -10,8 +10,8 @@ import (
 
 // BasicInputConfig provides a basic implementation of an input config.
 type BasicInputConfig struct {
-	WriteTo  entry.Field `mapstructure:"write_to" json:"write_to" yaml:"write_to"`
-	OutputID string      `mapstructure:"output" json:"output" yaml:"output"`
+	WriteTo  entry.Field `json:"write_to" yaml:"write_to"`
+	OutputID string      `json:"output" yaml:"output"`
 }
 
 // Build will build a base producer.

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -18,10 +19,10 @@ func init() {
 
 // TCPInputConfig is the configuration of a tcp input plugin.
 type TCPInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicInputConfig  `yaml:",inline"`
 
-	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	ListenAddress string `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a tcp input plugin.
@@ -59,7 +60,7 @@ type TCPInput struct {
 	helper.BasicInput
 	address *net.TCPAddr
 
-	listener  net.Listener
+	listener  *net.TCPListener
 	cancel    context.CancelFunc
 	waitGroup *sync.WaitGroup
 }
@@ -87,7 +88,7 @@ func (t *TCPInput) goListen(ctx context.Context) {
 		defer t.waitGroup.Done()
 
 		for {
-			conn, err := t.listener.Accept()
+			conn, err := t.listener.AcceptTCP()
 			if err != nil {
 				t.Debugf("Exiting listener: %s", err)
 				break
@@ -139,10 +140,13 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 func (t *TCPInput) readMessage(conn net.Conn, reader *bufio.Reader) (string, error) {
 	message, err := reader.ReadBytes('\n')
 	if err != nil {
+		if err == io.EOF {
+			return string(message), err
+		}
 		return "", err
 	}
 
-	return string(message), nil
+	return string(message[:len(message)-1]), nil
 }
 
 // Stop will stop listening for log entries over TCP.

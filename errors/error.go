@@ -11,7 +11,6 @@ type AgentError struct {
 	Description string
 	Suggestion  string
 	Details     ErrorDetails
-	Stack       ErrorStack
 }
 
 // Error will return the error message.
@@ -28,14 +27,17 @@ func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	}
 
 	if len(e.Details) != 0 {
-		encoder.AddObject("details", e.Details)
+		err := encoder.AddObject("details", e.Details)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // WithDetails will add details to an agent error.
-func WithDetails(err error, keyValues ...string) error {
+func WithDetails(err error, keyValues ...string) AgentError {
 	if agentErr, ok := err.(AgentError); ok {
 		if len(keyValues) > 0 {
 			for i := 0; i+1 < len(keyValues); i += 2 {

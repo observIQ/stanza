@@ -7,7 +7,7 @@ import (
 
 // BasicTransformerConfig provides a basic implementation of a transformer config.
 type BasicTransformerConfig struct {
-	OutputID string `mapstructure:"output" json:"output" yaml:"output"`
+	OutputID string `json:"output" yaml:"output"`
 }
 
 // Build will build a base producer.

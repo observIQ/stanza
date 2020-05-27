@@ -18,10 +18,10 @@ func init() {
 
 // UDPInputConfig is the configuration of a udp input plugin.
 type UDPInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.BasicPluginConfig `yaml:",inline"`
+	helper.BasicInputConfig  `yaml:",inline"`
 
-	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	ListenAddress string `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a udp input plugin.
