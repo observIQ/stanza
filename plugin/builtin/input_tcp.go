@@ -104,7 +104,10 @@ func (t *TCPInput) goListen(ctx context.Context) {
 
 // goHandleClose will wait for the context to finish before closing a connection.
 func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
+	t.waitGroup.Add(1)
+
 	go func() {
+		defer t.waitGroup.Done()
 		<-ctx.Done()
 		t.Debugf("Closing connection: %s", conn.RemoteAddr().String())
 		if err := conn.Close(); err != nil {
