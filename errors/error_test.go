@@ -34,6 +34,21 @@ func TestWithDetails(t *testing.T) {
 
 }
 
+func TestErrorMessage(t *testing.T) {
+	t.Run("WithDetails", func(t *testing.T) {
+		err := NewError("Test error", "", "foo", "bar")
+
+		require.Equal(t, `Test error: {"foo":"bar"}`, err.Error())
+	})
+
+	t.Run("WithoutDetails", func(t *testing.T) {
+		err := NewError("Test error", "")
+
+		require.Equal(t, `Test error`, err.Error())
+	})
+
+}
+
 func TestWrap(t *testing.T) {
 	t.Run("AgentError", func(t *testing.T) {
 		err := NewError("Test error", "")
