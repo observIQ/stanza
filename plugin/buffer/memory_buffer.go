@@ -38,10 +38,10 @@ func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
 			if err != nil {
 				duration := b.NextBackOff()
 				if duration == backoff.Stop {
-					handler.Logger().Errorw("Failed to flush bundle. Not retrying because we are beyond max backoff", zap.Error(err), "bundle_id", bundleID)
+					handler.Logger().Errorw("Failed to flush bundle. Not retrying because we are beyond max backoff", zap.Any("error", err), "bundle_id", bundleID)
 					break
 				} else {
-					handler.Logger().Warnw("Failed to flush bundle", zap.Error(err), "backoff_time", duration.String(), "bundle_id", bundleID)
+					handler.Logger().Warnw("Failed to flush bundle", zap.Any("error", err), "backoff_time", duration.String(), "bundle_id", bundleID)
 					select {
 					case <-ctx.Done():
 						handler.Logger().Debugw("Flush retry cancelled by context", "bundle_id", bundleID)

@@ -322,7 +322,7 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		require.NoError(t, err)
 
 		// Wait for the logs to be read and the offset to be set
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 
 		temp2, err := ioutil.TempFile(tempDir, "")
 		require.NoError(t, err)
@@ -335,7 +335,7 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 		temp1.Seek(0, 0)
 		require.NoError(t, err)
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 
 		// Write to original and new file
 		_, err = temp1.WriteString("testlog3\n")
