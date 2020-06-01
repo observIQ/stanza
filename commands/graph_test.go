@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func ExampleGraph() {
+func Example_runGraph() {
 	config := []byte(`
 pipeline:
   - id: generate

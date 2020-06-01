@@ -20,7 +20,9 @@ func TestUDPInput(t *testing.T) {
 					PluginID:   "test_id",
 					PluginType: "tcp_input",
 				},
-				WriteTo:  entry.Field{[]string{}},
+				WriteTo:  entry.Field{
+          Keys: []string{},
+        },
 				OutputID: "test_output_id",
 			},
 		}

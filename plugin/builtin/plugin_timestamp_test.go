@@ -21,7 +21,9 @@ func TestTimestampPlugin(t *testing.T) {
 			},
 			OutputID: "testoutput",
 		},
-		CopyFrom:    entry.Field{[]string{"timestamp"}},
+		CopyFrom: entry.Field{
+			Keys: []string{"timestamp"},
+		},
 		RemoveField: true,
 	}
 

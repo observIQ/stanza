@@ -21,7 +21,9 @@ func TestInputGenerate(t *testing.T) {
 					PluginID:   "test_plugin_id",
 					PluginType: "generate_input",
 				},
-				WriteTo:  entry.Field{[]string{}},
+				WriteTo:  entry.Field{
+          Keys: []string{},
+        },
 				OutputID: "output1",
 			},
 			Record: "test message",
