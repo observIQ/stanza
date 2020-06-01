@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/bluemedora/bplogagent/agent"
@@ -25,7 +24,7 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 	}
 }
 
-func runGraph(command *cobra.Command, args []string, flags *RootFlags) error {
+func runGraph(command *cobra.Command, args []string, flags *RootFlags) {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
 		logger = newDefaultLoggerAt(zapcore.DebugLevel)
@@ -62,15 +61,11 @@ func runGraph(command *cobra.Command, args []string, flags *RootFlags) error {
 	if err != nil {
 		logger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
 		os.Exit(1)
-		return fmt.Errorf("marshal dot graph: %s", err)
 	}
 
 	_, err = os.Stdout.Write(dotGraph)
 	if err != nil {
 		logger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))
 		os.Exit(1)
-		return fmt.Errorf("write dot graph to stdout: %s", err)
 	}
-
-	return nil
 }

@@ -46,7 +46,7 @@ func (p *Pipeline) Stop() {
 	for _, node := range sortedNodes {
 		plugin := node.(PluginNode).Plugin()
 		plugin.Logger().Debug("Stopping plugin")
-		plugin.Stop()
+		_ = plugin.Stop()
 		plugin.Logger().Debug("Stopped plugin")
 	}
 

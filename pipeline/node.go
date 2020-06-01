@@ -36,7 +36,7 @@ func (b PluginNode) OutputIDs() map[string]int64 {
 // createPluginNode will create a plugin node.
 func createPluginNode(plugin plugin.Plugin) PluginNode {
 	id := createNodeID(plugin.ID())
-	outputIDs := make(map[string]int64, 0)
+	outputIDs := make(map[string]int64)
 	if plugin.CanOutput() {
 		for _, output := range plugin.Outputs() {
 			outputIDs[output.ID()] = createNodeID(output.ID())
@@ -48,6 +48,6 @@ func createPluginNode(plugin plugin.Plugin) PluginNode {
 // createNodeID generates a node id from a plugin id.
 func createNodeID(pluginID string) int64 {
 	hash := fnv.New64a()
-	hash.Write([]byte(pluginID))
+	_, _ = hash.Write([]byte(pluginID))
 	return int64(hash.Sum64())
 }

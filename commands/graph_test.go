@@ -39,7 +39,10 @@ pipeline:
 		ConfigFiles: []string{configPath},
 	}
 	graphCmd := NewGraphCommand(rootFlags)
-	graphCmd.Execute()
+	err = graphCmd.Execute()
+	if err != nil {
+		panic(err)
+	}
 
 	// Output:
 	// strict digraph G {

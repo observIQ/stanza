@@ -48,15 +48,20 @@ func NewRootCmd() *cobra.Command {
 
 	// Profiling flags
 	rootFlagSet.IntVar(&rootFlags.PprofPort, "pprof_port", 0, "listen port for pprof profiling")
-	rootFlagSet.MarkHidden("pprof_port")
 	rootFlagSet.StringVar(&rootFlags.CPUProfile, "cpu_profile", "", "path to cpu profile output")
-	rootFlagSet.MarkHidden("cpu_profile")
 	rootFlagSet.DurationVar(&rootFlags.CPUProfileDuration, "cpu_profile_duration", 60*time.Second, "duration to run the cpu profile")
-	rootFlagSet.MarkHidden("cpu_profile_duration")
 	rootFlagSet.StringVar(&rootFlags.MemProfile, "mem_profile", "", "path to memory profile output")
-	rootFlagSet.MarkHidden("mem_profile")
 	rootFlagSet.DurationVar(&rootFlags.MemProfileDelay, "mem_profile_delay", 10*time.Second, "time to wait before writing a memory profile")
-	rootFlagSet.MarkHidden("mem_profile_delay")
+
+	// Set profiling flags to hidden
+	hiddenFlags := []string{"pprof_port", "cpu_profile", "cpu_profile_duration", "mem_profile", "mem_profile_delay"}
+	for _, flag := range hiddenFlags {
+		err := rootFlagSet.MarkHidden(flag)
+		if err != nil {
+			// MarkHidden only fails if the flag does not exist
+			panic(err)
+		}
+	}
 
 	graph := NewGraphCommand(rootFlags)
 	root.AddCommand(graph)
