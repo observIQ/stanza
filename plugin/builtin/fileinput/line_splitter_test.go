@@ -66,6 +66,7 @@ func TestLineStartSplitFunc(t *testing.T) {
 			Pattern: `LOGSTART \d+ `,
 			Raw:     []byte(`part that doesn't match LOGSTART 123 part that matches`),
 			ExpectedTokenized: []string{
+				`part that doesn't match `,
 				`LOGSTART 123 part that matches`,
 			},
 		},
@@ -106,7 +107,6 @@ func TestLineStartSplitFunc(t *testing.T) {
 				newRaw = append(newRaw, []byte(`LOGSTART 234 endlog`)...)
 				return newRaw
 			}(),
-			// TODO determine just how long a token can be, and if we can increase that
 			ExpectedError:     errors.New("bufio.Scanner: token too long"),
 			ExpectedTokenized: []string{},
 		},
@@ -185,8 +185,7 @@ func TestLineEndSplitFunc(t *testing.T) {
 				return newRaw
 			}(),
 			ExpectedTokenized: []string{},
-			// TODO determine just how long a token can be, and if we can increase that
-			ExpectedError: errors.New("bufio.Scanner: token too long"),
+			ExpectedError:     errors.New("bufio.Scanner: token too long"),
 		},
 	}
 

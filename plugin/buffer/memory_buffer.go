@@ -88,5 +88,5 @@ func (b *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
 		panic("must call SetHandler before any calls to Process")
 	}
 
-	return b.AddWait(ctx, entry, 100) // TODO calculate size accurately?
+	return b.AddWait(ctx, entry, 100)
 }

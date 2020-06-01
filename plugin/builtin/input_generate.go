@@ -119,7 +119,6 @@ func copyRecord(r interface{}) interface{} {
 	}
 }
 
-// TODO This is a really dumb implementation right now.
 // Should this do something different with pointers or arrays?
 func copyMap(m map[string]interface{}) map[string]interface{} {
 	cp := make(map[string]interface{})

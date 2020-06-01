@@ -51,10 +51,8 @@ func (p *CopyPlugin) CanProcess() bool {
 // Process will copy and send a log entry to the connected outputs.
 func (p *CopyPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	for _, output := range p.outputs {
-		// TODO #172624815 should we block if one output can't keep up?
 		err := output.Process(ctx, copyEntry(entry))
 		if err != nil {
-			// TODO #172624815 what should err behavior look like for copy?
 			return err
 		}
 	}
