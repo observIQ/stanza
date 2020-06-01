@@ -18,12 +18,12 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 	mock := testutil.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:      "test",
-			PluginType:    "json_parser",
-			SugaredLogger: logger.Sugar(),
-		},
-		BasicParser: helper.BasicParser{
+		ParserPlugin: helper.ParserPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:      "test",
+				PluginType:    "json_parser",
+				SugaredLogger: logger.Sugar(),
+			},
 			Output:    &mock,
 			ParseFrom: entry.NewField("testfield"),
 			ParseTo:   entry.NewField("testparsed"),

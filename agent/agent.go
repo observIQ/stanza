@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bluemedora/bplogagent/config"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/pipeline"
 	pg "github.com/bluemedora/bplogagent/plugin"
@@ -17,7 +16,7 @@ import (
 
 // LogAgent is an entity that handles log monitoring.
 type LogAgent struct {
-	Config *config.Config
+	Config *Config
 	*zap.SugaredLogger
 
 	database *bbolt.DB
@@ -39,14 +38,9 @@ func (a *LogAgent) Start() error {
 	a.database = database
 
 	buildContext := newBuildContext(a.SugaredLogger, database)
-	plugins, err := pg.BuildPlugins(a.Config.Plugins, buildContext)
+	pipeline, err := a.Config.Pipeline.BuildPipeline(buildContext)
 	if err != nil {
-		return errors.Wrap(err, "Build plugins")
-	}
-
-	pipeline, err := pipeline.NewPipeline(plugins)
-	if err != nil {
-		return errors.Wrap(err, "Build pipeline")
+		return errors.Wrap(err, "build pipeline")
 	}
 	a.pipeline = pipeline
 
@@ -121,7 +115,7 @@ func defaultDatabaseFile() string {
 }
 
 // NewLogAgent creates a new log agent.
-func NewLogAgent(cfg *config.Config, logger *zap.SugaredLogger) *LogAgent {
+func NewLogAgent(cfg *Config, logger *zap.SugaredLogger) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,

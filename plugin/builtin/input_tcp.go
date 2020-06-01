@@ -18,20 +18,14 @@ func init() {
 
 // TCPInputConfig is the configuration of a tcp input plugin.
 type TCPInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.InputConfig `mapstructure:",squash" yaml:",inline"`
 
 	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a tcp input plugin.
 func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicInput, err := c.BasicInputConfig.Build()
+	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +40,7 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	tcpInput := &TCPInput{
-		BasicPlugin: basicPlugin,
-		BasicInput:  basicInput,
+		InputPlugin: inputPlugin,
 		address:     address,
 	}
 	return tcpInput, nil
@@ -55,8 +48,7 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 
 // TCPInput is a plugin that listens for log entries over tcp.
 type TCPInput struct {
-	helper.BasicPlugin
-	helper.BasicInput
+	helper.InputPlugin
 	address *net.TCPAddr
 
 	listener  net.Listener

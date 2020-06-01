@@ -35,12 +35,12 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Pl
 	db, cleanup := newTempDB()
 
 	source = &FileInput{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:      "testfile",
-			PluginType:    "file_input",
-			SugaredLogger: logger,
-		},
-		BasicInput: helper.BasicInput{
+		InputPlugin: helper.InputPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:      "testfile",
+				PluginType:    "file_input",
+				SugaredLogger: logger,
+			},
 			Output: mockOutput,
 		},
 		SplitFunc:        bufio.ScanLines,
@@ -67,11 +67,11 @@ func TestFileSource_Build(t *testing.T) {
 	pathField := entry.NewField("testpath")
 
 	sourceConfig := &FileInputConfig{
-		BasicPluginConfig: helper.BasicPluginConfig{
-			PluginID:   "testfile",
-			PluginType: "file_input",
-		},
-		BasicInputConfig: helper.BasicInputConfig{
+		InputConfig: helper.InputConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "testfile",
+				PluginType: "file_input",
+			},
 			OutputID: "mock",
 		},
 		Include: []string{"/var/log/testpath.*"},

@@ -17,20 +17,14 @@ func init() {
 
 // SyslogParserConfig is the configuration of a syslog parser plugin.
 type SyslogParserConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.ParserConfig `mapstructure:",squash" yaml:",inline"`
 
 	Protocol string `mapstructure:"protocol" json:"protocol,omitempty" yaml:"protocol,omitempty"`
 }
 
 // Build will build a JSON parser plugin.
 func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -45,9 +39,8 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	}
 
 	syslogParser := &SyslogParser{
-		BasicPlugin: basicPlugin,
-		BasicParser: basicParser,
-		machine:     machine,
+		ParserPlugin: parserPlugin,
+		machine:      machine,
 	}
 
 	return syslogParser, nil
@@ -66,15 +59,13 @@ func (c SyslogParserConfig) buildMachine() (syslog.Machine, error) {
 
 // SyslogParser is a plugin that parses syslog.
 type SyslogParser struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicParser
+	helper.ParserPlugin
 	machine syslog.Machine
 }
 
 // Process will parse an entry field as syslog.
 func (s *SyslogParser) Process(entry *entry.Entry) error {
-	return s.BasicParser.ProcessWith(entry, s.parse)
+	return s.ProcessWith(entry, s.parse)
 }
 
 // parse will parse a value as syslog.

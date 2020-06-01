@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bluemedora/bplogagent/config"
-	"github.com/bluemedora/bplogagent/pipeline"
+	"github.com/bluemedora/bplogagent/agent"
 	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/custom"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -27,22 +27,21 @@ func runGraph(command *cobra.Command, args []string, flags *GraphFlags) error {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := config.ReadConfigsFromGlobs(flags.ConfigFiles)
+	if err := custom.LoadAll(flags.PluginDir, "*.yaml"); err != nil {
+		logger.Errorw("Failed to load plugin definitions", zap.Any("error", err))
+	}
+
+	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		logger.Errorw("Failed to read config files", zap.Any("error", err))
+		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	buildContext := pg.BuildContext{
 		Logger: logger,
 	}
-	plugins, err := pg.BuildPlugins(cfg.Plugins, buildContext)
-	if err != nil {
-		logger.Errorw("Failed to build plugins", zap.Any("error", err))
-		os.Exit(1)
-	}
 
-	pipeline, err := pipeline.NewPipeline(plugins)
+	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext)
 	if err != nil {
 		logger.Errorw("Failed to build plugin pipeline", zap.Any("error", err))
 		os.Exit(1)

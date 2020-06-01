@@ -15,25 +15,18 @@ func init() {
 
 // JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.ParserConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a JSON parser plugin.
 func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	jsonParser := &JSONParser{
-		BasicPlugin: basicPlugin,
-		BasicParser: basicParser,
+		ParserPlugin: parserPlugin,
 		json:        jsoniter.ConfigFastest,
 	}
 
@@ -42,15 +35,13 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // JSONParser is a plugin that parses JSON.
 type JSONParser struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicParser
+	helper.ParserPlugin
 	json jsoniter.API
 }
 
 // Process will parse an entry for JSON.
 func (j *JSONParser) Process(entry *entry.Entry) error {
-	return j.BasicParser.ProcessWith(entry, j.parse)
+	return j.ProcessWith(entry, j.parse)
 }
 
 // parse will parse a value as JSON.

@@ -18,20 +18,14 @@ func init() {
 
 // UDPInputConfig is the configuration of a udp input plugin.
 type UDPInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.InputConfig `mapstructure:",squash" yaml:",inline"`
 
 	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a udp input plugin.
 func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicInput, err := c.BasicInputConfig.Build()
+	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +40,7 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	udpInput := &UDPInput{
-		BasicPlugin: basicPlugin,
-		BasicInput:  basicInput,
+		InputPlugin: inputPlugin,
 		address:     address,
 	}
 	return udpInput, nil
@@ -55,8 +48,7 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 
 // UDPInput is a plugin that listens to a socket for log entries.
 type UDPInput struct {
-	helper.BasicPlugin
-	helper.BasicInput
+	helper.InputPlugin
 	address *net.UDPAddr
 
 	connection net.PacketConn

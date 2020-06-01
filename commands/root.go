@@ -10,7 +10,7 @@ import (
 	"runtime"
 
 	agent "github.com/bluemedora/bplogagent/agent"
-	"github.com/bluemedora/bplogagent/config"
+	"github.com/bluemedora/bplogagent/plugin/custom"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -18,6 +18,7 @@ import (
 
 type RootFlags struct {
 	ConfigFiles []string
+	PluginDir   string
 	PprofPort   int
 	Debug       bool
 }
@@ -36,6 +37,7 @@ func NewRootCmd() *cobra.Command {
 
 	rootFlagSet := root.PersistentFlags()
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"/etc/bplogagent/bplogagent.yaml"}, "path to a config file") // TODO default locations
+	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", "/etc/bplogagent/plugins", "path to the plugin directory")
 	rootFlagSet.IntVar(&rootFlags.PprofPort, "pprof_port", 0, "listen port for pprof profiling")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
@@ -66,9 +68,13 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := config.ReadConfigsFromGlobs(flags.ConfigFiles)
+	if err := custom.LoadAll(flags.PluginDir, "*.yaml"); err != nil {
+		logger.Errorw("Failed to load plugin definitions", zap.Any("error", err))
+	}
+
+	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		logger.Errorw("Failed to read config", zap.Any("error", err))
+		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
 	logger.Debugw("Parsed config", "config", cfg)

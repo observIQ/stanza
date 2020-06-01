@@ -12,18 +12,18 @@ func init() {
 
 // DropOutputConfig is the configuration of a drop output plugin.
 type DropOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
 }
 
 // Build will build a drop output plugin.
 func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	outputPlugin, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	dropOutput := &DropOutput{
-		BasicPlugin: basicPlugin,
+		OutputPlugin: outputPlugin,
 	}
 
 	return dropOutput, nil
@@ -31,9 +31,7 @@ func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // DropOutput is a plugin that consumes and ignores incoming entries.
 type DropOutput struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicOutput
+	helper.OutputPlugin
 }
 
 // Process will drop the incoming entry.

@@ -7,8 +7,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// BasicParserConfig provides the basic implementation of a parser config.
-type BasicParserConfig struct {
+// ParserConfig provides the basic implementation of a parser config.
+type ParserConfig struct {
+	BasicConfig `mapstructure:",squash" yaml:",inline"`
+
 	OutputID  string      `mapstructure:"output"     json:"output"     yaml:"output"`
 	ParseFrom entry.Field `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from"`
 	ParseTo   entry.Field `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to"`
@@ -16,10 +18,25 @@ type BasicParserConfig struct {
 	OnError   string      `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
 }
 
-// Build will build a basic parser.
-func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error) {
+// ID will return the plugin id.
+func (c ParserConfig) ID() string {
+	return c.PluginID
+}
+
+// Type will return the plugin type.
+func (c ParserConfig) Type() string {
+	return c.PluginType
+}
+
+// Build will build a parser plugin.
+func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
+	basicPlugin, err := c.BasicConfig.Build(context)
+	if err != nil {
+		return ParserPlugin{}, err
+	}
+
 	if c.OutputID == "" {
-		return BasicParser{}, errors.NewError(
+		return ParserPlugin{}, errors.NewError(
 			"Plugin config is missing the `output` field.",
 			"Ensure that a valid `output` field exists on the plugin config.",
 		)
@@ -32,53 +49,64 @@ func (c BasicParserConfig) Build(logger *zap.SugaredLogger) (BasicParser, error)
 	switch c.OnError {
 	case "fail", "drop", "ignore":
 	default:
-		return BasicParser{}, errors.NewError(
+		return ParserPlugin{}, errors.NewError(
 			"Plugin config has an invalid `on_error` field.",
 			"Ensure that the `on_error` field is set to fail, drop, or ignore.",
 			"on_error", c.OnError,
 		)
 	}
 
-	basicParser := BasicParser{
-		OutputID:      c.OutputID,
-		ParseFrom:     c.ParseFrom,
-		ParseTo:       c.ParseTo,
-		Preserve:      c.Preserve,
-		OnError:       c.OnError,
-		SugaredLogger: logger,
+	parserPlugin := ParserPlugin{
+		BasicPlugin: basicPlugin,
+		OutputID:    c.OutputID,
+		ParseFrom:   c.ParseFrom,
+		ParseTo:     c.ParseTo,
+		Preserve:    c.Preserve,
+		OnError:     c.OnError,
 	}
 
-	return basicParser, nil
+	return parserPlugin, nil
 }
 
-// BasicParser provides a basic implementation of a parser plugin.
-type BasicParser struct {
+// SetNamespace will namespace the id and output of the plugin config.
+func (c *ParserConfig) SetNamespace(namespace string, exclusions ...string) {
+	if CanNamespace(c.PluginID, exclusions) {
+		c.PluginID = AddNamespace(c.PluginID, namespace)
+	}
+
+	if CanNamespace(c.OutputID, exclusions) {
+		c.OutputID = AddNamespace(c.OutputID, namespace)
+	}
+}
+
+// ParserPlugin provides a basic implementation of a parser plugin.
+type ParserPlugin struct {
+	BasicPlugin
 	OutputID  string
 	ParseFrom entry.Field
 	ParseTo   entry.Field
 	Preserve  bool
 	OnError   string
 	Output    plugin.Plugin
-	*zap.SugaredLogger
 }
 
 // CanProcess will always return true for a parser plugin.
-func (p *BasicParser) CanProcess() bool {
+func (p *ParserPlugin) CanProcess() bool {
 	return true
 }
 
 // CanOutput will always return true for a parser plugin.
-func (p *BasicParser) CanOutput() bool {
+func (p *ParserPlugin) CanOutput() bool {
 	return true
 }
 
 // Outputs will return an array containing the output plugin.
-func (p *BasicParser) Outputs() []plugin.Plugin {
+func (p *ParserPlugin) Outputs() []plugin.Plugin {
 	return []plugin.Plugin{p.Output}
 }
 
 // SetOutputs will set the output plugin.
-func (p *BasicParser) SetOutputs(plugins []plugin.Plugin) error {
+func (p *ParserPlugin) SetOutputs(plugins []plugin.Plugin) error {
 	output, err := FindOutput(plugins, p.OutputID)
 	if err != nil {
 		return err
@@ -89,7 +117,7 @@ func (p *BasicParser) SetOutputs(plugins []plugin.Plugin) error {
 }
 
 // ProcessWith will process an entry with a parser function and forward the results to the output plugin.
-func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) error {
+func (p *ParserPlugin) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) error {
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
 		err := errors.NewError(
@@ -114,7 +142,7 @@ func (p *BasicParser) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) e
 }
 
 // HandleParserError will handle an error based on the `OnError` property
-func (p *BasicParser) HandleParserError(entry *entry.Entry, err error) error {
+func (p *ParserPlugin) HandleParserError(entry *entry.Entry, err error) error {
 	p.Warnw("Failed to parse entry", zap.Any("error", err), "entry", entry)
 
 	if p.OnError == "fail" {

@@ -28,7 +28,7 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
 
 	Credentials   string       `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
 	ProjectID     string       `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
@@ -41,7 +41,7 @@ type GoogleCloudOutputConfig struct {
 
 // Build will build a google cloud output plugin.
 func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	outputPlugin, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -55,9 +55,9 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 	}
 
 	googleCloudOutput := &GoogleCloudOutput{
-		BasicPlugin: basicPlugin,
-		credentials: c.Credentials,
-		projectID:   c.ProjectID,
+		OutputPlugin: outputPlugin,
+		credentials:  c.Credentials,
+		projectID:    c.ProjectID,
 
 		logNameField:  c.LogNameField,
 		labelsField:   c.LabelsField,
@@ -71,8 +71,7 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
-	helper.BasicPlugin
-	helper.BasicOutput
+	helper.OutputPlugin
 
 	credentials string
 	projectID   string

@@ -18,7 +18,7 @@ func init() {
 
 // FileOutputConfig is the configuration of a file output pluginn.
 type FileOutputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
 
 	Path   string `mapstructure:"path" json:"path" yaml:"path"`
 	Format string `mapstructure:"format" json:"format,omitempty" path:"format,omitempty"`
@@ -26,7 +26,7 @@ type FileOutputConfig struct {
 
 // Build will build a file output plugin.
 func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	outputPlugin, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	fileOutput := &FileOutput{
-		BasicPlugin: basicPlugin,
-		path:        c.Path,
-		tmpl:        tmpl,
+		OutputPlugin: outputPlugin,
+		path:         c.Path,
+		tmpl:         tmpl,
 	}
 
 	return fileOutput, nil
@@ -54,8 +54,7 @@ func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // FileOutput is a plugin that writes logs to a file.
 type FileOutput struct {
-	helper.BasicPlugin
-	helper.BasicOutput
+	helper.OutputPlugin
 
 	path    string
 	tmpl    *template.Template

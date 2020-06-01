@@ -16,8 +16,7 @@ func init() {
 
 // RateLimitConfig is the configuration of a rate filter plugin.
 type RateLimitConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.TransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	Rate     float64 `mapstructure:"rate"     json:"rate,omitempty"     yaml:"rate,omitempty"`
 	Interval float64 `mapstructure:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
@@ -26,12 +25,7 @@ type RateLimitConfig struct {
 
 // Build will build a rate limit plugin.
 func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +40,9 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}
 
 	rateLimitPlugin := &RateLimitPlugin{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-		interval:         interval,
-		burst:            c.Burst,
+		TransformerPlugin: transformerPlugin,
+		interval:          interval,
+		burst:             c.Burst,
 	}
 
 	return rateLimitPlugin, nil
@@ -57,8 +50,7 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 
 // RateLimitPlugin is a plugin that limits the rate of log consumption between plugins.
 type RateLimitPlugin struct {
-	helper.BasicPlugin
-	helper.BasicTransformer
+	helper.TransformerPlugin
 
 	interval time.Duration
 	burst    uint

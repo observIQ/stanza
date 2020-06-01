@@ -13,10 +13,12 @@ func NewFakeLogOutput() *LoggerOutput {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
 	return &LoggerOutput{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:      "test",
-			PluginType:    "logger_output",
-			SugaredLogger: sugaredLogger,
+		OutputPlugin: helper.OutputPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:      "test",
+				PluginType:    "logger_output",
+				SugaredLogger: sugaredLogger,
+			},
 		},
 		logFunc: func(string, ...interface{}) {},
 	}

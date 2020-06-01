@@ -15,20 +15,14 @@ func init() {
 
 // RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.ParserConfig `mapstructure:",squash" yaml:",inline"`
 
 	Regex string `mapstructure:"regex" json:"regex" yaml:"regex"`
 }
 
 // Build will build a regex parser plugin.
 func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +37,8 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	regexParser := &RegexParser{
-		BasicPlugin: basicPlugin,
-		BasicParser: basicParser,
-		regexp:      r,
+		ParserPlugin: parserPlugin,
+		regexp:       r,
 	}
 
 	return regexParser, nil
@@ -53,15 +46,13 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // RegexParser is a plugin that parses regex in an entry.
 type RegexParser struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicParser
+	helper.ParserPlugin
 	regexp *regexp.Regexp
 }
 
 // Process will parse an entry for regex.
 func (r *RegexParser) Process(entry *entry.Entry) error {
-	return r.BasicParser.ProcessWith(entry, r.parse)
+	return r.ProcessWith(entry, r.parse)
 }
 
 // parse will parse a value using the supplied regex.

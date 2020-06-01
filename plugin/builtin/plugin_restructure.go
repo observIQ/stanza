@@ -3,7 +3,6 @@ package builtin
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
@@ -15,42 +14,31 @@ import (
 )
 
 func init() {
-	plugin.Register("restructure", &RestructurePluginConfig{}, OpDecoder)
+	plugin.Register("restructure", &RestructurePluginConfig{})
 }
 
 type RestructurePluginConfig struct {
-	helper.BasicPluginConfig      `mapstructure:",squash" yaml:",inline"`
-	helper.BasicTransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.TransformerConfig `mapstructure:",squash" yaml:",inline"`
 
 	Ops []Op `mapstructure:"ops" json:"ops" yaml:"ops"`
 }
 
 func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	basicTransformer, err := c.BasicTransformerConfig.Build()
-	if err != nil {
-		return nil, err
+	restructurePlugin := &RestructurePlugin{
+		TransformerPlugin: transformerPlugin,
+		ops:               c.Ops,
 	}
 
-	plugin := &RestructurePlugin{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-
-		ops: c.Ops,
-	}
-
-	return plugin, nil
+	return restructurePlugin, nil
 }
 
 type RestructurePlugin struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicTransformer
-
+	helper.TransformerPlugin
 	ops []Op
 }
 
@@ -185,113 +173,6 @@ func (o Op) MarshalYAML() (interface{}, error) {
 	return map[string]interface{}{
 		o.Type(): o.OpApplier,
 	}, nil
-}
-
-var OpDecoder mapstructure.DecodeHookFunc = func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-	if t.String() != "builtin.Op" {
-		return data, nil
-	}
-
-	var m map[string]interface{}
-	switch f {
-	case reflect.TypeOf(map[interface{}]interface{}{}):
-		m = make(map[string]interface{})
-		for k, v := range data.(map[interface{}]interface{}) {
-			if kString, ok := k.(string); ok {
-				m[kString] = v
-			} else {
-				return nil, fmt.Errorf("map has non-string key %v of type %T", k, k)
-			}
-		}
-	case reflect.TypeOf(map[string]interface{}{}):
-		m = data.(map[string]interface{})
-	default:
-		return data, nil
-	}
-
-	var opType *string
-	var rawOp interface{}
-	for k, v := range m {
-		if opType != nil {
-			return nil, fmt.Errorf("only one Op type can be defined per operation")
-		}
-
-		opType = &k
-		rawOp = v
-	}
-
-	if opType == nil {
-		return nil, fmt.Errorf("no Op type defined")
-	}
-
-	switch *opType {
-	case "move":
-		var move OpMove
-		err := decodeWithFieldSelector(rawOp, &move)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode OpMove: %s", err)
-		}
-		return Op{&move}, nil
-	case "add":
-		var addRaw struct {
-			Field     *entry.Field
-			Value     interface{}
-			ValueExpr *string `mapstructure:"value_expr"`
-		}
-		err := decodeWithFieldSelector(rawOp, &addRaw)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode OpAdd: %s", err)
-		}
-		// TODO #172624630 if add.Value is a map[interface{}]interface{}, convert it to map[string]interface{}
-
-		if addRaw.Field == nil {
-			return nil, fmt.Errorf("decode OpAdd: missing required field 'field'")
-		}
-
-		switch {
-		case addRaw.Value != nil && addRaw.ValueExpr != nil:
-			return nil, fmt.Errorf("decode OpAdd: only one of 'value' or 'value_expr' may be defined")
-		case addRaw.Value == nil && addRaw.ValueExpr == nil:
-			return nil, fmt.Errorf("decode OpAdd: exactly one of 'value' or 'value_expr' must be defined")
-		case addRaw.Value != nil:
-			return Op{&OpAdd{
-				Field: *addRaw.Field,
-				Value: addRaw.Value,
-			}}, nil
-		case addRaw.ValueExpr != nil:
-			compiled, err := expr.Compile(*addRaw.ValueExpr, expr.AllowUndefinedVariables())
-			if err != nil {
-				return nil, fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
-			}
-			return Op{&OpAdd{
-				Field:     *addRaw.Field,
-				ValueExpr: compiled,
-			}}, nil
-		}
-	case "remove":
-		var remove OpRemove
-		err := decodeWithFieldSelector(rawOp, &remove.Field)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode OpRemove: %s", err)
-		}
-		return Op{&remove}, nil
-	case "retain":
-		var retain OpRetain
-		err := decodeWithFieldSelector(rawOp, &retain.Fields)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode OpRetain: %s", err)
-		}
-		return Op{&retain}, nil
-	case "flatten":
-		var flatten OpFlatten
-		err := decodeWithFieldSelector(rawOp, &flatten.Field)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode OpFlatten: %s", err)
-		}
-		return Op{&flatten}, nil
-	}
-
-	return nil, fmt.Errorf("unknown Op type %s", *opType)
 }
 
 func decodeWithFieldSelector(input, dest interface{}) error {

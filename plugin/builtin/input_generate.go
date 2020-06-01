@@ -16,8 +16,7 @@ func init() {
 
 // GenerateInputConfig is the configuration of a generate input plugin.
 type GenerateInputConfig struct {
-	helper.BasicPluginConfig `mapstructure:",squash" yaml:",inline"`
-	helper.BasicInputConfig  `mapstructure:",squash" yaml:",inline"`
+	helper.InputConfig `mapstructure:",squash" yaml:",inline"`
 
 	Record map[string]interface{} `mapstructure:"record" json:"record"          yaml:"record"`
 	Count  int                    `mapstructure:"count"  json:"count,omitempty" yaml:"count,omitempty"`
@@ -25,19 +24,13 @@ type GenerateInputConfig struct {
 
 // Build will build a generate input plugin.
 func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicInput, err := c.BasicInputConfig.Build()
+	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	generateInput := &GenerateInput{
-		BasicPlugin: basicPlugin,
-		BasicInput:  basicInput,
+		InputPlugin: inputPlugin,
 		record:      recursiveMapInterfaceToMapString(c.Record),
 		count:       c.Count,
 	}
@@ -46,8 +39,7 @@ func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 
 // GenerateInput is a plugin that generates log entries.
 type GenerateInput struct {
-	helper.BasicPlugin
-	helper.BasicInput
+	helper.InputPlugin
 	count  int
 	record interface{}
 	cancel context.CancelFunc
