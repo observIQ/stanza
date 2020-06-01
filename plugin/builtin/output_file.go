@@ -89,21 +89,19 @@ func (fo *FileOutput) Stop() error {
 // Process will write an entry to the output file.
 func (fo *FileOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	fo.mux.Lock()
+	defer fo.mux.Unlock()
 
 	if fo.tmpl != nil {
 		err := fo.tmpl.Execute(fo.file, entry)
 		if err != nil {
-			fo.mux.Unlock() // TODO switch to defer once updated to go 1.14
 			return err
 		}
 	} else {
 		err := fo.encoder.Encode(entry)
 		if err != nil {
-			fo.mux.Unlock()
 			return err
 		}
 	}
 
-	fo.mux.Unlock()
 	return nil
 }
