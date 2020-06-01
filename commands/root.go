@@ -69,7 +69,7 @@ func NewRootCmd() *cobra.Command {
 	return root
 }
 
-func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
+func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
 		logger = newDefaultLoggerAt(zapcore.DebugLevel)
@@ -204,5 +204,4 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 	}
 
 	return wg
-
 }

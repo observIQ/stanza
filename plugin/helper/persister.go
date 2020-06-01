@@ -53,7 +53,7 @@ func (p *ScopedBBoltPersister) Sync() error {
 
 		p.cacheMux.Lock()
 		for k, v := range p.cache {
-			err := bucket.Put([]byte(k), []byte(v))
+			err := bucket.Put([]byte(k), v)
 			if err != nil {
 				return err
 			}
@@ -72,7 +72,7 @@ func (p *ScopedBBoltPersister) Load() error {
 	p.cache = make(map[string][]byte)
 
 	return p.db.Update(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(p.scope))
+		bucket, err := tx.CreateBucketIfNotExists(p.scope)
 		if err != nil {
 			return err
 		}

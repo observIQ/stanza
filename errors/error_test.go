@@ -31,7 +31,6 @@ func TestWithDetails(t *testing.T) {
 
 		require.Equal(t, err2.Details, ErrorDetails{"foo": "bar"})
 	})
-
 }
 
 func TestErrorMessage(t *testing.T) {
@@ -46,7 +45,6 @@ func TestErrorMessage(t *testing.T) {
 
 		require.Equal(t, `Test error`, err.Error())
 	})
-
 }
 
 func TestWrap(t *testing.T) {
