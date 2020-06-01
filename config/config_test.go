@@ -28,7 +28,7 @@ plugins:
       - "./testfile"
   - id: my_restructure
     type: restructure
-    output: my_logger
+    output: my_stdout
     ops:
       - add:
           field: "message.nested"
@@ -43,8 +43,8 @@ plugins:
       - retain:
         - "message.nested3"
       - flatten: "message"
-  - id: my_logger
-    type: logger_output
+  - id: my_stdout
+    type: stdout
 `)
 
 var testRepresentativeJSON = []byte(`
@@ -61,7 +61,7 @@ var testRepresentativeJSON = []byte(`
     {
       "id": "my_restructure",
       "type": "restructure",
-      "output": "my_logger",
+      "output": "my_stdout",
       "ops": [
         {
           "add": {
@@ -95,8 +95,8 @@ var testRepresentativeJSON = []byte(`
       ]
     },
     {
-      "id": "my_logger",
-      "type": "logger_output"
+      "id": "my_stdout",
+      "type": "stdout"
     }
   ]
 }
@@ -127,7 +127,7 @@ var testParsedRepresentativeConfig = Config{
 					PluginType: "restructure",
 				},
 				BasicTransformerConfig: helper.BasicTransformerConfig{
-					OutputID: "my_logger",
+					OutputID: "my_stdout",
 				},
 				Ops: []builtin.Op{
 					{
@@ -167,10 +167,10 @@ var testParsedRepresentativeConfig = Config{
 			},
 		},
 		{
-			PluginBuilder: &builtin.LoggerOutputConfig{
+			PluginBuilder: &builtin.StdoutConfig{
 				BasicPluginConfig: helper.BasicPluginConfig{
-					PluginID:   "my_logger",
-					PluginType: "logger_output",
+					PluginID:   "my_stdout",
+					PluginType: "stdout",
 				},
 			},
 		},
@@ -220,7 +220,7 @@ func TestReadConfigsFromGlobs(t *testing.T) {
 	output1 := []byte(`
 plugins:
   - id: output1
-    type: logger_output
+    type: stdout
 `)
 
 	file1 := []byte(`
