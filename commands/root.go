@@ -66,6 +66,9 @@ func NewRootCmd() *cobra.Command {
 	graph := NewGraphCommand(rootFlags)
 	root.AddCommand(graph)
 
+	version := NewVersionCommand()
+	root.AddCommand(version)
+
 	return root
 }
 
