@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -132,13 +133,13 @@ func TestRestructurePlugin(t *testing.T) {
 			plugin, mockOutput := NewFakeRestructurePlugin()
 			plugin.ops = tc.ops
 
-			mockOutput.On("Process", mock.Anything).Run(func(args mock.Arguments) {
-				if !assert.Equal(t, tc.output, args[0].(*entry.Entry)) {
+			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+				if !assert.Equal(t, tc.output, args[1].(*entry.Entry)) {
 					t.FailNow()
 				}
 			}).Return(nil)
 
-			err := plugin.Process(tc.input)
+			err := plugin.Process(context.Background(), tc.input)
 			require.NoError(t, err)
 		})
 	}

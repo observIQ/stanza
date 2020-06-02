@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
@@ -15,7 +16,9 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	gax "github.com/googleapis/gax-go"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 	sev "google.golang.org/genproto/googleapis/logging/type"
@@ -28,43 +31,49 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `yaml:",inline"`
+	buffer.BufferConfig `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
-	Credentials   string       `mapstructure:"credentials"    json:"credentials"              yaml:"credentials"`
-	ProjectID     string       `mapstructure:"project_id"     json:"project_id"               yaml:"project_id"`
-	LogNameField  *entry.Field `mapstructure:"log_name_field" json:"log_name_field,omitempty" yaml:"log_name_field,omitempty"`
-	LabelsField   *entry.Field `mapstructure:"labels_field"   json:"labels_field,omitempty"   yaml:"labels_field,omitempty"`
-	SeverityField *entry.Field `mapstructure:"severity_field" json:"severity_field,omitempty" yaml:"severity_field,omitempty"`
-	TraceField    *entry.Field `mapstructure:"trace_field"    json:"trace_field,omitempty"    yaml:"trace_field,omitempty"`
-	SpanIDField   *entry.Field `mapstructure:"span_id_field"  json:"span_id_field,omitempty"  yaml:"span_id_field,omitempty"`
+	Credentials     string       `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
+	CredentialsFile string       `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
+	ProjectID       string       `json:"project_id"                 yaml:"project_id"`
+	LogNameField    *entry.Field `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
+	LabelsField     *entry.Field `json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
+	SeverityField   *entry.Field `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
+	TraceField      *entry.Field `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
+	SpanIDField     *entry.Field `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 }
 
 // Build will build a google cloud output plugin.
-func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
+	outputPlugin, err := c.OutputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.Credentials == "" {
-		return nil, errors.New("missing required configuration option credentials")
 	}
 
 	if c.ProjectID == "" {
 		return nil, errors.New("missing required configuration option project_id")
 	}
 
-	googleCloudOutput := &GoogleCloudOutput{
-		OutputPlugin: outputPlugin,
-		credentials:  c.Credentials,
-		projectID:    c.ProjectID,
-
-		logNameField:  c.LogNameField,
-		labelsField:   c.LabelsField,
-		severityField: c.SeverityField,
-		traceField:    c.TraceField,
-		spanIDField:   c.SpanIDField,
+	newBuffer, err := c.BufferConfig.Build()
+	if err != nil {
+		return nil, err
 	}
+
+	googleCloudOutput := &GoogleCloudOutput{
+		OutputPlugin:    outputPlugin,
+		credentials:     c.Credentials,
+		credentialsFile: c.CredentialsFile,
+		projectID:       c.ProjectID,
+		Buffer:          newBuffer,
+		logNameField:    c.LogNameField,
+		labelsField:     c.LabelsField,
+		severityField:   c.SeverityField,
+		traceField:      c.TraceField,
+		spanIDField:     c.SpanIDField,
+	}
+
+	newBuffer.SetHandler(googleCloudOutput)
 
 	return googleCloudOutput, nil
 }
@@ -72,9 +81,11 @@ func (c GoogleCloudOutputConfig) Build(context plugin.BuildContext) (plugin.Plug
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
 	helper.OutputPlugin
+	buffer.Buffer
 
-	credentials string
-	projectID   string
+	credentials     string
+	credentialsFile string
+	projectID       string
 
 	logNameField  *entry.Field
 	labelsField   *entry.Field
@@ -82,14 +93,45 @@ type GoogleCloudOutput struct {
 	traceField    *entry.Field
 	spanIDField   *entry.Field
 
-	buffer buffer.Buffer
-	client *vkit.Client
+	client CloudLoggingClient
+}
+
+type CloudLoggingClient interface {
+	Close() error
+	WriteLogEntries(context.Context, *logpb.WriteLogEntriesRequest, ...gax.CallOption) (*logpb.WriteLogEntriesResponse, error)
 }
 
 // Start will start the google cloud logger.
 func (p *GoogleCloudOutput) Start() error {
+	var credentials *google.Credentials
+	var err error
+	scope := "https://www.googleapis.com/auth/logging.write"
+	switch {
+	case p.credentials != "" && p.credentialsFile != "":
+		return errors.New("at most one of credentials or credentials_file can be configured")
+	case p.credentials != "":
+		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(p.credentials), scope)
+		if err != nil {
+			return fmt.Errorf("parse credentials: %s", err)
+		}
+	case p.credentialsFile != "":
+		credentialsBytes, err := ioutil.ReadFile(p.credentialsFile)
+		if err != nil {
+			return fmt.Errorf("read credentials file: %s", err)
+		}
+		credentials, err = google.CredentialsFromJSON(context.Background(), credentialsBytes, scope)
+		if err != nil {
+			return fmt.Errorf("parse credentials: %s", err)
+		}
+	default:
+		credentials, err = google.FindDefaultCredentials(context.Background(), scope)
+		if err != nil {
+			return fmt.Errorf("get default credentials: %s", err)
+		}
+	}
+
 	options := make([]option.ClientOption, 0, 2)
-	options = append(options, option.WithCredentialsJSON([]byte(p.credentials)))
+	options = append(options, option.WithCredentials(credentials))
 	options = append(options, option.WithUserAgent("BindPlaneLogAgent/2.0.0"))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
 	defer cancel()
@@ -100,15 +142,15 @@ func (p *GoogleCloudOutput) Start() error {
 	}
 	p.client = client
 
-	p.buffer = buffer.NewMemoryBuffer(&logpb.LogEntry{}, func(ctx context.Context, entries interface{}) error {
-		castEntries := entries.([]*logpb.LogEntry)
-		err := p.writeEntries(ctx, castEntries)
-		if err != nil {
-			p.Warnw("Failed to flush", zap.Error(err))
-			return err
-		}
-		return nil
-	})
+	// Test writing a log message
+	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(time.Second*10))
+	defer cancel()
+	testEntry := entry.New()
+	testEntry.Record = map[string]interface{}{"message": "Test connection"}
+	err = p.ProcessMulti(ctx, []*entry.Entry{testEntry})
+	if err != nil {
+		return fmt.Errorf("test connection: %s", err)
+	}
 
 	return nil
 }
@@ -117,33 +159,33 @@ func (p *GoogleCloudOutput) Start() error {
 func (p *GoogleCloudOutput) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := p.buffer.Flush(ctx)
+	err := p.Buffer.Flush(ctx)
 	if err != nil {
 		p.Warnw("Failed to flush", zap.Error(err))
 	}
 	return p.client.Close()
 }
 
-// Process will send an entry to google cloud logging.
-func (p *GoogleCloudOutput) Process(entry *entry.Entry) error {
-	pbEntry, err := p.createProtobufEntry(entry)
-	if err != nil {
-		return err
+func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
+	pbEntries := make([]*logpb.LogEntry, 0, len(entries))
+	for _, entry := range entries {
+		pbEntry, err := p.createProtobufEntry(entry)
+		if err != nil {
+			p.Errorw("Failed to create protobuf entry. Dropping entry", zap.Any("error", err))
+			continue
+		}
+		pbEntries = append(pbEntries, pbEntry)
 	}
 
-	return p.buffer.AddWait(context.TODO(), pbEntry, 0)
-}
-
-func (p *GoogleCloudOutput) writeEntries(ctx context.Context, entries []*logpb.LogEntry) error {
 	req := logpb.WriteLogEntriesRequest{
 		LogName:  p.toLogNamePath("default"),
-		Entries:  entries,
+		Entries:  pbEntries,
 		Resource: globalResource(p.projectID),
 	}
 
 	_, err := p.client.WriteLogEntries(ctx, &req)
 	if err != nil {
-		return err
+		return fmt.Errorf("write log entries: %s", err)
 	}
 
 	return nil

@@ -16,14 +16,14 @@ func init() {
 
 // GenerateInputConfig is the configuration of a generate input plugin.
 type GenerateInputConfig struct {
-	helper.InputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.InputConfig `yaml:",inline"`
 
-	Record map[string]interface{} `mapstructure:"record" json:"record"          yaml:"record"`
-	Count  int                    `mapstructure:"count"  json:"count,omitempty" yaml:"count,omitempty"`
+	Record interface{} `json:"record"          yaml:"record"`
+	Count  int         `json:"count,omitempty" yaml:"count,omitempty"`
 }
 
 // Build will build a generate input plugin.
-func (c GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+func (c *GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -64,8 +64,8 @@ func (g *GenerateInput) Start() error {
 			}
 
 			record := copyRecord(g.record)
-			if err := g.Write(record); err != nil {
-				g.Warnw("process entry", "error", err)
+			if err := g.Write(ctx, record); err != nil {
+				g.Warnw("Failed to process entry", "error", err)
 			}
 
 			i++

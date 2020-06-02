@@ -16,11 +16,11 @@ func init() {
 
 // RateLimitConfig is the configuration of a rate filter plugin.
 type RateLimitConfig struct {
-	helper.TransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 
-	Rate     float64 `mapstructure:"rate"     json:"rate,omitempty"     yaml:"rate,omitempty"`
-	Interval float64 `mapstructure:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
-	Burst    uint    `mapstructure:"burst"    json:"burst,omitempty"    yaml:"burst,omitempty"`
+	Rate     float64         `json:"rate,omitempty"     yaml:"rate,omitempty"`
+	Interval plugin.Duration `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Burst    uint            `json:"burst,omitempty"    yaml:"burst,omitempty"`
 }
 
 // Build will build a rate limit plugin.
@@ -31,12 +31,14 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}
 
 	var interval time.Duration
-	if c.Rate != 0 && c.Interval != 0 {
+	if c.Rate != 0 && c.Interval.Raw() != 0 {
 		return nil, fmt.Errorf("only one of 'rate' or 'interval' can be defined")
-	} else if c.Rate < 0 || c.Interval < 0 {
+	} else if c.Rate < 0 || c.Interval.Raw() < 0 {
 		return nil, fmt.Errorf("rate and interval must be greater than zero")
 	} else if c.Rate > 0 {
 		interval = time.Second / time.Duration(c.Rate)
+	} else {
+		interval = c.Interval.Raw()
 	}
 
 	rateLimitPlugin := &RateLimitPlugin{
@@ -59,9 +61,9 @@ type RateLimitPlugin struct {
 }
 
 // Process will wait until a rate is met before sending an entry to the output.
-func (p *RateLimitPlugin) Process(entry *entry.Entry) error {
+func (p *RateLimitPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	<-p.isReady
-	return p.Output.Process(entry)
+	return p.Output.Process(ctx, entry)
 }
 
 // Start will start the rate limit plugin.

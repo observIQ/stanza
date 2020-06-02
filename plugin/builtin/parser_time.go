@@ -1,10 +1,12 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
@@ -15,9 +17,9 @@ func init() {
 
 // TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	helper.ParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.ParserConfig `yaml:",inline"`
 
-	Layout string `mapstructure:"layout" json:"layout" yaml:"layout"`
+	Layout string `json:"layout" yaml:"layout"`
 }
 
 // Build will build a time parser plugin.
@@ -25,6 +27,13 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.Layout == "" {
+		return nil, errors.NewError("Missing required configuration parameter `layout`", "",
+			"plugin_id", c.PluginID,
+			"plugin_type", c.PluginType,
+		)
 	}
 
 	timeParser := &TimeParser{
@@ -42,8 +51,8 @@ type TimeParser struct {
 }
 
 // Process will parse time from an entry.
-func (t *TimeParser) Process(entry *entry.Entry) error {
-	return t.ProcessWith(entry, t.parse)
+func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return t.ParserPlugin.ProcessWith(ctx, entry, t.parse)
 }
 
 // Parse will parse a value as a time.

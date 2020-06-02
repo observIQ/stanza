@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"go.uber.org/zap/zapcore"
@@ -11,12 +12,15 @@ type AgentError struct {
 	Description string
 	Suggestion  string
 	Details     ErrorDetails
-	Stack       ErrorStack
 }
 
 // Error will return the error message.
 func (e AgentError) Error() string {
-	return e.Description
+	if len(e.Details) == 0 {
+		return e.Description
+	}
+	marshalled, _ := json.Marshal(e.Details)
+	return fmt.Sprintf("%s: %s", e.Description, string(marshalled))
 }
 
 // MarshalLogObject will define the representation of this error when logging.
@@ -28,14 +32,17 @@ func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	}
 
 	if len(e.Details) != 0 {
-		encoder.AddObject("details", e.Details)
+		err := encoder.AddObject("details", e.Details)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // WithDetails will add details to an agent error.
-func WithDetails(err error, keyValues ...string) error {
+func WithDetails(err error, keyValues ...string) AgentError {
 	if agentErr, ok := err.(AgentError); ok {
 		if len(keyValues) > 0 {
 			for i := 0; i+1 < len(keyValues); i += 2 {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -18,9 +19,9 @@ func init() {
 
 // TCPInputConfig is the configuration of a tcp input plugin.
 type TCPInputConfig struct {
-	helper.InputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.InputConfig `yaml:",inline"`
 
-	ListenAddress string `mapstructure:"listen_address" json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	ListenAddress string `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 }
 
 // Build will build a tcp input plugin.
@@ -51,7 +52,7 @@ type TCPInput struct {
 	helper.InputPlugin
 	address *net.TCPAddr
 
-	listener  net.Listener
+	listener  *net.TCPListener
 	cancel    context.CancelFunc
 	waitGroup *sync.WaitGroup
 }
@@ -79,7 +80,7 @@ func (t *TCPInput) goListen(ctx context.Context) {
 		defer t.waitGroup.Done()
 
 		for {
-			conn, err := t.listener.Accept()
+			conn, err := t.listener.AcceptTCP()
 			if err != nil {
 				t.Debugf("Exiting listener: %s", err)
 				break
@@ -88,14 +89,17 @@ func (t *TCPInput) goListen(ctx context.Context) {
 			t.Debugf("Received connection: %s", conn.RemoteAddr().String())
 			subctx, cancel := context.WithCancel(ctx)
 			t.goHandleClose(subctx, conn)
-			t.goHandleMessages(conn, cancel)
+			t.goHandleMessages(subctx, conn, cancel)
 		}
 	}()
 }
 
 // goHandleClose will wait for the context to finish before closing a connection.
 func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
+	t.waitGroup.Add(1)
+
 	go func() {
+		defer t.waitGroup.Done()
 		<-ctx.Done()
 		t.Debugf("Closing connection: %s", conn.RemoteAddr().String())
 		if err := conn.Close(); err != nil {
@@ -105,7 +109,7 @@ func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
 }
 
 // goHandleMessages will handles messages from a tcp connection.
-func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
+func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel context.CancelFunc) {
 	t.waitGroup.Add(1)
 
 	go func() {
@@ -120,7 +124,7 @@ func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
 				break
 			}
 
-			if err := t.Write(message); err != nil {
+			if err := t.Write(ctx, message); err != nil {
 				t.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}
@@ -131,10 +135,13 @@ func (t *TCPInput) goHandleMessages(conn net.Conn, cancel context.CancelFunc) {
 func (t *TCPInput) readMessage(conn net.Conn, reader *bufio.Reader) (string, error) {
 	message, err := reader.ReadBytes('\n')
 	if err != nil {
+		if err == io.EOF {
+			return string(message), err
+		}
 		return "", err
 	}
 
-	return string(message), nil
+	return string(message[:len(message)-1]), nil
 }
 
 // Stop will stop listening for log entries over TCP.

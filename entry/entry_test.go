@@ -1,1 +1,115 @@
 package entry
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestRead(t *testing.T) {
+	testEntry := &Entry{
+		Record: map[string]interface{}{
+			"string_field": "string_val",
+			"map_string_interface_field": map[string]interface{}{
+				"nested": "interface_val",
+			},
+			"map_string_interface_nonstring_field": map[string]interface{}{
+				"nested": 111,
+			},
+			"map_string_string_field": map[string]string{
+				"nested": "string_val",
+			},
+			"map_interface_interface_field": map[interface{}]interface{}{
+				"nested": "interface_val",
+			},
+			"map_interface_interface_nonstring_key_field": map[interface{}]interface{}{
+				100: "interface_val",
+			},
+			"map_interface_interface_nonstring_value_field": map[interface{}]interface{}{
+				"nested": 100,
+			},
+		},
+	}
+
+	t.Run("field not exist error", func(t *testing.T) {
+		var s string
+		err := testEntry.Read(Field{[]string{"nonexistant_field"}}, &s)
+		require.Error(t, err)
+	})
+
+	t.Run("unsupported type error", func(t *testing.T) {
+		var s **string
+		err := testEntry.Read(Field{[]string{"string_field"}}, &s)
+		require.Error(t, err)
+	})
+
+	t.Run("string", func(t *testing.T) {
+		var s string
+		err := testEntry.Read(Field{[]string{"string_field"}}, &s)
+		require.NoError(t, err)
+
+		require.Equal(t, "string_val", s)
+	})
+
+	t.Run("string error", func(t *testing.T) {
+		var s string
+		err := testEntry.Read(Field{[]string{"map_string_interface_field"}}, &s)
+		require.Error(t, err)
+	})
+
+	t.Run("map[string]interface{}", func(t *testing.T) {
+		var m map[string]interface{}
+		err := testEntry.Read(Field{[]string{"map_string_interface_field"}}, &m)
+		require.NoError(t, err)
+
+		require.Equal(t, map[string]interface{}{"nested": "interface_val"}, m)
+	})
+
+	t.Run("map[string]interface{} error", func(t *testing.T) {
+		var m map[string]interface{}
+		err := testEntry.Read(Field{[]string{"string_field"}}, &m)
+		require.Error(t, err)
+	})
+
+	t.Run("map[string]string from map[string]interface{}", func(t *testing.T) {
+		var m map[string]string
+		err := testEntry.Read(Field{[]string{"map_string_interface_field"}}, &m)
+		require.NoError(t, err)
+
+		require.Equal(t, map[string]string{"nested": "interface_val"}, m)
+	})
+
+	t.Run("map[string]string from map[string]interface{} err", func(t *testing.T) {
+		var m map[string]string
+		err := testEntry.Read(Field{[]string{"map_string_interface_nonstring_field"}}, &m)
+		require.Error(t, err)
+	})
+
+	t.Run("map[string]string from map[interface{}]interface{}", func(t *testing.T) {
+		var m map[string]string
+		err := testEntry.Read(Field{[]string{"map_interface_interface_field"}}, &m)
+		require.NoError(t, err)
+
+		require.Equal(t, map[string]string{"nested": "interface_val"}, m)
+	})
+
+	t.Run("map[string]string from map[interface{}]interface{} nonstring key error", func(t *testing.T) {
+		var m map[string]string
+		err := testEntry.Read(Field{[]string{"map_interface_interface_nonstring_key_field"}}, &m)
+		require.Error(t, err)
+	})
+
+	t.Run("map[string]string from map[interface{}]interface{} nonstring value error", func(t *testing.T) {
+		var m map[string]string
+		err := testEntry.Read(Field{[]string{"map_interface_interface_nonstring_value_field"}}, &m)
+		require.Error(t, err)
+	})
+
+	t.Run("interface{} from any", func(t *testing.T) {
+		var i interface{}
+		err := testEntry.Read(Field{[]string{"map_interface_interface_field"}}, &i)
+		require.NoError(t, err)
+
+		require.Equal(t, map[interface{}]interface{}{"nested": "interface_val"}, i)
+	})
+}

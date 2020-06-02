@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -15,7 +16,7 @@ func init() {
 
 // JSONParserConfig is the configuration of a JSON parser plugin.
 type JSONParserConfig struct {
-	helper.ParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.ParserConfig `yaml:",inline"`
 }
 
 // Build will build a JSON parser plugin.
@@ -40,8 +41,8 @@ type JSONParser struct {
 }
 
 // Process will parse an entry for JSON.
-func (j *JSONParser) Process(entry *entry.Entry) error {
-	return j.ProcessWith(entry, j.parse)
+func (j *JSONParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return j.ParserPlugin.ProcessWith(ctx, entry, j.parse)
 }
 
 // parse will parse a value as JSON.

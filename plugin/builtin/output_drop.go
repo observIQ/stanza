@@ -1,6 +1,8 @@
 package builtin
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
@@ -12,7 +14,7 @@ func init() {
 
 // DropOutputConfig is the configuration of a drop output plugin.
 type DropOutputConfig struct {
-	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `yaml:",inline"`
 }
 
 // Build will build a drop output plugin.
@@ -35,6 +37,6 @@ type DropOutput struct {
 }
 
 // Process will drop the incoming entry.
-func (p *DropOutput) Process(entry *entry.Entry) error {
+func (p *DropOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	return nil
 }

@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -8,10 +10,10 @@ import (
 
 // InputConfig provides a basic implementation of an input plugin config.
 type InputConfig struct {
-	BasicConfig `mapstructure:",squash" yaml:",inline"`
+	BasicConfig `yaml:",inline"`
 
-	WriteTo  entry.Field `mapstructure:"write_to" json:"write_to" yaml:"write_to"`
-	OutputID string      `mapstructure:"output" json:"output" yaml:"output"`
+	WriteTo  entry.Field `json:"write_to" yaml:"write_to"`
+	OutputID string      `json:"output" yaml:"output"`
 }
 
 // Build will build a base producer.
@@ -57,10 +59,10 @@ type InputPlugin struct {
 }
 
 // Write will create an entry using the write_to field and send it to the connected output.
-func (i *InputPlugin) Write(value interface{}) error {
+func (i *InputPlugin) Write(ctx context.Context, value interface{}) error {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
-	return i.Output.Process(entry)
+	return i.Output.Process(ctx, entry)
 }
 
 // CanProcess will always return false for an input plugin.
@@ -69,7 +71,7 @@ func (i *InputPlugin) CanProcess() bool {
 }
 
 // Process will always return an error if called.
-func (i *InputPlugin) Process(entry *entry.Entry) error {
+func (i *InputPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	return errors.NewError(
 		"Plugin can not process logs.",
 		"Ensure that plugin is not configured to receive logs from other plugins",

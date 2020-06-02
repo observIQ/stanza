@@ -1,6 +1,8 @@
 package builtin
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
@@ -12,7 +14,7 @@ func init() {
 
 // NoopPluginConfig is the configuration of a noop plugin.
 type NoopPluginConfig struct {
-	helper.TransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 }
 
 // Build will build a noop plugin.
@@ -35,6 +37,6 @@ type NoopPlugin struct {
 }
 
 // Process will forward the entry to the next output without any alterations.
-func (p *NoopPlugin) Process(entry *entry.Entry) error {
-	return p.Output.Process(entry)
+func (p *NoopPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+	return p.Output.Process(ctx, entry)
 }

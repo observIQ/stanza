@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
 )
 
@@ -18,9 +18,9 @@ func init() {
 }
 
 type RestructurePluginConfig struct {
-	helper.TransformerConfig `mapstructure:",squash" yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 
-	Ops []Op `mapstructure:"ops" json:"ops" yaml:"ops"`
+	Ops []Op `json:"ops" yaml:"ops"`
 }
 
 func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -42,7 +42,7 @@ type RestructurePlugin struct {
 	ops []Op
 }
 
-func (p *RestructurePlugin) Process(e *entry.Entry) error {
+func (p *RestructurePlugin) Process(ctx context.Context, e *entry.Entry) error {
 	for _, op := range p.ops {
 		err := op.Apply(e)
 		if err != nil {
@@ -50,7 +50,7 @@ func (p *RestructurePlugin) Process(e *entry.Entry) error {
 		}
 	}
 
-	return p.Output.Process(e)
+	return p.Output.Process(ctx, e)
 }
 
 /*****************
@@ -173,20 +173,6 @@ func (o Op) MarshalYAML() (interface{}, error) {
 	return map[string]interface{}{
 		o.Type(): o.OpApplier,
 	}, nil
-}
-
-func decodeWithFieldSelector(input, dest interface{}) error {
-	cfg := &mapstructure.DecoderConfig{
-		Result:     dest,
-		DecodeHook: entry.FieldDecoder,
-	}
-
-	decoder, err := mapstructure.NewDecoder(cfg)
-	if err != nil {
-		return fmt.Errorf("build decoder: %s", err)
-	}
-
-	return decoder.Decode(input)
 }
 
 /******

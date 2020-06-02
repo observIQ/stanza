@@ -7,9 +7,9 @@ import (
 
 // TransformerConfig provides a basic implementation of a transformer config.
 type TransformerConfig struct {
-	BasicConfig `mapstructure:",squash" yaml:",inline"`
+	BasicConfig `yaml:",inline"`
 
-	OutputID string `mapstructure:"output" json:"output" yaml:"output"`
+	OutputID string `json:"output" yaml:"output"`
 }
 
 // ID will return the plugin id.

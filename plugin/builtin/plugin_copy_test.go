@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -47,7 +48,7 @@ func benchCopyPlugin(b *testing.B, ib inputterBenchmark) {
 
 	b.SetBytes(ib.EstimatedBytes())
 	for i := 0; i < b.N; i++ {
-		err := copy.Process(&entry.Entry{
+		err := copy.Process(context.Background(), &entry.Entry{
 			Timestamp: time.Now(),
 			Record:    record,
 		})

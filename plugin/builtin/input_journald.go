@@ -26,10 +26,10 @@ func init() {
 }
 
 type JournaldInputConfig struct {
-	helper.InputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.InputConfig `yaml:",inline"`
 
-	Directory *string  `mapstructure:"directory" json:"directory,omitempty" yaml:"directory,omitempty"`
-	Files     []string `mapstructure:"files"     json:"files,omitempty"     yaml:"files,omitempty"`
+	Directory *string  `json:"directory,omitempty" yaml:"directory,omitempty"`
+	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
 }
 
 func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -159,7 +159,7 @@ func (plugin *JournaldInput) Start() error {
 			}
 			plugin.persist.Set(lastReadCursorKey, []byte(cursor))
 
-			err = plugin.Output.Process(entry)
+			err = plugin.Output.Process(ctx, entry)
 			if err != nil {
 				plugin.Infow("Failed to process entry: %s", zap.Error(err))
 			}

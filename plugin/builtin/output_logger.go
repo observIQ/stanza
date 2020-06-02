@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -15,9 +16,9 @@ func init() {
 
 // LoggerOutputConfig is the configuration of a logger output plugin.
 type LoggerOutputConfig struct {
-	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `yaml:",inline"`
 
-	Level string `mapstructure:"level" json:"level,omitempty" yaml:"level,omitempty"`
+	Level string `json:"level,omitempty" yaml:"level,omitempty"`
 }
 
 // Build will build a logger output plugin.
@@ -67,7 +68,7 @@ type LoggerOutput struct {
 }
 
 // Process will log entries received.
-func (o *LoggerOutput) Process(entry *entry.Entry) error {
+func (o *LoggerOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	o.logFunc("Received log", "entry", entry)
 	return nil
 }

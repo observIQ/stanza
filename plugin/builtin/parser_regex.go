@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -15,9 +16,9 @@ func init() {
 
 // RegexParserConfig is the configuration of a regex parser plugin.
 type RegexParserConfig struct {
-	helper.ParserConfig `mapstructure:",squash" yaml:",inline"`
+	helper.ParserConfig `yaml:",inline"`
 
-	Regex string `mapstructure:"regex" json:"regex" yaml:"regex"`
+	Regex string `json:"regex" yaml:"regex"`
 }
 
 // Build will build a regex parser plugin.
@@ -51,8 +52,8 @@ type RegexParser struct {
 }
 
 // Process will parse an entry for regex.
-func (r *RegexParser) Process(entry *entry.Entry) error {
-	return r.ProcessWith(entry, r.parse)
+func (r *RegexParser) Process(ctx context.Context, entry *entry.Entry) error {
+	return r.ParserPlugin.ProcessWith(ctx, entry, r.parse)
 }
 
 // parse will parse a value using the supplied regex.
@@ -70,7 +71,7 @@ func (r *RegexParser) parse(value interface{}) (interface{}, error) {
 			return nil, fmt.Errorf("regex pattern does not match")
 		}
 
-		matches = make([]string, 0, len(byteMatches))
+		matches = make([]string, len(byteMatches))
 		for i, byteSlice := range byteMatches {
 			matches[i] = string(byteSlice)
 		}

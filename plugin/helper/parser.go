@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -9,13 +11,13 @@ import (
 
 // ParserConfig provides the basic implementation of a parser config.
 type ParserConfig struct {
-	BasicConfig `mapstructure:",squash" yaml:",inline"`
+	BasicConfig `yaml:",inline"`
 
-	OutputID  string      `mapstructure:"output"     json:"output"     yaml:"output"`
-	ParseFrom entry.Field `mapstructure:"parse_from" json:"parse_from" yaml:"parse_from"`
-	ParseTo   entry.Field `mapstructure:"parse_to"   json:"parse_to"   yaml:"parse_to"`
-	Preserve  bool        `mapstructure:"preserve"   json:"preserve"   yaml:"preserve"`
-	OnError   string      `mapstructure:"on_error"   json:"on_error"   yaml:"on_error"`
+	OutputID  string      `json:"output"     yaml:"output"`
+	ParseFrom entry.Field `json:"parse_from" yaml:"parse_from"`
+	ParseTo   entry.Field `json:"parse_to"   yaml:"parse_to"`
+	Preserve  bool        `json:"preserve"   yaml:"preserve"`
+	OnError   string      `json:"on_error"   yaml:"on_error"`
 }
 
 // ID will return the plugin id.
@@ -117,7 +119,7 @@ func (p *ParserPlugin) SetOutputs(plugins []plugin.Plugin) error {
 }
 
 // ProcessWith will process an entry with a parser function and forward the results to the output plugin.
-func (p *ParserPlugin) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) error {
+func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, parseFunc ParseFunction) error {
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
 		err := errors.NewError(
@@ -125,12 +127,12 @@ func (p *ParserPlugin) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) 
 			"Ensure that all entries forwarded to this parser contain the parse_from field.",
 			"parse_from", p.ParseFrom.String(),
 		)
-		return p.HandleParserError(entry, err)
+		return p.HandleParserError(ctx, entry, err)
 	}
 
 	newValue, err := parseFunc(value)
 	if err != nil {
-		return p.HandleParserError(entry, err)
+		return p.HandleParserError(ctx, entry, err)
 	}
 
 	if !p.Preserve {
@@ -138,11 +140,11 @@ func (p *ParserPlugin) ProcessWith(entry *entry.Entry, parseFunc ParseFunction) 
 	}
 
 	entry.Set(p.ParseTo, newValue)
-	return p.Output.Process(entry)
+	return p.Output.Process(ctx, entry)
 }
 
 // HandleParserError will handle an error based on the `OnError` property
-func (p *ParserPlugin) HandleParserError(entry *entry.Entry, err error) error {
+func (p *ParserPlugin) HandleParserError(ctx context.Context, entry *entry.Entry, err error) error {
 	p.Warnw("Failed to parse entry", zap.Any("error", err), "entry", entry)
 
 	if p.OnError == "fail" {
@@ -153,7 +155,7 @@ func (p *ParserPlugin) HandleParserError(entry *entry.Entry, err error) error {
 		return nil
 	}
 
-	return p.Output.Process(entry)
+	return p.Output.Process(ctx, entry)
 }
 
 // ParseFunction is function that parses a raw value.

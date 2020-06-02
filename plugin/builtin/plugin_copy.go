@@ -1,6 +1,8 @@
 package builtin
 
 import (
+	"context"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
@@ -13,8 +15,8 @@ func init() {
 
 // CopyPluginConfig is the configuration of a copy plugin.
 type CopyPluginConfig struct {
-	helper.BasicConfig `mapstructure:",squash" yaml:",inline"`
-	OutputIDs          []string `mapstructure:"outputs" json:"outputs" yaml:"outputs"`
+	helper.BasicConfig `yaml:",inline"`
+	OutputIDs          []string `json:"outputs" yaml:"outputs"`
 }
 
 // Build will build a copy filter plugin.
@@ -59,10 +61,10 @@ func (p *CopyPlugin) CanProcess() bool {
 }
 
 // Process will copy and send a log entry to the connected outputs.
-func (p *CopyPlugin) Process(entry *entry.Entry) error {
+func (p *CopyPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	for _, output := range p.outputs {
 		// TODO #172624815 should we block if one output can't keep up?
-		err := output.Process(copyEntry(entry))
+		err := output.Process(ctx, copyEntry(entry))
 		if err != nil {
 			// TODO #172624815 what should err behavior look like for copy?
 			return err

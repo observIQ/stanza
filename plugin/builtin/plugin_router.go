@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/antonmedv/expr"
@@ -16,13 +17,13 @@ func init() {
 }
 
 type RouterPluginConfig struct {
-	helper.BasicConfig `mapstructure:",squash" yaml:",inline"`
-	Routes             []*RouterPluginRouteConfig `mapstructure:"routes" json:"routes" yaml:"routes"`
+	helper.BasicConfig `yaml:",inline"`
+	Routes             []*RouterPluginRouteConfig `json:"routes" yaml:"routes"`
 }
 
 type RouterPluginRouteConfig struct {
-	Expression string `mapstructure:"expr" json:"expr" yaml:"expr"`
-	Output     string `mapstructure:"output" json:"output" yaml:"output"`
+	Expression string `json:"expr"   yaml:"expr"`
+	Output     string `json:"output" yaml:"output"`
 }
 
 func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -79,9 +80,9 @@ func (p *RouterPlugin) CanProcess() bool {
 	return true
 }
 
-func (p *RouterPlugin) Process(entry *entry.Entry) error {
+func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	env := map[string]interface{}{
-		"record": entry.Record,
+		"$": entry.Record,
 	}
 
 	for _, route := range p.routes {
@@ -93,7 +94,7 @@ func (p *RouterPlugin) Process(entry *entry.Entry) error {
 
 		// we compile the expression with "AsBool", so this should be safe
 		if matches.(bool) {
-			err := route.Output.Process(entry)
+			err := route.Output.Process(ctx, entry)
 			if err != nil {
 				return err
 			}

@@ -3,42 +3,69 @@ package buffer
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
+	"time"
 
+	"github.com/bluemedora/bplogagent/entry"
+	"github.com/cenkalti/backoff/v4"
+	"go.uber.org/zap"
 	"google.golang.org/api/support/bundler"
 )
 
 type MemoryBuffer struct {
 	*bundler.Bundler
+	config *BufferConfig
 	cancel context.CancelFunc
 }
 
-func NewMemoryBuffer(entryType interface{}, handler func(context.Context, interface{}) error) *MemoryBuffer {
-	ctx, cancel := context.WithCancel(context.Background())
-	handleFunc := func(entries interface{}) {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+func NewMemoryBuffer(config *BufferConfig) *MemoryBuffer {
+	return &MemoryBuffer{config: config}
+}
 
-			err := handler(ctx, entries)
+type BundleHandler interface {
+	ProcessMulti(context.Context, []*entry.Entry) error
+	Logger() *zap.SugaredLogger
+}
+
+func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
+	ctx, cancel := context.WithCancel(context.Background())
+	currentBundleID := int64(0)
+	handleFunc := func(entries interface{}) {
+		bundleID := atomic.AddInt64(&currentBundleID, 1)
+		b := backoff.NewExponentialBackOff()
+		for {
+			err := handler.ProcessMulti(ctx, entries.([]*entry.Entry))
 			if err != nil {
-				continue
+				duration := b.NextBackOff()
+				if duration == backoff.Stop {
+					handler.Logger().Errorw("Failed to flush bundle. Not retrying because we are beyond max backoff", zap.Any("error", err), "bundle_id", bundleID)
+					break
+				} else {
+					handler.Logger().Warnw("Failed to flush bundle", zap.Any("error", err), "backoff_time", duration.String(), "bundle_id", bundleID)
+					select {
+					case <-ctx.Done():
+						handler.Logger().Debugw("Flush retry cancelled by context", "bundle_id", bundleID)
+						return
+					case <-time.After(duration):
+						continue
+					}
+				}
 			}
 
 			break
 		}
 	}
 
-	bd := bundler.NewBundler(entryType, handleFunc)
-	bd.HandlerLimit = 16
-	bd.BundleCountThreshold = 5000
-	bd.BufferedByteLimit = 1024 * 1024 * 128
-	return &MemoryBuffer{
-		Bundler: bd,
-		cancel:  cancel,
-	}
+	bd := bundler.NewBundler(&entry.Entry{}, handleFunc)
+	bd.DelayThreshold = m.config.DelayThreshold.Raw()
+	bd.BundleCountThreshold = m.config.BundleCountThreshold
+	bd.BundleByteThreshold = m.config.BundleByteThreshold
+	bd.BundleByteLimit = m.config.BundleByteLimit
+	bd.BufferedByteLimit = m.config.BufferedByteLimit
+	bd.HandlerLimit = m.config.HandlerLimit
+
+	m.Bundler = bd
+	m.cancel = cancel
 }
 
 func (b *MemoryBuffer) Flush(ctx context.Context) error {
@@ -54,4 +81,12 @@ func (b *MemoryBuffer) Flush(ctx context.Context) error {
 	case <-ctx.Done():
 		return fmt.Errorf("context cancelled before flush finished")
 	}
+}
+
+func (b *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
+	if b.Bundler == nil {
+		panic("must call SetHandler before any calls to Process")
+	}
+
+	return b.AddWait(ctx, entry, 100) // TODO calculate size accurately?
 }

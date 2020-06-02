@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -18,10 +19,10 @@ func init() {
 
 // FileOutputConfig is the configuration of a file output pluginn.
 type FileOutputConfig struct {
-	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `yaml:",inline"`
 
-	Path   string `mapstructure:"path" json:"path" yaml:"path"`
-	Format string `mapstructure:"format" json:"format,omitempty" path:"format,omitempty"`
+	Path   string `json:"path" yaml:"path"`
+	Format string `json:"format,omitempty" path:"format,omitempty"`
 }
 
 // Build will build a file output plugin.
@@ -85,7 +86,7 @@ func (fo *FileOutput) Stop() error {
 }
 
 // Process will write an entry to the output file.
-func (fo *FileOutput) Process(entry *entry.Entry) error {
+func (fo *FileOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	fo.mux.Lock()
 
 	if fo.tmpl != nil {

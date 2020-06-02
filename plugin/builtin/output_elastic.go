@@ -9,10 +9,12 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/buffer"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/hashicorp/go-uuid"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -21,15 +23,16 @@ func init() {
 
 // ElasticOutputConfig is the configuration of an elasticsearch output plugin.
 type ElasticOutputConfig struct {
-	helper.OutputConfig `mapstructure:",squash" yaml:",inline"`
+	helper.OutputConfig `yaml:",inline"`
+	buffer.BufferConfig `json:"buffer" yaml:"buffer"`
 
-	Addresses  []string     `mapstructure:"addresses"   json:"addresses"             yaml:"addresses,flow"`
-	Username   string       `mapstructure:"username"    json:"username"              yaml:"username"`
-	Password   string       `mapstructure:"password"    json:"password"              yaml:"password"`
-	CloudID    string       `mapstructure:"cloud_id"    json:"cloud_id"              yaml:"cloud_id"`
-	APIKey     string       `mapstructure:"api_key"     json:"api_key"               yaml:"api_key"`
-	IndexField *entry.Field `mapstructure:"index_field" json:"index_field,omitempty" yaml:"index_field,omitempty"`
-	IDField    *entry.Field `mapstructure:"id_field"    json:"id_field,omitempty"    yaml:"id_field,omitempty"`
+	Addresses  []string     `json:"addresses"             yaml:"addresses,flow"`
+	Username   string       `json:"username"              yaml:"username"`
+	Password   string       `json:"password"              yaml:"password"`
+	CloudID    string       `json:"cloud_id"              yaml:"cloud_id"`
+	APIKey     string       `json:"api_key"               yaml:"api_key"`
+	IndexField *entry.Field `json:"index_field,omitempty" yaml:"index_field,omitempty"`
+	IDField    *entry.Field `json:"id_field,omitempty"    yaml:"id_field,omitempty"`
 }
 
 // Build will build an elasticsearch output plugin.
@@ -50,18 +53,26 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	client, err := elasticsearch.NewClient(cfg)
 	if err != nil {
 		return nil, errors.NewError(
-			"The elasticsearch client failed to initialize.",
+			"The Elasticsearch client failed to initialize.",
 			"Review the underlying error message to troubleshoot the issue.",
 			"underlying_error", err.Error(),
 		)
 	}
 
+	buffer, err := c.BufferConfig.Build()
+	if err != nil {
+		return nil, err
+	}
+
 	elasticOutput := &ElasticOutput{
 		OutputPlugin: outputPlugin,
+		Buffer:       buffer,
 		client:       client,
 		indexField:   c.IndexField,
 		idField:      c.IDField,
 	}
+
+	buffer.SetHandler(elasticOutput)
 
 	return elasticOutput, nil
 }
@@ -69,6 +80,7 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 // ElasticOutput is a plugin that sends entries to elasticsearch.
 type ElasticOutput struct {
 	helper.OutputPlugin
+	buffer.Buffer
 
 	client     *elasticsearch.Client
 	indexField *entry.Field
@@ -76,29 +88,57 @@ type ElasticOutput struct {
 }
 
 // Process will send entries to elasticsearch.
-func (e *ElasticOutput) Process(entry *entry.Entry) error {
-	json, err := json.Marshal(entry)
-	if err != nil {
-		return err
+func (e *ElasticOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
+	type indexDirective struct {
+		Index struct {
+			Index string `json:"_index"`
+			ID    string `json:"_id"`
+		} `json:"index"`
 	}
 
-	index, err := e.FindIndex(entry)
-	if err != nil {
-		return err
+	// The bulk API expects newline-delimited json strings, with an operation directive
+	// immediately followed by the document.
+	// https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-bulk.html
+	var buffer bytes.Buffer
+	var err error
+	for _, entry := range entries {
+
+		directive := indexDirective{}
+		directive.Index.Index, err = e.FindIndex(entry)
+		if err != nil {
+			e.Warnw("Failed to find index", zap.Any("error", err))
+			continue
+		}
+
+		directive.Index.ID, err = e.FindID(entry)
+		if err != nil {
+			e.Warnw("Failed to find id", zap.Any("error", err))
+			continue
+		}
+
+		directiveJSON, err := json.Marshal(directive)
+		if err != nil {
+			e.Warnw("Failed to marshal directive JSON", zap.Any("error", err))
+			continue
+		}
+
+		entryJSON, err := json.Marshal(entry)
+		if err != nil {
+			e.Warnw("Failed to marshal entry JSON", zap.Any("error", err))
+			continue
+		}
+
+		buffer.Write(directiveJSON)
+		buffer.Write([]byte("\n"))
+		buffer.Write(entryJSON)
+		buffer.Write([]byte("\n"))
 	}
 
-	id, err := e.FindID(entry)
-	if err != nil {
-		return err
+	request := esapi.BulkRequest{
+		Body: bytes.NewReader(buffer.Bytes()),
 	}
 
-	request := esapi.IndexRequest{
-		Index:      index,
-		DocumentID: id,
-		Body:       bytes.NewReader(json),
-	}
-
-	res, err := request.Do(context.Background(), e.client)
+	res, err := request.Do(ctx, e.client)
 	if err != nil {
 		return errors.NewError(
 			"Client failed to submit request to elasticsearch.",
