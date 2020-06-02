@@ -50,4 +50,4 @@ For more information on what plugins are available and how to configure them, ta
 
 ## How do I contribute?
 
-Take a look at our contribution guidelines in [`CONTRIBUTION.md`](./CONTRIBUTION.md)
+Take a look at our contribution guidelines in [`CONTRIBUTING.md`](./CONTRIBUTING.md)
