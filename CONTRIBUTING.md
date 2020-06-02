@@ -5,7 +5,7 @@
 You can view and edit the source code by cloning this repository:
 
 ```bash
-git clone https://github.com/open-telemetry/opentelemetry-go.git
+git clone https://github.com/bluemedora/bplogagent.git
 ```
 ## Pull Requests
 
