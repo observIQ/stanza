@@ -1,3 +1,4 @@
+---
 version: 2.1
 
 orbs:
@@ -18,19 +19,26 @@ jobs:
     executor: golang
     steps:
       - checkout
-
-      - run:
-          name: Get dependencies
-          command: go get -v -t -d ./...
       - run:
           name: Build
-          command: go build -v -o ./main.out ./
+          command: |
+            make install-tools
+            VERSION="$CIRCLE_TAG" make build-all
+      - persist_to_workspace:
+          root: ./artifacts
+          paths:
+            - "*"
+
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - attach_workspace:
+          at: ./artifacts
       - run:
-          name: Install golangci-lint
-          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.27.0
-      - run:
-          name: Lint
-          command: golangci-lint run
+          name: "Publish Release on GitHub"
+          command: |
+            ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./artifacts/
 
   test-linux:
     executor: golang
@@ -88,7 +96,31 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build
-      - test-linux
-      - test-macos
-      - test-windows
+      - test-linux:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - test-macos:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - test-windows:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - build:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+          requires:
+            - test-linux
+            - test-macos
+            - test-windows
+      - publish-github-release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^\d+\.\d+\.\d+$/
