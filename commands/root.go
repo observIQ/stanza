@@ -35,7 +35,6 @@ func NewRootCmd() *cobra.Command {
 	rootFlags := &RootFlags{}
 
 	root := &cobra.Command{
-		// TODO change these once we have some branding
 		Use:   "bplogagent [-c ./config.yaml]",
 		Short: "A log parser and router",
 		Long:  "A log parser and router",
@@ -44,8 +43,9 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	rootFlagSet := root.PersistentFlags()
-	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"/etc/bplogagent/bplogagent.yaml"}, "path to a config file") // TODO default locations
+	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"/etc/bplogagent/bplogagent.yaml"}, "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", "/etc/bplogagent/plugins", "path to the plugin directory")
+
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
 	// Profiling flags

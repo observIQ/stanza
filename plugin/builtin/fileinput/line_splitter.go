@@ -11,11 +11,16 @@ func NewLineStartSplitFunc(re *regexp.Regexp) bufio.SplitFunc {
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		firstLoc := re.FindIndex(data)
 		if firstLoc == nil {
-			// TODO what to do with starting lines that don't match?
 			return 0, nil, nil // read more data and try again.
 		}
 		firstMatchStart := firstLoc[0]
 		firstMatchEnd := firstLoc[1]
+		if firstMatchStart != 0 {
+			// the beginning of the file does not match the start pattern, so return a token up to the first match so we don't lose data
+			advance = firstMatchStart
+			token = data[0:firstMatchStart]
+			return
+		}
 
 		secondLocOffset := firstMatchEnd + 1
 		secondLoc := re.FindIndex(data[secondLocOffset:])
@@ -45,7 +50,6 @@ func NewLineEndSplitFunc(re *regexp.Regexp) bufio.SplitFunc {
 
 		// If the match goes up to the end of the current buffer, do another
 		// read until we can capture the entire match
-		// TODO figure out how to test this
 		if loc[1] == len(data)-1 && !atEOF {
 			return 0, nil, nil
 		}

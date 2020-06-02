@@ -82,7 +82,6 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	// TODO #172611733 message.Timestamp does not appear to have a year. This should be set to the current year
 	var message map[string]interface{}
 	switch m := syslog.(type) {
 	case *rfc3164.SyslogMessage:
