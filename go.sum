@@ -16,8 +16,11 @@ github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRF
 github.com/antonmedv/expr v1.8.2 h1:BfkVHGudYqq7jp3Ji33kTn+qZ9D19t/Mndg0ag/Ycq4=
 github.com/antonmedv/expr v1.8.2/go.mod h1:5qsM3oLGDND7sDmQGDXHkYfkjYMUX14qsgqmHhwGEk8=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
+github.com/awslabs/amazon-log-agent-benchmark-tool v0.0.0-20200505071244-c5f96e667e52/go.mod h1:idbfcjPo1Aieh2gwxiAMGen6jjPMkLaYzW6X580vuk4=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
+github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514201933-4cd8455f1f60 h1:bJecjtzOQHlfV1L4KSX6FNhJFqAbmA58kOo+pJN2dj4=
+github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514201933-4cd8455f1f60/go.mod h1:herZ1ea+DUeMHV9E8FYl6tz427xrnUFtA16c8tGuHsY=
 github.com/cenkalti/backoff/v4 v4.0.2 h1:JIufpQLbh4DkbQoii76ItQIUFzevQSqOLZca4eamEDs=
 github.com/cenkalti/backoff/v4 v4.0.2/go.mod h1:eEew/i+1Q6OrCDZh3WiXYv3+nJwBASZ8Bog/87DQnVg=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
