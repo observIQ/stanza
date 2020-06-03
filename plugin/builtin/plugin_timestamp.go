@@ -16,8 +16,7 @@ func init() {
 
 // TimestampConfig is the configuration of a timestamp plugin.
 type TimestampConfig struct {
-	helper.BasicPluginConfig      `yaml:",inline"`
-	helper.BasicTransformerConfig `yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 
 	CopyFrom    entry.Field `json:"copy_from,omitempty"    yaml:"copy_from,omitempty"`
 	RemoveField bool        `json:"remove_field,omitempty" yaml:"remove_field,omitempty"`
@@ -25,21 +24,15 @@ type TimestampConfig struct {
 
 // Build will build a timestamp plugin.
 func (c TimestampConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	timestampPlugin := &TimestampPlugin{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-		CopyFrom:         c.CopyFrom,
-		RemoveField:      c.RemoveField,
+		TransformerPlugin: transformerPlugin,
+		CopyFrom:          c.CopyFrom,
+		RemoveField:       c.RemoveField,
 	}
 
 	return timestampPlugin, nil
@@ -47,9 +40,7 @@ func (c TimestampConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 
 // TimestampPlugin is a plugin that changes the timestamp of an entry.
 type TimestampPlugin struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicTransformer
+	helper.TransformerPlugin
 	CopyFrom    entry.Field
 	RemoveField bool
 }

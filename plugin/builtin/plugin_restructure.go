@@ -18,38 +18,27 @@ func init() {
 }
 
 type RestructurePluginConfig struct {
-	helper.BasicPluginConfig      `yaml:",inline"`
-	helper.BasicTransformerConfig `yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 
 	Ops []Op `json:"ops" yaml:"ops"`
 }
 
 func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	basicTransformer, err := c.BasicTransformerConfig.Build()
-	if err != nil {
-		return nil, err
+	restructurePlugin := &RestructurePlugin{
+		TransformerPlugin: transformerPlugin,
+		ops:               c.Ops,
 	}
 
-	plugin := &RestructurePlugin{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
-
-		ops: c.Ops,
-	}
-
-	return plugin, nil
+	return restructurePlugin, nil
 }
 
 type RestructurePlugin struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicTransformer
-
+	helper.TransformerPlugin
 	ops []Op
 }
 

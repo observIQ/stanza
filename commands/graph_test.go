@@ -8,7 +8,7 @@ import (
 
 func ExampleGraph() {
 	config := []byte(`
-plugins:
+pipeline:
   - id: generate
     type: generate_input
     output: json_parser
@@ -43,14 +43,14 @@ plugins:
 
 	// Output:
 	// strict digraph G {
-	//  // Node definitions.
-	//  generate;
-	//  json_parser;
-	//  google_cloud;
-	//
-	//  // Edge definitions.
-	//  generate -> json_parser;
-	//  json_parser -> google_cloud;
-	// }
+	// 	// Node definitions.
+	// 	"$.json_parser";
+	// 	"$.generate";
+	// 	"$.google_cloud";
+
+	// 	// Edge definitions.
+	// 	"$.json_parser" -> "$.google_cloud";
+	// 	"$.generate" -> "$.json_parser";
+	//  }
 
 }

@@ -16,11 +16,11 @@ func TestInputGenerate(t *testing.T) {
 	count := 5
 	basicConfig := func() *GenerateInputConfig {
 		return &GenerateInputConfig{
-			BasicPluginConfig: helper.BasicPluginConfig{
-				PluginID:   "test_plugin_id",
-				PluginType: "generate_input",
-			},
-			BasicInputConfig: helper.BasicInputConfig{
+			InputConfig: helper.InputConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "test_plugin_id",
+					PluginType: "generate_input",
+				},
 				WriteTo:  entry.Field{[]string{}},
 				OutputID: "output1",
 			},

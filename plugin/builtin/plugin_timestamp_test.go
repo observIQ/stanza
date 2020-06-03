@@ -14,11 +14,11 @@ import (
 
 func TestTimestampPlugin(t *testing.T) {
 	cfg := &TimestampConfig{
-		BasicPluginConfig: helper.BasicPluginConfig{
-			PluginID:   "test_plugin_id",
-			PluginType: "timestamp",
-		},
-		BasicTransformerConfig: helper.BasicTransformerConfig{
+		TransformerConfig: helper.TransformerConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "test_plugin_id",
+				PluginType: "timestamp",
+			},
 			OutputID: "testoutput",
 		},
 		CopyFrom:    entry.Field{[]string{"timestamp"}},

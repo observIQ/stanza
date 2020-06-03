@@ -15,13 +15,13 @@ func init() {
 
 // CopyPluginConfig is the configuration of a copy plugin.
 type CopyPluginConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	OutputIDs                []string `json:"outputs" yaml:"outputs"`
+	helper.BasicConfig `yaml:",inline"`
+	OutputIDs          []string `json:"outputs" yaml:"outputs"`
 }
 
 // Build will build a copy filter plugin.
 func (c CopyPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -34,10 +34,22 @@ func (c CopyPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	return copyPlugin, nil
 }
 
+// SetNamespace will set the namespace of the config.
+func (c *CopyPluginConfig) SetNamespace(namespace string, exclusions ...string) {
+	if helper.CanNamespace(c.PluginID, exclusions) {
+		c.PluginID = helper.AddNamespace(c.PluginID, namespace)
+	}
+
+	for i, outputID := range c.OutputIDs {
+		if helper.CanNamespace(c.PluginID, exclusions) {
+			c.OutputIDs[i] = helper.AddNamespace(outputID, namespace)
+		}
+	}
+}
+
 // CopyPlugin is a plugin that sends a copy of an entry to multiple outputs.
 type CopyPlugin struct {
 	helper.BasicPlugin
-	helper.BasicLifecycle
 	outputIDs []string
 	outputs   []plugin.Plugin
 	*zap.SugaredLogger

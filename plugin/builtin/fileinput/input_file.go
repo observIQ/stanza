@@ -26,8 +26,7 @@ func init() {
 }
 
 type FileInputConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	helper.BasicInputConfig  `yaml:",inline"`
+	helper.InputConfig `yaml:",inline"`
 
 	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
 	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
@@ -43,12 +42,7 @@ type FileSourceMultilineConfig struct {
 }
 
 func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicInput, err := c.BasicInputConfig.Build()
+	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +101,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}
 
 	plugin := &FileInput{
-		BasicPlugin:      basicPlugin,
-		BasicInput:       basicInput,
+		InputPlugin:      inputPlugin,
 		Include:          c.Include,
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
@@ -124,8 +117,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 }
 
 type FileInput struct {
-	helper.BasicPlugin
-	helper.BasicInput
+	helper.InputPlugin
 
 	Include      []string
 	Exclude      []string
@@ -233,7 +225,7 @@ func (f *FileInput) checkFile(ctx context.Context, path string) {
 	go func(ctx context.Context, path string, offset int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, knownFile.Offset, messenger, f.SplitFunc, f.PathField, f.BasicInput)
+		err := ReadToEnd(ctx, path, knownFile.Offset, messenger, f.SplitFunc, f.PathField, f.InputPlugin)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}

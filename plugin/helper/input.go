@@ -8,50 +8,70 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
-// BasicInputConfig provides a basic implementation of an input config.
-type BasicInputConfig struct {
+// InputConfig provides a basic implementation of an input plugin config.
+type InputConfig struct {
+	BasicConfig `yaml:",inline"`
+
 	WriteTo  entry.Field `json:"write_to" yaml:"write_to"`
 	OutputID string      `json:"output" yaml:"output"`
 }
 
 // Build will build a base producer.
-func (c BasicInputConfig) Build() (BasicInput, error) {
+func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
+	basicPlugin, err := c.BasicConfig.Build(context)
+	if err != nil {
+		return InputPlugin{}, err
+	}
+
 	if c.OutputID == "" {
-		return BasicInput{}, errors.NewError(
+		return InputPlugin{}, errors.NewError(
 			"Plugin config is missing the `output` field. This field determines where to send incoming logs.",
 			"Ensure that a valid `output` field exists on the plugin config.",
 		)
 	}
 
-	basicInput := BasicInput{
-		WriteTo:  c.WriteTo,
-		OutputID: c.OutputID,
+	inputPlugin := InputPlugin{
+		BasicPlugin: basicPlugin,
+		WriteTo:     c.WriteTo,
+		OutputID:    c.OutputID,
 	}
 
-	return basicInput, nil
+	return inputPlugin, nil
 }
 
-// BasicInput provides a basic implementation of an input plugin.
-type BasicInput struct {
+// SetNamespace will namespace the id and output of the plugin config.
+func (c *InputConfig) SetNamespace(namespace string, exclusions ...string) {
+	if CanNamespace(c.PluginID, exclusions) {
+		c.PluginID = AddNamespace(c.PluginID, namespace)
+	}
+
+	if CanNamespace(c.OutputID, exclusions) {
+		c.OutputID = AddNamespace(c.OutputID, namespace)
+	}
+}
+
+// InputPlugin provides a basic implementation of an input plugin.
+type InputPlugin struct {
+	BasicPlugin
 	WriteTo  entry.Field
 	OutputID string
 	Output   plugin.Plugin
 }
 
 // Write will create an entry using the write_to field and send it to the connected output.
-func (i *BasicInput) Write(ctx context.Context, value interface{}) error {
+func (i *InputPlugin) Write(ctx context.Context, value interface{}) error {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
 	return i.Output.Process(ctx, entry)
 }
 
 // CanProcess will always return false for an input plugin.
-func (i *BasicInput) CanProcess() bool {
+func (i *InputPlugin) CanProcess() bool {
 	return false
 }
 
 // Process will always return an error if called.
-func (i *BasicInput) Process(ctx context.Context, entry *entry.Entry) error {
+func (i *InputPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	return errors.NewError(
 		"Plugin can not process logs.",
 		"Ensure that plugin is not configured to receive logs from other plugins",
@@ -59,17 +79,17 @@ func (i *BasicInput) Process(ctx context.Context, entry *entry.Entry) error {
 }
 
 // CanOutput will always return true for an input plugin.
-func (i *BasicInput) CanOutput() bool {
+func (i *InputPlugin) CanOutput() bool {
 	return true
 }
 
 // Outputs will return an array containing the output plugin.
-func (i *BasicInput) Outputs() []plugin.Plugin {
+func (i *InputPlugin) Outputs() []plugin.Plugin {
 	return []plugin.Plugin{i.Output}
 }
 
 // SetOutputs will set the output plugin.
-func (i *BasicInput) SetOutputs(plugins []plugin.Plugin) error {
+func (i *InputPlugin) SetOutputs(plugins []plugin.Plugin) error {
 	output, err := FindOutput(plugins, i.OutputID)
 	if err != nil {
 		return err

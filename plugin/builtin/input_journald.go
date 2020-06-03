@@ -26,20 +26,14 @@ func init() {
 }
 
 type JournaldInputConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	helper.BasicInputConfig  `yaml:",inline"`
+	helper.InputConfig `yaml:",inline"`
 
 	Directory *string  `json:"directory,omitempty" yaml:"directory,omitempty"`
 	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
 }
 
 func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicInput, err := c.BasicInputConfig.Build()
+	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +59,7 @@ func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	}
 
 	journaldInput := &JournaldInput{
-		BasicPlugin: basicPlugin,
-		BasicInput:  basicInput,
+		InputPlugin: inputPlugin,
 		persist:     helper.NewScopedBBoltPersister(context.Database, c.ID()),
 		binary:      "journalctl",
 		args:        args,
@@ -76,8 +69,7 @@ func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 }
 
 type JournaldInput struct {
-	helper.BasicPlugin
-	helper.BasicInput
+	helper.InputPlugin
 
 	binary string
 	args   []string

@@ -17,8 +17,8 @@ func init() {
 }
 
 type RouterPluginConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	Routes                   []RouterPluginRouteConfig `json:"routes" yaml:"routes"`
+	helper.BasicConfig `yaml:",inline"`
+	Routes             []*RouterPluginRouteConfig `json:"routes" yaml:"routes"`
 }
 
 type RouterPluginRouteConfig struct {
@@ -27,7 +27,7 @@ type RouterPluginRouteConfig struct {
 }
 
 func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	basicPlugin, err := c.BasicConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -53,10 +53,20 @@ func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	return routerPlugin, nil
 }
 
+func (c *RouterPluginConfig) SetNamespace(namespace string, exclusions ...string) {
+	if helper.CanNamespace(c.PluginID, exclusions) {
+		c.PluginID = helper.AddNamespace(c.PluginID, namespace)
+	}
+
+	for _, route := range c.Routes {
+		if helper.CanNamespace(route.Output, exclusions) {
+			route.Output = helper.AddNamespace(route.Output, namespace)
+		}
+	}
+}
+
 type RouterPlugin struct {
 	helper.BasicPlugin
-	helper.BasicLifecycle
-
 	routes []*RouterPluginRoute
 }
 
