@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	agent "github.com/bluemedora/bplogagent/agent"
@@ -10,13 +11,15 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+var stdout io.Writer = os.Stdout
+
 func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 	offsets := &cobra.Command{
 		Use:   "offsets",
 		Short: "Manage input plugin offsets",
 		Args:  cobra.NoArgs,
 		Run: func(command *cobra.Command, args []string) {
-			println("No offsets subcommand specified. See `bplogagent offsets help` for details")
+			stdout.Write([]byte("No offsets subcommand specified. See `bplogagent offsets help` for details\n"))
 		},
 	}
 
@@ -45,7 +48,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 
 			if all {
 				if len(args) != 0 {
-					println("Providing a list of plugin IDs does nothing with the --all flag")
+					stdout.Write([]byte("Providing a list of plugin IDs does nothing with the --all flag\n"))
 				}
 
 				err := db.Update(func(tx *bbolt.Tx) error {
@@ -58,7 +61,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 				exitOnErr("Failed to delete offsets", err)
 			} else {
 				if len(args) == 0 {
-					println("Must either specify a list of plugins or the --all flag")
+					stdout.Write([]byte("Must either specify a list of plugins or the --all flag\n"))
 					os.Exit(1)
 				}
 
@@ -69,6 +72,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 							return nil
 						}
 
+						println(pluginID)
 						return offsetBucket.DeleteBucket([]byte(pluginID))
 					})
 					exitOnErr("Failed to delete offsets", err)
@@ -103,7 +107,7 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 				}
 
 				return offsetBucket.ForEach(func(key, value []byte) error {
-					println(string(key))
+					stdout.Write(append(key, '\n'))
 					return nil
 				})
 			})
