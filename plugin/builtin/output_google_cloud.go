@@ -31,8 +31,8 @@ func init() {
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	buffer.BufferConfig      `json:"buffer,omitempty" yaml:"buffer,omitempty"`
+	helper.OutputConfig `yaml:",inline"`
+	buffer.BufferConfig `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
 	Credentials     string       `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
 	CredentialsFile string       `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
@@ -46,7 +46,7 @@ type GoogleCloudOutputConfig struct {
 
 // Build will build a google cloud output plugin.
 func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(buildContext.Logger)
+	outputPlugin, err := c.OutputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 	}
 
 	googleCloudOutput := &GoogleCloudOutput{
-		BasicPlugin:     basicPlugin,
+		OutputPlugin:    outputPlugin,
 		credentials:     c.Credentials,
 		credentialsFile: c.CredentialsFile,
 		projectID:       c.ProjectID,
@@ -80,8 +80,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
-	helper.BasicPlugin
-	helper.BasicOutput
+	helper.OutputPlugin
 	buffer.Buffer
 
 	credentials     string

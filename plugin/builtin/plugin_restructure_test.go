@@ -18,12 +18,12 @@ func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
 	mock := testutil.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &RestructurePlugin{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:      "test",
-			PluginType:    "restructure",
-			SugaredLogger: logger.Sugar(),
-		},
-		BasicTransformer: helper.BasicTransformer{
+		TransformerPlugin: helper.TransformerPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:      "test",
+				PluginType:    "restructure",
+				SugaredLogger: logger.Sugar(),
+			},
 			Output: &mock,
 		},
 	}, &mock

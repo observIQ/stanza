@@ -28,7 +28,7 @@ log3`)
 
 	config := `
 database_file: '%s'
-plugins:
+pipeline:
   - id: file_input
     type: file_input
     include: ['%s']
@@ -48,7 +48,9 @@ plugins:
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	rootCmd.ExecuteContext(ctx)
+
+	err = rootCmd.ExecuteContext(ctx)
+	require.NoError(t, err)
 
 	expectedPattern := `{"timestamp":".*","record":{"message":"log1"}}
 {"timestamp":".*","record":{"message":"log2"}}

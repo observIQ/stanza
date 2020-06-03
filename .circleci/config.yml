@@ -1,3 +1,4 @@
+---
 version: 2.1
 
 orbs:
@@ -15,6 +16,31 @@ executors:
       xcode: 11.4.1
 
 jobs:
+
+  build:
+    executor: golang
+    steps:
+      - checkout
+      - run:
+          name: Build
+          command: |
+            make install-tools
+            VERSION="$CIRCLE_TAG" make build-all
+      - persist_to_workspace:
+          root: ./artifacts
+          paths:
+            - "*"
+
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./artifacts/
 
   test-linux:
     executor: golang
@@ -227,11 +253,6 @@ jobs:
 
 workflows:
   version: 2
-  unit_test:
-    jobs:
-      - test-linux
-      - test-macos
-      - test-windows
 
   benchmark:
     jobs:
@@ -349,3 +370,34 @@ workflows:
             - f10-2000
             - f10-5000
             - f10-10000
+
+  test_build_release:
+    jobs:
+      - test-linux:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - test-macos:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - test-windows:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - build:
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+          requires:
+            - test-linux
+            - test-macos
+            - test-windows
+      - publish-github-release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^\d+\.\d+\.\d+$/

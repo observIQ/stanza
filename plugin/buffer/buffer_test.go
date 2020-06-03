@@ -30,8 +30,8 @@ func (b *bufferHandler) ProcessMulti(ctx context.Context, entries []*entry.Entry
 
 func (b *bufferHandler) Logger() *zap.SugaredLogger {
 	return nil
-
 }
+
 func TestBuffer(t *testing.T) {
 	config := &BufferConfig{}
 	config.setDefaults()
@@ -100,6 +100,7 @@ func TestBufferSerializationRoundtrip(t *testing.T) {
 		})
 
 		t.Run("json "+tc.name, func(t *testing.T) {
+			tc := tc
 			cfgBytes, err := json.Marshal(tc.config)
 			require.NoError(t, err)
 

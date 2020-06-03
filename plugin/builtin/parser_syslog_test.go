@@ -16,11 +16,11 @@ import (
 func TestSyslogParser(t *testing.T) {
 	basicConfig := func() *SyslogParserConfig {
 		return &SyslogParserConfig{
-			BasicPluginConfig: helper.BasicPluginConfig{
-				PluginID:   "test_plugin_id",
-				PluginType: "syslog_parser",
-			},
-			BasicParserConfig: helper.BasicParserConfig{
+			ParserConfig: helper.ParserConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "test_plugin_id",
+					PluginType: "syslog_parser",
+				},
 				OutputID: "output1",
 			},
 		}

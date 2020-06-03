@@ -14,7 +14,6 @@ import (
 	"time"
 
 	agent "github.com/bluemedora/bplogagent/agent"
-	"github.com/bluemedora/bplogagent/config"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -22,6 +21,7 @@ import (
 
 type RootFlags struct {
 	ConfigFiles        []string
+	PluginDir          string
 	PprofPort          int
 	CPUProfile         string
 	CPUProfileDuration time.Duration
@@ -42,28 +42,37 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	rootFlagSet := root.PersistentFlags()
-	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"/etc/bplogagent/bplogagent.yaml"}, "path to a config file") 
+	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"./config.yaml"}, "path to a config file") // TODO default locations
+	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", "./plugins", "path to the plugin directory")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
 	// Profiling flags
 	rootFlagSet.IntVar(&rootFlags.PprofPort, "pprof_port", 0, "listen port for pprof profiling")
-	rootFlagSet.MarkHidden("pprof_port")
 	rootFlagSet.StringVar(&rootFlags.CPUProfile, "cpu_profile", "", "path to cpu profile output")
-	rootFlagSet.MarkHidden("cpu_profile")
 	rootFlagSet.DurationVar(&rootFlags.CPUProfileDuration, "cpu_profile_duration", 60*time.Second, "duration to run the cpu profile")
-	rootFlagSet.MarkHidden("cpu_profile_duration")
 	rootFlagSet.StringVar(&rootFlags.MemProfile, "mem_profile", "", "path to memory profile output")
-	rootFlagSet.MarkHidden("mem_profile")
 	rootFlagSet.DurationVar(&rootFlags.MemProfileDelay, "mem_profile_delay", 10*time.Second, "time to wait before writing a memory profile")
-	rootFlagSet.MarkHidden("mem_profile_delay")
+
+	// Set profiling flags to hidden
+	hiddenFlags := []string{"pprof_port", "cpu_profile", "cpu_profile_duration", "mem_profile", "mem_profile_delay"}
+	for _, flag := range hiddenFlags {
+		err := rootFlagSet.MarkHidden(flag)
+		if err != nil {
+			// MarkHidden only fails if the flag does not exist
+			panic(err)
+		}
+	}
 
 	graph := NewGraphCommand(rootFlags)
 	root.AddCommand(graph)
 
+	version := NewVersionCommand()
+	root.AddCommand(version)
+
 	return root
 }
 
-func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
+func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
 		logger = newDefaultLoggerAt(zapcore.DebugLevel)
@@ -74,14 +83,14 @@ func runRoot(command *cobra.Command, args []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := config.ReadConfigsFromGlobs(flags.ConfigFiles)
+	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		logger.Errorw("Failed to read config", zap.Any("error", err))
+		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
 	logger.Debugw("Parsed config", "config", cfg)
 
-	agent := agent.NewLogAgent(cfg, logger)
+	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir)
 	err = agent.Start()
 	if err != nil {
 		logger.Errorw("Failed to start log agent", zap.Any("error", err))
@@ -198,5 +207,4 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 	}
 
 	return wg
-
 }

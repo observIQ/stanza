@@ -10,11 +10,11 @@ import (
 
 func TestNoopPluginBuild(t *testing.T) {
 	cfg := &NoopPluginConfig{
-		BasicPluginConfig: helper.BasicPluginConfig{
-			PluginID:   "test_plugin_id",
-			PluginType: "noop",
-		},
-		BasicTransformerConfig: helper.BasicTransformerConfig{
+		TransformerConfig: helper.TransformerConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "test_plugin_id",
+				PluginType: "noop",
+			},
 			OutputID: "output",
 		},
 	}

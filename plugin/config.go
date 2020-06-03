@@ -2,135 +2,119 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 
-	"github.com/bluemedora/bplogagent/errors"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
 
+// Config is the configuration of a plugin
 type Config struct {
-	PluginBuilder `yaml:",inline"`
+	Builder
 }
 
-type PluginBuilder interface {
+// Builder is an entity that can build plugins
+type Builder interface {
 	ID() string
 	Type() string
 	Build(BuildContext) (Plugin, error)
+	SetNamespace(namespace string, exclude ...string)
 }
 
 // BuildContext supplies contextual resources when building a plugin.
 type BuildContext struct {
-	Database *bbolt.DB
-	Logger   *zap.SugaredLogger
+	CustomRegistry CustomRegistry
+	Database       *bbolt.DB
+	Logger         *zap.SugaredLogger
 }
 
-// BuildPlugins will build a collection of plugins from plugin configs.
-func BuildPlugins(configs []Config, context BuildContext) ([]Plugin, error) {
-	plugins := make([]Plugin, 0, len(configs))
+// registry is a global registry of plugin types to plugin builders.
+var registry = make(map[string]func() Builder)
 
-	for _, config := range configs {
-		plugin, err := config.Build(context)
-		if err != nil {
-			return plugins, errors.WithDetails(err,
-				"plugin_id", config.ID(),
-				"plugin_type", config.Type(),
-			)
-		}
-		plugins = append(plugins, plugin)
-	}
-
-	return plugins, nil
-}
-
-// configDefinitions is a registry of plugin types to plugin configs.
-var configDefinitions = make(map[string]func() interface{})
-
-// Register will register a plugin config by plugin type.
-func Register(pluginType string, config PluginBuilder) {
-	configDefinitions[pluginType] = func() interface{} {
-		val := reflect.New(reflect.TypeOf(config).Elem()).Interface()
-		return val.(PluginBuilder)
+// Register will register a function to a plugin type.
+// This function will return a builder for the supplied type.
+func Register(pluginType string, builder Builder) {
+	registry[pluginType] = func() Builder {
+		val := reflect.New(reflect.TypeOf(builder).Elem()).Interface()
+		return val.(Builder)
 	}
 }
 
-func (c *Config) UnmarshalJSON(raw []byte) error {
-	var typeDecoder struct {
+// IsDefined will return a boolean indicating if a plugin type is registered and defined.
+func IsDefined(pluginType string) bool {
+	_, ok := registry[pluginType]
+	return ok
+}
+
+// UnmarshalJSON will unmarshal a config from JSON.
+func (c *Config) UnmarshalJSON(bytes []byte) error {
+	var baseConfig struct {
+		ID   string
 		Type string
 	}
-	err := json.Unmarshal(raw, &typeDecoder)
+
+	err := json.Unmarshal(bytes, &baseConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal json to base config: %s", err)
 	}
 
-	if typeDecoder.Type == "" {
-		return ErrMissingType
+	if baseConfig.Type == "" {
+		return fmt.Errorf("failed to unmarshal json to undefined plugin type")
 	}
 
-	pluginBuilderGenerator, ok := configDefinitions[typeDecoder.Type]
+	builderFunc, ok := registry[baseConfig.Type]
 	if !ok {
-		return NewErrUnknownType(typeDecoder.Type)
+		return fmt.Errorf("failed to unmarshal json to unsupported type: %s", baseConfig.Type)
 	}
 
-	pluginBuilder := pluginBuilderGenerator()
-	err = json.Unmarshal(raw, pluginBuilder)
+	builder := builderFunc()
+	err = json.Unmarshal(bytes, builder)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal json to %s: %s", baseConfig.Type, err)
 	}
 
-	c.PluginBuilder = pluginBuilder.(PluginBuilder)
+	c.Builder = builder
 	return nil
 }
 
+// MarshalJSON will marshal a config to JSON.
 func (c Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.PluginBuilder)
+	return json.Marshal(c.Builder)
 }
 
+// UnmarshalYAML will unmarshal a config from YAML.
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var typeDecoder struct {
+	var baseConfig struct {
+		ID   string
 		Type string
 	}
-	err := unmarshal(&typeDecoder)
+
+	err := unmarshal(&baseConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal yaml to base config: %s", err)
 	}
 
-	if typeDecoder.Type == "" {
-		return ErrMissingType
+	if baseConfig.Type == "" {
+		return fmt.Errorf("failed to unmarshal yaml to undefined plugin type")
 	}
 
-	pluginBuilderGenerator, ok := configDefinitions[typeDecoder.Type]
+	builderFunc, ok := registry[baseConfig.Type]
 	if !ok {
-		return NewErrUnknownType(typeDecoder.Type)
+		return fmt.Errorf("failed to unmarshal yaml to unsupported type: %s", baseConfig.Type)
 	}
 
-	pluginBuilder := pluginBuilderGenerator()
-	err = unmarshal(pluginBuilder)
+	builder := builderFunc()
+	err = unmarshal(builder)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal yaml to %s: %s", baseConfig.Type, err)
 	}
 
-	c.PluginBuilder = pluginBuilder.(PluginBuilder)
+	c.Builder = builder
 	return nil
 }
 
+// MarshalYAML will marshal a config to YAML.
 func (c Config) MarshalYAML() (interface{}, error) {
-	return c.PluginBuilder, nil
-}
-
-/*********
-  Errors
-*********/
-
-var ErrMissingType = errors.NewError(
-	"Missing required field `type`.",
-	"Ensure that all plugin configs have a `type` field set",
-)
-
-func NewErrUnknownType(pluginType string) errors.AgentError {
-	return errors.NewError(
-		"Plugin config has an unknown plugin type.",
-		"Ensure that all plugin configs have a known, valid type.",
-		"plugin_type", pluginType,
-	)
+	return c.Builder, nil
 }

@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 )
 
-func ExampleGraph() {
+func Example_runGraph() {
 	config := []byte(`
-plugins:
+pipeline:
   - id: generate
     type: generate_input
     output: json_parser
@@ -39,18 +39,20 @@ plugins:
 		ConfigFiles: []string{configPath},
 	}
 	graphCmd := NewGraphCommand(rootFlags)
-	graphCmd.Execute()
+	err = graphCmd.Execute()
+	if err != nil {
+		panic(err)
+	}
 
 	// Output:
 	// strict digraph G {
-	//  // Node definitions.
-	//  generate;
-	//  json_parser;
-	//  google_cloud;
-	//
-	//  // Edge definitions.
-	//  generate -> json_parser;
-	//  json_parser -> google_cloud;
-	// }
+	// 	// Node definitions.
+	// 	"$.json_parser";
+	// 	"$.generate";
+	// 	"$.google_cloud";
 
+	// 	// Edge definitions.
+	// 	"$.json_parser" -> "$.google_cloud";
+	// 	"$.generate" -> "$.json_parser";
+	//  }
 }

@@ -17,11 +17,11 @@ import (
 func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
 	mockPlugin := testutil.Plugin{}
 	return &RegexParser{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:   "regex_parser",
-			PluginType: "regex_parser",
-		},
-		BasicParser: helper.BasicParser{
+		ParserPlugin: helper.ParserPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:   "regex_parser",
+				PluginType: "regex_parser",
+			},
 			OutputID: "mock_output",
 			Output:   &mockPlugin,
 		},
@@ -82,11 +82,11 @@ func TestParserRegex(t *testing.T) {
 func TestBuildParserRegex(t *testing.T) {
 	newBasicRegexParser := func() RegexParserConfig {
 		return RegexParserConfig{
-			BasicPluginConfig: helper.BasicPluginConfig{
-				PluginID:   "test",
-				PluginType: "test",
-			},
-			BasicParserConfig: helper.BasicParserConfig{
+			ParserConfig: helper.ParserConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "test",
+					PluginType: "test",
+				},
 				OutputID: "test",
 			},
 			Regex: ".*",

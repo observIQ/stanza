@@ -23,8 +23,8 @@ func init() {
 
 // ElasticOutputConfig is the configuration of an elasticsearch output plugin.
 type ElasticOutputConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	buffer.BufferConfig      `json:"buffer" yaml:"buffer"`
+	helper.OutputConfig `yaml:",inline"`
+	buffer.BufferConfig `json:"buffer" yaml:"buffer"`
 
 	Addresses  []string     `json:"addresses"             yaml:"addresses,flow"`
 	Username   string       `json:"username"              yaml:"username"`
@@ -37,7 +37,7 @@ type ElasticOutputConfig struct {
 
 // Build will build an elasticsearch output plugin.
 func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	outputPlugin, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -65,11 +65,11 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	}
 
 	elasticOutput := &ElasticOutput{
-		BasicPlugin: basicPlugin,
-		Buffer:      buffer,
-		client:      client,
-		indexField:  c.IndexField,
-		idField:     c.IDField,
+		OutputPlugin: outputPlugin,
+		Buffer:       buffer,
+		client:       client,
+		indexField:   c.IndexField,
+		idField:      c.IDField,
 	}
 
 	buffer.SetHandler(elasticOutput)
@@ -79,9 +79,7 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 
 // ElasticOutput is a plugin that sends entries to elasticsearch.
 type ElasticOutput struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicOutput
+	helper.OutputPlugin
 	buffer.Buffer
 
 	client     *elasticsearch.Client

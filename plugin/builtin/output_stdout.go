@@ -17,27 +17,25 @@ func init() {
 
 // StdoutConfig is the configuration of the Stdout plugin
 type StdoutConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
+	helper.OutputConfig `yaml:",inline"`
 }
 
 // Build will build a stdout plugin.
 func (c StdoutConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
+	outputPlugin, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	return &StdoutPlugin{
-		BasicPlugin: basicPlugin,
-		encoder:     jsoniter.ConfigFastest.NewEncoder(os.Stdout),
+		OutputPlugin: outputPlugin,
+		encoder:      jsoniter.ConfigFastest.NewEncoder(os.Stdout),
 	}, nil
 }
 
 // LoggerOutput is a plugin that logs entries using the internal logger.
 type StdoutPlugin struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicOutput
+	helper.OutputPlugin
 	encoder *jsoniter.Encoder
 	mux     sync.Mutex
 }

@@ -15,7 +15,7 @@ import (
 func TestRouterPlugin(t *testing.T) {
 	basicConfig := func() *RouterPluginConfig {
 		return &RouterPluginConfig{
-			BasicPluginConfig: helper.BasicPluginConfig{
+			BasicConfig: helper.BasicConfig{
 				PluginID:   "test_plugin_id",
 				PluginType: "router",
 			},
@@ -25,13 +25,13 @@ func TestRouterPlugin(t *testing.T) {
 	cases := []struct {
 		name           string
 		input          *entry.Entry
-		routes         []RouterPluginRouteConfig
+		routes         []*RouterPluginRouteConfig
 		expectedCounts map[string]int
 	}{
 		{
 			"DefaultRoute",
 			entry.New(),
-			[]RouterPluginRouteConfig{
+			[]*RouterPluginRouteConfig{
 				{
 					"true",
 					"output1",
@@ -42,7 +42,7 @@ func TestRouterPlugin(t *testing.T) {
 		{
 			"NoMatch",
 			entry.New(),
-			[]RouterPluginRouteConfig{
+			[]*RouterPluginRouteConfig{
 				{
 					`false`,
 					"output1",
@@ -57,7 +57,7 @@ func TestRouterPlugin(t *testing.T) {
 					"message": "test_message",
 				},
 			},
-			[]RouterPluginRouteConfig{
+			[]*RouterPluginRouteConfig{
 				{
 					`$.message == "non_match"`,
 					"output1",

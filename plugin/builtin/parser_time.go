@@ -17,20 +17,14 @@ func init() {
 
 // TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	helper.BasicPluginConfig `yaml:",inline"`
-	helper.BasicParserConfig `yaml:",inline"`
+	helper.ParserConfig `yaml:",inline"`
 
 	Layout string `json:"layout" yaml:"layout"`
 }
 
 // Build will build a time parser plugin.
 func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicParser, err := c.BasicParserConfig.Build(basicPlugin.SugaredLogger)
+	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +37,8 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	timeParser := &TimeParser{
-		BasicPlugin: basicPlugin,
-		BasicParser: basicParser,
-		layout:      c.Layout,
+		ParserPlugin: parserPlugin,
+		layout:       c.Layout,
 	}
 
 	return timeParser, nil
@@ -53,15 +46,13 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // TimeParser is a plugin that parses time from an entry.
 type TimeParser struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicParser
+	helper.ParserPlugin
 	layout string
 }
 
 // Process will parse time from an entry.
 func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return t.BasicParser.ProcessWith(ctx, entry, t.parse)
+	return t.ParserPlugin.ProcessWith(ctx, entry, t.parse)
 }
 
 // Parse will parse a value as a time.

@@ -14,25 +14,18 @@ func init() {
 
 // NoopPluginConfig is the configuration of a noop plugin.
 type NoopPluginConfig struct {
-	helper.BasicPluginConfig      `yaml:",inline"`
-	helper.BasicTransformerConfig `yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 }
 
 // Build will build a noop plugin.
 func (c NoopPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicPluginConfig.Build(context.Logger)
-	if err != nil {
-		return nil, err
-	}
-
-	basicTransformer, err := c.BasicTransformerConfig.Build()
+	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	noopPlugin := &NoopPlugin{
-		BasicPlugin:      basicPlugin,
-		BasicTransformer: basicTransformer,
+		TransformerPlugin: transformerPlugin,
 	}
 
 	return noopPlugin, nil
@@ -40,9 +33,7 @@ func (c NoopPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // NoopPlugin is a plugin that performs no operations on an entry.
 type NoopPlugin struct {
-	helper.BasicPlugin
-	helper.BasicLifecycle
-	helper.BasicTransformer
+	helper.TransformerPlugin
 }
 
 // Process will forward the entry to the next output without any alterations.

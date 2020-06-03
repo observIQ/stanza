@@ -35,9 +35,11 @@ func (client *mockCloudLoggingClient) WriteLogEntries(ctx context.Context, req *
 func TestGoogleCloudOutput(t *testing.T) {
 	basicConfig := func() *GoogleCloudOutputConfig {
 		return &GoogleCloudOutputConfig{
-			BasicPluginConfig: helper.BasicPluginConfig{
-				PluginID:   "test_id",
-				PluginType: "google_cloud_output",
+			OutputConfig: helper.OutputConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "test_id",
+					PluginType: "google_cloud_output",
+				},
 			},
 			BufferConfig: buffer.BufferConfig{
 				DelayThreshold: plugin.Duration{

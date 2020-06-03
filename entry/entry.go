@@ -85,5 +85,4 @@ func (entry *Entry) Read(field Field, dest interface{}) error {
 	}
 
 	return nil
-
 }

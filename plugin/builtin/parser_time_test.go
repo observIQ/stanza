@@ -14,11 +14,11 @@ import (
 
 func TestTimeParser(t *testing.T) {
 	cfg := &TimeParserConfig{
-		BasicPluginConfig: helper.BasicPluginConfig{
-			PluginID:   "test_plugin_id",
-			PluginType: "time_parser",
-		},
-		BasicParserConfig: helper.BasicParserConfig{
+		ParserConfig: helper.ParserConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "test_plugin_id",
+				PluginType: "time_parser",
+			},
 			OutputID: "output1",
 		},
 		Layout: time.UnixDate,

@@ -14,12 +14,12 @@ func NewFakeRateLimitPlugin() *RateLimitPlugin {
 	logger, _ := zap.NewProduction()
 	sugaredLogger := logger.Sugar()
 	return &RateLimitPlugin{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:      "test",
-			PluginType:    "rate_filter",
-			SugaredLogger: sugaredLogger,
-		},
-		BasicTransformer: helper.BasicTransformer{
+		TransformerPlugin: helper.TransformerPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:      "test",
+				PluginType:    "rate_filter",
+				SugaredLogger: sugaredLogger,
+			},
 			Output: newFakeNullOutput(),
 		},
 		interval: time.Millisecond,

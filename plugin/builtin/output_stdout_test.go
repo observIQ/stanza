@@ -16,9 +16,11 @@ import (
 
 func TestStdoutPlugin(t *testing.T) {
 	cfg := StdoutConfig{
-		BasicPluginConfig: helper.BasicPluginConfig{
-			PluginID:   "test_plugin_id",
-			PluginType: "stdout",
+		OutputConfig: helper.OutputConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "test_plugin_id",
+				PluginType: "stdout",
+			},
 		},
 	}
 

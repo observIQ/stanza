@@ -15,12 +15,14 @@ import (
 func TestUDPInput(t *testing.T) {
 	basicUDPInputConfig := func() *UDPInputConfig {
 		return &UDPInputConfig{
-			BasicPluginConfig: helper.BasicPluginConfig{
-				PluginID:   "test_id",
-				PluginType: "tcp_input",
-			},
-			BasicInputConfig: helper.BasicInputConfig{
-				WriteTo:  entry.Field{[]string{}},
+			InputConfig: helper.InputConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "test_id",
+					PluginType: "tcp_input",
+				},
+				WriteTo:  entry.Field{
+          Keys: []string{},
+        },
 				OutputID: "test_output_id",
 			},
 		}
@@ -36,7 +38,7 @@ func TestUDPInput(t *testing.T) {
 
 		mockOutput := testutil.Plugin{}
 		tcpInput := newPlugin.(*UDPInput)
-		tcpInput.BasicInput.Output = &mockOutput
+		tcpInput.InputPlugin.Output = &mockOutput
 
 		entryChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

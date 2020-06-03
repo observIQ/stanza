@@ -47,7 +47,7 @@ func (f Field) Length() int {
 	return len(f.Keys)
 }
 
-// Get will retreive a value from an entry's record using the field.
+// Get will retrieve a value from an entry's record using the field.
 // It will return the value and whether the field existed.
 func (f Field) Get(entry *Entry) (interface{}, bool) {
 	var currentValue interface{} = entry.Record

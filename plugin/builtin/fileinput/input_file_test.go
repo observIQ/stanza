@@ -34,12 +34,12 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Pl
 	db, cleanup := newTempDB()
 
 	source = &FileInput{
-		BasicPlugin: helper.BasicPlugin{
-			PluginID:      "testfile",
-			PluginType:    "file_input",
-			SugaredLogger: logger,
-		},
-		BasicInput: helper.BasicInput{
+		InputPlugin: helper.InputPlugin{
+			BasicPlugin: helper.BasicPlugin{
+				PluginID:      "testfile",
+				PluginType:    "file_input",
+				SugaredLogger: logger,
+			},
 			Output: mockOutput,
 		},
 		SplitFunc:        bufio.ScanLines,
@@ -67,11 +67,11 @@ func TestFileSource_Build(t *testing.T) {
 	pathField := entry.NewField("testpath")
 
 	sourceConfig := &FileInputConfig{
-		BasicPluginConfig: helper.BasicPluginConfig{
-			PluginID:   "testfile",
-			PluginType: "file_input",
-		},
-		BasicInputConfig: helper.BasicInputConfig{
+		InputConfig: helper.InputConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "testfile",
+				PluginType: "file_input",
+			},
 			OutputID: "mock",
 		},
 		Include: []string{"/var/log/testpath.*"},
@@ -403,6 +403,7 @@ func TestFileSource_OffsetsAfterRestart_BigFiles(t *testing.T) {
 
 		// Write to a file
 		_, err = temp1.WriteString(log1)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 
@@ -420,6 +421,7 @@ func TestFileSource_OffsetsAfterRestart_BigFiles(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = temp1.WriteString(log2)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 	}
@@ -444,6 +446,7 @@ func TestFileSource_OffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 
 		// Write to a file
 		_, err = temp1.WriteString(log1)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 
@@ -459,6 +462,7 @@ func TestFileSource_OffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = temp1.WriteString(log2)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 
@@ -486,6 +490,7 @@ func TestFileSource_FileMovedWhileOff_BigFiles(t *testing.T) {
 
 		// Write to a file
 		_, err = temp1.WriteString(log1)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 
@@ -501,6 +506,7 @@ func TestFileSource_FileMovedWhileOff_BigFiles(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = temp1.WriteString(log2)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 		temp1.Close()
@@ -532,6 +538,7 @@ func TestFileSource_FileMovedWhileOff_SmallFiles(t *testing.T) {
 
 		// Write to a file
 		_, err = temp1.WriteString(log1)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 
@@ -547,6 +554,7 @@ func TestFileSource_FileMovedWhileOff_SmallFiles(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = temp1.WriteString(log2)
+		require.NoError(t, err)
 		_, err = temp1.WriteString("\n")
 		require.NoError(t, err)
 		temp1.Close()
