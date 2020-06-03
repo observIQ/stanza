@@ -34,7 +34,6 @@ func NewRootCmd() *cobra.Command {
 	rootFlags := &RootFlags{}
 
 	root := &cobra.Command{
-		// TODO change these once we have some branding
 		Use:   "bplogagent [-c ./config.yaml]",
 		Short: "A log parser and router",
 		Long:  "A log parser and router",

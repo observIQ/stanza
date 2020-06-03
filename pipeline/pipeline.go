@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"strings"
+
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"gonum.org/v1/gonum/graph/encoding/dot"
@@ -83,12 +85,11 @@ func connectNodes(graph *simple.DirectedGraph) error {
 		}
 	}
 
-	// TODO #172624458 Error message should tell users what plugins formed a cycle
 	if _, err := topo.Sort(graph); err != nil {
 		return errors.NewError(
 			"Pipeline has a circular dependency.",
 			"Ensure that all plugins are connected in a straight, acyclic line.",
-			"raw_error", err.Error(),
+			"cycles", unorderableToCycles(err.(topo.Unorderable)),
 		)
 	}
 
@@ -163,4 +164,21 @@ func NewPipeline(plugins []plugin.Plugin) (*Pipeline, error) {
 	}
 
 	return &Pipeline{Graph: graph}, nil
+}
+
+func unorderableToCycles(err topo.Unorderable) string {
+	var cycles strings.Builder
+	for i, cycle := range err {
+		if i != 0 {
+			cycles.WriteByte(',')
+		}
+		cycles.WriteByte('(')
+		for _, node := range cycle {
+			cycles.WriteString(node.(PluginNode).plugin.ID())
+			cycles.Write([]byte(` -> `))
+		}
+		cycles.WriteString(cycle[0].(PluginNode).plugin.ID())
+		cycles.WriteByte(')')
+	}
+	return cycles.String()
 }
