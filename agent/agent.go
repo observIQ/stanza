@@ -31,7 +31,7 @@ func (a *LogAgent) Start() error {
 		return nil
 	}
 
-	database, err := openDatabase(a.Config.DatabaseFile)
+	database, err := OpenDatabase(a.Config.DatabaseFile)
 	if err != nil {
 		a.Errorw("Failed to open database", zap.Any("error", err))
 		return err
@@ -86,8 +86,8 @@ func (a *LogAgent) Status() struct{} {
 	return struct{}{}
 }
 
-// openDatabase will open and create a database.
-func openDatabase(file string) (*bbolt.DB, error) {
+// OpenDatabase will open and create a database.
+func OpenDatabase(file string) (*bbolt.DB, error) {
 	if file == "" {
 		file = defaultDatabaseFile()
 	}

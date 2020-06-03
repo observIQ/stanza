@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Pipeline     pipeline.Config `json:"pipeline"                yaml:"pipeline"`
 	DatabaseFile string          `json:"database_file,omitempty" yaml:"database_file,omitempty"`
+	PluginDir    string          `json:"plugin_dir,omitempty"    yaml:"plugin_dir,omitempty"`
 }
 
 // NewConfigFromFile will create a new agent config from a YAML file.
@@ -66,4 +67,14 @@ func mergeConfigs(dst *Config, src *Config) *Config {
 
 	dst.Pipeline = append(dst.Pipeline, src.Pipeline...)
 	return dst
+}
+
+func (c *Config) SetDefaults(databaseFile, pluginDir string) {
+	if c.DatabaseFile == "" {
+		c.DatabaseFile = databaseFile
+	}
+
+	if c.PluginDir == "" {
+		c.PluginDir = pluginDir
+	}
 }
