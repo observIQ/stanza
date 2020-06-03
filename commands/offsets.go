@@ -30,7 +30,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 	var all bool
 
 	offsetsClear := &cobra.Command{
-		Use:   "clear",
+		Use:   "clear [flags] [plugin_ids]",
 		Short: "Clear persisted offsets from the database",
 		Args:  cobra.ArbitraryArgs,
 		Run: func(command *cobra.Command, args []string) {
