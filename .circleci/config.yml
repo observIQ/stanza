@@ -263,34 +263,10 @@ workflows:
           rate: 1000
           files: 1
       - run-benchmark:
-          name: f1-2000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-2000
-          rate: 2000
-          files: 1
-      - run-benchmark:
-          name: f1-5000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-5000
-          rate: 5000
-          files: 1
-      - run-benchmark:
           name: f1-10000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f1-10000
           rate: 10000
-          files: 1
-      - run-benchmark:
-          name: f1-20000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-20000
-          rate: 20000
-          files: 1
-      - run-benchmark:
-          name: f1-50000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-50000
-          rate: 50000
           files: 1
       - run-benchmark:
           name: f1-100000
@@ -305,34 +281,10 @@ workflows:
           rate: 100
           files: 10
       - run-benchmark:
-          name: f10-200
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-200
-          rate: 200
-          files: 10
-      - run-benchmark:
-          name: f10-500
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-500
-          rate: 500
-          files: 10
-      - run-benchmark:
           name: f10-1000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-1000
           rate: 1000
-          files: 10
-      - run-benchmark:
-          name: f10-2000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-2000
-          rate: 2000
-          files: 10
-      - run-benchmark:
-          name: f10-5000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-5000
-          rate: 5000
           files: 10
       - run-benchmark:
           name: f10-10000
@@ -341,34 +293,26 @@ workflows:
           rate: 10000
           files: 10
       - run-benchmark:
-          name: f1-10000-profile
+          name: f1-100000-profile
           context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-10000-profile
+          instance: circleci-<< pipeline.number >>-f1-100000-profile
           files: 1
-          rate: 10000
+          rate: 100000
           profile: true
       - run-benchmark:
-          name: f10-1000-profile
+          name: f10-10000-profile
           context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-1000-profile
+          instance: circleci-<< pipeline.number >>-f10-10000-profile
           files: 10
-          rate: 1000
+          rate: 10000
           profile: true
       - report-results:
           requires:
             - f1-1000
-            - f1-2000
-            - f1-5000
             - f1-10000
-            - f1-20000
-            - f1-50000
             - f1-100000
             - f10-100
-            - f10-200
-            - f10-500
             - f10-1000
-            - f10-2000
-            - f10-5000
             - f10-10000
 
   test_build_release:
