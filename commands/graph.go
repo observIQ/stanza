@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/bluemedora/bplogagent/agent"
+	"github.com/bluemedora/bplogagent/plugin"
 	pg "github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/custom"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -36,18 +36,20 @@ func runGraph(command *cobra.Command, args []string, flags *RootFlags) error {
 		_ = logger.Sync()
 	}()
 
-	if err := custom.LoadAll(flags.PluginDir, "*.yaml"); err != nil {
-		logger.Errorw("Failed to load plugin definitions", zap.Any("error", err))
-	}
-
 	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
 		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
 
+	customRegistry, err := plugin.NewCustomRegistry(flags.PluginDir)
+	if err != nil {
+		logger.Errorw("Failed to load custom plugin registry", zap.Any("error", err))
+	}
+
 	buildContext := pg.BuildContext{
-		Logger: logger,
+		CustomRegistry: customRegistry,
+		Logger:         logger,
 	}
 
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext)

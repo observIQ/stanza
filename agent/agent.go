@@ -16,7 +16,8 @@ import (
 
 // LogAgent is an entity that handles log monitoring.
 type LogAgent struct {
-	Config *Config
+	Config    *Config
+	PluginDir string
 	*zap.SugaredLogger
 
 	database *bbolt.DB
@@ -37,7 +38,17 @@ func (a *LogAgent) Start() error {
 	}
 	a.database = database
 
-	buildContext := newBuildContext(a.SugaredLogger, database)
+	registry, err := pg.NewCustomRegistry(a.PluginDir)
+	if err != nil {
+		a.Errorw("Failed to load custom plugin registry", zap.Any("error", err))
+	}
+
+	buildContext := pg.BuildContext{
+		CustomRegistry: registry,
+		Logger:         a.SugaredLogger,
+		Database:       a.database,
+	}
+
 	pipeline, err := a.Config.Pipeline.BuildPipeline(buildContext)
 	if err != nil {
 		return errors.Wrap(err, "build pipeline")
@@ -75,14 +86,6 @@ func (a *LogAgent) Status() struct{} {
 	return struct{}{}
 }
 
-// newBuildContext will create a new build context for building plugins.
-func newBuildContext(logger *zap.SugaredLogger, database *bbolt.DB) pg.BuildContext {
-	return pg.BuildContext{
-		Logger:   logger,
-		Database: database,
-	}
-}
-
 // openDatabase will open and create a database.
 func openDatabase(file string) (*bbolt.DB, error) {
 	if file == "" {
@@ -114,9 +117,10 @@ func defaultDatabaseFile() string {
 }
 
 // NewLogAgent creates a new log agent.
-func NewLogAgent(cfg *Config, logger *zap.SugaredLogger) *LogAgent {
+func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir string) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,
+		PluginDir:     pluginDir,
 	}
 }

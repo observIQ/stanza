@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/bluemedora/bplogagent/errors"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 )
 
 // Config is the configuration of a plugin
@@ -26,8 +24,9 @@ type Builder interface {
 
 // BuildContext supplies contextual resources when building a plugin.
 type BuildContext struct {
-	Database *bbolt.DB
-	Logger   *zap.SugaredLogger
+	CustomRegistry CustomRegistry
+	Database       *bbolt.DB
+	Logger         *zap.SugaredLogger
 }
 
 // registry is a global registry of plugin types to plugin builders.
@@ -118,24 +117,4 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // MarshalYAML will marshal a config to YAML.
 func (c Config) MarshalYAML() (interface{}, error) {
 	return c.Builder, nil
-}
-
-// BuildConfig will build a plugin config from a params map.
-func BuildConfig(params map[string]interface{}, namespace string) (Config, error) {
-	bytes, err := yaml.Marshal(params)
-	if err != nil {
-		return Config{}, errors.NewError(
-			"failed to parse config map as yaml",
-			"ensure that all config values are supported yaml values",
-			"error", err.Error(),
-		)
-	}
-
-	var config Config
-	if err := yaml.Unmarshal(bytes, &config); err != nil {
-		return Config{}, err
-	}
-
-	config.SetNamespace(namespace)
-	return config, nil
 }

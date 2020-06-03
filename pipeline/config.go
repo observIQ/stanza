@@ -3,7 +3,7 @@ package pipeline
 import (
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/custom"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -12,7 +12,7 @@ type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
 func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
-	pluginConfigs, err := c.buildPluginConfigs()
+	pluginConfigs, err := c.buildPluginConfigs(context)
 	if err != nil {
 		return nil, errors.Wrap(err, "build plugin configs")
 	}
@@ -45,7 +45,7 @@ func (c Config) buildPlugins(pluginConfigs []plugin.Config, context plugin.Build
 	return plugins, nil
 }
 
-func (c Config) buildPluginConfigs() ([]plugin.Config, error) {
+func (c Config) buildPluginConfigs(context plugin.BuildContext) ([]plugin.Config, error) {
 	pluginConfigs := make([]plugin.Config, 0, len(c))
 
 	for _, params := range c {
@@ -53,21 +53,11 @@ func (c Config) buildPluginConfigs() ([]plugin.Config, error) {
 			return nil, errors.Wrap(err, "validate config params")
 		}
 
-		if params.IsBuiltin() {
-			pluginConfig, err := plugin.BuildConfig(params, "$")
-			if err != nil {
-				return nil, errors.Wrap(err, "parse builtin plugin config")
-			}
-			pluginConfigs = append(pluginConfigs, pluginConfig)
+		configs, err := params.BuildConfigs(context, "$")
+		if err != nil {
+			return nil, errors.Wrap(err, "build plugin configs")
 		}
-
-		if params.IsCustom() {
-			customConfig, err := custom.BuildConfig(params, "$")
-			if err != nil {
-				return nil, errors.Wrap(err, "parse custom plugin config")
-			}
-			pluginConfigs = append(pluginConfigs, customConfig.Pipeline...)
-		}
+		pluginConfigs = append(pluginConfigs, configs...)
 	}
 
 	return pluginConfigs, nil
@@ -86,17 +76,12 @@ func (p Params) Type() string {
 	return p.getString("type")
 }
 
-// IsBuiltin will return a boolean indicating if the params represent a builtin plugin.
-func (p Params) IsBuiltin() bool {
-	return plugin.IsDefined(p.Type())
+// Output returns the output field in the params map.
+func (p Params) Output() string {
+	return p.getString("output")
 }
 
-// IsCustom will return a boolean indicating if the params represent a custom plugin.
-func (p Params) IsCustom() bool {
-	return custom.IsDefined(p.Type())
-}
-
-// String will return the string representation of the params
+// String will return the string representation of the params.
 func (p Params) String() string {
 	bytes, err := yaml.Marshal(p)
 	if err != nil {
@@ -124,14 +109,6 @@ func (p Params) Validate() error {
 		)
 	}
 
-	if !p.IsBuiltin() && !p.IsCustom() {
-		return errors.NewError(
-			"unsupported `type` field for plugin config",
-			"ensure that all plugins have a supported builtin or custom type",
-			"config", p.String(),
-		)
-	}
-
 	return nil
 }
 
@@ -148,4 +125,66 @@ func (p Params) getString(key string) string {
 	}
 
 	return stringValue
+}
+
+// BuildConfigs will build plugin configs from a params map.
+func (p Params) BuildConfigs(context plugin.BuildContext, namespace string) ([]plugin.Config, error) {
+	if plugin.IsDefined(p.Type()) {
+		return p.buildAsBuiltin(namespace)
+	}
+
+	if context.CustomRegistry.IsDefined(p.Type()) {
+		return p.buildAsCustom(context, namespace)
+	}
+
+	return nil, errors.NewError(
+		"unsupported `type` field for plugin config",
+		"ensure that all plugins have a supported builtin or custom type",
+		"config", p.String(),
+	)
+}
+
+// buildAsBuiltin will build a builtin config from a params map.
+func (p Params) buildAsBuiltin(namespace string) ([]plugin.Config, error) {
+	bytes, err := yaml.Marshal(p)
+	if err != nil {
+		return nil, errors.NewError(
+			"failed to parse config map as yaml",
+			"ensure that all config values are supported yaml values",
+			"error", err.Error(),
+		)
+	}
+
+	var config plugin.Config
+	if err := yaml.Unmarshal(bytes, &config); err != nil {
+		return nil, err
+	}
+
+	config.SetNamespace(namespace)
+	return []plugin.Config{config}, nil
+}
+
+// buildAsCustom will build a custom config from a params map.
+func (p Params) buildAsCustom(context plugin.BuildContext, namespace string) ([]plugin.Config, error) {
+	input := helper.AddNamespace(p.ID(), namespace)
+	output := helper.AddNamespace(p.Output(), namespace)
+	templateParams := map[string]interface{}{}
+
+	for key, value := range p {
+		templateParams[key] = value
+	}
+
+	templateParams["input"] = input
+	templateParams["output"] = output
+
+	config, err := context.CustomRegistry.Render(p.Type(), templateParams)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to render custom config")
+	}
+
+	for _, pluginConfig := range config.Pipeline {
+		pluginConfig.SetNamespace(input, input, output)
+	}
+
+	return config.Pipeline, nil
 }

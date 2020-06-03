@@ -1,4 +1,4 @@
-package custom
+package plugin
 
 import (
 	"bytes"
@@ -9,32 +9,22 @@ import (
 	"text/template"
 
 	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
-// registry is a registry of custom plugin templates.
-var registry = make(map[string]*template.Template)
-
-// Config is the rendered config of a custom plugin.
-type Config struct {
-	Pipeline []plugin.Config
+// CustomConfig is the rendered config of a custom plugin.
+type CustomConfig struct {
+	Pipeline []Config
 }
 
-// BuildConfig will build a custom config from a params map.
-func BuildConfig(params map[string]interface{}, namespace string) (Config, error) {
-	pluginID := getString(params, "id")
-	pluginType := getString(params, "type")
-	pluginOutput := getString(params, "output")
+// CustomRegistry is a registry of custom plugin templates.
+type CustomRegistry map[string]*template.Template
 
-	input := helper.AddNamespace(pluginID, namespace)
-	output := helper.AddNamespace(pluginOutput, namespace)
-	templateParams := createTemplateParams(params, input, output)
-
-	template, ok := registry[pluginType]
+// Render will render a custom config using the params and plugin type.
+func (r CustomRegistry) Render(pluginType string, params map[string]interface{}) (CustomConfig, error) {
+	template, ok := r[pluginType]
 	if !ok {
-		return Config{}, errors.NewError(
+		return CustomConfig{}, errors.NewError(
 			"custom plugin type does not exist",
 			"ensure that all plugins are defined with a registered type",
 			"plugin_type", pluginType,
@@ -42,8 +32,8 @@ func BuildConfig(params map[string]interface{}, namespace string) (Config, error
 	}
 
 	var writer bytes.Buffer
-	if err := template.Execute(&writer, templateParams); err != nil {
-		return Config{}, errors.NewError(
+	if err := template.Execute(&writer, params); err != nil {
+		return CustomConfig{}, errors.NewError(
 			"failed to render template for custom plugin",
 			"ensure that all parameters are valid for the custom plugin",
 			"plugin_type", pluginType,
@@ -51,9 +41,9 @@ func BuildConfig(params map[string]interface{}, namespace string) (Config, error
 		)
 	}
 
-	var config Config
+	var config CustomConfig
 	if err := yaml.Unmarshal(writer.Bytes(), &config); err != nil {
-		return Config{}, errors.NewError(
+		return CustomConfig{}, errors.NewError(
 			"failed to unmarshal custom template to custom config",
 			"ensure that the custom template renders a valid pipeline",
 			"plugin_type", pluginType,
@@ -61,49 +51,17 @@ func BuildConfig(params map[string]interface{}, namespace string) (Config, error
 		)
 	}
 
-	for _, pluginConfig := range config.Pipeline {
-		pluginConfig.SetNamespace(input, input, output)
-	}
-
 	return config, nil
 }
 
-// createTemplateParams will create the params used to render a custom plugin template.
-func createTemplateParams(params map[string]interface{}, input string, output string) map[string]interface{} {
-	templateParams := map[string]interface{}{}
-
-	for key, value := range params {
-		templateParams[key] = value
-	}
-
-	templateParams["input"] = input
-	templateParams["output"] = output
-	return templateParams
-}
-
-// getString retrieves a string from the params map.
-func getString(params map[string]interface{}, key string) string {
-	rawValue, ok := params[key]
-	if !ok {
-		return ""
-	}
-
-	stringValue, ok := rawValue.(string)
-	if !ok {
-		return ""
-	}
-
-	return stringValue
-}
-
 // IsDefined returns a boolean indicating if a custom plugin is defined and registered.
-func IsDefined(pluginType string) bool {
-	_, ok := registry[pluginType]
+func (r CustomRegistry) IsDefined(pluginType string) bool {
+	_, ok := r[pluginType]
 	return ok
 }
 
 // LoadAll will load all custom plugin templates contained in a directory.
-func LoadAll(dir string, pattern string) error {
+func (r CustomRegistry) LoadAll(dir string, pattern string) error {
 	glob := filepath.Join(dir, pattern)
 	filePaths, err := filepath.Glob(glob)
 	if err != nil {
@@ -116,7 +74,7 @@ func LoadAll(dir string, pattern string) error {
 
 	failures := make([]string, 0)
 	for _, path := range filePaths {
-		if err := Load(path); err != nil {
+		if err := r.Load(path); err != nil {
 			failures = append(failures, err.Error())
 		}
 	}
@@ -133,9 +91,13 @@ func LoadAll(dir string, pattern string) error {
 }
 
 // Load will load a custom plugin template from a file path.
-func Load(path string) error {
+func (r CustomRegistry) Load(path string) error {
 	fileName := filepath.Base(path)
 	pluginType := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+
+	if IsDefined(pluginType) {
+		return fmt.Errorf("plugin type %s already exists as a builtin plugin", pluginType)
+	}
 
 	fileContents, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -147,6 +109,15 @@ func Load(path string) error {
 		return fmt.Errorf("failed to parse %s as a template: %s", path, err)
 	}
 
-	registry[pluginType] = pluginTemplate
+	r[pluginType] = pluginTemplate
 	return nil
+}
+
+// NewCustomRegistry creates a new custom plugin registry from a plugin directory.
+func NewCustomRegistry(dir string) (CustomRegistry, error) {
+	registry := CustomRegistry{}
+	if err := registry.LoadAll(dir, "*.yaml"); err != nil {
+		return registry, err
+	}
+	return registry, nil
 }
