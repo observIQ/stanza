@@ -55,5 +55,4 @@ pipeline:
 	// 	"$.json_parser" -> "$.google_cloud";
 	// 	"$.generate" -> "$.json_parser";
 	//  }
-
 }
