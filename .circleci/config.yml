@@ -295,10 +295,14 @@ workflows:
       - report-results:
           requires:
             - f1-1000
+            - f1-5000
             - f1-10000
+            - f1-50000
             - f1-100000
             - f10-100
+            - f10-500
             - f10-1000
+            - f10-5000
             - f10-10000
 
   # test_build_release:
