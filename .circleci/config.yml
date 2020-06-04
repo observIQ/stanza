@@ -116,7 +116,7 @@ jobs:
         default: rhel-cloud
       machine-type:
         type: string
-        default: n1-standard-1
+        default: n1-standard-2
       boot-disk-size:
         type: string
         default: 512GB
@@ -220,9 +220,9 @@ jobs:
           command: >
             curl --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" --request POST --data-binary "@tmp/payload.json" $RESULTS_SERVICE
 
-      - run:
-          name: Delete VM
-          command: gcloud compute instances delete --quiet << parameters.instance >>
+      # - run:
+      #     name: Delete VM
+      #     command: gcloud compute instances delete --quiet << parameters.instance >>
 
       - store_artifacts:
           path: ./out
