@@ -119,7 +119,7 @@ jobs:
         default: n1-standard-1
       boot-disk-size:
         type: string
-        default: 100GB
+        default: 512GB
 
     docker:
       - image: circleci/golang:1.13
@@ -335,33 +335,33 @@ workflows:
             # - f10-1000
             # - f10-10000
 
-  test_build_release:
-    jobs:
-      - test-linux:
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+$/
-      - test-macos:
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+$/
-      - test-windows:
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+$/
-      - build:
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+$/
-          requires:
-            - test-linux
-            - test-macos
-            - test-windows
-      - publish-github-release:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^\d+\.\d+\.\d+$/
+  # test_build_release:
+  #   jobs:
+  #     - test-linux:
+  #         filters:
+  #           tags:
+  #             only: /^\d+\.\d+\.\d+$/
+  #     - test-macos:
+  #         filters:
+  #           tags:
+  #             only: /^\d+\.\d+\.\d+$/
+  #     - test-windows:
+  #         filters:
+  #           tags:
+  #             only: /^\d+\.\d+\.\d+$/
+  #     - build:
+  #         filters:
+  #           tags:
+  #             only: /^\d+\.\d+\.\d+$/
+  #         requires:
+  #           - test-linux
+  #           - test-macos
+  #           - test-windows
+  #     - publish-github-release:
+  #         requires:
+  #           - build
+  #         filters:
+  #           branches:
+  #             ignore: /.*/
+  #           tags:
+  #             only: /^\d+\.\d+\.\d+$/
