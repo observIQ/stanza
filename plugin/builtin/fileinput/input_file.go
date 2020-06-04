@@ -277,11 +277,13 @@ func (f *FileInput) updateFile(message fileUpdateMessage) {
 		}
 		defer file.Close()
 
-		knownFile.SmallFileContents, err = ioutil.ReadAll(file)
+		buf := make([]byte, message.newOffset)
+		_, err = io.ReadFull(file, buf)
 		if err != nil {
 			f.Warnw("Failed to read small file for content tracking")
 			return
 		}
+		knownFile.SmallFileContents = buf
 		knownFile.IsSmallFile = true
 	}
 
