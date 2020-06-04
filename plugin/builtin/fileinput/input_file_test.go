@@ -186,8 +186,8 @@ LOOP:
 	}
 
 	select {
-	case <-logReceived:
-		t.Logf("Received: %#v\n", logReceived)
+	case received := <-logReceived:
+		t.Logf("Received: %#v\n", received)
 		require.FailNow(t, "Received an unexpected log")
 	case <-time.After(20 * time.Millisecond):
 	}

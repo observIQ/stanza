@@ -42,11 +42,18 @@ func (p *ScopedBBoltPersister) Set(key string, val []byte) {
 	p.cacheMux.Unlock()
 }
 
+var OffsetsBucket = []byte(`offsets`)
+
 // Sync saves the cache to the backend, ensuring values are
 // safely written to disk before returning
 func (p *ScopedBBoltPersister) Sync() error {
 	return p.db.Update(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(p.scope)
+		offsetBucket, err := tx.CreateBucketIfNotExists(OffsetsBucket)
+		if err != nil {
+			return err
+		}
+
+		bucket, err := offsetBucket.CreateBucketIfNotExists(p.scope)
 		if err != nil {
 			return err
 		}
@@ -72,7 +79,12 @@ func (p *ScopedBBoltPersister) Load() error {
 	p.cache = make(map[string][]byte)
 
 	return p.db.Update(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(p.scope)
+		offsetBucket, err := tx.CreateBucketIfNotExists(OffsetsBucket)
+		if err != nil {
+			return err
+		}
+
+		bucket, err := offsetBucket.CreateBucketIfNotExists(p.scope)
 		if err != nil {
 			return err
 		}

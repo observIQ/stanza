@@ -20,6 +20,7 @@ import (
 )
 
 type RootFlags struct {
+	DatabaseFile       string
 	ConfigFiles        []string
 	PluginDir          string
 	PprofPort          int
@@ -44,6 +45,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet := root.PersistentFlags()
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"./config.yaml"}, "path to a config file") // TODO default locations
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", "./plugins", "path to the plugin directory")
+	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "./bplogagent.db", "path to the log agent offset database")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
 	// Profiling flags
@@ -63,11 +65,9 @@ func NewRootCmd() *cobra.Command {
 		}
 	}
 
-	graph := NewGraphCommand(rootFlags)
-	root.AddCommand(graph)
-
-	version := NewVersionCommand()
-	root.AddCommand(version)
+	root.AddCommand(NewGraphCommand(rootFlags))
+	root.AddCommand(NewVersionCommand())
+	root.AddCommand(NewOffsetsCmd(rootFlags))
 
 	return root
 }
@@ -89,6 +89,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 	logger.Debugw("Parsed config", "config", cfg)
+	cfg.SetDefaults(flags.DatabaseFile, flags.PluginDir)
 
 	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir)
 	err = agent.Start()
