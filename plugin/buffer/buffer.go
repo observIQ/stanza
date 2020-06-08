@@ -82,11 +82,11 @@ func (config *BufferConfig) setDefaults() {
 }
 
 type RetryConfig struct {
-	InitialInterval     plugin.Duration
-	RandomizationFactor float64
-	Multiplier          float64
-	MaxInterval         plugin.Duration
-	MaxElapsedTime      plugin.Duration
+	InitialInterval     plugin.Duration `json:"initial_interval,omitempty"     yaml:"initial_interval,omitempty"`
+	RandomizationFactor float64         `json:"randomization_factor,omitempty" yaml:"randomization_factor,omitempty"`
+	Multiplier          float64         `json:"multiplier,omitempty"           yaml:"multiplier,omitempty"`
+	MaxInterval         plugin.Duration `json:"max_interval,omitempty"         yaml:"max_interval,omitempty"`
+	MaxElapsedTime      plugin.Duration `json:"max_elapsed_time,omitempty"     yaml:"max_elapsed_time,omitempty"`
 }
 
 func (config *RetryConfig) setDefaults() {
