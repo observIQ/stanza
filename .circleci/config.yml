@@ -25,7 +25,7 @@ jobs:
           name: Build
           command: |
             make install-tools
-            VERSION="$("$CIRCLE_TAG" | cut -dv -f2)" make build-all
+            VERSION="$CIRCLE_TAG" make build-all
       - persist_to_workspace:
           root: ./artifacts
           paths:
