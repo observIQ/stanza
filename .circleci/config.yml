@@ -378,19 +378,19 @@ workflows:
       - test-linux:
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+/
+              only: /^v\d+\.\d+\.\d+.*/
       - test-macos:
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+/
+              only: /^v\d+\.\d+\.\d+.*/
       - test-windows:
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+/
+              only: /^v\d+\.\d+\.\d+.*/
       - build:
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+/
+              only: /^v\d+\.\d+\.\d+.*/
           requires:
             - test-linux
             - test-macos
@@ -402,4 +402,4 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+/
+              only: /^v\d+\.\d+\.\d+.*/
