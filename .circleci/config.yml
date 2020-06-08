@@ -25,7 +25,7 @@ jobs:
           name: Build
           command: |
             make install-tools
-            VERSION="$CIRCLE_TAG" make build-all
+            VERSION="$("$CIRCLE_TAG" | cut -dv -f2)" make build-all
       - persist_to_workspace:
           root: ./artifacts
           paths:
@@ -126,7 +126,7 @@ jobs:
 
     steps:
       - checkout
-      - run: 
+      - run:
           name: Setup Workspace
           command: mkdir {bin,out,tmp}
       - run:
@@ -174,7 +174,7 @@ jobs:
 
       - when:
           condition: << parameters.profile >>
-          steps: 
+          steps:
             - run:
                 name: Run Benchmark
                 command: >
@@ -185,7 +185,7 @@ jobs:
                       --mem_profile ~/benchmark/out/mem.pprof --mem_profile_delay 10s > ~/benchmark/out/notes 2>&1'
       - unless:
           condition: << parameters.profile >>
-          steps: 
+          steps:
             - run:
                 name: Run Benchmark
                 command: >
@@ -212,10 +212,10 @@ jobs:
       - run:
           name: Stash Benchmark Results
           command: cat out/results.json | jq 'del(.results[0].rate).results[0]' > tmp/stats.json
-      - run: 
+      - run:
           name: Combine Stashes
           command: jq -s '.[0] * .[1] * .[2] * .[3]' tmp/context.json tmp/command.json tmp/parameters.json tmp/stats.json > tmp/payload.json
-      - run: 
+      - run:
           name: Report Results
           command: >
             curl --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" --request POST --data-binary "@tmp/payload.json" $RESULTS_SERVICE
@@ -232,14 +232,14 @@ jobs:
       - image: circleci/golang:1.13
     steps:
       - checkout
-      - run: 
+      - run:
           name: Setup Workspace
           command: mkdir tmp
       - run:
           name: Get Aggregated Results
           command: >
             curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" -o tmp/aggregated_results.json \
-              "$RESULTS_SERVICE?command=summarize&git_commit_hash=$CIRCLE_SHA1&profile=false"          
+              "$RESULTS_SERVICE?command=summarize&git_commit_hash=$CIRCLE_SHA1&profile=false"
       - run:
           name: Write Table Labels
           command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/table.md
@@ -378,19 +378,19 @@ workflows:
       - test-linux:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+/
       - test-macos:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+/
       - test-windows:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+/
       - build:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+/
           requires:
             - test-linux
             - test-macos
@@ -402,4 +402,4 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+/
