@@ -65,7 +65,7 @@ func TestOffsets(t *testing.T) {
 	err = offsetsClear.Execute()
 	require.NoError(t, err)
 
-	// check that offsets list only shows uncleared plugin id
+	// Check that offsets list only shows uncleared plugin id
 	buf.Reset()
 	err = offsetsList.Execute()
 	require.NoError(t, err)

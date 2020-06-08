@@ -10,7 +10,7 @@ orbs:
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
   mac:
     macos:
       xcode: 11.4.1
@@ -60,11 +60,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Download Golang
-          command: curl -SL https://dl.google.com/go/go1.13.11.darwin-amd64.tar.gz -o go1.13.11.darwin-amd64.tar.gz
+          name: Download golang
+          command: curl -SL https://dl.google.com/go/go1.14.4.darwin-amd64.tar.gz -O
       - run:
-          name: Extract Golang
-          command: tar -C ~ -xzf go1.13.11.darwin-amd64.tar.gz
+          name: Extract golang
+          command: tar -C ~ -xzf go1.14.4.darwin-amd64.tar.gz
       - run:
           name: Add Golang to Path
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
@@ -80,7 +80,7 @@ jobs:
       - run:
           name: Upgrade Golang
           shell: powershell.exe
-          command: choco upgrade golang --version=1.13
+          command: choco upgrade golang --version=1.14
       - run:
           name: Install GCC
           shell: powershell.exe

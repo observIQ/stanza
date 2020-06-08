@@ -133,7 +133,7 @@ func (p *GoogleCloudOutput) Start() error {
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
 	options = append(options, option.WithUserAgent("BindPlaneLogAgent/2.0.0"))
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	client, err := vkit.NewClient(ctx, options...)
@@ -143,7 +143,7 @@ func (p *GoogleCloudOutput) Start() error {
 	p.client = client
 
 	// Test writing a log message
-	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(time.Second*10))
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	testEntry := entry.New()
 	testEntry.Record = map[string]interface{}{"message": "Test connection"}

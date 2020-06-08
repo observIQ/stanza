@@ -1,6 +1,6 @@
 module github.com/bluemedora/bplogagent
 
-go 1.13
+go 1.14
 
 require (
 	cloud.google.com/go/logging v1.0.0

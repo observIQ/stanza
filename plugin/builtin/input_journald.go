@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -32,8 +31,8 @@ type JournaldInputConfig struct {
 	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
 }
 
-func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+func (c JournaldInputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
+	inputPlugin, err := c.InputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +59,14 @@ func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 
 	journaldInput := &JournaldInput{
 		InputPlugin: inputPlugin,
-		persist:     helper.NewScopedBBoltPersister(context.Database, c.ID()),
-		binary:      "journalctl",
-		args:        args,
-		json:        jsoniter.ConfigFastest,
+		persist:     helper.NewScopedBBoltPersister(buildContext.Database, c.ID()),
+		newCmd: func(ctx context.Context, cursor []byte) cmd {
+			if cursor != nil {
+				args = append(args, "--after-cursor", string(cursor))
+			}
+			return exec.CommandContext(ctx, "journalctl", args...)
+		},
+		json: jsoniter.ConfigFastest,
 	}
 	return journaldInput, nil
 }
@@ -71,8 +74,7 @@ func (c JournaldInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 type JournaldInput struct {
 	helper.InputPlugin
 
-	binary string
-	args   []string
+	newCmd func(ctx context.Context, cursor []byte) cmd
 
 	persist helper.Persister
 	json    jsoniter.API
@@ -80,12 +82,15 @@ type JournaldInput struct {
 	wg      *sync.WaitGroup
 }
 
+type cmd interface {
+	StdoutPipe() (io.ReadCloser, error)
+	Start() error
+}
+
 var lastReadCursorKey = "lastReadCursor"
 
 // Start will start generating log entries.
 func (plugin *JournaldInput) Start() error {
-	plugin.Debugw("Starting journald", "args", plugin.args)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	plugin.cancel = cancel
 	plugin.wg = &sync.WaitGroup{}
@@ -96,13 +101,10 @@ func (plugin *JournaldInput) Start() error {
 	}
 
 	// Start from a cursor if there is a saved offset
-	res := plugin.persist.Get(lastReadCursorKey)
-	if res != nil {
-		plugin.args = append(plugin.args, "--after-cursor", string(res))
-	}
+	cursor := plugin.persist.Get(lastReadCursorKey)
 
 	// Start journalctl
-	cmd := exec.Command(plugin.binary, plugin.args...)
+	cmd := plugin.newCmd(ctx, cursor)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to get journalctl stdout: %s", err)
@@ -111,15 +113,6 @@ func (plugin *JournaldInput) Start() error {
 	if err != nil {
 		return fmt.Errorf("start journalctl: %s", err)
 	}
-
-	// Clean up subprocess on exit
-	plugin.wg.Add(1)
-	go func() {
-		defer plugin.wg.Done()
-		<-ctx.Done()
-		_ = cmd.Process.Signal(os.Interrupt)
-		_, _ = cmd.Process.Wait()
-	}()
 
 	// Start a goroutine to periodically flush the offsets
 	plugin.wg.Add(1)

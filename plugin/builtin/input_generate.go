@@ -72,7 +72,6 @@ func (g *GenerateInput) Start() error {
 			if i == g.count {
 				return
 			}
-
 		}
 	}()
 

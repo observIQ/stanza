@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -186,8 +187,9 @@ LOOP:
 	}
 
 	select {
-	case received := <-logReceived:
-		t.Logf("Received: %#v\n", received)
+	case <-logReceived:
+		t.Logf("Received: %#v\n", receivedMessages)
+		t.Logf("Expected: %#v\n", expected)
 		require.FailNow(t, "Received an unexpected log")
 	case <-time.After(20 * time.Millisecond):
 	}
@@ -312,6 +314,7 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	generate := func(source *FileInput, tempDir string) {
 		temp1, err := ioutil.TempFile(tempDir, "")
 		require.NoError(t, err)
+		defer temp1.Close()
 
 		_, err = temp1.WriteString("testlog1\n")
 		require.NoError(t, err)
@@ -589,7 +592,7 @@ func TestFileSource_ManyLogsDelivered(t *testing.T) {
 	count := 1000
 	expectedMessages := make([]string, 0, count)
 	for i := 0; i < count; i++ {
-		expectedMessages = append(expectedMessages, stringWithLength(100))
+		expectedMessages = append(expectedMessages, strconv.Itoa(i))
 	}
 
 	generate := func(source *FileInput, tempDir string) {
