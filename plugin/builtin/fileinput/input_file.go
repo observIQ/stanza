@@ -278,12 +278,12 @@ func (f *FileInput) updateFile(message fileUpdateMessage) {
 		defer file.Close()
 
 		buf := make([]byte, message.newOffset)
-		_, err = io.ReadFull(file, buf)
-		if err != nil {
-			f.Warnw("Failed to read small file for content tracking")
+		n, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			f.Warnw("Failed to read small file for content tracking", zap.Error(err))
 			return
 		}
-		knownFile.SmallFileContents = buf
+		knownFile.SmallFileContents = buf[:n]
 		knownFile.IsSmallFile = true
 	}
 
