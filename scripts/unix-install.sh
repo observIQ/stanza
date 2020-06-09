@@ -5,11 +5,9 @@
 set -e
 
 # Agent Constants
-# TODO: Increment agent version with release process
-AGENT_VERSION="0.0.1"
 SERVICE_NAME="bplogagent"
 BINARY_NAME="bplogagent"
-DOWNLOAD_BASE="https://github.com/BlueMedora/bplogagent/releases/download"
+DOWNLOAD_BASE="https://github.com/BlueMedora/bplogagent/releases/latest/download"
 
 # Script Constants
 PREREQS="curl hostname printf ps sed uname cut tar"
@@ -259,7 +257,7 @@ set_download_url()
   fi
 
   if [ -z "$download_url" ] ; then
-    download_url="$DOWNLOAD_BASE/$AGENT_VERSION/bplogagent_${os}_amd64"
+    download_url="$DOWNLOAD_BASE/bplogagent_${os}_amd64"
   fi
 }
 

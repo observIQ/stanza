@@ -3,9 +3,8 @@ new-module -name LogAgentInstall -scriptblock {
   # Constants
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
-  $DOWNLOAD_BASE = 'https://github.com/BlueMedora/bplogagent/releases/download'
+  $DOWNLOAD_BASE = 'https://github.com/BlueMedora/bplogagent/releases/latest/download'
   $SERVICE_NAME = 'bplogagent'
-  $CURRENT_AGENT_VERSION = '0.0.1'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'
 
@@ -287,7 +286,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'Configuring download url...'
     Add-Indent
     if ( !$script:download_url ) {
-      $script:download_url = "$DOWNLOAD_BASE/$CURRENT_AGENT_VERSION/bplogagent_windows_amd64"
+      $script:download_url = "$DOWNLOAD_BASE/bplogagent_windows_amd64"
     }
     Show-ColorText "Using download url: " '' "$script:download_url" DarkCyan
     Remove-Indent
