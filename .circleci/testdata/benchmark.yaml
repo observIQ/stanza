@@ -1,4 +1,4 @@
-plugins:
+pipeline:
   - id: fileinput
     type: file_input
     include: ["stream*.log"]

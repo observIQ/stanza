@@ -1,10 +1,11 @@
 module github.com/bluemedora/bplogagent
 
-go 1.13
+go 1.14
 
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/antonmedv/expr v1.8.2
+	github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200527133740-88e7f2afde1c // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
 	github.com/golang/protobuf v1.3.4

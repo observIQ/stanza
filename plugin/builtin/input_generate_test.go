@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -21,9 +22,9 @@ func TestInputGenerate(t *testing.T) {
 					PluginID:   "test_plugin_id",
 					PluginType: "generate_input",
 				},
-				WriteTo:  entry.Field{
-          Keys: []string{},
-        },
+				WriteTo: entry.Field{
+					Keys: []string{},
+				},
 				OutputID: "output1",
 			},
 			Record: "test message",
@@ -85,4 +86,48 @@ func TestCopyRecord(t *testing.T) {
 			require.Equal(t, tc.input, newRecord)
 		})
 	}
+}
+
+func TestRenderFromCustom(t *testing.T) {
+	templateText := `
+pipeline:
+  - id: my_generator
+    type: generate_input
+    output: {{ .output }}
+    record:
+      message: testmessage
+`
+	tmpl, err := template.New("my_generator").Parse(templateText)
+	require.NoError(t, err)
+
+	registry := plugin.CustomRegistry{
+		"sample": tmpl,
+	}
+
+	params := map[string]interface{}{
+		"output": "sampleoutput",
+	}
+	config, err := registry.Render("sample", params)
+	require.NoError(t, err)
+
+	expectedConfig := plugin.CustomConfig{
+		Pipeline: []plugin.Config{
+			{
+				Builder: &GenerateInputConfig{
+					InputConfig: helper.InputConfig{
+						BasicConfig: helper.BasicConfig{
+							PluginID:   "my_generator",
+							PluginType: "generate_input",
+						},
+						OutputID: "sampleoutput",
+					},
+					Record: map[interface{}]interface{}{
+						"message": "testmessage",
+					},
+				},
+			},
+		},
+	}
+
+	require.Equal(t, expectedConfig, config)
 }

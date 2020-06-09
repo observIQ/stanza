@@ -180,20 +180,21 @@ func (o Op) MarshalYAML() (interface{}, error) {
 ******/
 
 type OpAdd struct {
-	Field     entry.Field
-	Value     interface{}
-	ValueExpr *vm.Program
+	Field     entry.Field `json:"field" yaml:"field"`
+	Value     interface{} `json:"value,omitempty" yaml:"value,omitempty"`
+	program   *vm.Program
+	ValueExpr *string `json:"value_expr,omitempty" yaml:"value_expr,omitempty"`
 }
 
 func (op *OpAdd) Apply(e *entry.Entry) error {
 	switch {
 	case op.Value != nil:
 		e.Set(op.Field, op.Value)
-	case op.ValueExpr != nil:
+	case op.program != nil:
 		env := map[string]interface{}{
-			"record": e.Record,
+			"$": e.Record,
 		}
-		result, err := vm.Run(op.ValueExpr, env)
+		result, err := vm.Run(op.program, env)
 		if err != nil {
 			return fmt.Errorf("evaluate value_expr: %s", err)
 		}
@@ -211,9 +212,9 @@ func (op *OpAdd) Type() string {
 }
 
 type opAddRaw struct {
-	Field     *entry.Field
-	Value     interface{}
-	ValueExpr *string
+	Field     *entry.Field `json:"field"      yaml:"field"`
+	Value     interface{}  `json:"value"      yaml:"value"`
+	ValueExpr *string      `json:"value_expr" yaml:"value_expr"`
 }
 
 func (op *OpAdd) UnmarshalJSON(raw []byte) error {
@@ -255,7 +256,8 @@ func (op *OpAdd) unmarshalFromOpAddRaw(addRaw opAddRaw) error {
 			return fmt.Errorf("decode OpAdd: failed to compile expression '%s': %w", *addRaw.ValueExpr, err)
 		}
 		op.Field = *addRaw.Field
-		op.ValueExpr = compiled
+		op.program = compiled
+		op.ValueExpr = addRaw.ValueExpr
 	}
 
 	return nil

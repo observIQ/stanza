@@ -31,13 +31,14 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	}
 
 	var interval time.Duration
-	if c.Rate != 0 && c.Interval.Raw() != 0 {
+	switch {
+	case c.Rate != 0 && c.Interval.Raw() != 0:
 		return nil, fmt.Errorf("only one of 'rate' or 'interval' can be defined")
-	} else if c.Rate < 0 || c.Interval.Raw() < 0 {
+	case c.Rate < 0 || c.Interval.Raw() < 0:
 		return nil, fmt.Errorf("rate and interval must be greater than zero")
-	} else if c.Rate > 0 {
+	case c.Rate > 0:
 		interval = time.Second / time.Duration(c.Rate)
-	} else {
+	default:
 		interval = c.Interval.Raw()
 	}
 

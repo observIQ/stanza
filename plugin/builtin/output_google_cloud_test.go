@@ -93,6 +93,163 @@ func TestGoogleCloudOutput(t *testing.T) {
 				return req
 			}(),
 		},
+		{
+			"LogNameField",
+			func() *GoogleCloudOutputConfig {
+				c := basicConfig()
+				f := entry.NewField("log_name")
+				c.LogNameField = &f
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"log_name": "mylogname",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := basicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						LogName:   "projects/test_project_id/logs/mylogname",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"LabelsField",
+			func() *GoogleCloudOutputConfig {
+				c := basicConfig()
+				f := entry.NewField("labels")
+				c.LabelsField = &f
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message": "test message",
+					"labels": map[string]interface{}{
+						"label1": "value1",
+					},
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := basicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						Labels: map[string]string{
+							"label1": "value1",
+						},
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"LabelsField",
+			func() *GoogleCloudOutputConfig {
+				c := basicConfig()
+				f := entry.NewField("labels")
+				c.LabelsField = &f
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message": "test message",
+					"labels": map[string]interface{}{
+						"label1": "value1",
+					},
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := basicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						Labels: map[string]string{
+							"label1": "value1",
+						},
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"SeverityField",
+			func() *GoogleCloudOutputConfig {
+				c := basicConfig()
+				f := entry.NewField("severity")
+				c.SeverityField = &f
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"severity": "error",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := basicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						Severity:  500,
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"TraceAndSpanFields",
+			func() *GoogleCloudOutputConfig {
+				c := basicConfig()
+				traceField := entry.NewField("trace")
+				spanIDField := entry.NewField("span_id")
+				c.TraceField = &traceField
+				c.SpanIDField = &spanIDField
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message": "test message",
+					"trace":   "projects/my-projectid/traces/06796866738c859f2f19b7cfb3214824",
+					"span_id": "000000000000004a",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := basicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						Trace:     "projects/my-projectid/traces/06796866738c859f2f19b7cfb3214824",
+						SpanId:    "000000000000004a",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+					},
+				}
+				return req
+			}(),
+		},
 	}
 
 	for _, tc := range cases {

@@ -3,12 +3,14 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.4.0
+  gcp-cli: circleci/gcp-cli@1.8.4
   codecov: codecov/codecov@1.0.2
+  pr-comment: benjlevesque/pr-comment@0.1.4
 
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
   mac:
     macos:
       xcode: 11.4.1
@@ -46,7 +48,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Unit tests
+          name: Run Unit Tests
           command: |
             go test -race -v -coverprofile coverage.txt -coverpkg ./... ./...
       - codecov/upload:
@@ -59,15 +61,15 @@ jobs:
       - checkout
       - run:
           name: Download golang
-          command: curl -SL https://dl.google.com/go/go1.13.11.darwin-amd64.tar.gz -o go1.13.11.darwin-amd64.tar.gz
+          command: curl -SL https://dl.google.com/go/go1.14.4.darwin-amd64.tar.gz -O
       - run:
           name: Extract golang
-          command: tar -C ~ -xzf go1.13.11.darwin-amd64.tar.gz
+          command: tar -C ~ -xzf go1.14.4.darwin-amd64.tar.gz
       - run:
-          name: Add golang to path
+          name: Add Golang to Path
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
       - run:
-          name: Unit tests
+          name: Run Unit Tests
           command: go test -race -v ./...
 
   test-windows:
@@ -76,42 +78,319 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Upgrade golang
+          name: Upgrade Golang
           shell: powershell.exe
-          command: choco upgrade golang --version=1.13
+          command: choco upgrade golang --version=1.14
       - run:
           name: Install GCC
           shell: powershell.exe
           command: choco install mingw
       - run:
-          name: Get dependencies
+          name: Get Dependencies
           shell: powershell.exe
           command: go get -v -t -d ./...
       - run:
-          name: Unit tests
+          name: Unit Tests
           shell: powershell.exe
           command: go test -race -v ./...
 
+  run-benchmark:
+    parameters:
+      instance:
+        type: string
+      files:
+        type: integer
+      rate:
+        type: integer
+      duration:
+        type: string
+        default: 60s
+      profile:
+        type: boolean
+        default: false
+      image:
+        type: string
+        default: rhel-6-v20200402
+      image-project:
+        type: string
+        default: rhel-cloud
+      machine-type:
+        type: string
+        default: n1-standard-2
+      boot-disk-size:
+        type: string
+        default: 512GB
+
+    docker:
+      - image: circleci/golang:1.13
+
+    steps:
+      - checkout
+      - run:
+          name: Setup Workspace
+          command: mkdir {bin,out,tmp}
+      - run:
+          name: Build Log Agent
+          command: go get -v -t -d ./... && go build -v -o ./bin/bplogagent ./
+      - run:
+          name: Build Log Bench
+          command: go get github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
+            go build -o ./bin/logbench github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/
+
+      - gcp-cli/install
+      - gcp-cli/initialize:
+          gcloud-service-key: SERVICE_ACCOUNT
+          google-project-id: PROJECT
+          google-compute-zone: ZONE
+
+      - run:
+          name: Setup ssh for gcloud
+          command: |
+            echo $GCLOUD_SSH_KEY | base64 --decode --ignore-garbage > ${HOME}/.ssh/key; chmod 0400 ${HOME}/.ssh/key;
+            echo $GCLOUD_SSH_KEY_PUB | base64 --decode --ignore-garbage > ${HOME}/.ssh/key.pub; chmod 0600 ${HOME}/.ssh/key.pub;
+
+      - run:
+          name: Create Benchmark VM
+          command: >
+            gcloud compute instances create --verbosity=error << parameters.instance >> \
+              --scopes="https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/compute" \
+              --metadata-from-file=startup-script=./.circleci/scripts/startup-ttl.sh \
+              --image=<< parameters.image >> --image-project=<< parameters.image-project >> \
+              --machine-type=<< parameters.machine-type >> --boot-disk-size=<< parameters.boot-disk-size >>
+      - run:
+          name: Wait for VM
+          command: >
+            until gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" --verbosity=critical -- 'echo "Ready"'; do \
+              echo "VM not ready. Waiting..."; \
+            done
+
+      - run:
+          name: Setup VM Workspace
+          command: gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'mkdir -p ~/benchmark/out' &&
+            gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/bplogagent << parameters.instance >>:~/benchmark/ &&
+            gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/logbench << parameters.instance >>:~/benchmark/ &&
+            gcloud compute scp --ssh-key-file=~/.ssh/key ./.circleci/testdata/benchmark.yaml << parameters.instance >>:~/benchmark/config.yaml &&
+            gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark'
+
+      - when:
+          condition: << parameters.profile >>
+          steps:
+            - run:
+                name: Run Benchmark
+                command: >
+                  gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
+                    '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
+                      -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
+                      ~/benchmark/bplogagent --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
+                      --mem_profile ~/benchmark/out/mem.pprof --mem_profile_delay 10s > ~/benchmark/out/notes 2>&1'
+      - unless:
+          condition: << parameters.profile >>
+          steps:
+            - run:
+                name: Run Benchmark
+                command: >
+                  gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
+                    '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
+                      -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
+                      ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
+
+      - run:
+          name: Retrieve Results
+          command: gcloud compute scp --ssh-key-file=~/.ssh/key << parameters.instance >>:~/benchmark/out/* ./out/ && cat ./out/results.json
+
+      - run:
+          name: Stash Context
+          command: >
+            printf '{"github_pr_url":"%s","git_branch":"%s","git_commit_hash":"%s","circle_build_number":%s,"circle_job_name":"%s"}\n' \
+              $CIRCLE_PULL_REQUEST $CIRCLE_BRANCH $CIRCLE_SHA1 << pipeline.number >> $CIRCLE_JOB > tmp/context.json
+      - run:
+          name: Stash VM Details
+          command: printf '{"create_command":"gcloud compute instances create ... --image=<< parameters.image >> --image-project=<< parameters.image-project >> --machine-type=<< parameters.machine-type >> --boot-disk-size=<< parameters.boot-disk-size >>"}\n' > tmp/command.json
+      - run:
+          name: Stash Benchmark Parameters
+          command: printf '{"log_files":%s,"logs_per_second":%s,"profile":%s}\n' << parameters.files >> << parameters.rate >> << parameters.profile >> > tmp/parameters.json
+      - run:
+          name: Stash Benchmark Results
+          command: cat out/results.json | jq 'del(.results[0].rate).results[0]' > tmp/stats.json
+      - run:
+          name: Combine Stashes
+          command: jq -s '.[0] * .[1] * .[2] * .[3]' tmp/context.json tmp/command.json tmp/parameters.json tmp/stats.json > tmp/payload.json
+      - run:
+          name: Report Results
+          command: >
+            curl --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" --request POST --data-binary "@tmp/payload.json" $RESULTS_SERVICE
+
+      - run:
+          name: Delete VM
+          command: gcloud compute instances delete --quiet << parameters.instance >>
+
+      - store_artifacts:
+          path: ./out
+
+  report-results:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - run:
+          name: Setup Workspace
+          command: mkdir tmp
+      - run:
+          name: Get Aggregated Results
+          command: >
+            curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" -o tmp/aggregated_results.json \
+              "$RESULTS_SERVICE?command=summarize&git_commit_hash=$CIRCLE_SHA1&profile=false"
+      - run:
+          name: Write Table Labels
+          command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/table.md
+      - run:
+          name: Convert Results to Rows
+          command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) | \(.mem_avg) |"') | awk  '{gsub("\|\|","|\n|")};1' >> tmp/table.md
+      - run: cat tmp/table.md
+      - pr-comment/pr-comment:
+          comment: $(cat tmp/table.md)
+          maxComments: 10
+
 workflows:
   version: 2
-  build_and_test:
+
+  benchmark:
+    jobs:
+      - run-benchmark:
+          name: f1-1000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f1-1000
+          rate: 1000
+          files: 1
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f1-5000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f1-5000
+          rate: 5000
+          files: 1
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f1-10000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f1-10000
+          rate: 10000
+          files: 1
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f1-50000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f1-50000
+          rate: 50000
+          files: 1
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f1-100000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f1-100000
+          rate: 100000
+          files: 1
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f10-100
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f10-100
+          rate: 100
+          files: 10
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f10-500
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f10-500
+          rate: 500
+          files: 10
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f10-1000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f10-1000
+          rate: 1000
+          files: 10
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f10-5000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f10-5000
+          rate: 5000
+          files: 10
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f10-10000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f10-10000
+          rate: 10000
+          files: 10
+          filters:
+            branches:
+              ignore:
+                - master
+      - report-results:
+          requires:
+            - f1-1000
+            - f1-5000
+            - f1-10000
+            - f1-50000
+            - f1-100000
+            - f10-100
+            - f10-500
+            - f10-1000
+            - f10-5000
+            - f10-10000
+          filters:
+            branches:
+              ignore:
+                - master
+
+  test_build_release:
     jobs:
       - test-linux:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+.*/
       - test-macos:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+.*/
       - test-windows:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+.*/
       - build:
           filters:
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+.*/
           requires:
             - test-linux
             - test-macos
@@ -123,4 +402,4 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only: /^v\d+\.\d+\.\d+.*/
