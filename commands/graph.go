@@ -65,7 +65,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	}
 
 	dotGraph = append(dotGraph, '\n')
-	_, err = os.Stdout.Write(dotGraph)
+	_, err = stdout.Write(dotGraph)
 	if err != nil {
 		logger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))
 		os.Exit(1)
