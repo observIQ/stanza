@@ -27,9 +27,9 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
-		logger = newDefaultLoggerAt(zapcore.DebugLevel)
+		logger = newDefaultLoggerAt(zapcore.DebugLevel, "")
 	} else {
-		logger = newDefaultLoggerAt(zapcore.InfoLevel)
+		logger = newDefaultLoggerAt(zapcore.InfoLevel, "")
 	}
 	defer func() {
 		_ = logger.Sync()

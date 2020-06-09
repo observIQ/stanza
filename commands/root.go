@@ -28,7 +28,9 @@ type RootFlags struct {
 	CPUProfileDuration time.Duration
 	MemProfile         string
 	MemProfileDelay    time.Duration
-	Debug              bool
+
+	LogFile string
+	Debug   bool
 }
 
 func NewRootCmd() *cobra.Command {
@@ -45,6 +47,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet := root.PersistentFlags()
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"./config.yaml"}, "path to a config file") // TODO default locations
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", "./plugins", "path to the plugin directory")
+	rootFlagSet.StringVar(&rootFlags.LogFile, "log_file", "", "write logs to configured path rather than stderr")
 	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "./bplogagent.db", "path to the log agent offset database")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
@@ -75,9 +78,9 @@ func NewRootCmd() *cobra.Command {
 func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
-		logger = newDefaultLoggerAt(zapcore.DebugLevel)
+		logger = newDefaultLoggerAt(zapcore.DebugLevel, flags.LogFile)
 	} else {
-		logger = newDefaultLoggerAt(zapcore.InfoLevel)
+		logger = newDefaultLoggerAt(zapcore.InfoLevel, flags.LogFile)
 	}
 	defer func() {
 		_ = logger.Sync()
@@ -115,7 +118,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	profilingWg.Wait()
 }
 
-func newDefaultLoggerAt(level zapcore.Level) *zap.SugaredLogger {
+func newDefaultLoggerAt(level zapcore.Level, path string) *zap.SugaredLogger {
 	logCfg := zap.NewProductionConfig()
 	logCfg.Level = zap.NewAtomicLevelAt(level)
 	logCfg.Sampling.Initial = 5
@@ -125,10 +128,11 @@ func newDefaultLoggerAt(level zapcore.Level) *zap.SugaredLogger {
 	logCfg.EncoderConfig.TimeKey = "timestamp"
 	logCfg.EncoderConfig.MessageKey = "message"
 	logCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	// logCfg := zap.NewDevelopmentConfig()
-	// logCfg.EncoderConfig.TimeKey = ""
-	// logCfg.EncoderConfig.CallerKey = ""
-	// logCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+
+	if path != "" {
+		logCfg.OutputPaths = []string{path}
+	}
+
 	baseLogger, _ := logCfg.Build()
 	return baseLogger.Sugar()
 }

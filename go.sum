@@ -21,6 +21,7 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514201933-4cd8455f1f60 h1:bJecjtzOQHlfV1L4KSX6FNhJFqAbmA58kOo+pJN2dj4=
 github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200514201933-4cd8455f1f60/go.mod h1:herZ1ea+DUeMHV9E8FYl6tz427xrnUFtA16c8tGuHsY=
+github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200527133740-88e7f2afde1c/go.mod h1:aoVsFU+uHe33O4kW3GFuqANns0FFGx11HN5xuxwIX3k=
 github.com/cenkalti/backoff/v4 v4.0.2 h1:JIufpQLbh4DkbQoii76ItQIUFzevQSqOLZca4eamEDs=
 github.com/cenkalti/backoff/v4 v4.0.2/go.mod h1:eEew/i+1Q6OrCDZh3WiXYv3+nJwBASZ8Bog/87DQnVg=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
