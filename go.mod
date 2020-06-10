@@ -5,7 +5,6 @@ go 1.14
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/antonmedv/expr v1.8.2
-	github.com/bluemedora/amazon-log-agent-benchmark-tool v0.0.0-20200527133740-88e7f2afde1c // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
 	github.com/golang/protobuf v1.3.4
@@ -15,6 +14,7 @@ require (
 	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/json-iterator/go v1.1.9
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/pbnjay/strptime v0.0.0-20140226051138-5c05b0d668c9
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5 // indirect

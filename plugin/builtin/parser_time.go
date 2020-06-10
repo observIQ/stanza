@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pbnjay/strptime"
+
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
+
+const strptimeKey = "strptime"
+const gotimeKey = "gotime"
 
 func init() {
 	plugin.Register("time_parser", &TimeParserConfig{})
@@ -17,16 +22,37 @@ func init() {
 
 // TimeParserConfig is the configuration of a time parser plugin.
 type TimeParserConfig struct {
-	helper.ParserConfig `yaml:",inline"`
+	helper.TransformerConfig `yaml:",inline"`
 
-	Layout string `json:"layout" yaml:"layout"`
+	ParseFrom    entry.Field `json:"parse_from" yaml:"parse_from"`
+	Layout       string      `json:"layout" yaml:"layout"`
+	LayoutFlavor string      `json:"layout_flavor" yaml:"layout_flavor"` // strptime | gotime
+	// TOOD OnError?
 }
 
 // Build will build a time parser plugin.
 func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	parserPlugin, err := c.ParserConfig.Build(context)
+	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
+	}
+
+	// if c.OnError == "" {
+	// 	c.OnError = "ignore"
+	// }
+
+	// switch c.OnError {
+	// case "fail", "drop", "ignore":
+	// default:
+	// 	return TimeParser{}, errors.NewError(
+	// 		"Plugin config has an invalid `on_error` field.",
+	// 		"Ensure that the `on_error` field is set to fail, drop, or ignore.",
+	// 		"on_error", c.OnError,
+	// 	)
+	// }
+
+	if c.LayoutFlavor == "" {
+		c.LayoutFlavor = strptimeKey
 	}
 
 	if c.Layout == "" {
@@ -37,8 +63,10 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	timeParser := &TimeParser{
-		ParserPlugin: parserPlugin,
-		layout:       c.Layout,
+		TransformerPlugin: transformerPlugin,
+		ParseFrom:         c.ParseFrom,
+		LayoutFlavor:      c.LayoutFlavor,
+		Layout:            c.Layout,
 	}
 
 	return timeParser, nil
@@ -46,22 +74,43 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // TimeParser is a plugin that parses time from an entry.
 type TimeParser struct {
-	helper.ParserPlugin
-	layout string
+	helper.TransformerPlugin
+	ParseFrom    entry.Field
+	LayoutFlavor string
+	Layout       string
 }
 
 // Process will parse time from an entry.
 func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return t.ParserPlugin.ProcessWith(ctx, entry, t.parse)
+	switch t.LayoutFlavor {
+	case strptimeKey:
+		return t.TransformerPlugin.ProcessWith(ctx, entry, t.parseStrptime)
+	case gotimeKey:
+		return t.TransformerPlugin.ProcessWith(ctx, entry, t.parseGotime)
+	default:
+		return fmt.Errorf("unsupported layout_flavor %s", t.LayoutFlavor)
+	}
 }
 
 // Parse will parse a value as a time.
-func (t *TimeParser) parse(value interface{}) (interface{}, error) {
+func (t *TimeParser) parseStrptime(value interface{}) (interface{}, error) {
 	switch v := value.(type) {
 	case string:
-		return time.Parse(t.layout, v)
+		return strptime.Parse(v, t.Layout)
 	case []byte:
-		return time.Parse(t.layout, string(v))
+		return strptime.Parse(string(v), t.Layout)
+	default:
+		return nil, fmt.Errorf("type %T cannot be parsed as a time", value)
+	}
+}
+
+// Parse will parse a value as a time.
+func (t *TimeParser) parseGotime(value interface{}) (interface{}, error) {
+	switch v := value.(type) {
+	case string:
+		return time.Parse(t.Layout, v)
+	case []byte:
+		return time.Parse(t.Layout, string(v))
 	default:
 		return nil, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
