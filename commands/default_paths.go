@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 var agentName = "bplogagent"
@@ -36,6 +37,10 @@ func defaultDatabaseFile() string {
 }
 
 func agentHome() string {
+	if home := os.Getenv(strings.ToUpper(agentName) + "_HOME"); home != "" {
+		return home
+	}
+
 	switch runtime.GOOS {
 	case "windows":
 		return filepath.Join(`C:\`, agentName)
