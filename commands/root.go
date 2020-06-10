@@ -7,7 +7,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"sync"
@@ -88,33 +87,28 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 
 	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
+		logger.Errorw("Failed to read configs from globs", zap.Any("error", err), zap.Any("globs", flags.ConfigFiles))
 		os.Exit(1)
 	}
 	logger.Debugw("Parsed config", "config", cfg)
 	cfg.SetDefaults(flags.DatabaseFile, flags.PluginDir)
 
 	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir)
-	err = agent.Start()
+	ctx, cancel := context.WithCancel(command.Context())
+	service, err := newAgentService(agent, cancel)
 	if err != nil {
-		logger.Errorw("Failed to start log agent", zap.Any("error", err))
+		logger.Errorf("Failed to create agent service", zap.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Wait for interrupt or command cancelled
-	ctx, cancel := context.WithCancel(command.Context())
-	go func() {
-		interrupt := make(chan os.Signal, 1)
-		signal.Notify(interrupt, os.Interrupt)
-		<-interrupt
-		logger.Info("Received an interrupt signal. Attempting to shut down gracefully")
-		cancel()
-	}()
-
 	profilingWg := startProfiling(ctx, flags, logger)
 
-	<-ctx.Done()
-	agent.Stop()
+	err = service.Run()
+	if err != nil {
+		logger.Errorw("Failed to run agent service", zap.Any("error", err))
+		os.Exit(1)
+	}
+
 	profilingWg.Wait()
 }
 
