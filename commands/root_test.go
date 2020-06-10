@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -12,6 +13,13 @@ import (
 )
 
 func TestRoot(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Skipping for windows, because it returns an unexplained error.
+		// "The service process could not connect to the service controller"
+		// This error does not occur when running the binary directly.
+		t.Skip("Skipping root test on windows")
+	}
+
 	tempDir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 
