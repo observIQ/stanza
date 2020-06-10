@@ -500,7 +500,7 @@ new-module -name LogAgentInstall -scriptblock {
     $service_params = @{
       Name           = "$SERVICE_NAME"
       DisplayName    = "$SERVICE_NAME"
-      BinaryPathName = "$script:binary_location --config $script:agent_home\config.yaml --plugin_dir $script:agent_home\plugins --database $script:agent_home\bploagent.db"
+      BinaryPathName = "$script:binary_location --config $script:agent_home\config.yaml --log_file $script:agent_home\$SERVICE_NAME.log --database $script:agent_home\$SERVICE_NAME.db --plugin_dir $script:agent_home\plugins"
       Description    = "Monitors and processes logs."
       StartupType    = "Automatic"
     }
