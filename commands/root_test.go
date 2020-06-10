@@ -52,7 +52,7 @@ pipeline:
 	require.NoError(t, err)
 
 	rootCmd := NewRootCmd()
-	rootCmd.SetArgs([]string{"-c", configPath})
+	rootCmd.SetArgs([]string{"-c", configPath, "--database", dbPath})
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
