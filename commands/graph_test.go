@@ -57,7 +57,8 @@ pipeline:
  // Edge definitions.
  "$.json_parser" -> "$.google_cloud";
  "$.generate" -> "$.json_parser";
-}`
+}
+`
 
 	require.Equal(t, expected, buf.String())
 }
