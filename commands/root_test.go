@@ -49,13 +49,17 @@ pipeline:
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	err = rootCmd.ExecuteContext(ctx)
-	require.NoError(t, err)
+	go func() {
+		err = rootCmd.ExecuteContext(ctx)
+		require.NoError(t, err)
+	}()
 
 	expectedPattern := `{"timestamp":".*","record":{"message":"log1"}}
 {"timestamp":".*","record":{"message":"log2"}}
 {"timestamp":".*","record":{"message":"log3"}}
 `
+
+	time.Sleep(500 * time.Millisecond)
 
 	actual, err := ioutil.ReadFile(outputPath)
 	require.NoError(t, err)
