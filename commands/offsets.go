@@ -41,7 +41,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 			exitOnErr("Failed to read configs from glob", err)
 			cfg.SetDefaults(rootFlags.DatabaseFile, rootFlags.PluginDir)
 
-			db, err := agent.OpenDatabase(cfg.DatabaseFile)
+			db, err := agent.OpenDatabase(cfg.Database)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 			defer db.Sync()
@@ -96,7 +96,7 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 			exitOnErr("Failed to read configs from glob", err)
 			cfg.SetDefaults(rootFlags.DatabaseFile, rootFlags.PluginDir)
 
-			db, err := agent.OpenDatabase(cfg.DatabaseFile)
+			db, err := agent.OpenDatabase(cfg.Database)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 

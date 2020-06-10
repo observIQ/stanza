@@ -11,9 +11,9 @@ import (
 
 // Config is the configuration of a log agent.
 type Config struct {
-	Pipeline     pipeline.Config `json:"pipeline"                yaml:"pipeline"`
-	DatabaseFile string          `json:"database_file,omitempty" yaml:"database_file,omitempty"`
-	PluginDir    string          `json:"plugin_dir,omitempty"    yaml:"plugin_dir,omitempty"`
+	Pipeline  pipeline.Config `json:"pipeline"                yaml:"pipeline"`
+	Database  string          `json:"database,omitempty" yaml:"database,omitempty"`
+	PluginDir string          `json:"plugin_dir,omitempty"    yaml:"plugin_dir,omitempty"`
 }
 
 // NewConfigFromFile will create a new agent config from a YAML file.
@@ -61,8 +61,8 @@ func NewConfigFromGlobs(globs []string) (*Config, error) {
 
 // mergeConfigs will merge two agent configs.
 func mergeConfigs(dst *Config, src *Config) *Config {
-	if src.DatabaseFile != "" {
-		dst.DatabaseFile = src.DatabaseFile
+	if src.Database != "" {
+		dst.Database = src.Database
 	}
 
 	dst.Pipeline = append(dst.Pipeline, src.Pipeline...)
@@ -70,8 +70,8 @@ func mergeConfigs(dst *Config, src *Config) *Config {
 }
 
 func (c *Config) SetDefaults(databaseFile, pluginDir string) {
-	if c.DatabaseFile == "" {
-		c.DatabaseFile = databaseFile
+	if c.Database == "" {
+		c.Database = databaseFile
 	}
 
 	if c.PluginDir == "" {

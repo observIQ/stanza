@@ -31,7 +31,7 @@ func (a *LogAgent) Start() error {
 		return nil
 	}
 
-	database, err := OpenDatabase(a.Config.DatabaseFile)
+	database, err := OpenDatabase(a.Config.Database)
 	if err != nil {
 		a.Errorw("Failed to open database", zap.Any("error", err))
 		return err

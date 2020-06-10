@@ -44,10 +44,10 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	rootFlagSet := root.PersistentFlags()
-	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{"./config.yaml"}, "path to a config file") // TODO default locations
-	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", "./plugins", "path to the plugin directory")
 	rootFlagSet.StringVar(&rootFlags.LogFile, "log_file", "", "write logs to configured path rather than stderr")
-	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "./bplogagent.db", "path to the log agent offset database")
+	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{defaultConfig()}, "path to a config file")
+	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
+	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", defaultDatabaseFile(), "path to the log agent offset database")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
 	// Profiling flags
