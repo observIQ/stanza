@@ -47,6 +47,7 @@ func (r CustomRegistry) Render(pluginType string, params map[string]interface{})
 			"failed to unmarshal custom template to custom config",
 			"ensure that the custom template renders a valid pipeline",
 			"plugin_type", pluginType,
+			"rendered_config", writer.String(),
 			"error_message", err.Error(),
 		)
 	}
