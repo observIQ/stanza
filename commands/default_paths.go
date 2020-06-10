@@ -7,6 +7,8 @@ import (
 	"runtime"
 )
 
+var agentName = "bplogagent"
+
 func defaultPluginDir() string {
 	if stat, err := os.Stat("./plugins"); err == nil {
 		if stat.IsDir() {
@@ -14,7 +16,7 @@ func defaultPluginDir() string {
 		}
 	}
 
-	return filepath.Join(bplogagentHome(), "plugins")
+	return filepath.Join(agentHome(), "plugins")
 }
 
 func defaultConfig() string {
@@ -22,7 +24,7 @@ func defaultConfig() string {
 		return "./config.yaml"
 	}
 
-	return filepath.Join(bplogagentHome(), "config.yaml")
+	return filepath.Join(agentHome(), "config.yaml")
 }
 
 func defaultDatabaseFile() string {
@@ -30,18 +32,18 @@ func defaultDatabaseFile() string {
 		return "./offsets.db"
 	}
 
-	return filepath.Join(bplogagentHome(), "offsets.db")
+	return filepath.Join(agentHome(), "offsets.db")
 }
 
-func bplogagentHome() string {
+func agentHome() string {
 	switch runtime.GOOS {
 	case "windows":
-		return `C:\bplogagent`
+		return filepath.Join(`C:\`, agentName)
 	case "darwin":
 		home, _ := os.UserHomeDir()
-		return filepath.Join(home, "bplogagent")
+		return filepath.Join(home, agentName)
 	case "linux":
-		return `/opt/bplogagent`
+		return filepath.Join("/opt", agentName)
 	default:
 		panic(fmt.Sprintf("Unsupported GOOS %s", runtime.GOOS))
 	}
