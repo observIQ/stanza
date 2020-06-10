@@ -222,6 +222,7 @@ setup_installation()
     # Service variables
     set_service_user
     set_agent_binary
+    set_agent_log
 
     success "Configuration complete!"
     decrease_indent
@@ -311,6 +312,11 @@ set_service_user()
 set_agent_binary()
 {
   agent_binary="$agent_home/$BINARY_NAME"
+}
+
+set_agent_log()
+{
+  agent_log="$agent_home/$SERVICE_NAME.log"
 }
 
 # This will check all prerequisites before running an installation.
@@ -569,6 +575,12 @@ create_launchd_file()
     <string>com.bluemedora.${SERVICE_NAME}</string>
     <key>Program</key>
     <string>$agent_binary</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>$agent_binary</string>
+      <string>--log_file</string>
+      <string>$agent_log</string>
+    </array>
     <key>WorkingDirectory</key>
     <string>$agent_home</string>
     <key>RunAtLoad</key>
@@ -674,9 +686,9 @@ start() {
     else
         echo " * Starting $PROGRAM"
         if [ -n "REPLACE_SERVICE_USER" ]; then
-          su -p REPLACE_SERVICE_USER -c "nohup REPLACE_AGENT_BINARY" > /dev/null 2>&1 &
+          su -p REPLACE_SERVICE_USER -c "nohup REPLACE_AGENT_BINARY --log_file REPLACE_AGENT_LOG" > /dev/null 2>&1 &
         else
-          nohup "REPLACE_AGENT_BINARY" > /dev/null 2>&1 &
+          nohup "REPLACE_AGENT_BINARY --log_file REPLACE_AGENT_LOG" > /dev/null 2>&1 &
         fi
         echo $! > $PIDFILE
         RETVAL=$?
@@ -744,6 +756,7 @@ EOF
   sed -i "s|REPLACE_AGENT_HOME|$agent_home|" "$1"
   sed -i "s|REPLACE_SERVICE_USER|$service_user|" "$1"
   sed -i "s|REPLACE_AGENT_BINARY|$agent_binary|" "$1"
+  sed -i "s|REPLACE_AGENT_LOG|$agent_log|" "$1"
 }
 
 # This will load the sysv service.
@@ -834,7 +847,7 @@ User=$service_user
 Group=$service_user
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 WorkingDirectory=$agent_home
-ExecStart=$agent_binary
+ExecStart=$agent_binary --log_file $agent_log
 SuccessExitStatus=143
 TimeoutSec=0
 StandardOutput=null
