@@ -36,7 +36,7 @@ func TestMetadata(t *testing.T) {
 			"AddTagLiteral",
 			func() *MetadataPluginConfig {
 				cfg := baseConfig()
-				cfg.Tags = []string{"tag1"}
+				cfg.Tags = []helper.ExprStringConfig{"tag1"}
 				return cfg
 			}(),
 			entry.New(),
@@ -50,13 +50,13 @@ func TestMetadata(t *testing.T) {
 			"AddTagExpr",
 			func() *MetadataPluginConfig {
 				cfg := baseConfig()
-				cfg.Tags = []string{`"start" + "end"`}
+				cfg.Tags = []helper.ExprStringConfig{`prefix-{{ 'test1' }}`}
 				return cfg
 			}(),
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Tags = []string{"startend"}
+				e.Tags = []string{"prefix-test1"}
 				return e
 			}(),
 		},
@@ -64,7 +64,7 @@ func TestMetadata(t *testing.T) {
 			"AddLabelLiteral",
 			func() *MetadataPluginConfig {
 				cfg := baseConfig()
-				cfg.Labels = map[string]string{
+				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": "value1",
 				}
 				return cfg
@@ -82,8 +82,8 @@ func TestMetadata(t *testing.T) {
 			"AddLabelExpr",
 			func() *MetadataPluginConfig {
 				cfg := baseConfig()
-				cfg.Labels = map[string]string{
-					"label1": `"start" + "end"`,
+				cfg.Labels = map[string]helper.ExprStringConfig{
+					"label1": `{{"start" + "end"}}`,
 				}
 				return cfg
 			}(),

@@ -2,21 +2,13 @@ package builtin
 
 import (
 	"context"
-	"fmt"
-	"reflect"
-	"regexp"
 
-	"github.com/antonmedv/expr"
-	"github.com/antonmedv/expr/conf"
-	"github.com/antonmedv/expr/vm"
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"go.uber.org/zap"
 )
-
-var stringLiteralPattern = regexp.MustCompile(`^[-_0-9A-z ]*$`)
 
 func init() {
 	plugin.Register("metadata", &MetadataPluginConfig{})
@@ -25,8 +17,8 @@ func init() {
 type MetadataPluginConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
-	Labels map[string]string `json:"labels" yaml:"labels"`
-	Tags   []string          `json:"tags"   yaml:"tags"`
+	Labels map[string]helper.ExprStringConfig `json:"labels" yaml:"labels"`
+	Tags   []helper.ExprStringConfig          `json:"tags"   yaml:"tags"`
 }
 
 func (c MetadataPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -75,109 +67,71 @@ func (p *MetadataPlugin) Process(ctx context.Context, e *entry.Entry) error {
 }
 
 type labeler struct {
-	labels map[string]interface{}
+	labels map[string]*helper.ExprString
 }
 
 func (l *labeler) Label(e *entry.Entry) error {
+	env := map[string]interface{}{
+		"$": e.Record,
+	}
+
 	for k, v := range l.labels {
-		switch val := v.(type) {
-		case *vm.Program:
-			env := map[string]interface{}{
-				"$": e.Record,
-			}
-			out, err := vm.Run(val, env)
-			if err != nil {
-				return err
-			}
-			if outString, ok := out.(string); ok {
-				e.Labels[k] = outString
-			} else {
-				return fmt.Errorf("label expression generated non-string type %T", out)
-			}
-		case string:
-			e.Labels[k] = val
-		default:
-			return fmt.Errorf("cannot create label with type %T", v)
+		rendered, err := v.Render(env)
+		if err != nil {
+			return err
 		}
+		e.Labels[k] = rendered
 	}
 
 	return nil
 }
 
-func buildLabeler(config map[string]string) (*labeler, error) {
-	labels := make(map[string]interface{})
+func buildLabeler(config map[string]helper.ExprStringConfig) (*labeler, error) {
+	labels := make(map[string]*helper.ExprString)
 
 	for k, v := range config {
-		if stringLiteralPattern.MatchString(v) {
-			labels[k] = v
-		} else {
-			program, err := expr.Compile(v, expr.AllowUndefinedVariables(), asStringOption())
-			if err != nil {
-				return nil, errors.NewError("failed to compile expression",
-					"ensure that your label only contains characters in [-_0-9A-z ], otherwise it will be interpreted as an expression",
-					"error", err.Error(),
-				)
-			}
-			labels[k] = program
+		exprString, err := v.Build()
+		if err != nil {
+			return nil, err
 		}
+
+		labels[k] = exprString
 	}
 
 	return &labeler{labels}, nil
 }
 
 type tagger struct {
-	tags []interface{}
+	tags []*helper.ExprString
 }
 
 func (t *tagger) Tag(e *entry.Entry) error {
+	env := map[string]interface{}{
+		"$": e.Record,
+	}
+
 	for _, v := range t.tags {
-		switch val := v.(type) {
-		case *vm.Program:
-			env := map[string]interface{}{
-				"$": e.Record,
-			}
-			out, err := vm.Run(val, env)
-			if err != nil {
-				return err
-			}
-			if outString, ok := out.(string); ok {
-				e.Tags = append(e.Tags, outString)
-			} else {
-				return fmt.Errorf("label expression generated non-string type %T", out)
-			}
-		case string:
-			e.Tags = append(e.Tags, val)
-		default:
-			return fmt.Errorf("cannot create tag with type %T", v)
+		rendered, err := v.Render(env)
+		if err != nil {
+			return err
 		}
+		e.Tags = append(e.Tags, rendered)
 	}
 
 	return nil
 }
 
-func buildTagger(config []string) (*tagger, error) {
-	tags := make([]interface{}, len(config))
+func buildTagger(config []helper.ExprStringConfig) (*tagger, error) {
+	tags := make([]*helper.ExprString, 0, len(config))
 
-	for i, v := range config {
-		if stringLiteralPattern.MatchString(v) {
-			tags[i] = v
-		} else {
-			program, err := expr.Compile(v, expr.AllowUndefinedVariables(), asStringOption())
-			if err != nil {
-				return nil, errors.NewError("failed to compile expression",
-					"ensure that your label only contains characters in [-_0-9A-z ], otherwise it will be interpreted as an expression",
-					"error", err.Error(),
-				)
-			}
-			tags[i] = program
+	for _, v := range config {
+		exprString, err := v.Build()
+		if err != nil {
+			return nil, err
 		}
+
+		tags = append(tags, exprString)
 	}
 
 	return &tagger{tags}, nil
-}
-
-func asStringOption() expr.Option {
-	return func(c *conf.Config) {
-		c.Expect = reflect.String
-	}
 }
