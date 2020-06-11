@@ -25,9 +25,9 @@ func init() {
 type TimeParserConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
-	ParseFrom    entry.Field `json:"parse_from" yaml:"parse_from"`
-	Layout       string      `json:"layout" yaml:"layout"`
-	LayoutFlavor string      `json:"layout_flavor" yaml:"layout_flavor"`
+	ParseFrom    entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
+	Layout       string      `json:"layout,omitempty" yaml:"layout,omitempty"`
+	LayoutFlavor string      `json:"layout_flavor,omitempty" yaml:"layout_flavor,omitempty"`
 }
 
 // Build will build a time parser plugin.
@@ -37,8 +37,16 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
-	if c.LayoutFlavor == "" {
+	switch c.LayoutFlavor {
+	case strptimeKey: // ok
+	case gotimeKey: // ok
+	case "":
 		c.LayoutFlavor = strptimeKey
+	default:
+		return nil, errors.NewError(fmt.Sprintf("Unsupported layout_flavor %s", c.LayoutFlavor), "Valid values are 'strptime' or 'gotime'",
+			"plugin_id", c.PluginID,
+			"plugin_type", c.PluginType,
+		)
 	}
 
 	if c.Layout == "" {
@@ -95,8 +103,6 @@ func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
 			return err
 		}
 		entry.Timestamp = timeValue
-	default:
-		return fmt.Errorf("unsupported layout_flavor %s", t.LayoutFlavor)
 	}
 
 	return t.Output.Process(ctx, entry)
@@ -110,7 +116,7 @@ func (t *TimeParser) parseStrptime(value interface{}) (time.Time, error) {
 	case []byte:
 		return strptime.Parse(t.Layout, string(v))
 	default:
-		return time.Now(), fmt.Errorf("type %T cannot be parsed as a time", value)
+		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
 }
 
@@ -122,6 +128,6 @@ func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
 	case []byte:
 		return time.Parse(t.Layout, string(v))
 	default:
-		return time.Now(), fmt.Errorf("type %T cannot be parsed as a time", value)
+		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
 }
