@@ -329,6 +329,7 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 
 		temp2, err := ioutil.TempFile(tempDir, "")
 		require.NoError(t, err)
+		defer temp2.Close()
 
 		_, err = io.Copy(temp1, temp2)
 		require.NoError(t, err)
