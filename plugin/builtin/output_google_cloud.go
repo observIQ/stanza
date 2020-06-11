@@ -34,14 +34,15 @@ type GoogleCloudOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
 	buffer.BufferConfig `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
-	Credentials     string       `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
-	CredentialsFile string       `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
-	ProjectID       string       `json:"project_id"                 yaml:"project_id"`
-	LogNameField    *entry.Field `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
-	LabelsField     *entry.Field `json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
-	SeverityField   *entry.Field `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
-	TraceField      *entry.Field `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
-	SpanIDField     *entry.Field `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
+	Credentials     string          `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
+	CredentialsFile string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
+	ProjectID       string          `json:"project_id"                 yaml:"project_id"`
+	LogNameField    *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
+	LabelsField     *entry.Field    `json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
+	SeverityField   *entry.Field    `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
+	TraceField      *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
+	SpanIDField     *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
+	Timeout         plugin.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
 }
 
 // Build will build a google cloud output plugin.
@@ -60,6 +61,13 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		return nil, err
 	}
 
+	var timeout time.Duration
+	if c.Timeout.Raw() == time.Duration(0) {
+		timeout = 10 * time.Second
+	} else {
+		timeout = c.Timeout.Raw()
+	}
+
 	googleCloudOutput := &GoogleCloudOutput{
 		OutputPlugin:    outputPlugin,
 		credentials:     c.Credentials,
@@ -71,6 +79,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		severityField:   c.SeverityField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
+		timeout:         timeout,
 	}
 
 	newBuffer.SetHandler(googleCloudOutput)
@@ -93,7 +102,8 @@ type GoogleCloudOutput struct {
 	traceField    *entry.Field
 	spanIDField   *entry.Field
 
-	client CloudLoggingClient
+	client  CloudLoggingClient
+	timeout time.Duration
 }
 
 type CloudLoggingClient interface {
@@ -143,7 +153,7 @@ func (p *GoogleCloudOutput) Start() error {
 	p.client = client
 
 	// Test writing a log message
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
 	testEntry := entry.New()
 	testEntry.Record = map[string]interface{}{"message": "Test connection"}
@@ -183,6 +193,8 @@ func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.E
 		Resource: globalResource(p.projectID),
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, p.timeout)
+	defer cancel()
 	_, err := p.client.WriteLogEntries(ctx, &req)
 	if err != nil {
 		return fmt.Errorf("write log entries: %s", err)
