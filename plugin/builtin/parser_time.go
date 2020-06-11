@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	strptime "github.com/Mottl/ctimefmt"
+	strptime "github.com/bluemedora/ctimefmt"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"

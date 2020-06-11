@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	cloud.google.com/go/logging v1.0.0
-	github.com/Mottl/ctimefmt v0.0.0-20190803144728-fd2ac23a585a
 	github.com/antonmedv/expr v1.8.2
+	github.com/bluemedora/ctimefmt v0.0.0-20200611210846-e39bd83b5771
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
 	github.com/golang/protobuf v1.3.4
@@ -14,9 +14,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/json-iterator/go v1.1.9
-	github.com/knz/strtime v0.0.0-20200318182718-be999391ffa9
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/pbnjay/strptime v0.0.0-20140226051138-5c05b0d668c9
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -34,5 +32,5 @@ require (
 	google.golang.org/grpc v1.27.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	honnef.co/go/tools v0.0.1-2020.1.3
+	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
