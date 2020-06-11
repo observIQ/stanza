@@ -7,9 +7,6 @@ BUILD_INFO_IMPORT_PATH=github.com/bluemedora/bplogagent/internal/version
 BUILD_X1=-X $(BUILD_INFO_IMPORT_PATH).GitHash=$(GIT_SHA)
 ifdef VERSION
 BUILD_X2=-X $(BUILD_INFO_IMPORT_PATH).Version=$(VERSION)
-ARTIFACT_VERSION=$(VERSION)
-else
-ARTIFACT_VERSION=$(GIT_SHA)
 endif
 BUILD_INFO=-ldflags "${BUILD_X1} ${BUILD_X2}"
 
@@ -33,7 +30,7 @@ generate:
 
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build -o ./artifacts/bplogagent_$(ARTIFACT_VERSION)_$(GOOS)_$(GOARCH) $(BUILD_INFO) .
+	CGO_ENABLED=0 go build -o ./artifacts/bplogagent_$(GOOS)_$(GOARCH) $(BUILD_INFO) .
 
 .PHONY: install
 install:

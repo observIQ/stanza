@@ -27,9 +27,9 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	var logger *zap.SugaredLogger
 	if flags.Debug {
-		logger = newDefaultLoggerAt(zapcore.DebugLevel)
+		logger = newDefaultLoggerAt(zapcore.DebugLevel, "")
 	} else {
-		logger = newDefaultLoggerAt(zapcore.InfoLevel)
+		logger = newDefaultLoggerAt(zapcore.InfoLevel, "")
 	}
 	defer func() {
 		_ = logger.Sync()
@@ -64,6 +64,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
+	dotGraph = append(dotGraph, '\n')
 	_, err = stdout.Write(dotGraph)
 	if err != nil {
 		logger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))

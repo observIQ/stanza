@@ -32,7 +32,7 @@ func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
 	currentBundleID := int64(0)
 	handleFunc := func(entries interface{}) {
 		bundleID := atomic.AddInt64(&currentBundleID, 1)
-		b := backoff.NewExponentialBackOff()
+		b := m.NewExponentialBackOff()
 		for {
 			err := handler.ProcessMulti(ctx, entries.([]*entry.Entry))
 			if err != nil {
@@ -68,10 +68,10 @@ func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
 	m.cancel = cancel
 }
 
-func (b *MemoryBuffer) Flush(ctx context.Context) error {
+func (m *MemoryBuffer) Flush(ctx context.Context) error {
 	finished := make(chan struct{})
 	go func() {
-		b.Bundler.Flush()
+		m.Bundler.Flush()
 		close(finished)
 	}()
 
@@ -83,10 +83,24 @@ func (b *MemoryBuffer) Flush(ctx context.Context) error {
 	}
 }
 
-func (b *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
-	if b.Bundler == nil {
+func (m *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
+	if m.Bundler == nil {
 		panic("must call SetHandler before any calls to Process")
 	}
 
-	return b.AddWait(ctx, entry, 100)
+	return m.AddWait(ctx, entry, 100)
+}
+
+func (m *MemoryBuffer) NewExponentialBackOff() *backoff.ExponentialBackOff {
+	b := &backoff.ExponentialBackOff{
+		InitialInterval:     m.config.Retry.InitialInterval.Raw(),
+		RandomizationFactor: m.config.Retry.RandomizationFactor,
+		Multiplier:          m.config.Retry.Multiplier,
+		MaxInterval:         m.config.Retry.MaxInterval.Raw(),
+		MaxElapsedTime:      m.config.Retry.MaxElapsedTime.Raw(),
+		Stop:                backoff.Stop,
+		Clock:               backoff.SystemClock,
+	}
+	b.Reset()
+	return b
 }
