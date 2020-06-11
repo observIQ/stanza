@@ -1,11 +1,10 @@
 package helper
 
 import (
-	"reflect"
+	"fmt"
 	"strings"
 
 	"github.com/antonmedv/expr"
-	"github.com/antonmedv/expr/conf"
 	"github.com/antonmedv/expr/vm"
 	"github.com/bluemedora/bplogagent/errors"
 )
@@ -43,7 +42,7 @@ LOOP:
 
 	subExprs := make([]*vm.Program, 0, len(subExprStrings))
 	for _, subExprString := range subExprStrings {
-		program, err := expr.Compile(subExprString, expr.AllowUndefinedVariables(), asStringOption())
+		program, err := expr.Compile(subExprString, expr.AllowUndefinedVariables())
 		if err != nil {
 			return nil, errors.Wrap(err, "compile embedded expression")
 		}
@@ -71,15 +70,13 @@ func (e *ExprString) Render(env map[string]interface{}) (string, error) {
 		if err != nil {
 			return "", errors.Wrap(err, "render embedded expression")
 		}
-		b.WriteString(out.(string)) // guaranteed string by asStringOption()
+		outString, ok := out.(string)
+		if !ok {
+			return "", fmt.Errorf("embedded expression returned non-string %v", out)
+		}
+		b.WriteString(outString)
 	}
 	b.WriteString(e.SubStrings[len(e.SubStrings)-1])
 
 	return b.String(), nil
-}
-
-func asStringOption() expr.Option {
-	return func(c *conf.Config) {
-		c.Expect = reflect.String
-	}
 }
