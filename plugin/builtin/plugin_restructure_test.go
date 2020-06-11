@@ -35,16 +35,17 @@ func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
 
 func TestRestructurePlugin(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
-		return &entry.Entry{
-			Timestamp: time.Unix(1586632809, 0),
-			Record: map[string]interface{}{
-				"key": "val",
-				"nested": map[string]interface{}{
-					"nestedkey": "nestedval",
-				},
+		e := entry.New()
+		e.Timestamp = time.Unix(1586632809, 0)
+		e.Record = map[string]interface{}{
+			"key": "val",
+			"nested": map[string]interface{}{
+				"nestedkey": "nestedval",
 			},
 		}
+		return e
 	}
+
 	cases := []struct {
 		name   string
 		ops    []Op

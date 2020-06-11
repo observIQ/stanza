@@ -7,8 +7,10 @@ import (
 
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
-	Timestamp time.Time   `json:"timestamp"`
-	Record    interface{} `json:"record"`
+	Timestamp time.Time         `json:"timestamp" yaml:"timestamp"`
+	Tags      []string          `json:"tags,omitempty"      yaml:"tags,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"    yaml:"labels,omitempty"`
+	Record    interface{}       `json:"record"    yaml:"record"`
 }
 
 // New will create a new log entry with current timestamp and an empty record.
@@ -16,6 +18,8 @@ func New() *Entry {
 	return &Entry{
 		Timestamp: time.Now(),
 		Record:    map[string]interface{}{},
+		Tags:      make([]string, 0),
+		Labels:    make(map[string]string, 0),
 	}
 }
 
