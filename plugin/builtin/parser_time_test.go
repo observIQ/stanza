@@ -108,11 +108,6 @@ func TestTimeParser(t *testing.T) {
 
 	rootField := entry.NewField()
 	someField := entry.NewField("some_field")
-	makeTestEntry := func(field entry.Field, value string) *entry.Entry {
-		e := entry.New()
-		e.Set(field, value)
-		return e
-	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -132,6 +127,103 @@ func TestTimeParser(t *testing.T) {
 			t.Run("strptime-non-root", runTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 		})
 	}
+}
+
+func TestTimeEpochs(t *testing.T) {
+
+	testCases := []struct {
+		name     string
+		sample   interface{}
+		layout   string
+		expected time.Time
+		err      bool
+	}{
+		{
+			name:     "s-default-string",
+			sample:   "1136214245",
+			layout:   "s",
+			expected: time.Unix(1136214245, 0),
+		},
+		{
+			name:     "s-default-int",
+			sample:   1136214245,
+			layout:   "s",
+			expected: time.Unix(1136214245, 0),
+		},
+		{
+			name:     "ms-default-string",
+			sample:   "1136214245123",
+			layout:   "ms",
+			expected: time.Unix(1136214245, 123000000),
+		},
+		{
+			name:     "ms-default-int",
+			sample:   1136214245123,
+			layout:   "ms",
+			expected: time.Unix(1136214245, 123000000),
+		},
+		{
+			name:     "us-default-string",
+			sample:   "1136214245123456",
+			layout:   "us",
+			expected: time.Unix(1136214245, 123456000),
+		},
+		{
+			name:     "us-default-int",
+			sample:   1136214245123456,
+			layout:   "us",
+			expected: time.Unix(1136214245, 123456000),
+		},
+		{
+			name:     "ns-default-string",
+			sample:   "1136214245123456789",
+			layout:   "ns",
+			expected: time.Unix(1136214245, 123456789),
+		},
+		{
+			name:     "ns-default-int",
+			sample:   1136214245123456789,
+			layout:   "ns",
+			expected: time.Unix(1136214245, 123456789),
+		},
+		{
+			name:     "s.ms-default-string",
+			sample:   "1136214245.123",
+			layout:   "s.ms",
+			expected: time.Unix(1136214245, 123000000),
+		},
+		{
+			name:     "s.us-default-string",
+			sample:   "1136214245.123456",
+			layout:   "s.us",
+			expected: time.Unix(1136214245, 123456000),
+		},
+		{
+			name:     "s.ns-default-string",
+			sample:   "1136214245.123456789",
+			layout:   "s.ns",
+			expected: time.Unix(1136214245, 123456789),
+		},
+	}
+
+	rootField := entry.NewField()
+	someField := entry.NewField("some_field")
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rootCfg := parseTimeTestConfig(epochKey, tc.layout, rootField)
+			t.Run("gotime-root", runTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected))
+
+			nonRootCfg := parseTimeTestConfig(epochKey, tc.layout, someField)
+			t.Run("gotime-non-root", runTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected))
+		})
+	}
+}
+
+func makeTestEntry(field entry.Field, value interface{}) *entry.Entry {
+	e := entry.New()
+	e.Set(field, value)
+	return e
 }
 
 func runTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time) func(*testing.T) {
