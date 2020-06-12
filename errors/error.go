@@ -55,7 +55,7 @@ func WithDetails(err error, keyValues ...string) AgentError {
 }
 
 // Wrap adds context to the description for richer logs
-func Wrap(err error, context string) error {
+func Wrap(err error, context string) AgentError {
 	if agentErr, ok := err.(AgentError); ok {
 		agentErr.Description = fmt.Sprintf("%s: %s", context, agentErr.Description)
 		return agentErr

@@ -5,7 +5,7 @@ go 1.14
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/antonmedv/expr v1.8.2
-	github.com/bluemedora/ctimefmt v0.0.0-20200611210846-e39bd83b5771
+	github.com/bluemedora/ctimefmt v0.0.0-20200612160717-3e07deba22cf
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20200429055951-e9eb76d55d12
 	github.com/golang/protobuf v1.3.4

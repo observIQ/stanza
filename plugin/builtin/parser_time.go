@@ -43,17 +43,28 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	case "":
 		c.LayoutFlavor = strptimeKey
 	default:
-		return nil, errors.NewError(fmt.Sprintf("Unsupported layout_flavor %s", c.LayoutFlavor), "Valid values are 'strptime' or 'gotime'",
+		return nil, errors.NewError(fmt.Sprintf("unsupported layout_flavor %s", c.LayoutFlavor), "valid values are 'strptime' or 'gotime'",
 			"plugin_id", c.PluginID,
 			"plugin_type", c.PluginType,
 		)
 	}
 
 	if c.Layout == "" {
-		return nil, errors.NewError("Missing required configuration parameter `layout`", "",
+		return nil, errors.NewError("missing required configuration parameter `layout`", "",
 			"plugin_id", c.PluginID,
 			"plugin_type", c.PluginType,
 		)
+	}
+
+	if c.LayoutFlavor == strptimeKey {
+		c.Layout, err = strptime.ToNative(c.Layout)
+		if err != nil {
+			return nil, errors.WithDetails(errors.Wrap(err, "parse strptime layout"),
+				"plugin_id", c.PluginID,
+				"plugin_type", c.PluginType,
+			)
+		}
+		c.LayoutFlavor = gotimeKey
 	}
 
 	timeParser := &TimeParser{
@@ -84,40 +95,24 @@ func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
 	value, ok := entry.Get(t.ParseFrom)
 	if !ok {
 		return errors.NewError(
-			"Log entry does not have the expected parse_from field.",
-			"Ensure that all entries forwarded to this parser contain the parse_from field.",
+			"log entry does not have the expected parse_from field",
+			"ensure that all entries forwarded to this parser contain the parse_from field",
 			"parse_from", t.ParseFrom.String(),
 		)
 	}
 
 	switch t.LayoutFlavor {
-	case strptimeKey:
-		timeValue, err := t.parseStrptime(value)
-		if err != nil {
-			return err
-		}
-		entry.Timestamp = timeValue
 	case gotimeKey:
 		timeValue, err := t.parseGotime(value)
 		if err != nil {
 			return err
 		}
 		entry.Timestamp = timeValue
+	default:
+		return fmt.Errorf("unsupported layout flavor: %s", t.LayoutFlavor)
 	}
 
 	return t.Output.Process(ctx, entry)
-}
-
-// Parse will parse a value as a time.
-func (t *TimeParser) parseStrptime(value interface{}) (time.Time, error) {
-	switch v := value.(type) {
-	case string:
-		return strptime.Parse(t.Layout, v)
-	case []byte:
-		return strptime.Parse(t.Layout, string(v))
-	default:
-		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
-	}
 }
 
 // Parse will parse a value as a time.
