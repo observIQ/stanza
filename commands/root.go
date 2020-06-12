@@ -142,11 +142,14 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			logger.Info(srv.ListenAndServe())
 		}()
 
 		wg.Add(1)
+
 		go func() {
+			defer wg.Done()
 			<-ctx.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
