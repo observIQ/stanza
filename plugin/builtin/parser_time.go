@@ -199,7 +199,7 @@ func getEpochStamp(layout string, value interface{}) (string, error) {
 type toTimeFunc = func(int64) time.Time
 
 var toTime = map[string]toTimeFunc{
-	"s":  func(s int64) time.Time { return time.Unix(s/1, 0) },
+	"s":  func(s int64) time.Time { return time.Unix(s, 0) },
 	"ms": func(ms int64) time.Time { return time.Unix(ms/1e3, (ms%1e3)*1e6) },
 	"us": func(us int64) time.Time { return time.Unix(us/1e6, (us%1e6)*1e3) },
 	"ns": func(ns int64) time.Time { return time.Unix(0, ns) },
