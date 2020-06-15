@@ -5,13 +5,21 @@
 
 ## Installation
 #### Golang Project
-Run `go get github.com/bluemedora/bplogagent`. Ensure that `$GOPATH/bin` is in your `$PATH`.
+```shell
+go get github.com/bluemedora/bplogagent
+```
 #### Linux Service
-Run `sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh`
+```shell
+sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh
+```
 #### Darwin Service
-Run `sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh`
+```shell
+sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh
+```
 #### Windows Service
-Run `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/raw/master/scripts/windows-install.ps1')); Log-Agent-Install`
+```pwsh
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/raw/master/scripts/windows-install.ps1')); Log-Agent-Install
+```
 
 ## Documentation
 
