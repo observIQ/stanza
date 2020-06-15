@@ -3,6 +3,8 @@ package builtin
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	strptime "github.com/bluemedora/ctimefmt"
@@ -16,6 +18,7 @@ import (
 // Valid layout flavors
 const strptimeKey = "strptime"
 const gotimeKey = "gotime"
+const epochKey = "epoch"
 
 func init() {
 	plugin.Register("time_parser", &TimeParserConfig{})
@@ -38,19 +41,22 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	switch c.LayoutFlavor {
-	case strptimeKey: // ok
-	case gotimeKey: // ok
+	case strptimeKey, gotimeKey, epochKey: // ok
 	case "":
 		c.LayoutFlavor = strptimeKey
 	default:
-		return nil, errors.NewError(fmt.Sprintf("unsupported layout_flavor %s", c.LayoutFlavor), "valid values are 'strptime' or 'gotime'",
+		return nil, errors.NewError(
+			fmt.Sprintf("unsupported layout_flavor %s", c.LayoutFlavor),
+			"valid values are 'strptime', 'gotime', and 'epoch'",
 			"plugin_id", c.PluginID,
 			"plugin_type", c.PluginType,
 		)
 	}
 
 	if c.Layout == "" {
-		return nil, errors.NewError("missing required configuration parameter `layout`", "",
+		return nil, errors.NewError(
+			"missing required configuration parameter `layout`",
+			"specify 'strptime', 'gotime', or 'epoch'",
 			"plugin_id", c.PluginID,
 			"plugin_type", c.PluginType,
 		)
@@ -59,12 +65,24 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	if c.LayoutFlavor == strptimeKey {
 		c.Layout, err = strptime.ToNative(c.Layout)
 		if err != nil {
-			return nil, errors.WithDetails(errors.Wrap(err, "parse strptime layout"),
+			return nil, errors.WithDetails(
+				errors.Wrap(err, "parse strptime layout"),
 				"plugin_id", c.PluginID,
 				"plugin_type", c.PluginType,
 			)
 		}
 		c.LayoutFlavor = gotimeKey
+	} else if c.LayoutFlavor == epochKey {
+		switch c.Layout {
+		case "s", "ms", "us", "ns", "s.ms", "s.us", "s.ns": // ok
+		default:
+			return nil, errors.NewError(
+				"invalid `layout` for `epoch` flavor",
+				"specify 's', 'ms', 'us', 'ns', 's.ms', 's.us', or 's.ns'",
+				"plugin_id", c.PluginID,
+				"plugin_type", c.PluginType,
+			)
+		}
 	}
 
 	timeParser := &TimeParser{
@@ -108,6 +126,12 @@ func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
 			return err
 		}
 		entry.Timestamp = timeValue
+	case epochKey:
+		timeValue, err := t.parseEpochTime(value)
+		if err != nil {
+			return err
+		}
+		entry.Timestamp = timeValue
 	default:
 		return fmt.Errorf("unsupported layout flavor: %s", t.LayoutFlavor)
 	}
@@ -115,14 +139,101 @@ func (t *TimeParser) Process(ctx context.Context, entry *entry.Entry) error {
 	return t.Output.Process(ctx, entry)
 }
 
-// Parse will parse a value as a time.
 func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
 	switch v := value.(type) {
 	case string:
 		return time.Parse(t.Layout, v)
-	case []byte:
-		return time.Parse(t.Layout, string(v))
 	default:
 		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
+	}
+}
+
+func (t *TimeParser) parseEpochTime(value interface{}) (time.Time, error) {
+
+	stamp, err := getEpochStamp(t.Layout, value)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	parseErr := fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+
+	switch t.Layout {
+	case "s":
+		s, err := strconv.ParseInt(stamp, 10, 64)
+		if err != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(s, 0), nil
+	case "ms":
+		ms, err := strconv.ParseInt(stamp, 10, 64)
+		if err != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(ms/1e3, (ms%1e3)*1e6), nil
+	case "us":
+		us, err := strconv.ParseInt(stamp, 10, 64)
+		if err != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(us/1e6, (us%1e6)*1e3), nil
+	case "ns":
+		ns, err := strconv.ParseInt(stamp, 10, 64)
+		if err != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(0, ns), nil
+	case "s.ms":
+		sNs := strings.Split(stamp, ".")
+		if len(sNs) != 2 {
+			return time.Time{}, parseErr
+		}
+		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
+		ms, msErr := strconv.ParseInt(sNs[1], 10, 64)
+		if sErr != nil || msErr != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(s, ms*1e6), nil
+	case "s.us":
+		sNs := strings.Split(stamp, ".")
+		if len(sNs) != 2 {
+			return time.Time{}, parseErr
+		}
+		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
+		us, usErr := strconv.ParseInt(sNs[1], 10, 64)
+		if sErr != nil || usErr != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(s, us*1e3), nil
+	case "s.ns":
+		sNs := strings.Split(stamp, ".")
+		if len(sNs) != 2 {
+			return time.Time{}, parseErr
+		}
+		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
+		ns, nsErr := strconv.ParseInt(sNs[1], 10, 64)
+		if sErr != nil || nsErr != nil {
+			return time.Time{}, parseErr
+		}
+		return time.Unix(s, ns), nil
+	default:
+		return time.Time{}, fmt.Errorf("invalid layout '%s'", t.Layout)
+	}
+}
+
+func getEpochStamp(layout string, value interface{}) (string, error) {
+	switch v := value.(type) {
+	case string:
+		return v, nil
+	case int, int32, int64, uint32, uint64:
+		switch layout {
+		case "s", "ms", "us", "ns":
+			return fmt.Sprintf("%d", v), nil
+		case "s.ms", "s.us", "s.ns":
+			return fmt.Sprintf("%10.9f", v), nil
+		default:
+			return "", fmt.Errorf("invalid layout '%s'", layout)
+		}
+	default:
+		return "", fmt.Errorf("type %T cannot be parsed as a time", v)
 	}
 }
