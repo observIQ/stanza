@@ -254,7 +254,7 @@ func TestBuildInvalidPipelineInvalidPlugin(t *testing.T) {
 	require.Contains(t, err.Error(), "build plugins")
 }
 
-func TestBuildInvalidPipelineInvalidConnection(t *testing.T) {
+func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 	registry := plugin.CustomRegistry{}
 	logCfg := zap.NewProductionConfig()
 	logger, err := logCfg.Build()
