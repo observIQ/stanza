@@ -4,8 +4,8 @@ The `time_parser` plugin sets the timestamp on an entry by parsing a value from 
 
 ### Configuration Fields
 
-| Field           | Default  | Description                                                                 |
-| ---             | ---      | ---                                                                         |
+| Field           | Default    | Description                                                                 |
+| ---             | ---        | ---                                                                         |
 | `id`            | required   | A unique identifier for the plugin                                          |
 | `output`        | required   | The `id` for the plugin to send parsed entries to                           |
 | `parse_from`    | required   | A [field](/field.md) that indicates the field to be parsed as JSON          |
@@ -108,15 +108,15 @@ Configuration:
 
 The `epoch` layout flavor uses can consume epoch-based timestamps. The following layouts are supported:
 
-| Layout | Meaning                                   | Example             | Value Types     |
-| ---    | ---                                       | ---                 | ---             |
-| `s`    | Seconds since the epoch                   |                     | string, integer |
-| `ms`   | Milliseconds since the epoch              |                     | string, integer |
-| `us`   | Microseconds since the epoch              |                     | string, integer |
-| `ns`   | Nanoseconds since the epoch               |                     | string, integer |
-| `s.ms` | Seconds plus milliseconds since the epoch |                     | string          |
-| `s.us` | Seconds plus microseconds since the epoch |                     | string          |
-| `s.ns` | Seconds plus nanoseconds since the epoch  |                     | string          |
+| Layout | Meaning                                   | Example              | Value Types     |
+| ---    | ---                                       | ---                  | ---             |
+| `s`    | Seconds since the epoch                   | 1136214245           | string, integer |
+| `ms`   | Milliseconds since the epoch              | 1136214245123        | string, integer |
+| `us`   | Microseconds since the epoch              | 1136214245123456     | string, integer |
+| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | string, integer |
+| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | string          |
+| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | string          |
+| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | string          |
 
 Configuration:
 ```yaml
