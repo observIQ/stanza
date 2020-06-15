@@ -3,31 +3,51 @@
 
 # Bindplane Log Agent
 
-## Installation
+## How do I install the agent?
 #### Golang Project
 ```shell
 go get github.com/bluemedora/bplogagent
 ```
-#### Linux Service
+#### Linux
 ```shell
 sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh
 ```
-#### Darwin Service
+#### Darwin
 ```shell
 sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh
 ```
-#### Windows Service
+#### Windows
 ```pwsh
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/raw/master/scripts/windows-install.ps1')); Log-Agent-Install
 ```
 
-## Documentation
-
-More detailed documentation for the log agent can be found [here](https://github.com/bluemedora/bplogagent-docs).
-
 ## How do I run the agent?
-- Run: `bplogagent --config {config_file_location}`
-- Test: `go test -cover -race ./...` (cover and race optional)
+#### Manual
+```
+The binary can be run manually with the following flags:
+
+--config      The location of the agent config file.
+--plugin_dir  The location of the custom plugins directory.
+--database    The location of the offsets database file.
+--log_file    The location of the agent log file
+--debug       Enables debug logging
+```
+#### Linux
+```shell
+# systemd
+systemctl start bplogagent
+
+# sysv
+service bplogagent start
+```
+#### Darwin
+```shell
+launchctl start com.bluemedora.bplogagent
+```
+#### Windows
+```pwsh
+Start-Service -Name "bplogagent"
+```
 
 ## How do I configure the agent?
 The agent is configured using a YAML config file that is passed in using the `--config` flag. This file defines a collection of plugins beneath a top-level `pipeline` key. Each plugin possesses a `type` and `id` field.
