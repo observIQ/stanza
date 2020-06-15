@@ -96,18 +96,23 @@ func (r CustomRegistry) Load(path string) error {
 	fileName := filepath.Base(path)
 	pluginType := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
-	if IsDefined(pluginType) {
-		return fmt.Errorf("plugin type %s already exists as a builtin plugin", pluginType)
-	}
-
 	fileContents, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %s", path, err)
 	}
 
-	pluginTemplate, err := template.New(pluginType).Parse(string(fileContents))
+	return r.Add(pluginType, string(fileContents))
+}
+
+// Add will add a custom plugin to the registry.
+func (r CustomRegistry) Add(pluginType string, contents string) error {
+	if IsDefined(pluginType) {
+		return fmt.Errorf("plugin type %s already exists as a builtin plugin", pluginType)
+	}
+
+	pluginTemplate, err := template.New(pluginType).Parse(contents)
 	if err != nil {
-		return fmt.Errorf("failed to parse %s as a template: %s", path, err)
+		return fmt.Errorf("failed to parse %s as a custom template: %s", pluginType, err)
 	}
 
 	r[pluginType] = pluginTemplate

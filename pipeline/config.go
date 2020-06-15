@@ -138,7 +138,7 @@ func (p Params) BuildConfigs(context plugin.BuildContext, namespace string) ([]p
 	}
 
 	return nil, errors.NewError(
-		"unsupported `type` field for plugin config",
+		"unsupported `type` for plugin config",
 		"ensure that all plugins have a supported builtin or custom type",
 		"config", p.String(),
 	)
