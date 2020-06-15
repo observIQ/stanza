@@ -24,10 +24,10 @@ sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/
 ## How do I run the agent?
 #### Manual
 ```shell
+# Example Command
 bplogagent --config ./config.yaml --plugin_dir ./plugins --database ./offsets.db
-```
-```
-Supported flags:
+
+# Supported flags:
 
 --config      The location of the agent config file
 --plugin_dir  The location of the custom plugins directory
