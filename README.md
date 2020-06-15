@@ -4,8 +4,14 @@
 # Bindplane Log Agent
 
 ## Installation
-
-If you have a `go` environment set up, just `go get github.com/bluemedora/bplogagent`. Just make sure that `$GOPATH/bin` is in your `$PATH`.
+#### Golang Project
+Run `go get github.com/bluemedora/bplogagent`. Ensure that `$GOPATH/bin` is in your `$PATH`.
+#### Linux Service
+Run `sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh`
+#### Darwin Service
+Run `sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh`
+#### Windows Service
+Run `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/raw/master/scripts/windows-install.ps1')); Log-Agent-Install`
 
 ## Documentation
 
@@ -16,10 +22,10 @@ More detailed documentation for the log agent can be found [here](https://github
 - Test: `go test -cover -race ./...` (cover and race optional)
 
 ## How do I configure the agent?
-The agent is configured using a YAML config file that is passed in using the `--config` flag. This file defines a collection of plugins beneath a top-level `plugins` key. Each plugin possesses a `type` and `id` field.
+The agent is configured using a YAML config file that is passed in using the `--config` flag. This file defines a collection of plugins beneath a top-level `pipeline` key. Each plugin possesses a `type` and `id` field.
 
 ```yaml
-plugins:
+pipeline:
   - id: plugin_one
     type: udp_input
     listen_address: :5141
