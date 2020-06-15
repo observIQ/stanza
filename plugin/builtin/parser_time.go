@@ -155,66 +155,24 @@ func (t *TimeParser) parseEpochTime(value interface{}) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	parseErr := fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
-
 	switch t.Layout {
-	case "s":
-		s, err := strconv.ParseInt(stamp, 10, 64)
+	case "s", "ms", "us", "ns":
+		i, err := strconv.ParseInt(stamp, 10, 64)
 		if err != nil {
-			return time.Time{}, parseErr
+			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
 		}
-		return time.Unix(s, 0), nil
-	case "ms":
-		ms, err := strconv.ParseInt(stamp, 10, 64)
-		if err != nil {
-			return time.Time{}, parseErr
+		return toTime[t.Layout](i), nil
+	case "s.ms", "s.us", "s.ns":
+		secSubsec := strings.Split(stamp, ".")
+		if len(secSubsec) != 2 {
+			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
 		}
-		return time.Unix(ms/1e3, (ms%1e3)*1e6), nil
-	case "us":
-		us, err := strconv.ParseInt(stamp, 10, 64)
-		if err != nil {
-			return time.Time{}, parseErr
+		sec, secErr := strconv.ParseInt(secSubsec[0], 10, 64)
+		subsec, subsecErr := strconv.ParseInt(secSubsec[1], 10, 64)
+		if secErr != nil || subsecErr != nil {
+			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
 		}
-		return time.Unix(us/1e6, (us%1e6)*1e3), nil
-	case "ns":
-		ns, err := strconv.ParseInt(stamp, 10, 64)
-		if err != nil {
-			return time.Time{}, parseErr
-		}
-		return time.Unix(0, ns), nil
-	case "s.ms":
-		sNs := strings.Split(stamp, ".")
-		if len(sNs) != 2 {
-			return time.Time{}, parseErr
-		}
-		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
-		ms, msErr := strconv.ParseInt(sNs[1], 10, 64)
-		if sErr != nil || msErr != nil {
-			return time.Time{}, parseErr
-		}
-		return time.Unix(s, ms*1e6), nil
-	case "s.us":
-		sNs := strings.Split(stamp, ".")
-		if len(sNs) != 2 {
-			return time.Time{}, parseErr
-		}
-		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
-		us, usErr := strconv.ParseInt(sNs[1], 10, 64)
-		if sErr != nil || usErr != nil {
-			return time.Time{}, parseErr
-		}
-		return time.Unix(s, us*1e3), nil
-	case "s.ns":
-		sNs := strings.Split(stamp, ".")
-		if len(sNs) != 2 {
-			return time.Time{}, parseErr
-		}
-		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
-		ns, nsErr := strconv.ParseInt(sNs[1], 10, 64)
-		if sErr != nil || nsErr != nil {
-			return time.Time{}, parseErr
-		}
-		return time.Unix(s, ns), nil
+		return time.Unix(sec, subsec*subsecToNs[t.Layout]), nil
 	default:
 		return time.Time{}, fmt.Errorf("invalid layout '%s'", t.Layout)
 	}
@@ -237,3 +195,13 @@ func getEpochStamp(layout string, value interface{}) (string, error) {
 		return "", fmt.Errorf("type %T cannot be parsed as a time", v)
 	}
 }
+
+type toTimeFunc = func(int64) time.Time
+
+var toTime = map[string]toTimeFunc{
+	"s":  func(s int64) time.Time { return time.Unix(s/1, 0) },
+	"ms": func(ms int64) time.Time { return time.Unix(ms/1e3, (ms%1e3)*1e6) },
+	"us": func(us int64) time.Time { return time.Unix(us/1e6, (us%1e6)*1e3) },
+	"ns": func(ns int64) time.Time { return time.Unix(0, ns) },
+}
+var subsecToNs = map[string]int64{"s.ms": 1e6, "s.us": 1e3, "s.ns": 1}
