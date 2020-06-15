@@ -155,62 +155,64 @@ func (t *TimeParser) parseEpochTime(value interface{}) (time.Time, error) {
 		return time.Time{}, err
 	}
 
+	parseErr := fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+
 	switch t.Layout {
 	case "s":
 		s, err := strconv.ParseInt(stamp, 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
 		return time.Unix(s, 0), nil
 	case "ms":
 		ms, err := strconv.ParseInt(stamp, 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
 		return time.Unix(ms/1e3, (ms%1e3)*1e6), nil
 	case "us":
 		us, err := strconv.ParseInt(stamp, 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
 		return time.Unix(us/1e6, (us%1e6)*1e3), nil
 	case "ns":
 		ns, err := strconv.ParseInt(stamp, 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
 		return time.Unix(0, ns), nil
 	case "s.ms":
 		sNs := strings.Split(stamp, ".")
 		if len(sNs) != 2 {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
-		s, err := strconv.ParseInt(sNs[0], 10, 64)
-		ms, err := strconv.ParseInt(sNs[1], 10, 64)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
+		ms, msErr := strconv.ParseInt(sNs[1], 10, 64)
+		if sErr != nil || msErr != nil {
+			return time.Time{}, parseErr
 		}
 		return time.Unix(s, ms*1e6), nil
 	case "s.us":
 		sNs := strings.Split(stamp, ".")
 		if len(sNs) != 2 {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
-		s, err := strconv.ParseInt(sNs[0], 10, 64)
-		us, err := strconv.ParseInt(sNs[1], 10, 64)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
+		us, usErr := strconv.ParseInt(sNs[1], 10, 64)
+		if sErr != nil || usErr != nil {
+			return time.Time{}, parseErr
 		}
 		return time.Unix(s, us*1e3), nil
 	case "s.ns":
 		sNs := strings.Split(stamp, ".")
 		if len(sNs) != 2 {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+			return time.Time{}, parseErr
 		}
-		s, err := strconv.ParseInt(sNs[0], 10, 64)
-		ns, err := strconv.ParseInt(sNs[1], 10, 64)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", stamp, t.Layout)
+		s, sErr := strconv.ParseInt(sNs[0], 10, 64)
+		ns, nsErr := strconv.ParseInt(sNs[1], 10, 64)
+		if sErr != nil || nsErr != nil {
+			return time.Time{}, parseErr
 		}
 		return time.Unix(s, ns), nil
 	default:
