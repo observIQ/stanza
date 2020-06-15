@@ -18,7 +18,7 @@ The `time_parser` plugin sets the timestamp on an entry by parsing a value from 
 
 #### Parse a timestamp using a `strptime` layout
 
-The default timestamp parsing flavor is `strptime`, which uses "directives" such as `%Y` (4-digit year) and `%H` (2-digit hour). A full list of supported directives is found [here]([strptime](https://github.com/BlueMedora/ctimefmt/blob/3e07deba22cf7a753f197ef33892023052f26614/ctimefmt.go#L63)).
+The default timestamp parsing flavor is `strptime`, which uses "directives" such as `%Y` (4-digit year) and `%H` (2-digit hour). A full list of supported directives is found [here](https://github.com/BlueMedora/ctimefmt/blob/3e07deba22cf7a753f197ef33892023052f26614/ctimefmt.go#L63).
 
 Configuration:
 ```yaml
