@@ -307,6 +307,16 @@ workflows:
               ignore:
                 - master
       - run-benchmark:
+          name: f1-500000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f1-500000
+          rate: 500000
+          files: 1
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
           name: f10-100
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-100
@@ -351,6 +361,16 @@ workflows:
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-10000
           rate: 10000
+          files: 10
+          filters:
+            branches:
+              ignore:
+                - master
+      - run-benchmark:
+          name: f10-50000
+          context: logagent-benchmark
+          instance: circleci-<< pipeline.number >>-f10-50000
+          rate: 50000
           files: 10
           filters:
             branches:
