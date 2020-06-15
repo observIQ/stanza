@@ -119,7 +119,7 @@ jobs:
         default: n1-standard-2
       boot-disk-size:
         type: string
-        default: 512GB
+        default: 256GB
 
     docker:
       - image: circleci/golang:1.13
