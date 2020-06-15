@@ -28,7 +28,6 @@ sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/
 bplogagent --config ./config.yaml --plugin_dir ./plugins --database ./offsets.db
 
 # Supported flags:
-
 --config      The location of the agent config file
 --plugin_dir  The location of the custom plugins directory
 --database    The location of the offsets database file
