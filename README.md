@@ -82,7 +82,7 @@ A plugin is the most basic unit of log monitoring. Each plugin fulfills a single
 For instance, a user may read lines from a file using the `file_input` plugin. From there, the results of this operation may be sent to a `regex_parser` plugin that creates fields based on a regex pattern. And then finally, these results may be sent to a `file_output` plugin that writes lines to a file.
 
 ## What plugins are available?
-For more information on what plugins are available and how to configure them, take a look at our [plugin documentation](https://github.com/bluemedora/bplogagent-docs).
+For more information on what plugins are available and how to configure them, take a look at our [documentation](/docs/README.md).
 
 ## How do I contribute?
 Take a look at our contribution guidelines in [`CONTRIBUTING.md`](./CONTRIBUTING.md)
