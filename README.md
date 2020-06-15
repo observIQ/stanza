@@ -26,9 +26,9 @@ sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/
 ```
 The binary can be run manually with the following flags:
 
---config      The location of the agent config file.
---plugin_dir  The location of the custom plugins directory.
---database    The location of the offsets database file.
+--config      The location of the agent config file
+--plugin_dir  The location of the custom plugins directory
+--database    The location of the offsets database file
 --log_file    The location of the agent log file
 --debug       Enables debug logging
 ```
