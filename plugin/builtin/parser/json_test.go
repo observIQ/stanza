@@ -103,7 +103,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 		{
 			"simple",
 			map[string]interface{}{
-				"testfield": `{"timestamp":"1136214245"}`,
+				"testfield": `{"timestamp":1136214245}`,
 			},
 			map[string]interface{}{
 				"testparsed": map[string]interface{}{},
@@ -127,7 +127,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 		{
 			"nested",
 			map[string]interface{}{
-				"testfield": `{"superkey":"superval","timestamp":"1136214245"}`,
+				"testfield": `{"superkey":"superval","timestamp":1136214245.123}`,
 			},
 			map[string]interface{}{
 				"testparsed": map[string]interface{}{
