@@ -30,26 +30,27 @@ For instance, a user may read lines from a file using the `file_input` plugin. F
 ## What plugins are available?
 
 Input plugins:
-- [File input](/plugins/file_input.md)
-- [TCP input](/plugins/tcp_input.md)
-- [UDP input](/plugins/udp_input.md)
-- [Journald input](/plugins/journald_input.md)
-- [Generate input](/plugins/generate_input.md)
+- [File input](/docs/plugins/file_input.md)
+- [TCP input](/docs/plugins/tcp_input.md)
+- [UDP input](/docs/plugins/udp_input.md)
+- [Journald input](/docs/plugins/journald_input.md)
+- [Generate input](/docs/plugins/generate_input.md)
 
 Parser plugins:
-- [JSON parser](/plugins/json_parser.md)
-- [Regex parser](/plugins/regex_parser.md)
-- [Syslog parser](/plugins/syslog_parser.md)
+- [JSON parser](/docs/plugins/json_parser.md)
+- [Regex parser](/docs/plugins/regex_parser.md)
+- [Syslog parser](/docs/plugins/syslog_parser.md)
 
 Output plugins:
-- [Google Cloud Logging](/plugins/google_cloud_output.md)
-- [Elasticsearch](/plugins/elastic_output.md)
-- [Stdout](/plugins/stdout.md)
+- [Google Cloud Logging](/docs/plugins/google_cloud_output.md)
+- [Elasticsearch](/docs/plugins/elastic_output.md)
+- [Stdout](/docs/plugins/stdout.md)
 
 General purpose plugins:
-- [Restructure records](/plugins/restructure.md)
-- [Copy to multiple outputs](/plugins/copy.md)
-- [Router](/plugins/router.md)
-- [Metadata](/plugins/metadata.md)
+- [Timestamp parser](/docs/plugins/time_parser.md)
+- [Metadata](/docs/plugins/metadata.md)
+- [Restructure records](/docs/plugins/restructure.md)
+- [Copy to multiple outputs](/docs/plugins/copy.md)
+- [Router](/docs/plugins/router.md)
 
-Or take a look at our [Custom Plugins](/custom_plugins.md) for a technology-specific, drop-in log parsing.
+Or take a look at our [Custom Plugins](/docs/custom_plugins.md) for a technology-specific, drop-in log parsing.
