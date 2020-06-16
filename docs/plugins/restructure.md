@@ -11,7 +11,7 @@ they are defined.
 | ---      | ---      | ---                                                          |
 | `id`     | required | A unique identifier for the plugin                           |
 | `output` | required | The `id` for the plugin to send parsed entries to            |
-| `ops`    | required | A list of ops. The available op types are defined below |
+| `ops`    | required | A list of ops. The available op types are defined below      |
 
 ### Op types
 
@@ -19,11 +19,11 @@ they are defined.
 
 The `add` op adds a field to a record. It must have a `field` key and exactly one of `value` or `value_expr`.
 
-`field` is a [field](/field.md) that will be set to `value` or the result of `value_expr`
+`field` is a [field](/docs/field.md) that will be set to `value` or the result of `value_expr`
 
 `value` is a static string that will be added to each entry at the field defined by `field`
 
-`value_expr` is an [expression](/expression.md) with access to the `record` object
+`value_expr` is an [expression](/docs/expression.md) with access to the `record` object
 
 Example usage:
 ```yaml
