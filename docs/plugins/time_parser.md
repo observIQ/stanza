@@ -62,7 +62,7 @@ Configuration:
 
 #### Parse a timestamp using a `gotime` layout
 
-The `gotime` layout flavor uses Golang's native time parsing capabilities. Golang takes an [unconventional approach](https://www.pauladamsmith.com/blog/2011/05/go_time.html) to time parsing. Finer details are well-documented [here]([gotime](https://golang.org/src/time/format.go?s=25102:25148#L9)).
+The `gotime` layout flavor uses Golang's native time parsing capabilities. Golang takes an [unconventional approach](https://www.pauladamsmith.com/blog/2011/05/go_time.html) to time parsing. Finer details are well-documented [here](https://golang.org/src/time/format.go?s=25102:25148#L9).
 
 Configuration:
 ```yaml
