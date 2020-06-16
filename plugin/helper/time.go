@@ -172,6 +172,19 @@ func getEpochStamp(layout string, value interface{}) (string, error) {
 		case "s", "ms", "us", "ns":
 			return fmt.Sprintf("%d", v), nil
 		case "s.ms", "s.us", "s.ns":
+			return fmt.Sprintf("%d.0", v), nil
+		default:
+			return "", fmt.Errorf("invalid layout '%s'", layout)
+		}
+	case float64:
+		switch layout {
+		case "s", "ms", "us", "ns":
+			return fmt.Sprintf("%d", int64(v)), nil
+		case "s.ms":
+			return fmt.Sprintf("%10.3f", v), nil
+		case "s.us":
+			return fmt.Sprintf("%10.6f", v), nil
+		case "s.ns":
 			return fmt.Sprintf("%10.9f", v), nil
 		default:
 			return "", fmt.Errorf("invalid layout '%s'", layout)

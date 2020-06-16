@@ -108,15 +108,15 @@ Configuration:
 
 The `epoch` layout flavor uses can consume epoch-based timestamps. The following layouts are supported:
 
-| Layout | Meaning                                   | Example              | Value Types     |
-| ---    | ---                                       | ---                  | ---             |
-| `s`    | Seconds since the epoch                   | 1136214245           | string, integer |
-| `ms`   | Milliseconds since the epoch              | 1136214245123        | string, integer |
-| `us`   | Microseconds since the epoch              | 1136214245123456     | string, integer |
-| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | string, integer |
-| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | string          |
-| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | string          |
-| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | string          |
+| Layout | Meaning                                   | Example              | `string` | `int64`    | `float64`  |
+| ---    | ---                                       | ---                  | ---      | ---        | ---        |
+| `s`    | Seconds since the epoch                   | 1136214245           | Yes      | Yes        | Yes        |
+| `ms`   | Milliseconds since the epoch              | 1136214245123        | Yes      | Yes        | Yes        |
+| `us`   | Microseconds since the epoch              | 1136214245123456     | Yes      | Yes        | Yes        |
+| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | Yes      | Yes        | Yes, lossy |
+| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | Yes      | Yes, lossy | Yes        |
+| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | Yes      | Yes, lossy | Yes        |
+| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | Yes      | Yes, lossy | Yes, lossy |
 
 Configuration:
 ```yaml
