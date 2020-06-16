@@ -50,7 +50,7 @@ func TestMetadata(t *testing.T) {
 			"AddTagExpr",
 			func() *MetadataPluginConfig {
 				cfg := baseConfig()
-				cfg.Tags = []helper.ExprStringConfig{`prefix-{{ 'test1' }}`}
+				cfg.Tags = []helper.ExprStringConfig{`prefix-EXPR( 'test1' )`}
 				return cfg
 			}(),
 			entry.New(),
@@ -83,7 +83,7 @@ func TestMetadata(t *testing.T) {
 			func() *MetadataPluginConfig {
 				cfg := baseConfig()
 				cfg.Labels = map[string]helper.ExprStringConfig{
-					"label1": `{{"start" + "end"}}`,
+					"label1": `EXPR("start" + "end")`,
 				}
 				return cfg
 			}(),

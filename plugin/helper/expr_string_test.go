@@ -26,47 +26,47 @@ func TestExprString(t *testing.T) {
 			"test",
 		},
 		{
-			"{{ 'test' }}",
+			"EXPR( 'test' )",
 			"test",
 		},
 		{
-			"prefix-{{ 'test' }}",
+			"prefix-EXPR( 'test' )",
 			"prefix-test",
 		},
 		{
-			"prefix-{{ 'test' }}-suffix",
+			"prefix-EXPR('test')-suffix",
 			"prefix-test-suffix",
 		},
 		{
-			"prefix-{{ 'test' }}-suffix-{{ 'test2' + 'test3' }}",
+			"prefix-EXPR('test')-suffix-EXPR('test2' + 'test3')",
 			"prefix-test-suffix-test2test3",
 		},
 		{
-			"{{ 'test' }}{{'asdf'}}",
+			"EXPR('test' )EXPR('asdf')",
 			"testasdf",
 		},
 		{
-			"{}",
-			"{}",
+			"EXPR",
+			"EXPR",
 		},
 		{
-			"{{}",
-			"{{}",
+			"EXPR(",
+			"EXPR(",
 		},
 		{
-			"}}{{",
-			"}}{{",
+			")EXPR(",
+			")EXPR(",
 		},
 		{
-			"my {{ $.test }}",
+			"my EXPR( $.test )",
 			"my value",
 		},
 		{
-			"my {{$.test }}",
+			"my EXPR($.test )",
 			"my value",
 		},
 		{
-			"my {{$.test}}",
+			"my EXPR($.test)",
 			"my value",
 		},
 	}

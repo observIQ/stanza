@@ -11,6 +11,11 @@ import (
 
 type ExprStringConfig string
 
+const (
+	exprStartTag = "EXPR("
+	exprEndTag   = ")"
+)
+
 func (e ExprStringConfig) Build() (*ExprString, error) {
 	s := string(e)
 	begin := 0
@@ -20,8 +25,8 @@ func (e ExprStringConfig) Build() (*ExprString, error) {
 
 LOOP:
 	for {
-		indexStart := strings.Index(s[begin:], "{{")
-		indexEnd := strings.Index(s[begin:], "}}")
+		indexStart := strings.Index(s[begin:], exprStartTag)
+		indexEnd := strings.Index(s[begin:], exprEndTag)
 		switch {
 		case indexStart == -1 || indexEnd == -1:
 			fallthrough
@@ -36,8 +41,8 @@ LOOP:
 			indexEnd += begin
 		}
 		subStrings = append(subStrings, s[begin:indexStart])
-		subExprStrings = append(subExprStrings, s[indexStart+2:indexEnd])
-		begin = indexEnd + 2
+		subExprStrings = append(subExprStrings, s[indexStart+len(exprStartTag):indexEnd])
+		begin = indexEnd + len(exprEndTag)
 	}
 
 	subExprs := make([]*vm.Program, 0, len(subExprStrings))

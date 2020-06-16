@@ -11,8 +11,8 @@ The `metadata` plugin adds tags and labels to the entry.
 | `labels` | {}       | An map of `key: value` labels to add to the entry |
 | `tags`   | []       | An array of tags to add to the entry              |
 
-Inside the label and tag values, an [expression](/docs/expression.md) surrounded by double curly braces
-(`{{  }}`) will be replaced with the evaluated form of the expression. The entry's record can be accessed
+Inside the label and tag values, an [expression](/docs/expression.md) surrounded by `EXPR()`
+will be replaced with the evaluated form of the expression. The entry's record can be accessed
 with the `$` variable in the expression so labels and tags can be added dynamically from fields.
 
 ### Example Configurations
@@ -77,9 +77,9 @@ Configuration:
   type: metadata
   output: metadata_receiver
   tags:
-    - "production-{{ $.production_location }}"
+    - "production-EXPR( $.production_location )"
   labels:
-    environment: '{{ $.environment == "production" ? "prod" : "dev" }}'
+    environment: 'EXPR( $.environment == "production" ? "prod" : "dev" )'
 ```
 
 <table>
