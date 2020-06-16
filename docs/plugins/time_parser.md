@@ -27,7 +27,7 @@ Configuration:
   output: time_parser_receiver
   parse_from: timestamp_field
   layout_flavor: strptime
-  layout: %a %b %e %H:%M:%S %Z %Y
+  layout: '%a %b %e %H:%M:%S %Z %Y'
 ```
 
 <table>
