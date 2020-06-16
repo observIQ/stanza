@@ -2,13 +2,13 @@ package output
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"sync"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func init() {
@@ -29,14 +29,14 @@ func (c StdoutConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) 
 
 	return &StdoutPlugin{
 		OutputPlugin: outputPlugin,
-		encoder:      jsoniter.ConfigFastest.NewEncoder(os.Stdout),
+		encoder:      json.NewEncoder(os.Stdout),
 	}, nil
 }
 
 // LoggerOutput is a plugin that logs entries using the internal logger.
 type StdoutPlugin struct {
 	helper.OutputPlugin
-	encoder *jsoniter.Encoder
+	encoder *json.Encoder
 	mux     sync.Mutex
 }
 
