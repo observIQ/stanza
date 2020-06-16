@@ -66,10 +66,6 @@ func (config *BufferConfig) setDefaults() {
 		config.BundleByteLimit = 4 * 1024 * 1024 * 1024
 	}
 
-	if config.BundleByteLimit == 0 {
-		config.BundleByteLimit = 4 * 1024 * 1024 * 1024
-	}
-
 	if config.BufferedByteLimit == 0 {
 		config.BufferedByteLimit = 500 * 1024 * 1024 * 1024 // 500MB
 	}
