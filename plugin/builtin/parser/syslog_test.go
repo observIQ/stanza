@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -48,7 +49,7 @@ func TestSyslogParser(t *testing.T) {
 				"priority": 34,
 				"severity": 2,
 				"timestamp": func() time.Time {
-					t, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "0000-01-12 06:30:00 +0000 UTC")
+					t, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", fmt.Sprintf("%d-01-12 06:30:00 +0000 UTC", time.Now().Year()))
 					return t
 				}(),
 			},
@@ -118,4 +119,28 @@ func TestSyslogParser(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_setTimestampYear(t *testing.T) {
+	t.Run("Normal", func(t *testing.T) {
+		now = func() time.Time {
+			return time.Date(2020, 06, 16, 3, 31, 34, 525, time.UTC)
+		}
+
+		noYear := time.Date(0, 06, 16, 3, 31, 34, 525, time.UTC)
+		yearAdded := setTimestampYear(&noYear)
+		expected := time.Date(2020, 06, 16, 3, 31, 34, 525, time.UTC)
+		require.Equal(t, &expected, yearAdded)
+	})
+
+	t.Run("Rollover", func(t *testing.T) {
+		now = func() time.Time {
+			return time.Date(2020, 01, 16, 3, 31, 34, 525, time.UTC)
+		}
+
+		noYear := time.Date(0, 06, 16, 3, 31, 34, 525, time.UTC)
+		yearAdded := setTimestampYear(&noYear)
+		expected := time.Date(2019, 06, 16, 3, 31, 34, 525, time.UTC)
+		require.Equal(t, &expected, yearAdded)
+	})
 }

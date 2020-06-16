@@ -86,7 +86,7 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 	switch m := syslog.(type) {
 	case *rfc3164.SyslogMessage:
 		message = map[string]interface{}{
-			"timestamp": m.Timestamp,
+			"timestamp": setTimestampYear(m.Timestamp),
 			"priority":  m.Priority,
 			"facility":  m.Facility,
 			"severity":  m.Severity,
@@ -160,4 +160,20 @@ func (s *SyslogParser) toBytes(value interface{}) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unable to convert type '%T' to bytes", value)
 	}
+}
+
+var now = time.Now
+
+// setTimestampYear sets the year of a timestamp to the current year.
+// This is needed because year is missing from the time format in rfc3164.
+// This function assumes that no logs will have timestamps in the future.
+func setTimestampYear(t *time.Time) *time.Time {
+	n := now()
+	year := n.Year()
+	// Ensure that we get the correct year in the case of a new year rollover
+	if n.Month()-t.Month() < -3 {
+		year -= 1
+	}
+	d := time.Date(year, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	return &d
 }
