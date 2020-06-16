@@ -6,13 +6,13 @@ send as fast as possible.
 
 ### Configuration Fields
 
-| Field      | Default  | Description                                                             |
-| ---        | ---      | ---                                                                     |
-| `id`       | required | A unique identifier for the plugin                                      |
-| `output`   | required | The `id` for the plugin to send parsed entries to                       |
-| `rate`     |          | The number of logs to allow per second                                  |
-| `interval` |          | A [duration](/duration.md) that indicates the time between sent entries |
-| `burst`    | 0        | The max number of entries to "save up" for spikes of load               |
+| Field      | Default  | Description                                                                  |
+| ---        | ---      | ---                                                                          |
+| `id`       | required | A unique identifier for the plugin                                           |
+| `output`   | required | The `id` for the plugin to send parsed entries to                            |
+| `rate`     |          | The number of logs to allow per second                                       |
+| `interval` |          | A [duration](/docs/duration.md) that indicates the time between sent entries |
+| `burst`    | 0        | The max number of entries to "save up" for spikes of load                    |
 
 Exactly one of `rate` or `interval` must be specified.
 
