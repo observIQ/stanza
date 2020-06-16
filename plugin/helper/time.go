@@ -26,6 +26,11 @@ type TimeParser struct {
 	LayoutFlavor string      `json:"layout_flavor,omitempty" yaml:"layout_flavor,omitempty"`
 }
 
+// IsZero returns true if the TimeParser is not a valid config
+func (t *TimeParser) IsZero() bool {
+	return t.Layout == ""
+}
+
 // Validate validates a TimeParser, and reconfigures it if necessary
 func (t *TimeParser) Validate(context plugin.BuildContext) error {
 
