@@ -98,9 +98,21 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 		inputRecord    map[string]interface{}
 		expectedRecord map[string]interface{}
 		errorExpected  bool
+		preserve       bool
 	}{
 		{
 			"simple",
+			map[string]interface{}{
+				"testfield": `{"timestamp":"1136214245"}`,
+			},
+			map[string]interface{}{
+				"testparsed": map[string]interface{}{},
+			},
+			false,
+			false,
+		},
+		{
+			"preserve",
 			map[string]interface{}{
 				"testfield": `{"timestamp":"1136214245"}`,
 			},
@@ -110,6 +122,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 				},
 			},
 			false,
+			true,
 		},
 		{
 			"nested",
@@ -118,10 +131,10 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 			},
 			map[string]interface{}{
 				"testparsed": map[string]interface{}{
-					"superkey":  "superval",
-					"timestamp": "1136214245",
+					"superkey": "superval",
 				},
 			},
+			false,
 			false,
 		},
 	}
@@ -139,6 +152,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 				ParseFrom:    entry.NewField("testparsed", "timestamp"),
 				LayoutFlavor: "epoch",
 				Layout:       "s",
+				Preserve:     tc.preserve,
 			}
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)

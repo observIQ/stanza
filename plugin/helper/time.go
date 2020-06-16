@@ -14,10 +14,16 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
-// Valid layout flavors
-const StrptimeKey = "strptime" // default
+// StrptimeKey is literally "strptime", and is the default flavor
+const StrptimeKey = "strptime"
+
+// GotimeKey is literally "gotime" and uses Golang's native time.Parse
 const GotimeKey = "gotime"
+
+// EpochKey is literally "epoch" and can parse seconds and/or subseconds
 const EpochKey = "epoch"
+
+// NativeKey is literally "native" and refers to Golang's native time.Time
 const NativeKey = "native" // provided for plugin development
 
 // TimeParser is a helper that parses time onto an entry.
@@ -25,6 +31,7 @@ type TimeParser struct {
 	ParseFrom    entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
 	Layout       string      `json:"layout,omitempty" yaml:"layout,omitempty"`
 	LayoutFlavor string      `json:"layout_flavor,omitempty" yaml:"layout_flavor,omitempty"`
+	Preserve     bool        `json:"preserve"   yaml:"preserve"`
 }
 
 // IsZero returns true if the TimeParser is not a valid config
@@ -108,6 +115,10 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 		entry.Timestamp = timeValue
 	default:
 		return fmt.Errorf("unsupported layout flavor: %s", t.LayoutFlavor)
+	}
+
+	if !t.Preserve {
+		entry.Delete(t.ParseFrom)
 	}
 
 	return nil
