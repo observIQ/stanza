@@ -173,6 +173,7 @@ func (f *FileInput) Start() error {
 		// this goroutine. That means that all private methods of FileInput
 		// are unsafe to call from multiple goroutines. Changes to these
 		// maps should be done through the fileUpdateChan.
+		firstCheck := true
 		for {
 			select {
 			case <-ctx.Done():
@@ -183,9 +184,10 @@ func (f *FileInput) Start() error {
 			case <-globTicker.C:
 				matches := getMatches(f.Include, f.Exclude)
 				for _, match := range matches {
-					f.checkFile(ctx, match)
+					f.checkFile(ctx, match, firstCheck)
 				}
 				f.syncKnownFiles()
+				firstCheck = false
 			case message := <-f.fileUpdateChan:
 				f.updateFile(message)
 			}
@@ -204,7 +206,11 @@ func (f *FileInput) Stop() error {
 }
 
 // checkFile is not safe to call from multiple goroutines
-func (f *FileInput) checkFile(ctx context.Context, path string) {
+//
+// firstCheck indicates whether this is the first time checkFile has been called
+// after startup. This is important for the start_at parameter because, after initial
+// startup, we don't want to start at the end of newly-created files.
+func (f *FileInput) checkFile(ctx context.Context, path string, firstCheck bool) {
 
 	// Check if the file is currently being read
 	if _, ok := f.runningFiles[path]; ok {
@@ -217,7 +223,7 @@ func (f *FileInput) checkFile(ctx context.Context, path string) {
 	// If the path is new, check if it was from a known file that was rotated
 	var err error
 	if !isKnown {
-		knownFile, err = newKnownFileInfo(path, f.fingerprintBytes, f.startAtBeginning)
+		knownFile, err = newKnownFileInfo(path, f.fingerprintBytes, f.startAtBeginning || !firstCheck)
 		if err != nil {
 			f.Warnw("Failed to get info for file", zap.Error(err))
 			return

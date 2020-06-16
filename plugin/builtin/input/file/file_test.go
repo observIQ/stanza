@@ -199,6 +199,31 @@ func TestFileSource_StartAtEnd(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog2")
 }
 
+func TestFileSource_StartAtEndNewFile(t *testing.T) {
+	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	source.startAtBeginning = false
+
+	err := source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
+
+	// Wait for the first check to complete
+	time.Sleep(100 * time.Millisecond)
+
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
+
+	_, err = temp.WriteString("testlog1\ntestlog2\n")
+	require.NoError(t, err)
+
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
+}
+
 func TestFileSource_MultiFileSimple(t *testing.T) {
 	t.Parallel()
 	source, logReceived := newTestFileSource(t)
