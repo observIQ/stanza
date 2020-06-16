@@ -10,7 +10,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/testutil"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +27,7 @@ func TestStdoutPlugin(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	plugin.(*StdoutPlugin).encoder = jsoniter.ConfigFastest.NewEncoder(&buf)
+	plugin.(*StdoutPlugin).encoder = json.NewEncoder(&buf)
 
 	ts := time.Unix(1591042864, 0)
 	e := &entry.Entry{
