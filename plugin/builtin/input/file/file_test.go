@@ -311,52 +311,65 @@ func TestFileSource_TruncateThenWrite(t *testing.T) {
 
 func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	t.Parallel()
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
-		defer temp1.Close()
+	tempDir, cleanupDir := newTempDir()
+	defer cleanupDir()
 
-		_, err = temp1.WriteString("testlog1\n")
-		require.NoError(t, err)
-		_, err = temp1.WriteString("testlog2\n")
-		require.NoError(t, err)
+	source, mockOutput, cleanupSource := newTestFileSource(t)
+	defer cleanupSource()
 
-		err = source.Start()
-		require.NoError(t, err)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(200 * time.Millisecond)
+	logReceived := make(chan string, 1000)
+	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		logReceived <- args.Get(1).(*entry.Entry).Record.(string)
+	})
 
-		temp2, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
-		defer temp2.Close()
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp1.Close()
 
-		_, err = io.Copy(temp1, temp2)
-		require.NoError(t, err)
+	_, err = temp1.WriteString("testlog1\n")
+	require.NoError(t, err)
+	_, err = temp1.WriteString("testlog2\n")
+	require.NoError(t, err)
 
-		// Truncate original file
-		err = temp1.Truncate(0)
-		temp1.Seek(0, 0)
-		require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
 
-		time.Sleep(200 * time.Millisecond)
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
 
-		// Write to original and new file
-		_, err = temp1.WriteString("testlog3\n")
-		require.NoError(t, err)
-		_, err = temp2.WriteString("testlog4\n")
-		require.NoError(t, err)
+	temp2, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp2.Close()
+
+	_, err = io.Copy(temp1, temp2)
+	require.NoError(t, err)
+
+	// Truncate original file
+	err = temp1.Truncate(0)
+	temp1.Seek(0, 0)
+	require.NoError(t, err)
+
+	// Write to original and new file
+	_, err = temp1.WriteString("testlog3\n")
+	require.NoError(t, err)
+
+	waitForMessage(t, logReceived, "testlog3")
+
+	_, err = temp2.WriteString("testlog4\n")
+	require.NoError(t, err)
+
+	waitForMessage(t, logReceived, "testlog4")
+}
+
+func waitForMessage(t *testing.T, c chan string, expected string) {
+	select {
+	case m := <-c:
+		require.Equal(t, expected, m)
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for message")
 	}
-
-	// testlog1 and testlog2 should only show up once
-	expectedMessages := []string{
-		"testlog1",
-		"testlog2",
-		"testlog3",
-		"testlog4",
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
 }
 
 func TestFileSource_OffsetsAfterRestart(t *testing.T) {
