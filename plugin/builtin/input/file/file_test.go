@@ -7,9 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -19,22 +17,20 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )
 
-func TestFileSourceImplements(t *testing.T) {
-	require.Implements(t, (*plugin.Plugin)(nil), new(FileInput))
-}
-
-func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Plugin, cleanup func()) {
-	mockOutput = &testutil.Plugin{}
+func newTestFileSource(t *testing.T) (*FileInput, chan string) {
+	mockOutput := testutil.NewMockOutput("output")
+	receivedMessages := make(chan string, 1000)
+	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		receivedMessages <- args.Get(1).(*entry.Entry).Record.(string)
+	})
 
 	logger := zaptest.NewLogger(t).Sugar()
+	db := testutil.NewTestDatabase(t)
 
-	db, cleanup := newTempDB()
-
-	source = &FileInput{
+	source := &FileInput{
 		InputPlugin: helper.InputPlugin{
 			BasicPlugin: helper.BasicPlugin{
 				PluginID:      "testfile",
@@ -50,20 +46,15 @@ func newTestFileSource(t *testing.T) (source *FileInput, mockOutput *testutil.Pl
 		knownFiles:       make(map[string]*knownFileInfo),
 		fileUpdateChan:   make(chan fileUpdateMessage),
 		fingerprintBytes: 500,
+		startAtBeginning: true,
 	}
 
-	return
+	return source, receivedMessages
 }
 
 func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
-	mockOutput := &testutil.Plugin{}
-	mockOutput.On("CanProcess").Return(true)
-	mockOutput.On("ID").Return("mock")
-
-	logger := zaptest.NewLogger(t).Sugar()
-	db, cleanup := newTempDB()
-	defer cleanup()
+	mockOutput := testutil.NewMockOutput("mock")
 
 	pathField := entry.NewField("testpath")
 
@@ -82,11 +73,7 @@ func TestFileSource_Build(t *testing.T) {
 		PathField: &pathField,
 	}
 
-	context := plugin.BuildContext{
-		Logger:   logger,
-		Database: db,
-	}
-	source, err := sourceConfig.Build(context)
+	source, err := sourceConfig.Build(testutil.NewTestBuildContext(t))
 	require.NoError(t, err)
 
 	err = source.SetOutputs([]plugin.Plugin{mockOutput})
@@ -99,43 +86,15 @@ func TestFileSource_Build(t *testing.T) {
 	require.Equal(t, fileInput.PollInterval, 10*time.Millisecond)
 }
 
-func newTempDir() (tempDir string, cleanup func()) {
-	var err error
-	tempDir, err = ioutil.TempDir("", "")
-	if err != nil {
-		panic(err)
-	}
-
-	cleanup = func() {
-		os.RemoveAll(tempDir)
-	}
-
-	return
-}
-
-func newTempDB() (*bbolt.DB, func()) {
-	dir, cleanup := newTempDir()
-	db, err := bbolt.Open(filepath.Join(dir, "temp.db"), 0666, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	return db, cleanup
-}
-
 func TestFileSource_CleanStop(t *testing.T) {
 	t.Parallel()
 	t.Skip(`Skipping due to goroutine leak in opencensus.
 See this issue for details: https://github.com/census-instrumentation/opencensus-go/issues/1191#issuecomment-610440163`)
 	// defer goleak.VerifyNone(t)
 
-	source, mockOutput, cleanupSource := newTestFileSource(t)
-	defer cleanupSource()
+	source, _ := newTestFileSource(t)
 
-	_ = mockOutput
-
-	tempDir, cleanupDir := newTempDir()
-	defer cleanupDir()
+	tempDir := testutil.NewTempDir(t)
 
 	tempFile, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
@@ -144,185 +103,188 @@ See this issue for details: https://github.com/census-instrumentation/opencensus
 
 	err = source.Start()
 	require.NoError(t, err)
-
 	source.Stop()
-
 }
 
-func expectedLogsTest(t *testing.T, expected []string, generator func(source *FileInput, tempdir string)) {
-	tempDir, cleanupDir := newTempDir()
-	defer cleanupDir()
-
-	source, mockOutput, cleanupSource := newTestFileSource(t)
-	defer cleanupSource()
-
+func TestFileSource_ReadExistingLogs(t *testing.T) {
+	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
 	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-	receivedMessages := make([]string, 0, 1000)
-	logReceived := make(chan string, 1000)
-	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		logReceived <- args.Get(1).(*entry.Entry).Record.(string)
-	})
+	// Create a file, then start
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		generator(source, tempDir)
-	}()
+	_, err = temp.WriteString("testlog\n")
+	require.NoError(t, err)
 
-	timeout := time.After(5 * time.Second)
-LOOP:
-	for {
-		select {
-		case message := <-logReceived:
-			receivedMessages = append(receivedMessages, message)
-			if len(receivedMessages) == len(expected) {
-				break LOOP
-			}
-			continue
-		case <-timeout:
-			require.FailNowf(t, "Timed out waiting for file source to read a log.", "Received: %#v\nExpected: %#v", receivedMessages, expected)
-		}
-	}
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-	select {
-	case <-logReceived:
-		t.Logf("Received: %#v\n", receivedMessages)
-		t.Logf("Expected: %#v\n", expected)
-		require.FailNow(t, "Received an unexpected log")
-	case <-time.After(20 * time.Millisecond):
-	}
-
-	source.Stop()
-	wg.Wait()
-
-	require.ElementsMatch(t, expected, receivedMessages)
+	waitForMessage(t, logReceived, "testlog")
 }
 
-func TestFileSource_SimpleWrite(t *testing.T) {
+func TestFileSource_ReadNewLogs(t *testing.T) {
 	t.Parallel()
-	generate := func(source *FileInput, tempDir string) {
-		temp, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-		_, err = temp.WriteString("testlog\n")
-		require.NoError(t, err)
+	// Start first, then create a new file
+	err := source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		err = source.Start()
-		require.NoError(t, err)
-	}
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
 
-	expectedMessages := []string{
-		"testlog",
-	}
+	_, err = temp.WriteString("testlog\n")
+	require.NoError(t, err)
 
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, "testlog")
+}
+
+func TestFileSource_ReadExistingAndNewLogs(t *testing.T) {
+	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
+
+	_, err = temp.WriteString("testlog1\n")
+	require.NoError(t, err)
+
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
+
+	_, err = temp.WriteString("testlog2\n")
+	require.NoError(t, err)
+
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
+}
+
+func TestFileSource_StartAtEnd(t *testing.T) {
+	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	source.startAtBeginning = false
+
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
+
+	_, err = temp.WriteString("testlog1\n")
+	require.NoError(t, err)
+
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
+
+	// Wait until file has been read the first time
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = temp.WriteString("testlog2\n")
+	require.NoError(t, err)
+
+	waitForMessage(t, logReceived, "testlog2")
 }
 
 func TestFileSource_MultiFileSimple(t *testing.T) {
 	t.Parallel()
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-		temp2, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	temp2, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		_, err = temp1.WriteString("testlog1\n")
-		require.NoError(t, err)
+	_, err = temp1.WriteString("testlog1\n")
+	require.NoError(t, err)
+	_, err = temp2.WriteString("testlog2\n")
+	require.NoError(t, err)
 
-		_, err = temp2.WriteString("testlog2\n")
-		require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		err = source.Start()
-		require.NoError(t, err)
-	}
-
-	expectedMessages := []string{
-		"testlog1",
-		"testlog2",
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessages(t, logReceived, []string{"testlog1", "testlog2"})
 }
 
 func TestFileSource_MoveFile(t *testing.T) {
 	t.Parallel()
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-		_, err = temp1.WriteString("testlog1\n")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		err = temp1.Close()
-		require.NoError(t, err)
+	_, err = temp1.WriteString("testlog1\n")
+	require.NoError(t, err)
+	temp1.Close()
 
-		err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
-		require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		err = source.Start()
-		require.NoError(t, err)
-	}
+	waitForMessage(t, logReceived, "testlog1")
+	time.Sleep(100 * time.Millisecond)
 
-	expectedMessages := []string{
-		"testlog1",
-	}
+	err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
+	require.NoError(t, err)
 
-	expectedLogsTest(t, expectedMessages, generate)
+	expectNoMessages(t, logReceived)
 }
 
 func TestFileSource_TruncateThenWrite(t *testing.T) {
 	t.Parallel()
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-		_, err = temp1.WriteString("testlog1\n")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		_, err = temp1.WriteString("testlog2\n")
-		require.NoError(t, err)
+	_, err = temp1.WriteString("testlog1\n")
+	require.NoError(t, err)
+	_, err = temp1.WriteString("testlog2\n")
+	require.NoError(t, err)
 
-		err = source.Start()
-		require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(200 * time.Millisecond)
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
 
-		err = temp1.Truncate(0)
-		require.NoError(t, err)
-		temp1.Seek(0, 0)
+	err = temp1.Truncate(0)
+	require.NoError(t, err)
+	temp1.Seek(0, 0)
 
-		_, err = temp1.WriteString("testlog3\n")
-		require.NoError(t, err)
+	_, err = temp1.WriteString("testlog3\n")
+	require.NoError(t, err)
 
-	}
-
-	expectedMessages := []string{
-		"testlog1",
-		"testlog2",
-		"testlog3",
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, "testlog3")
+	expectNoMessages(t, logReceived)
 }
 
 func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	t.Parallel()
-	tempDir, cleanupDir := newTempDir()
-	defer cleanupDir()
-
-	source, mockOutput, cleanupSource := newTestFileSource(t)
-	defer cleanupSource()
-
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
 	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	logReceived := make(chan string, 1000)
-	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		logReceived <- args.Get(1).(*entry.Entry).Record.(string)
-	})
 
 	temp1, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
@@ -335,6 +297,7 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 
 	err = source.Start()
 	require.NoError(t, err)
+	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
@@ -363,268 +326,221 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog4")
 }
 
-func waitForMessage(t *testing.T, c chan string, expected string) {
-	select {
-	case m := <-c:
-		require.Equal(t, expected, m)
-	case <-time.After(time.Second):
-		require.FailNow(t, "Timed out waiting for message")
-	}
-}
-
 func TestFileSource_OffsetsAfterRestart(t *testing.T) {
 	t.Parallel()
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 
-		// Write to a file
-		_, err = temp1.WriteString("testlog1\n")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		// Start the source
-		err = source.Start()
-		require.NoError(t, err)
+	// Write to a file
+	_, err = temp1.WriteString("testlog1\n")
+	require.NoError(t, err)
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(50 * time.Millisecond)
+	// Start the source
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		// Restart the source
-		err = source.Stop()
-		require.NoError(t, err)
-		err = source.Start()
-		require.NoError(t, err)
+	waitForMessage(t, logReceived, "testlog1")
 
-		// Write a new log
-		_, err = temp1.WriteString("testlog2\n")
-		require.NoError(t, err)
-	}
+	// Restart the source
+	err = source.Stop()
+	require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
 
-	// testlog1 should only show up once
-	expectedMessages := []string{
-		"testlog1",
-		"testlog2",
-	}
+	// Write a new log
+	_, err = temp1.WriteString("testlog2\n")
+	require.NoError(t, err)
 
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, "testlog2")
 }
 
 func TestFileSource_OffsetsAfterRestart_BigFiles(t *testing.T) {
 	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+
 	log1 := stringWithLength(1000)
 	log2 := stringWithLength(1000)
 
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		// Write to a file
-		_, err = temp1.WriteString(log1)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
+	// Write to a file
+	_, err = temp1.WriteString(log1 + "\n")
+	require.NoError(t, err)
 
-		// Start the source
-		err = source.Start()
-		require.NoError(t, err)
+	// Start the source
+	err = source.Start()
+	require.NoError(t, err)
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(50 * time.Millisecond)
+	waitForMessage(t, logReceived, log1)
 
-		// Restart the source
-		err = source.Stop()
-		require.NoError(t, err)
-		err = source.Start()
-		require.NoError(t, err)
+	// Restart the source
+	err = source.Stop()
+	require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		_, err = temp1.WriteString(log2)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
-	}
+	_, err = temp1.WriteString(log2 + "\n")
+	require.NoError(t, err)
 
-	// testlog1 should only show up once
-	expectedMessages := []string{
-		log1,
-		log2,
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, log2)
 }
 
 func TestFileSource_OffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+
 	log1 := stringWithLength(1000)
 	log2 := stringWithLength(1000)
 
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		// Write to a file
-		_, err = temp1.WriteString(log1)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
+	// Write to a file
+	_, err = temp1.WriteString(log1 + "\n")
+	require.NoError(t, err)
 
-		// Start the source
-		err = source.Start()
-		require.NoError(t, err)
+	// Start the source
+	err = source.Start()
+	require.NoError(t, err)
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(50 * time.Millisecond)
+	waitForMessage(t, logReceived, log1)
 
-		// Restart the source
-		err = source.Stop()
-		require.NoError(t, err)
+	// Restart the source
+	err = source.Stop()
+	require.NoError(t, err)
 
-		_, err = temp1.WriteString(log2)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
+	_, err = temp1.WriteString(log2 + "\n")
+	require.NoError(t, err)
 
-		err = source.Start()
-		require.NoError(t, err)
-	}
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-	// testlog1 should only show up once
-	expectedMessages := []string{
-		log1,
-		log2,
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, log2)
 }
 
 func TestFileSource_FileMovedWhileOff_BigFiles(t *testing.T) {
 	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+
 	log1 := stringWithLength(1000)
 	log2 := stringWithLength(1000)
 
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		// Write to a file
-		_, err = temp1.WriteString(log1)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
+	// Write to a file
+	_, err = temp1.WriteString(log1 + "\n")
+	require.NoError(t, err)
 
-		// Start the source
-		err = source.Start()
-		require.NoError(t, err)
+	// Start the source
+	err = source.Start()
+	require.NoError(t, err)
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(50 * time.Millisecond)
+	waitForMessage(t, logReceived, log1)
 
-		// Restart the source
-		err = source.Stop()
-		require.NoError(t, err)
+	// Stop the source, then rename and write a new log
+	err = source.Stop()
+	require.NoError(t, err)
 
-		_, err = temp1.WriteString(log2)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
-		temp1.Close()
+	_, err = temp1.WriteString(log2 + "\n")
+	require.NoError(t, err)
+	temp1.Close()
 
-		err = os.Rename(temp1.Name(), fmt.Sprintf("%s2", temp1.Name()))
-		require.NoError(t, err)
+	err = os.Rename(temp1.Name(), fmt.Sprintf("%s2", temp1.Name()))
+	require.NoError(t, err)
 
-		err = source.Start()
-		require.NoError(t, err)
-	}
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-	// testlog1 should only show up once
-	expectedMessages := []string{
-		log1,
-		log2,
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, log2)
 }
 
 func TestFileSource_FileMovedWhileOff_SmallFiles(t *testing.T) {
 	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+
 	log1 := stringWithLength(10)
 	log2 := stringWithLength(10)
 
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
 
-		// Write to a file
-		_, err = temp1.WriteString(log1)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
+	// Write to a file
+	_, err = temp1.WriteString(log1 + "\n")
+	require.NoError(t, err)
 
-		// Start the source
-		err = source.Start()
-		require.NoError(t, err)
+	// Start the source
+	err = source.Start()
+	require.NoError(t, err)
 
-		// Wait for the logs to be read and the offset to be set
-		time.Sleep(50 * time.Millisecond)
+	waitForMessage(t, logReceived, log1)
 
-		// Restart the source
-		err = source.Stop()
-		require.NoError(t, err)
+	// Restart the source
+	err = source.Stop()
+	require.NoError(t, err)
 
-		_, err = temp1.WriteString(log2)
-		require.NoError(t, err)
-		_, err = temp1.WriteString("\n")
-		require.NoError(t, err)
-		temp1.Close()
+	_, err = temp1.WriteString(log2 + "\n")
+	require.NoError(t, err)
+	temp1.Close()
 
-		err = os.Remove(temp1.Name())
-		require.NoError(t, err)
+	err = os.Rename(temp1.Name(), fmt.Sprintf("%s2", temp1.Name()))
+	require.NoError(t, err)
 
-		temp2, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		// Write the same log plus one
-		temp2.WriteString(log1)
-		temp2.WriteString("\n")
-		temp2.WriteString(log2)
-		temp2.WriteString("\n")
-
-		err = source.Start()
-		require.NoError(t, err)
-	}
-
-	// testlog1 should only show up once
-	expectedMessages := []string{
-		log1,
-		log2,
-	}
-
-	expectedLogsTest(t, expectedMessages, generate)
+	waitForMessage(t, logReceived, log2)
 }
 
 func TestFileSource_ManyLogsDelivered(t *testing.T) {
 	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+
+	temp1, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+
 	count := 1000
 	expectedMessages := make([]string, 0, count)
 	for i := 0; i < count; i++ {
 		expectedMessages = append(expectedMessages, strconv.Itoa(i))
 	}
 
-	generate := func(source *FileInput, tempDir string) {
-		temp1, err := ioutil.TempFile(tempDir, "")
-		require.NoError(t, err)
+	// Start the source
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
 
-		// Start the source
-		err = source.Start()
-		require.NoError(t, err)
-
-		// Write lots of logs
-		for _, message := range expectedMessages {
-			temp1.WriteString(message)
-			temp1.WriteString("\n")
-		}
+	// Write lots of logs
+	for _, message := range expectedMessages {
+		temp1.WriteString(message + "\n")
 	}
 
-	expectedLogsTest(t, expectedMessages, generate)
+	// Expect each of them to come through
+	for _, message := range expectedMessages {
+		waitForMessage(t, logReceived, message)
+	}
+
+	expectNoMessages(t, logReceived)
 }
 
 func stringWithLength(length int) string {
@@ -634,4 +550,39 @@ func stringWithLength(length int) string {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(b)
+}
+
+func waitForMessage(t *testing.T, c chan string, expected string) {
+	select {
+	case m := <-c:
+		require.Equal(t, expected, m)
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for message")
+	}
+}
+
+func waitForMessages(t *testing.T, c chan string, expected []string) {
+	receivedMessages := make([]string, 0, 100)
+LOOP:
+	for {
+		select {
+		case m := <-c:
+			receivedMessages = append(receivedMessages, m)
+			if len(receivedMessages) == len(expected) {
+				break LOOP
+			}
+		case <-time.After(time.Second):
+			require.FailNow(t, "Timed out waiting for expected messages")
+		}
+	}
+
+	require.ElementsMatch(t, expected, receivedMessages)
+}
+
+func expectNoMessages(t *testing.T, c chan string) {
+	select {
+	case m := <-c:
+		require.FailNow(t, "Received unexpected message", "Message: %s", m)
+	case <-time.After(200 * time.Millisecond):
+	}
 }

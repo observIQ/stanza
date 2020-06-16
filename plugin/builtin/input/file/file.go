@@ -8,7 +8,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -34,6 +33,7 @@ type FileInputConfig struct {
 	PollInterval *plugin.Duration           `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 	Multiline    *FileSourceMultilineConfig `json:"multiline,omitempty"     yaml:"multiline,omitempty"`
 	PathField    *entry.Field               `json:"path_field,omitempty"    yaml:"path_field,omitempty"`
+	StartAt      string                     `json:"start_at,omitempty" yaml:"start_at,omitempty"`
 }
 
 type FileSourceMultilineConfig struct {
@@ -100,6 +100,16 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		pollInterval = c.PollInterval.Raw()
 	}
 
+	var startAtBeginning bool
+	switch c.StartAt {
+	case "beginning", "":
+		startAtBeginning = true
+	case "end":
+		startAtBeginning = false
+	default:
+		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
+	}
+
 	plugin := &FileInput{
 		InputPlugin:      inputPlugin,
 		Include:          c.Include,
@@ -111,6 +121,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		runningFiles:     make(map[string]struct{}),
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
 		fingerprintBytes: 1000,
+		startAtBeginning: startAtBeginning,
 	}
 
 	return plugin, nil
@@ -127,8 +138,9 @@ type FileInput struct {
 
 	persist helper.Persister
 
-	runningFiles map[string]struct{}
-	knownFiles   map[string]*knownFileInfo
+	runningFiles     map[string]struct{}
+	knownFiles       map[string]*knownFileInfo
+	startAtBeginning bool
 
 	fileUpdateChan   chan fileUpdateMessage
 	fingerprintBytes int64
@@ -186,6 +198,8 @@ func (f *FileInput) Start() error {
 func (f *FileInput) Stop() error {
 	f.cancel()
 	f.wg.Wait()
+	f.syncKnownFiles()
+	f.knownFiles = nil
 	return nil
 }
 
@@ -203,7 +217,7 @@ func (f *FileInput) checkFile(ctx context.Context, path string) {
 	// If the path is new, check if it was from a known file that was rotated
 	var err error
 	if !isKnown {
-		knownFile, err = newKnownFileInfo(path, f.fingerprintBytes)
+		knownFile, err = newKnownFileInfo(path, f.fingerprintBytes, f.startAtBeginning)
 		if err != nil {
 			f.Warnw("Failed to get info for file", zap.Error(err))
 			return
@@ -243,7 +257,7 @@ func (f *FileInput) updateFile(message fileUpdateMessage) {
 	if message.newOffset < knownFile.Offset {
 		// The file was truncated or rotated
 
-		newKnownFile, err := newKnownFileInfo(message.path, f.fingerprintBytes)
+		newKnownFile, err := newKnownFileInfo(message.path, f.fingerprintBytes, true)
 		if err != nil {
 			f.Warnw("Failed to generate new file info", zap.Error(err))
 			return
@@ -359,7 +373,7 @@ type knownFileInfo struct {
 	Offset            int64
 }
 
-func newKnownFileInfo(path string, fingerprintBytes int64) (*knownFileInfo, error) {
+func newKnownFileInfo(path string, fingerprintBytes int64, startAtBeginning bool) (*knownFileInfo, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -374,14 +388,27 @@ func newKnownFileInfo(path string, fingerprintBytes int64) (*knownFileInfo, erro
 	var fingerprint []byte
 	var smallFileContents []byte
 	isSmallFile := false
-	if stat.Size() > fingerprintBytes {
+	size := stat.Size()
+	if size > fingerprintBytes {
 		fingerprint, err = fingerprintFile(file, fingerprintBytes)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		isSmallFile = true
-		smallFileContents, err = ioutil.ReadAll(file)
+		buf := make([]byte, size)
+		n, err := file.Read(buf)
+		if err != nil {
+			return nil, err
+		}
+		smallFileContents = buf[:n]
 	}
-	if err != nil {
-		return nil, err
+
+	var offset int64
+	if startAtBeginning {
+		offset = 0
+	} else {
+		offset = stat.Size()
 	}
 
 	return &knownFileInfo{
@@ -389,7 +416,7 @@ func newKnownFileInfo(path string, fingerprintBytes int64) (*knownFileInfo, erro
 		Fingerprint:       fingerprint,
 		SmallFileContents: smallFileContents,
 		IsSmallFile:       isSmallFile,
-		Offset:            0,
+		Offset:            offset,
 	}, nil
 }
 
