@@ -110,13 +110,13 @@ The `epoch` layout flavor uses can consume epoch-based timestamps. The following
 
 | Layout | Meaning                                   | Example              | `string` | `int64`    | `float64`  |
 | ---    | ---                                       | ---                  | ---      | ---        | ---        |
-| `s`    | Seconds since the epoch                   | 1136214245           | Yes      | Yes        | Yes        |
-| `ms`   | Milliseconds since the epoch              | 1136214245123        | Yes      | Yes        | Yes        |
-| `us`   | Microseconds since the epoch              | 1136214245123456     | Yes      | Yes        | Yes        |
-| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | Yes      | Yes        | Yes, lossy |
-| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | Yes      | Yes, lossy | Yes        |
-| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | Yes      | Yes, lossy | Yes        |
-| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | Yes      | Yes, lossy | Yes, lossy |
+| `s`    | Seconds since the epoch                   | 1136214245           | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark:        |
+| `ms`   | Milliseconds since the epoch              | 1136214245123        | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark:        |
+| `us`   | Microseconds since the epoch              | 1136214245123456     | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark:        |
+| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark: (lossy) |
+| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | :heavy_check_mark:      | :heavy_check_mark: (lossy) | :heavy_check_mark:        |
+| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | :heavy_check_mark:      | :heavy_check_mark: (lossy) | :heavy_check_mark:        |
+| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | :heavy_check_mark:      | :heavy_check_mark: (lossy) | :heavy_check_mark: (lossy) |
 
 Configuration:
 ```yaml
