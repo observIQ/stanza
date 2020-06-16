@@ -18,6 +18,7 @@ import (
 const StrptimeKey = "strptime" // default
 const GotimeKey = "gotime"
 const EpochKey = "epoch"
+const NativeKey = "native" // provided for plugin development
 
 // TimeParser is a helper that parses time onto an entry.
 type TimeParser struct {
@@ -34,7 +35,7 @@ func (t *TimeParser) IsZero() bool {
 // Validate validates a TimeParser, and reconfigures it if necessary
 func (t *TimeParser) Validate(context plugin.BuildContext) error {
 
-	if t.Layout == "" {
+	if t.Layout == "" && t.LayoutFlavor != "native" {
 		return errors.NewError(
 			"missing required configuration parameter `layout`",
 			"specify 'strptime', 'gotime', or 'epoch'",
@@ -46,7 +47,7 @@ func (t *TimeParser) Validate(context plugin.BuildContext) error {
 	}
 
 	switch t.LayoutFlavor {
-	case GotimeKey: // ok
+	case NativeKey, GotimeKey: // ok
 	case StrptimeKey:
 		var err error
 		t.Layout, err = strptime.ToNative(t.Layout)
@@ -87,6 +88,12 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	}
 
 	switch t.LayoutFlavor {
+	case NativeKey:
+		timeValue, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("native time.Time field required, but found: %v", value)
+		}
+		entry.Timestamp = timeValue
 	case GotimeKey:
 		timeValue, err := t.parseGotime(value)
 		if err != nil {

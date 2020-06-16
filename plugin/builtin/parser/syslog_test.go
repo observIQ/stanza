@@ -26,6 +26,17 @@ func TestSyslogParser(t *testing.T) {
 		}
 	}
 
+	times := map[string]time.Time{
+		"RFC3164": func() time.Time {
+			t, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "0000-01-12 06:30:00 +0000 UTC")
+			return t
+		}(),
+		"RFC5424": func() time.Time {
+			t, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "2015-08-05 21:58:59.693 +0000 UTC")
+			return t
+		}(),
+	}
+
 	cases := []struct {
 		name           string
 		config         *SyslogParserConfig
@@ -41,16 +52,13 @@ func TestSyslogParser(t *testing.T) {
 			}(),
 			"<34>Jan 12 06:30:00 1.2.3.4 apache_server: test message",
 			map[string]interface{}{
-				"appname":  "apache_server",
-				"facility": 4,
-				"hostname": "1.2.3.4",
-				"message":  "test message",
-				"priority": 34,
-				"severity": 2,
-				"timestamp": func() time.Time {
-					t, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "0000-01-12 06:30:00 +0000 UTC")
-					return t
-				}(),
+				"appname":   "apache_server",
+				"facility":  4,
+				"hostname":  "1.2.3.4",
+				"message":   "test message",
+				"priority":  34,
+				"severity":  2,
+				"timestamp": times["RFC3164"],
 			},
 		},
 		{
@@ -78,11 +86,8 @@ func TestSyslogParser(t *testing.T) {
 						"UserID":          "Tester2",
 					},
 				},
-				"timestamp": func() time.Time {
-					t, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "2015-08-05 21:58:59.693 +0000 UTC")
-					return t
-				}(),
-				"version": 1,
+				"timestamp": times["RFC5424"],
+				"version":   1,
 			},
 		},
 	}
@@ -113,6 +118,7 @@ func TestSyslogParser(t *testing.T) {
 			select {
 			case e := <-entryChan:
 				require.Equal(t, e.Record, tc.expectedRecord)
+				require.Equal(t, e.Timestamp, times[tc.name])
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")
 			}

@@ -3,6 +3,7 @@ package parser
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
@@ -10,8 +11,8 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/testutil"
 	jsoniter "github.com/json-iterator/go"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +35,7 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 }
 
 func TestJSONImplementations(t *testing.T) {
-	assert.Implements(t, (*plugin.Plugin)(nil), new(JSONParser))
+	require.Implements(t, (*plugin.Plugin)(nil), new(JSONParser))
 }
 
 func TestJSONParser(t *testing.T) {
@@ -79,15 +80,74 @@ func TestJSONParser(t *testing.T) {
 			parser, mockOutput := NewFakeJSONPlugin()
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)
-				if !assert.Equal(t, tc.expectedRecord, e.Record) {
-					t.FailNow()
-				}
+				require.Equal(t, tc.expectedRecord, e.Record)
 			}).Return(nil)
 
 			err := parser.Process(context.Background(), input)
-			if !assert.NoError(t, err) {
-				return
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
+
+	testTime := time.Unix(1136214245, 0)
+
+	cases := []struct {
+		name           string
+		inputRecord    map[string]interface{}
+		expectedRecord map[string]interface{}
+		errorExpected  bool
+	}{
+		{
+			"simple",
+			map[string]interface{}{
+				"testfield": `{"timestamp":"1136214245"}`,
+			},
+			map[string]interface{}{
+				"testparsed": map[string]interface{}{
+					"timestamp": "1136214245",
+				},
+			},
+			false,
+		},
+		{
+			"nested",
+			map[string]interface{}{
+				"testfield": `{"superkey":"superval","timestamp":"1136214245"}`,
+			},
+			map[string]interface{}{
+				"testparsed": map[string]interface{}{
+					"superkey":  "superval",
+					"timestamp": "1136214245",
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := entry.New()
+			input.Record = tc.inputRecord
+
+			output := entry.New()
+			output.Record = tc.expectedRecord
+
+			parser, mockOutput := NewFakeJSONPlugin()
+			parser.ParserPlugin.TimeParser = &helper.TimeParser{
+				ParseFrom:    entry.NewField("testparsed", "timestamp"),
+				LayoutFlavor: "epoch",
+				Layout:       "s",
 			}
+			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+				e := args[1].(*entry.Entry)
+				require.Equal(t, tc.expectedRecord, e.Record)
+				require.Equal(t, testTime, e.Timestamp)
+			}).Return(nil)
+
+			err := parser.Process(context.Background(), input)
+			require.NoError(t, err)
 		})
 	}
 }

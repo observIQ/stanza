@@ -72,7 +72,7 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 		if err = c.TimeParser.Validate(context); err != nil {
 			return ParserPlugin{}, err
 		}
-		parserPlugin.timeParser = c.TimeParser
+		parserPlugin.TimeParser = c.TimeParser
 	}
 
 	return parserPlugin, nil
@@ -98,7 +98,7 @@ type ParserPlugin struct {
 	Preserve   bool
 	OnError    string
 	Output     plugin.Plugin
-	timeParser *TimeParser
+	TimeParser *TimeParser
 }
 
 // CanProcess will always return true for a parser plugin.
@@ -150,8 +150,8 @@ func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, pars
 
 	entry.Set(p.ParseTo, newValue)
 
-	if p.timeParser != nil {
-		if err := p.timeParser.Parse(ctx, entry); err != nil {
+	if p.TimeParser != nil {
+		if err := p.TimeParser.Parse(ctx, entry); err != nil {
 			return p.HandleParserError(ctx, entry, err)
 		}
 	}
