@@ -114,16 +114,16 @@ func TestTimeParser(t *testing.T) {
 			expected, err := time.Parse(tc.gotimeLayout, tc.sample)
 			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
 
-			gotimeRootCfg := parseTimeTestConfig(gotimeKey, tc.gotimeLayout, rootField)
+			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)
 			t.Run("gotime-root", runTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
 
-			gotimeNonRootCfg := parseTimeTestConfig(gotimeKey, tc.gotimeLayout, someField)
+			gotimeNonRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, someField)
 			t.Run("gotime-non-root", runTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 
-			strptimeRootCfg := parseTimeTestConfig(strptimeKey, tc.strptimeLayout, rootField)
+			strptimeRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, rootField)
 			t.Run("strptime-root", runTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
 
-			strptimeNonRootCfg := parseTimeTestConfig(strptimeKey, tc.strptimeLayout, someField)
+			strptimeNonRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, someField)
 			t.Run("strptime-non-root", runTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 		})
 	}
@@ -211,10 +211,10 @@ func TestTimeEpochs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rootCfg := parseTimeTestConfig(epochKey, tc.layout, rootField)
+			rootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, rootField)
 			t.Run("gotime-root", runTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected))
 
-			nonRootCfg := parseTimeTestConfig(epochKey, tc.layout, someField)
+			nonRootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, someField)
 			t.Run("gotime-non-root", runTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected))
 		})
 	}
@@ -240,7 +240,7 @@ func runTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected tim
 			resultChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		timeParser := gotimePlugin.(*TimeParser)
+		timeParser := gotimePlugin.(*TimeParserPlugin)
 		timeParser.Output = mockOutput
 
 		require.NoError(t, timeParser.Process(context.Background(), ent))
@@ -263,8 +263,10 @@ func parseTimeTestConfig(flavor, layout string, parseFrom entry.Field) *TimePars
 			},
 			OutputID: "output1",
 		},
-		LayoutFlavor: flavor,
-		Layout:       layout,
-		ParseFrom:    parseFrom,
+		TimeParser: helper.TimeParser{
+			LayoutFlavor: flavor,
+			Layout:       layout,
+			ParseFrom:    parseFrom,
+		},
 	}
 }
