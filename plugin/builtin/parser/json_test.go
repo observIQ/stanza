@@ -149,10 +149,10 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 
 			parser, mockOutput := NewFakeJSONPlugin()
 			parser.ParserPlugin.TimeParser = &helper.TimeParser{
-				ParseFrom:    entry.NewField("testparsed", "timestamp"),
-				LayoutFlavor: "epoch",
-				Layout:       "s",
-				Preserve:     tc.preserve,
+				ParseFrom:  entry.NewField("testparsed", "timestamp"),
+				LayoutType: "epoch",
+				Layout:     "s",
+				Preserve:   tc.preserve,
 			}
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)

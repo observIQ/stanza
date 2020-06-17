@@ -326,7 +326,7 @@ func runTestLossy(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expecte
 	}
 }
 
-func parseTimeTestConfig(flavor, layout string, parseFrom entry.Field) *TimeParserConfig {
+func parseTimeTestConfig(layoutType, layout string, parseFrom entry.Field) *TimeParserConfig {
 	return &TimeParserConfig{
 		TransformerConfig: helper.TransformerConfig{
 			BasicConfig: helper.BasicConfig{
@@ -336,9 +336,9 @@ func parseTimeTestConfig(flavor, layout string, parseFrom entry.Field) *TimePars
 			OutputID: "output1",
 		},
 		TimeParser: helper.TimeParser{
-			LayoutFlavor: flavor,
-			Layout:       layout,
-			ParseFrom:    parseFrom,
+			LayoutType: layoutType,
+			Layout:     layout,
+			ParseFrom:  parseFrom,
 		},
 	}
 }

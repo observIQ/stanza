@@ -4,13 +4,13 @@ The `time_parser` plugin sets the timestamp on an entry by parsing a value from 
 
 ### Configuration Fields
 
-| Field           | Default    | Description                                                                      |
-| ---             | ---        | ---                                                                              |
-| `id`            | required   | A unique identifier for the plugin                                               |
-| `output`        | required   | The `id` for the plugin to send parsed entries to                                |
-| `parse_from`    | required   | A [field](/docs/field.md) that indicates the field to be parsed as JSON          |
-| `layout_flavor` | `strptime` | The type of timestamp. Valid values are `strptime`, `gotime`, and `epoch`        |
-| `layout`        | required   | The exact layout of the timestamp to be parsed                                   |
+| Field         | Default    | Description                                                                      |
+| ---           | ---        | ---                                                                              |
+| `id`          | required   | A unique identifier for the plugin                                               |
+| `output`      | required   | The `id` for the plugin to send parsed entries to                                |
+| `parse_from`  | required   | A [field](/docs/field.md) that indicates the field to be parsed as JSON          |
+| `layout_type` | `strptime` | The type of timestamp. Valid values are `strptime`, `gotime`, and `epoch`        |
+| `layout`      | required   | The exact layout of the timestamp to be parsed                                   |
 
 
 ### Example Configurations
@@ -18,7 +18,7 @@ The `time_parser` plugin sets the timestamp on an entry by parsing a value from 
 
 #### Parse a timestamp using a `strptime` layout
 
-The default timestamp parsing flavor is `strptime`, which uses "directives" such as `%Y` (4-digit year) and `%H` (2-digit hour). A full list of supported directives is found [here](https://github.com/BlueMedora/ctimefmt/blob/3e07deba22cf7a753f197ef33892023052f26614/ctimefmt.go#L63).
+The default timestamp parsing type is `strptime`, which uses "directives" such as `%Y` (4-digit year) and `%H` (2-digit hour). A full list of supported directives is found [here](https://github.com/BlueMedora/ctimefmt/blob/3e07deba22cf7a753f197ef33892023052f26614/ctimefmt.go#L63).
 
 Configuration:
 ```yaml
@@ -26,7 +26,7 @@ Configuration:
   type: time_parser
   output: time_parser_receiver
   parse_from: timestamp_field
-  layout_flavor: strptime
+  layout_type: strptime
   layout: '%a %b %e %H:%M:%S %Z %Y'
 ```
 
@@ -62,7 +62,7 @@ Configuration:
 
 #### Parse a timestamp using a `gotime` layout
 
-The `gotime` layout flavor uses Golang's native time parsing capabilities. Golang takes an [unconventional approach](https://www.pauladamsmith.com/blog/2011/05/go_time.html) to time parsing. Finer details are well-documented [here](https://golang.org/src/time/format.go?s=25102:25148#L9).
+The `gotime` layout type uses Golang's native time parsing capabilities. Golang takes an [unconventional approach](https://www.pauladamsmith.com/blog/2011/05/go_time.html) to time parsing. Finer details are well-documented [here](https://golang.org/src/time/format.go?s=25102:25148#L9).
 
 Configuration:
 ```yaml
@@ -70,7 +70,7 @@ Configuration:
   type: time_parser
   output: time_parser_receiver
   parse_from: timestamp_field
-  layout_flavor: gotime
+  layout_type: gotime
   layout: Jan 2 15:04:05 MST 2006
 ```
 
@@ -106,7 +106,7 @@ Configuration:
 
 #### Parse a timestamp using an `epoch` layout
 
-The `epoch` layout flavor uses can consume epoch-based timestamps. The following layouts are supported:
+The `epoch` layout type uses can consume epoch-based timestamps. The following layouts are supported:
 
 | Layout | Meaning                                   | Example              | `string` | `int64`    | `float64`  |
 | ---    | ---                                       | ---                  | ---      | ---        | ---        |
@@ -124,7 +124,7 @@ Configuration:
   type: time_parser
   output: time_parser_receiver
   parse_from: timestamp_field
-  layout_flavor: epoch
+  layout_type: epoch
   layout: s
 ```
 

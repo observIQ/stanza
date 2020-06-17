@@ -14,7 +14,7 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
-// StrptimeKey is literally "strptime", and is the default flavor
+// StrptimeKey is literally "strptime", and is the default layout type
 const StrptimeKey = "strptime"
 
 // GotimeKey is literally "gotime" and uses Golang's native time.Parse
@@ -28,10 +28,10 @@ const NativeKey = "native" // provided for plugin development
 
 // TimeParser is a helper that parses time onto an entry.
 type TimeParser struct {
-	ParseFrom    entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
-	Layout       string      `json:"layout,omitempty" yaml:"layout,omitempty"`
-	LayoutFlavor string      `json:"layout_flavor,omitempty" yaml:"layout_flavor,omitempty"`
-	Preserve     bool        `json:"preserve"   yaml:"preserve"`
+	ParseFrom  entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
+	Layout     string      `json:"layout,omitempty" yaml:"layout,omitempty"`
+	LayoutType string      `json:"layout_type,omitempty" yaml:"layout_type,omitempty"`
+	Preserve   bool        `json:"preserve"   yaml:"preserve"`
 }
 
 // IsZero returns true if the TimeParser is not a valid config
@@ -42,15 +42,15 @@ func (t *TimeParser) IsZero() bool {
 // Validate validates a TimeParser, and reconfigures it if necessary
 func (t *TimeParser) Validate(context plugin.BuildContext) error {
 
-	if t.Layout == "" && t.LayoutFlavor != "native" {
+	if t.Layout == "" && t.LayoutType != "native" {
 		return errors.NewError("missing required configuration parameter `layout`", "")
 	}
 
-	if t.LayoutFlavor == "" {
-		t.LayoutFlavor = StrptimeKey
+	if t.LayoutType == "" {
+		t.LayoutType = StrptimeKey
 	}
 
-	switch t.LayoutFlavor {
+	switch t.LayoutType {
 	case NativeKey, GotimeKey: // ok
 	case StrptimeKey:
 		var err error
@@ -58,19 +58,19 @@ func (t *TimeParser) Validate(context plugin.BuildContext) error {
 		if err != nil {
 			return errors.Wrap(err, "parse strptime layout")
 		}
-		t.LayoutFlavor = GotimeKey
+		t.LayoutType = GotimeKey
 	case EpochKey:
 		switch t.Layout {
 		case "s", "ms", "us", "ns", "s.ms", "s.us", "s.ns": // ok
 		default:
 			return errors.NewError(
-				"invalid `layout` for `epoch` flavor",
+				"invalid `layout` for `epoch` type",
 				"specify 's', 'ms', 'us', 'ns', 's.ms', 's.us', or 's.ns'",
 			)
 		}
 	default:
 		return errors.NewError(
-			fmt.Sprintf("unsupported layout_flavor %s", t.LayoutFlavor),
+			fmt.Sprintf("unsupported layout_type %s", t.LayoutType),
 			"valid values are 'strptime', 'gotime', and 'epoch'",
 		)
 	}
@@ -89,7 +89,7 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 		)
 	}
 
-	switch t.LayoutFlavor {
+	switch t.LayoutType {
 	case NativeKey:
 		timeValue, ok := value.(time.Time)
 		if !ok {
@@ -109,7 +109,7 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 		}
 		entry.Timestamp = timeValue
 	default:
-		return fmt.Errorf("unsupported layout flavor: %s", t.LayoutFlavor)
+		return fmt.Errorf("unsupported layout type: %s", t.LayoutType)
 	}
 
 	if !t.Preserve {

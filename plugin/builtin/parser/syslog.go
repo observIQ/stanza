@@ -28,8 +28,8 @@ type SyslogParserConfig struct {
 func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	if c.ParserConfig.TimeParser == nil {
 		c.ParserConfig.TimeParser = &helper.TimeParser{
-			ParseFrom:    entry.NewField("timestamp"),
-			LayoutFlavor: "native",
+			ParseFrom:  entry.NewField("timestamp"),
+			LayoutType: "native",
 		}
 	}
 
