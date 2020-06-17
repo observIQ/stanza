@@ -1,4 +1,4 @@
-package example
+package commands
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluemedora/bplogagent/commands"
 	"github.com/bluemedora/bplogagent/plugin/builtin/output"
 	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/require"
@@ -37,10 +36,10 @@ func TestTomcatExample(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping on windows because of service failures")
 	}
-	err := os.Chdir("./tomcat")
+	err := os.Chdir("../examples/tomcat")
 	require.NoError(t, err)
 	defer func() {
-		err := os.Chdir("../")
+		err := os.Chdir("../../commands")
 		require.NoError(t, err)
 	}()
 
@@ -48,7 +47,7 @@ func TestTomcatExample(t *testing.T) {
 
 	tempDir := testutil.NewTempDir(t)
 
-	cmd := commands.NewRootCmd()
+	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"--database", filepath.Join(tempDir, "logagent.db")})
 
 	buf := muxWriter{}
