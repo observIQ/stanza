@@ -1,6 +1,6 @@
 ## `timestamp` parsing parameters
 
-Parser plugins support timestamp parsing in their configuration. Parsing a timestamp will attach the time value to the log entry.
+Parser plugins can parse a timestamp and attach the resulting time value to a log entry.
 
 | Field         | Default    | Description                                                                      |
 | ---           | ---        | ---                                                                              |
