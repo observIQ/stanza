@@ -1,0 +1,68 @@
+---
+database: ./logagent.db
+pipeline:
+
+  # Read lines from Apache Tomcat access logs
+  # Example input line:
+  # 10.66.2.46 - - [13/Mar/2019:10:43:00 -0400] "GET / HTTP/1.1" 404 -
+  - id: access_logs
+    type: file_input
+    include:
+      - ./access.log
+    output: access_regex_parser
+
+  # Parse the logs into labeled fields
+  # Example input:
+  # {
+  #   "timestamp": "2020-06-13T11:00:53-04:00",
+  #   "record": "10.66.2.46 - - [13/Mar/2019:10:43:00 -0400] "GET / HTTP/1.1" 404 -"
+  # }
+  - id: access_regex_parser
+    type: regex_parser
+    output: access_time_parser
+    regex: >-
+      (?P<remote_host>[^\s]+)
+      -
+      (?P<remote_user>[^\s]+)
+      \[(?P<timestamp>[^\]]+)\]
+      "(?P<http_method>[A-Z]+)
+      (?P<url_path>[^\s]+)[^"]*"
+      (?P<http_status>\d+)
+      (?P<bytes_sent>[\d-]+)
+
+  # Parse the time and set the timestamp on the entry
+  # Example input:
+  # {
+  #   "timestamp": "2020-06-13T11:00:53-04:00",
+  #   "record": {
+  #     "bytes_sent": "19698",
+  #     "http_method": "GET",
+  #     "http_status": "200",
+  #     "remote_host": "10.66.2.46",
+  #     "remote_user": "-",
+  #     "timestamp": "13/Mar/2019:11:00:53 -0400",
+  #     "url_path": "/manager/images/asf-logo.svg"
+  #   }
+  # }
+  - id: access_time_parser
+    type: time_parser
+    output: stdout
+    parse_from: timestamp
+    layout: '%d/%b/%Y:%H:%M:%S %z'
+
+  # Write the log to stdout
+  # Example input:
+  # {
+  #   "timestamp": "2019-03-13T11:00:53-04:00",
+  #   "record": {
+  #     "bytes_sent": "19698",
+  #     "http_method": "GET",
+  #     "http_status": "200",
+  #     "remote_host": "10.66.2.46",
+  #     "remote_user": "-",
+  #     "timestamp": "13/Mar/2019:11:00:53 -0400",
+  #     "url_path": "/manager/images/asf-logo.svg"
+  #   }
+  # }
+  - id: stdout
+    type: stdout

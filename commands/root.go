@@ -95,7 +95,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 
 	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir)
 	ctx, cancel := context.WithCancel(command.Context())
-	service, err := newAgentService(agent, cancel)
+	service, err := newAgentService(agent, ctx, cancel)
 	if err != nil {
 		logger.Errorf("Failed to create agent service", zap.Any("error", err))
 		os.Exit(1)

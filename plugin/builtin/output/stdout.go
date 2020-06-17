@@ -3,6 +3,7 @@ package output
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"sync"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
+
+var Stdout io.Writer = os.Stdout
 
 func init() {
 	plugin.Register("stdout", &StdoutConfig{})
@@ -29,7 +32,7 @@ func (c StdoutConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) 
 
 	return &StdoutPlugin{
 		OutputPlugin: outputPlugin,
-		encoder:      json.NewEncoder(os.Stdout),
+		encoder:      json.NewEncoder(Stdout),
 	}, nil
 }
 
