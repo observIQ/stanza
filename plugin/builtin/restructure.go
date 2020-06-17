@@ -121,6 +121,10 @@ func (o *Op) unmarshalDecodedType(typeDecoder map[string]rawMessage) error {
 		return fmt.Errorf("no Op type defined")
 	}
 
+	if rawMessage.unmarshal == nil {
+		return fmt.Errorf("op fields cannot be empty")
+	}
+
 	var err error
 	switch opType {
 	case "move":
