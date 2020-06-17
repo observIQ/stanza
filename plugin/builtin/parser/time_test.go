@@ -112,7 +112,7 @@ func TestTimeParser(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			expected, err := time.Parse(tc.gotimeLayout, tc.sample)
+			expected, err := time.ParseInLocation(tc.gotimeLayout, tc.sample, time.Local)
 			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
 
 			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)

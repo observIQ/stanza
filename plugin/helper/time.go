@@ -122,7 +122,7 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
 	switch v := value.(type) {
 	case string:
-		return time.Parse(t.Layout, v)
+		return time.ParseInLocation(t.Layout, v, time.Local)
 	default:
 		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
