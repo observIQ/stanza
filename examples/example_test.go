@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -33,6 +34,9 @@ func (b *muxWriter) String() string {
 }
 
 func TestTomcatExample(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on windows because of service failures")
+	}
 	err := os.Chdir("./tomcat")
 	require.NoError(t, err)
 	defer func() {
