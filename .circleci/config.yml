@@ -10,7 +10,7 @@ orbs:
 executors:
   golang:
     docker:
-      - image: cimg/golang:1.14
+      - image: circleci/golang:1.14
   mac:
     macos:
       xcode: 11.4.1
