@@ -73,7 +73,9 @@ jobs:
           command: go test -race -v ./...
 
   test-windows:
-    executor: win/default
+    executor: 
+      name: win/default
+      size: large
 
     steps:
       - checkout
