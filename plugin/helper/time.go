@@ -93,7 +93,7 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	case NativeKey:
 		timeValue, ok := value.(time.Time)
 		if !ok {
-			return fmt.Errorf("native time.Time field required, but found: %v", value)
+			return fmt.Errorf("native time.Time field required, but found %v of type %T", value, value)
 		}
 		entry.Timestamp = timeValue
 	case GotimeKey:

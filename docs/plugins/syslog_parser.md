@@ -49,7 +49,7 @@ Configuration:
   "priority": 34,
   "proc_id": null,
   "severity": 2,
-  "timestamp": "0000-01-12T06:30:00Z"
+  "timestamp": "2020-01-12T06:30:00Z"
 }
 ```
 
