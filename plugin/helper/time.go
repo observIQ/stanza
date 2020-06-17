@@ -43,10 +43,7 @@ func (t *TimeParser) IsZero() bool {
 func (t *TimeParser) Validate(context plugin.BuildContext) error {
 
 	if t.Layout == "" && t.LayoutFlavor != "native" {
-		return errors.NewError(
-			"missing required configuration parameter `layout`",
-			"specify 'strptime', 'gotime', or 'epoch'",
-		)
+		return errors.NewError("missing required configuration parameter `layout`", "")
 	}
 
 	if t.LayoutFlavor == "" {
@@ -59,9 +56,7 @@ func (t *TimeParser) Validate(context plugin.BuildContext) error {
 		var err error
 		t.Layout, err = strptime.ToNative(t.Layout)
 		if err != nil {
-			return errors.WithDetails(
-				errors.Wrap(err, "parse strptime layout"),
-			)
+			return errors.Wrap(err, "parse strptime layout")
 		}
 		t.LayoutFlavor = GotimeKey
 	case EpochKey:
