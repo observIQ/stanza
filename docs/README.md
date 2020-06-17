@@ -47,7 +47,7 @@ Output plugins:
 - [Stdout](/docs/plugins/stdout.md)
 
 General purpose plugins:
-- [Timestamp parser](/docs/plugins/time_parser.md)
+- [Time parser](/docs/plugins/time_parser.md)
 - [Metadata](/docs/plugins/metadata.md)
 - [Restructure records](/docs/plugins/restructure.md)
 - [Copy to multiple outputs](/docs/plugins/copy.md)

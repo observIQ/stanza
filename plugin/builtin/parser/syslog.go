@@ -26,6 +26,13 @@ type SyslogParserConfig struct {
 
 // Build will build a JSON parser plugin.
 func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+	if c.ParserConfig.TimeParser == nil {
+		c.ParserConfig.TimeParser = &helper.TimeParser{
+			ParseFrom:  entry.NewField("timestamp"),
+			LayoutType: "native",
+		}
+	}
+
 	parserPlugin, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,6 @@
 ## `syslog_parser` plugin
 
-The `syslog_parser` plugin parses the string-type field selected by `parse_from` as syslog.
+The `syslog_parser` plugin parses the string-type field selected by `parse_from` as syslog. Timestamp parsing is handled automatically by this plugin.
 
 ### Configuration Fields
 
@@ -32,8 +32,11 @@ Configuration:
 <tr>
 <td>
 
-```
-"<34>Jan 12 06:30:00 1.2.3.4 apache_server: test message"
+```json
+{
+  "timestamp": "",
+  "record": "<34>Jan 12 06:30:00 1.2.3.4 apache_server: test message"
+}
 ```
 
 </td>
@@ -41,15 +44,17 @@ Configuration:
 
 ```json
 {
-  "appname": "apache_server",
-  "facility": 4,
-  "hostname": "1.2.3.4",
-  "message": "test message",
-  "msg_id": null,
-  "priority": 34,
-  "proc_id": null,
-  "severity": 2,
-  "timestamp": "2020-01-12T06:30:00Z"
+  "timestamp": "2020-01-12T06:30:00Z",
+  "record": {
+    "appname": "apache_server",
+    "facility": 4,
+    "hostname": "1.2.3.4",
+    "message": "test message",
+    "msg_id": null,
+    "priority": 34,
+    "proc_id": null,
+    "severity": 2,
+  }
 }
 ```
 

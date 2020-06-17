@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
@@ -111,19 +112,19 @@ func TestTimeParser(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			expected, err := time.Parse(tc.gotimeLayout, tc.sample)
+			expected, err := time.ParseInLocation(tc.gotimeLayout, tc.sample, time.Local)
 			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
 
-			gotimeRootCfg := parseTimeTestConfig(gotimeKey, tc.gotimeLayout, rootField)
+			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)
 			t.Run("gotime-root", runTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
 
-			gotimeNonRootCfg := parseTimeTestConfig(gotimeKey, tc.gotimeLayout, someField)
+			gotimeNonRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, someField)
 			t.Run("gotime-non-root", runTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 
-			strptimeRootCfg := parseTimeTestConfig(strptimeKey, tc.strptimeLayout, rootField)
+			strptimeRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, rootField)
 			t.Run("strptime-root", runTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
 
-			strptimeNonRootCfg := parseTimeTestConfig(strptimeKey, tc.strptimeLayout, someField)
+			strptimeNonRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, someField)
 			t.Run("strptime-non-root", runTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 		})
 	}
@@ -137,6 +138,7 @@ func TestTimeEpochs(t *testing.T) {
 		layout   string
 		expected time.Time
 		err      bool
+		maxLoss  time.Duration
 	}{
 		{
 			name:     "s-default-string",
@@ -147,6 +149,12 @@ func TestTimeEpochs(t *testing.T) {
 		{
 			name:     "s-default-int",
 			sample:   1136214245,
+			layout:   "s",
+			expected: time.Unix(1136214245, 0),
+		},
+		{
+			name:     "s-default-float",
+			sample:   1136214245.0,
 			layout:   "s",
 			expected: time.Unix(1136214245, 0),
 		},
@@ -163,6 +171,12 @@ func TestTimeEpochs(t *testing.T) {
 			expected: time.Unix(1136214245, 123000000),
 		},
 		{
+			name:     "ms-default-float",
+			sample:   1136214245123.0,
+			layout:   "ms",
+			expected: time.Unix(1136214245, 123000000),
+		},
+		{
 			name:     "us-default-string",
 			sample:   "1136214245123456",
 			layout:   "us",
@@ -171,6 +185,12 @@ func TestTimeEpochs(t *testing.T) {
 		{
 			name:     "us-default-int",
 			sample:   1136214245123456,
+			layout:   "us",
+			expected: time.Unix(1136214245, 123456000),
+		},
+		{
+			name:     "us-default-float",
+			sample:   1136214245123456.0,
 			layout:   "us",
 			expected: time.Unix(1136214245, 123456000),
 		},
@@ -187,8 +207,28 @@ func TestTimeEpochs(t *testing.T) {
 			expected: time.Unix(1136214245, 123456789),
 		},
 		{
+			name:     "ns-default-float",
+			sample:   1136214245123456789.0,
+			layout:   "ns",
+			expected: time.Unix(1136214245, 123456789),
+			maxLoss:  time.Nanosecond * 100,
+		},
+		{
 			name:     "s.ms-default-string",
 			sample:   "1136214245.123",
+			layout:   "s.ms",
+			expected: time.Unix(1136214245, 123000000),
+		},
+		{
+			name:     "s.ms-default-int",
+			sample:   1136214245,
+			layout:   "s.ms",
+			expected: time.Unix(1136214245, 0), // drops subseconds
+			maxLoss:  time.Nanosecond * 100,
+		},
+		{
+			name:     "s.ms-default-float",
+			sample:   1136214245.123,
 			layout:   "s.ms",
 			expected: time.Unix(1136214245, 123000000),
 		},
@@ -199,10 +239,37 @@ func TestTimeEpochs(t *testing.T) {
 			expected: time.Unix(1136214245, 123456000),
 		},
 		{
+			name:     "s.us-default-int",
+			sample:   1136214245,
+			layout:   "s.us",
+			expected: time.Unix(1136214245, 0), // drops subseconds
+			maxLoss:  time.Nanosecond * 100,
+		},
+		{
+			name:     "s.us-default-float",
+			sample:   1136214245.123456,
+			layout:   "s.us",
+			expected: time.Unix(1136214245, 123456000),
+		},
+		{
 			name:     "s.ns-default-string",
 			sample:   "1136214245.123456789",
 			layout:   "s.ns",
 			expected: time.Unix(1136214245, 123456789),
+		},
+		{
+			name:     "s.ns-default-int",
+			sample:   1136214245,
+			layout:   "s.ns",
+			expected: time.Unix(1136214245, 0), // drops subseconds
+			maxLoss:  time.Nanosecond * 100,
+		},
+		{
+			name:     "s.ns-default-float",
+			sample:   1136214245.123456789,
+			layout:   "s.ns",
+			expected: time.Unix(1136214245, 123456789),
+			maxLoss:  time.Nanosecond * 100,
 		},
 	}
 
@@ -211,11 +278,11 @@ func TestTimeEpochs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rootCfg := parseTimeTestConfig(epochKey, tc.layout, rootField)
-			t.Run("gotime-root", runTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected))
+			rootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, rootField)
+			t.Run("gotime-root", runTestLossy(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected, tc.maxLoss))
 
-			nonRootCfg := parseTimeTestConfig(epochKey, tc.layout, someField)
-			t.Run("gotime-non-root", runTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected))
+			nonRootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, someField)
+			t.Run("gotime-non-root", runTestLossy(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected, tc.maxLoss))
 		})
 	}
 }
@@ -227,6 +294,10 @@ func makeTestEntry(field entry.Field, value interface{}) *entry.Entry {
 }
 
 func runTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time) func(*testing.T) {
+	return runTestLossy(t, cfg, ent, expected, time.Duration(0))
+}
+
+func runTestLossy(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time, maxLoss time.Duration) func(*testing.T) {
 
 	return func(t *testing.T) {
 		buildContext := testutil.NewTestBuildContext(t)
@@ -240,21 +311,22 @@ func runTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected tim
 			resultChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		timeParser := gotimePlugin.(*TimeParser)
+		timeParser := gotimePlugin.(*TimeParserPlugin)
 		timeParser.Output = mockOutput
 
 		require.NoError(t, timeParser.Process(context.Background(), ent))
 
 		select {
 		case e := <-resultChan:
-			require.Equal(t, expected, e.Timestamp)
+			diff := time.Duration(math.Abs(float64(expected.Sub(e.Timestamp))))
+			require.True(t, diff <= maxLoss)
 		case <-time.After(time.Second):
 			require.FailNow(t, "Timed out waiting for entry to be processed")
 		}
 	}
 }
 
-func parseTimeTestConfig(flavor, layout string, parseFrom entry.Field) *TimeParserConfig {
+func parseTimeTestConfig(layoutType, layout string, parseFrom entry.Field) *TimeParserConfig {
 	return &TimeParserConfig{
 		TransformerConfig: helper.TransformerConfig{
 			BasicConfig: helper.BasicConfig{
@@ -263,8 +335,10 @@ func parseTimeTestConfig(flavor, layout string, parseFrom entry.Field) *TimePars
 			},
 			OutputID: "output1",
 		},
-		LayoutFlavor: flavor,
-		Layout:       layout,
-		ParseFrom:    parseFrom,
+		TimeParser: helper.TimeParser{
+			LayoutType: layoutType,
+			Layout:     layout,
+			ParseFrom:  parseFrom,
+		},
 	}
 }
