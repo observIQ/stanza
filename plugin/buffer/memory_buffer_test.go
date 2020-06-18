@@ -125,3 +125,83 @@ func TestMemoryBufferRetry(t *testing.T) {
 		}
 	})
 }
+
+func TestMemoryBufferFlush(t *testing.T) {
+	t.Run("Simple", func(t *testing.T) {
+		cfg := &BufferConfig{
+			DelayThreshold: plugin.Duration{10 * time.Hour},
+		}
+		buffer, err := cfg.Build()
+		require.NoError(t, err)
+		handler := newMockHandler(t)
+		buffer.SetHandler(handler)
+
+		err = buffer.Process(context.Background(), entry.New())
+		require.NoError(t, err)
+
+		// We shouldn't have any logs to handle for at
+		// least 10 hours
+		select {
+		case <-handler.received:
+			require.FailNow(t, "Received entry unexpectedly early")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		flushed := make(chan struct{})
+		go func() {
+			defer close(flushed)
+			err := buffer.Flush(context.Background())
+			require.NoError(t, err)
+		}()
+
+		// After flushed is called, we should receive a log
+		<-handler.received
+		handler.fail <- false
+		<-handler.success
+	})
+
+	t.Run("ContextCancelled", func(t *testing.T) {
+		cfg := &BufferConfig{
+			DelayThreshold: plugin.Duration{10 * time.Hour},
+		}
+		buffer, err := cfg.Build()
+		require.NoError(t, err)
+		handler := newMockHandler(t)
+		buffer.SetHandler(handler)
+
+		err = buffer.Process(context.Background(), entry.New())
+		require.NoError(t, err)
+
+		// We shouldn't have any logs to handle for at
+		// least 10 hours
+		select {
+		case <-handler.received:
+			require.FailNow(t, "Received entry unexpectedly early")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		// Start the flush
+		ctx, cancel := context.WithCancel(context.Background())
+		flushed := make(chan struct{})
+		go func() {
+			defer close(flushed)
+			err := buffer.Flush(ctx)
+			require.Error(t, err)
+		}()
+
+		// Cancel the context and wait for flush to finish
+		cancel()
+		select {
+		case <-flushed:
+		case <-time.After(100 * time.Millisecond):
+			require.FailNow(t, "Failed to flush in reasonable amount of time")
+		}
+
+		// After flushed is called, we should receive a log still, since we
+		// timed out and ignored cleanup
+		<-handler.received
+		handler.fail <- false
+		<-handler.success
+	})
+
+}
