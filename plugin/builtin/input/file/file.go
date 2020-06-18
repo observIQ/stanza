@@ -53,7 +53,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 
 	// Ensure includes can be parsed as globs
 	for _, include := range c.Include {
-		_, err := filepath.Match(include, "")
+		_, err := filepath.Match(include, "matchstring")
 		if err != nil {
 			return nil, fmt.Errorf("parse include glob: %s", err)
 		}
@@ -61,7 +61,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 
 	// Ensure excludes can be parsed as globs
 	for _, exclude := range c.Exclude {
-		_, err := filepath.Match(exclude, "")
+		_, err := filepath.Match(exclude, "matchstring")
 		if err != nil {
 			return nil, fmt.Errorf("parse exclude glob: %s", err)
 		}
