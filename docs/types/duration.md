@@ -4,7 +4,7 @@ Durations are lengths of time that are specified as part of a pluign configurati
 
 If a number is specified, it will be interpreted as a number of seconds.
 
-If a string is specifieed, it will be interpreted according to Golang's [`time.ParseDuration`](https://golang.org/src/time/format.go?s=40541:40587#L1369) documentation. 
+If a string is specified, it will be interpreted according to Golang's [`time.ParseDuration`](https://golang.org/src/time/format.go?s=40541:40587#L1369) documentation. 
 
 ## Examples
 
