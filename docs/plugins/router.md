@@ -17,10 +17,10 @@ An entry that does not match any of the routes is dropped and not processed furt
 
 #### Route configuration
 
-| Field    | Default  | Description                                                                                                     |
-| ---      | ---      | ---                                                                                                             |
-| `output` | required | A plugin id to send an entry to if `expr` returns `true`                                                        |
-| `expr`   | required | An [expression](/docs/expression.md) that returns a boolean. The record of the routed entry is available as `$` |
+| Field    | Default  | Description                                                                                                           |
+| ---      | ---      | ---                                                                                                                   |
+| `output` | required | A plugin id to send an entry to if `expr` returns `true`                                                              |
+| `expr`   | required | An [expression](/docs/types/expression.md) that returns a boolean. The record of the routed entry is available as `$` |
 
 
 ### Examples

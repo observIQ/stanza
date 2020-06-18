@@ -4,12 +4,12 @@ The `tcp_input` plugin listens for logs on one or more TCP connections. The plug
 
 ### Configuration Fields
 
-| Field            | Default  | Description                                                   |
-| ---              | ---      | ---                                                           |
-| `id`             | required | A unique identifier for the plugin                            |
-| `output`         | required | The `id` for the plugin to send parsed entries to             |
-| `listen_address` | required | A listen address of the form `<ip>:<port>`                    |
-| `write_to`       | $        | A [field](/docs/field.md) that will be set to the log message |
+| Field            | Default  | Description                                                         |
+| ---              | ---      | ---                                                                 |
+| `id`             | required | A unique identifier for the plugin                                  |
+| `output`         | required | The `id` for the plugin to send parsed entries to                   |
+| `listen_address` | required | A listen address of the form `<ip>:<port>`                          |
+| `write_to`       | $        | A [field](/docs/types/field.md) that will be set to the log message |
 
 ### Example Configurations
 

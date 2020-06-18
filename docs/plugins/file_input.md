@@ -4,16 +4,16 @@ The `file_input` plugin reads logs from files. It will place the lines read into
 
 ### Configuration Fields
 
-| Field           | Default  | Description                                                                                |
-| ---             | ---      | ---                                                                                        |
-| `id`            | required | A unique identifier for the plugin                                                         |
-| `output`        | required | The `id` for the plugin to send parsed entries to                                          |
-| `include`       | required | A list of file glob patterns that match the file paths to be read                          |
-| `exclude`       | []       | A list of file glob patterns to exclude from reading                                       |
-| `poll_interval` | 200ms    | The duration between filesystem polls                                                      |
-| `multiline`     |          | A `multiline` configuration block. See below for details                                   |
-| `write_to`      | $        | A [field](/docs/field.md) that will be set to the path of the file the entry was read from |
-| `path_field`    |          | A [field](/docs/field.md) that will be set to the path of the file the entry was read from |
+| Field           | Default  | Description                                                                                      |
+| ---             | ---      | ---                                                                                              |
+| `id`            | required | A unique identifier for the plugin                                                               |
+| `output`        | required | The `id` for the plugin to send parsed entries to                                                |
+| `include`       | required | A list of file glob patterns that match the file paths to be read                                |
+| `exclude`       | []       | A list of file glob patterns to exclude from reading                                             |
+| `poll_interval` | 200ms    | The duration between filesystem polls                                                            |
+| `multiline`     |          | A `multiline` configuration block. See below for details                                         |
+| `write_to`      | $        | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
+| `path_field`    |          | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
 
 #### `multiline` configuration
 

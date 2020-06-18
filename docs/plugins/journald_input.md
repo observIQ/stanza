@@ -8,13 +8,13 @@ The `journald_input` plugin will use the `__REALTIME_TIMESTAMP` field of the jou
 
 ### Configuration Fields
 
-| Field       | Default  | Description                                                                                |
-| ---         | ---      | ---                                                                                        |
-| `id`        | required | A unique identifier for the plugin                                                         |
-| `output`    | required | The `id` for the plugin to send parsed entries to                                          |
-| `directory` |          | A directory containing journal files to read entries from                                  |
-| `files`     |          | A list of journal files to read entries from                                               |
-| `write_to`  | $        | A [field](/docs/field.md) that will be set to the path of the file the entry was read from |
+| Field       | Default  | Description                                                                                      |
+| ---         | ---      | ---                                                                                              |
+| `id`        | required | A unique identifier for the plugin                                                               |
+| `output`    | required | The `id` for the plugin to send parsed entries to                                                |
+| `directory` |          | A directory containing journal files to read entries from                                        |
+| `files`     |          | A list of journal files to read entries from                                                     |
+| `write_to`  | $        | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
 
 
 
