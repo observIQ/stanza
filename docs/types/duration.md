@@ -25,11 +25,11 @@ If a string is specified, it will be interpreted according to Golang's [`time.Pa
 ```yaml
 - id: my_plugin
   type: some_plugin
-  duration: "10s"
+  duration: 10s
 ```
 
 ```yaml
 - id: my_plugin
   type: some_plugin
-  duration: "10000ms"
+  duration: 10000ms
 ```
