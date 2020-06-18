@@ -8,11 +8,11 @@ The `json_parser` plugin parses the string-type field selected by `parse_from` a
 | ---          | ---      | ---                                                                                                                                             |
 | `id`         | required | A unique identifier for the plugin                                                                                                              |
 | `output`     | required | The `id` for the plugin to send parsed entries to                                                                                               |
-| `parse_from` | $        | A [field](/docs/field.md) that indicates the field to be parsed as JSON                                                                         |
-| `parse_to`   | $        | A [field](/docs/field.md) that indicates the field to be parsed as JSON                                                                         |
+| `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                                   |
+| `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                                   |
 | `preserve`   | false    | Preserve the unparsed value on the record                                                                                                       |
 | `on_error`   | "ignore" | The behavior of the plugin if it encounters an error. See [on_error](/TODO)                                                                     |
-| `timestamp`  | `nil`    | An optional [timestamp](/docs/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin              |
+| `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin        |
 
 
 ### Example Configurations

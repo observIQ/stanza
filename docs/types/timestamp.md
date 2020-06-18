@@ -2,12 +2,12 @@
 
 Parser plugins can parse a timestamp and attach the resulting time value to a log entry.
 
-| Field         | Default    | Description                                                                      |
-| ---           | ---        | ---                                                                              |
-| `parse_from`  | required   | A [field](/docs/field.md) that indicates the field to be parsed as JSON          |
-| `layout_type` | `strptime` | The type of timestamp. Valid values are `strptime`, `gotime`, and `epoch`        |
-| `layout`      | required   | The exact layout of the timestamp to be parsed                                   |
-| `preserve`    | false      | Preserve the unparsed value on the record                                        |
+| Field         | Default    | Description                                                                   |
+| ---           | ---        | ---                                                                           |
+| `parse_from`  | required   | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON |
+| `layout_type` | `strptime` | The type of timestamp. Valid values are `strptime`, `gotime`, and `epoch`     |
+| `layout`      | required   | The exact layout of the timestamp to be parsed                                |
+| `preserve`    | false      | Preserve the unparsed value on the record                                     |
 
 
 ### How to specify timestamp parsing parameters

@@ -9,11 +9,11 @@ The `regex` plugin parses the string-type field selected by `parse_from` with th
 | `id`         | required | A unique identifier for the plugin                                                                                                              |
 | `output`     | required | The `id` for the plugin to send parsed entries to                                                                                               |
 | `regex`      | required | A [Go regular expression](https://github.com/google/re2/wiki/Syntax). The named capture groups will be extracted as fields in the parsed object |
-| `parse_from` | $        | A [field](/docs/field.md) that indicates the field to be parsed                                                                                 |
-| `parse_to`   | $        | A [field](/docs/field.md) that indicates the field to be parsed                                                                                 |
+| `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
+| `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
 | `preserve`   | false    | Preserve the unparsed value on the record                                                                                                       |
 | `on_error`   | "ignore" | The behavior of the plugin if it encounters an error. See [on_error](/TODO)                                                                     |
-| `timestamp`  | `nil`    | An optional [timestamp](/docs/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin              |
+| `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin        |
 
 ### Example Configurations
 

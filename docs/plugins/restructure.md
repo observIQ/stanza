@@ -19,11 +19,11 @@ they are defined.
 
 The `add` op adds a field to a record. It must have a `field` key and exactly one of `value` or `value_expr`.
 
-`field` is a [field](/docs/field.md) that will be set to `value` or the result of `value_expr`
+`field` is a [field](/docs/types/field.md) that will be set to `value` or the result of `value_expr`
 
 `value` is a static string that will be added to each entry at the field defined by `field`
 
-`value_expr` is an [expression](/docs/expression.md) with access to the `record` object
+`value_expr` is an [expression](/docs/types/expression.md) with access to the `record` object
 
 Example usage:
 ```yaml
