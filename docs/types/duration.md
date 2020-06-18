@@ -8,28 +8,28 @@ If a string is specified, it will be interpreted according to Golang's [`time.Pa
 
 ## Examples
 
-### Various ways to specify a duration of 10 seconds
+### Various ways to specify a duration of 1 minute
 
 ```yaml
 - id: my_plugin
   type: some_plugin
-  duration: 10
+  duration: 1m
 ```
 
 ```yaml
 - id: my_plugin
   type: some_plugin
-  duration: 10.0
+  duration: 60s
 ```
 
 ```yaml
 - id: my_plugin
   type: some_plugin
-  duration: 10s
+  duration: 60
 ```
 
 ```yaml
 - id: my_plugin
   type: some_plugin
-  duration: 10000ms
+  duration: 60.0
 ```
