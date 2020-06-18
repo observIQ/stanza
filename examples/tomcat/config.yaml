@@ -60,7 +60,6 @@ pipeline:
   #     "http_status": "200",
   #     "remote_host": "10.66.2.46",
   #     "remote_user": "-",
-  #     "timestamp": "13/Mar/2019:11:00:53 -0400",
   #     "url_path": "/manager/images/asf-logo.svg"
   #   }
   # }
