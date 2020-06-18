@@ -12,7 +12,7 @@ The `regex` plugin parses the string-type field selected by `parse_from` with th
 | `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
 | `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
 | `preserve`   | false    | Preserve the unparsed value on the record                                                                                                       |
-| `on_error`   | "ignore" | The behavior of the plugin if it encounters an error. See [on_error](/TODO)                                                                     |
+| `on_error`   | "ignore" | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                     |
 | `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin        |
 
 ### Example Configurations
