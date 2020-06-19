@@ -3,6 +3,7 @@ package agent
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/bluemedora/bplogagent/internal/testutil"
@@ -25,6 +26,9 @@ func TestOpenDatabase(t *testing.T) {
 	})
 
 	t.Run("BadPermissions", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Windows does not have the same kind of file permissions")
+		}
 		tempDir := testutil.NewTempDir(t)
 		err := os.MkdirAll(filepath.Join(tempDir, "badperms"), 0666)
 		require.NoError(t, err)
