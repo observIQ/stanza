@@ -129,7 +129,7 @@ Configuration:
 
 The `epoch` layout type uses can consume epoch-based timestamps. The following layouts are supported:
 
-| Layout | Meaning                                   | Example              | `parse_from` data type                          |
+| Layout | Meaning                                   | Example              | `parse_from` data type support                         |
 | ---    | ---                                       | ---                  | ---                                                      |
 | `s`    | Seconds since the epoch                   | 1136214245           | `string`:+1:&emsp;`int64`:+1:&emsp;`float64`:+1:                             |
 | `ms`   | Milliseconds since the epoch              | 1136214245123        | `string`:+1:&emsp;`int64`:+1:&emsp;`float64`:+1:                             |
@@ -139,8 +139,8 @@ The `epoch` layout type uses can consume epoch-based timestamps. The following l
 | `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | `string`:+1:&emsp;`int64`:hand:&emsp;`float64`:+1:               |
 | `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | `string`:+1:&emsp;`int64`:hand:&emsp;`float64`:crossed_fingers:  |
 
-<br/><sub>:hand: Interpretted as seconds. Equivalent to using `s` layout.</sub>
-<br/><sub>:crossed_fingers: Due to floating point precision limitations, loss of up to 100ns may be expected.</sub>
+<sub>:hand: Interpretted as seconds. Equivalent to using `s` layout.</sub><br/>
+<sub>:crossed_fingers: Due to floating point precision limitations, loss of up to 100ns may be expected.</sub>
 
 
 
