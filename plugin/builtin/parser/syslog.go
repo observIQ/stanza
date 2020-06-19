@@ -179,6 +179,8 @@ func setTimestampYear(t *time.Time) *time.Time {
 	year := n.Year()
 
 	d := time.Date(year, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	// If the timestamp would be more than 7 days in the future using this year,
+	// assume it's from last year.
 	if d.After(n.AddDate(0, 0, 7)) {
 		d = d.AddDate(-1, 0, 0)
 	}
