@@ -39,7 +39,6 @@ func TestOutputConfigNamespace(t *testing.T) {
 	require.Equal(t, "test-namespace.test-id", config.ID())
 }
 
-
 func TestOutputPluginCanProcess(t *testing.T) {
 	buildContext := testutil.NewTestBuildContext(t)
 	output := OutputPlugin{
@@ -90,11 +89,3 @@ func TestOutputPluginSetOutputs(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Plugin can not output")
 }
-
-
-
-
-
-
-
-
