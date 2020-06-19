@@ -37,17 +37,19 @@ func TestUDPInput(t *testing.T) {
 		require.NoError(t, err)
 
 		mockOutput := testutil.Plugin{}
-		tcpInput := newPlugin.(*UDPInput)
-		tcpInput.InputPlugin.Output = &mockOutput
+		udpInput, ok := newPlugin.(*UDPInput)
+		require.True(t, ok)
+
+		udpInput.InputPlugin.Output = &mockOutput
 
 		entryChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			entryChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		err = tcpInput.Start()
+		err = udpInput.Start()
 		require.NoError(t, err)
-		defer tcpInput.Stop()
+		defer udpInput.Stop()
 
 		conn, err := net.Dial("udp", "127.0.0.1:63001")
 		require.NoError(t, err)

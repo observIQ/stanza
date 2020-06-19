@@ -87,7 +87,7 @@ func (u *UDPInput) goHandleMessages(ctx context.Context) {
 			}
 
 			entry := u.Write(message)
-			if err := u.Process(ctx, entry); err != nil {
+			if err := u.Output.Process(ctx, entry); err != nil {
 				u.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}
