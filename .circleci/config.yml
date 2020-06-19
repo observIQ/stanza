@@ -24,8 +24,11 @@ jobs:
       - run:
           name: Build
           command: |
+            export VERSION="$CIRCLE_TAG"
             make install-tools
-            VERSION="$CIRCLE_TAG" make build-all
+            make build-all
+            sed "s|DEFAULT_VERSION=\"latest\"|DEFAULT_VERSION=\"tag/$VERSION\"|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
+            sed "s|DEFAULT_VERSION = 'latest'|DEFAULT_VERSION = 'tag/$VERSION'|g" < ./scripts/windows-install.ps1 > ./artifacts/windows-install.ps1
       - persist_to_workspace:
           root: ./artifacts
           paths:
@@ -49,8 +52,7 @@ jobs:
       - checkout
       - run:
           name: Run Unit Tests
-          command: |
-            go test -race -v -coverprofile coverage.txt -coverpkg ./... ./...
+          command: make test
       - codecov/upload:
           file: ./coverage.txt
 
@@ -70,7 +72,7 @@ jobs:
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
       - run:
           name: Run Unit Tests
-          command: go test -race -v ./...
+          command: make test
 
   test-windows:
     executor:
@@ -94,7 +96,7 @@ jobs:
       - run:
           name: Unit Tests
           shell: powershell.exe
-          command: go test -race -v ./...
+          command: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
 
   run-benchmark:
     parameters:
