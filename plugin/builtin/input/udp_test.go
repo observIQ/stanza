@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
@@ -33,7 +33,7 @@ func TestUDPInput(t *testing.T) {
 		cfg := basicUDPInputConfig()
 		cfg.ListenAddress = "127.0.0.1:63001"
 
-		buildContext := testutil.NewTestBuildContext(t)
+		buildContext := plugin.NewTestBuildContext(t)
 		newPlugin, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 

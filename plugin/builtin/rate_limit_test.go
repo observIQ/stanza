@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/mocks"
@@ -31,7 +30,7 @@ func TestRateLimit(t *testing.T) {
 		Burst: 1,
 	}
 
-	rateLimit, err := cfg.Build(testutil.NewTestBuildContext(t))
+	rateLimit, err := cfg.Build(plugin.NewTestBuildContext(t))
 	require.NoError(t, err)
 
 	receivedLog := make(chan struct{}, 100)

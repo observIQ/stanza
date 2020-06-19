@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/mocks"
@@ -101,7 +100,7 @@ func TestMetadata(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			metadataPlugin, err := tc.config.Build(testutil.NewTestBuildContext(t))
+			metadataPlugin, err := tc.config.Build(plugin.NewTestBuildContext(t))
 			require.NoError(t, err)
 
 			mockOutput := mocks.NewMockPlugin("output1")

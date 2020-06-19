@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/mocks"
@@ -77,7 +76,7 @@ func TestRouterPlugin(t *testing.T) {
 			cfg := basicConfig()
 			cfg.Routes = tc.routes
 
-			buildContext := testutil.NewTestBuildContext(t)
+			buildContext := plugin.NewTestBuildContext(t)
 			newPlugin, err := cfg.Build(buildContext)
 			require.NoError(t, err)
 

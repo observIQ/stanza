@@ -7,6 +7,7 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -94,14 +95,14 @@ func TestCustomRegistryLoad(t *testing.T) {
 		require.Contains(t, err.Error(), "as a custom template")
 	})
 
-	// t.Run("LoadAllWithFailures", func(t *testing.T) {
-	// 	tempDir := testutil.NewTempDir(t)
-	// 	pluginPath := filepath.Join(tempDir, "copy.yaml")
-	// 	err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
-	// 	require.NoError(t, err)
+	t.Run("LoadAllWithFailures", func(t *testing.T) {
+		tempDir := testutil.NewTempDir(t)
+		pluginPath := filepath.Join(tempDir, "copy.yaml")
+		err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
+		require.NoError(t, err)
 
-	// 	reg := CustomRegistry{}
-	// 	err = reg.LoadAll(tempDir, "*.yaml")
-	// 	require.Error(t, err)
-	// })
+		reg := CustomRegistry{}
+		err = reg.LoadAll(tempDir, "*.yaml")
+		require.Error(t, err)
+	})
 }

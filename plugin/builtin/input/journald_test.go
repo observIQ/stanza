@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/plugin/mocks"
@@ -43,7 +42,7 @@ func TestInputJournald(t *testing.T) {
 		},
 	}
 
-	journaldInput, err := cfg.Build(testutil.NewTestBuildContext(t))
+	journaldInput, err := cfg.Build(plugin.NewTestBuildContext(t))
 	require.NoError(t, err)
 
 	mockOutput := mocks.NewMockPlugin("output")

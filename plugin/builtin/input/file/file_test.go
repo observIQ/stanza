@@ -74,7 +74,7 @@ func TestFileSource_Build(t *testing.T) {
 		PathField: &pathField,
 	}
 
-	source, err := sourceConfig.Build(testutil.NewTestBuildContext(t))
+	source, err := sourceConfig.Build(plugin.NewTestBuildContext(t))
 	require.NoError(t, err)
 
 	err = source.SetOutputs([]plugin.Plugin{mockOutput})

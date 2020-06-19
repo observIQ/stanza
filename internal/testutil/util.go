@@ -6,9 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	plugin "github.com/bluemedora/bplogagent/plugin"
 	"go.etcd.io/bbolt"
-	"go.uber.org/zap/zaptest"
 )
 
 func NewTestDatabase(t *testing.T) *bbolt.DB {
@@ -31,13 +29,6 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 	})
 
 	return db
-}
-
-func NewTestBuildContext(t *testing.T) plugin.BuildContext {
-	return plugin.BuildContext{
-		Database: NewTestDatabase(t),
-		Logger:   zaptest.NewLogger(t).Sugar(),
-	}
 }
 
 func NewTempDir(t *testing.T) string {

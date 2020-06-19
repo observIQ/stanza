@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/buffer"
 	"github.com/bluemedora/bplogagent/plugin/helper"
@@ -254,7 +253,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			buildContext := testutil.NewTestBuildContext(t)
+			buildContext := plugin.NewTestBuildContext(t)
 			cloudOutput, err := tc.config.Build(buildContext)
 			require.NoError(t, err)
 
