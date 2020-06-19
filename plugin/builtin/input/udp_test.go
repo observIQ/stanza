@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +37,7 @@ func TestUDPInput(t *testing.T) {
 		newPlugin, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 
-		mockOutput := testutil.Plugin{}
+		mockOutput := mocks.Plugin{}
 		tcpInput := newPlugin.(*UDPInput)
 		tcpInput.InputPlugin.Output = &mockOutput
 

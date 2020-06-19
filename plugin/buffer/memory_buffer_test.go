@@ -47,7 +47,7 @@ func newMockHandler(t *testing.T) *mockHandler {
 func TestMemoryBufferRetry(t *testing.T) {
 	t.Run("FailOnce", func(t *testing.T) {
 		cfg := &BufferConfig{
-			DelayThreshold: plugin.Duration{10 * time.Millisecond},
+			DelayThreshold: plugin.Duration{Duration: 10 * time.Millisecond},
 		}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
@@ -69,7 +69,7 @@ func TestMemoryBufferRetry(t *testing.T) {
 
 	t.Run("ContextCancelled", func(t *testing.T) {
 		cfg := &BufferConfig{
-			DelayThreshold: plugin.Duration{10 * time.Millisecond},
+			DelayThreshold: plugin.Duration{Duration: 10 * time.Millisecond},
 		}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
@@ -97,9 +97,9 @@ func TestMemoryBufferRetry(t *testing.T) {
 
 	t.Run("ExceededLimit", func(t *testing.T) {
 		cfg := &BufferConfig{
-			DelayThreshold: plugin.Duration{10 * time.Millisecond},
+			DelayThreshold: plugin.Duration{Duration: 10 * time.Millisecond},
 			Retry: RetryConfig{
-				MaxElapsedTime: plugin.Duration{time.Nanosecond},
+				MaxElapsedTime: plugin.Duration{Duration: time.Nanosecond},
 			},
 		}
 		buffer, err := cfg.Build()
@@ -129,7 +129,7 @@ func TestMemoryBufferRetry(t *testing.T) {
 func TestMemoryBufferFlush(t *testing.T) {
 	t.Run("Simple", func(t *testing.T) {
 		cfg := &BufferConfig{
-			DelayThreshold: plugin.Duration{10 * time.Hour},
+			DelayThreshold: plugin.Duration{Duration: 10 * time.Hour},
 		}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestMemoryBufferFlush(t *testing.T) {
 
 	t.Run("ContextCancelled", func(t *testing.T) {
 		cfg := &BufferConfig{
-			DelayThreshold: plugin.Duration{10 * time.Hour},
+			DelayThreshold: plugin.Duration{Duration: 10 * time.Hour},
 		}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)

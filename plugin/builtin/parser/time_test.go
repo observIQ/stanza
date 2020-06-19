@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -305,7 +306,7 @@ func runTestLossy(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expecte
 		gotimePlugin, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 
-		mockOutput := &testutil.Plugin{}
+		mockOutput := &mocks.Plugin{}
 		resultChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			resultChan <- args.Get(1).(*entry.Entry)

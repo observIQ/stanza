@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -103,7 +104,7 @@ func TestMetadata(t *testing.T) {
 			metadataPlugin, err := tc.config.Build(testutil.NewTestBuildContext(t))
 			require.NoError(t, err)
 
-			mockOutput := testutil.NewMockOutput("output1")
+			mockOutput := mocks.NewMockPlugin("output1")
 			entryChan := make(chan *entry.Entry, 1)
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				entryChan <- args.Get(1).(*entry.Entry)

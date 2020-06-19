@@ -40,13 +40,6 @@ func NewTestBuildContext(t *testing.T) plugin.BuildContext {
 	}
 }
 
-func NewMockOutput(id string) *Plugin {
-	mockOutput := &Plugin{}
-	mockOutput.On("ID").Return(id)
-	mockOutput.On("CanProcess").Return(true)
-	return mockOutput
-}
-
 func NewTempDir(t *testing.T) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {

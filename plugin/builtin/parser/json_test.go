@@ -8,7 +8,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/mock"
@@ -16,8 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
-	mock := testutil.Plugin{}
+func NewFakeJSONPlugin() (*JSONParser, *mocks.Plugin) {
+	mock := mocks.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
 		ParserPlugin: helper.ParserPlugin{

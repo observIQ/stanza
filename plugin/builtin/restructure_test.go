@@ -11,15 +11,15 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 )
 
-func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
-	mock := testutil.Plugin{}
+func NewFakeRestructurePlugin() (*RestructurePlugin, *mocks.Plugin) {
+	mock := mocks.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &RestructurePlugin{
 		TransformerPlugin: helper.TransformerPlugin{

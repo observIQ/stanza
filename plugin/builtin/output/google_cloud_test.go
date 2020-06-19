@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/buffer"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/golang/protobuf/ptypes"
 	gax "github.com/googleapis/gax-go"
 	"github.com/stretchr/testify/require"

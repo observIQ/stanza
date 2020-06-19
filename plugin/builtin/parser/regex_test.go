@@ -8,14 +8,14 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
 
-func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
-	mockPlugin := testutil.Plugin{}
+func newFakeRegexParser() (*RegexParser, *mocks.Plugin) {
+	mockPlugin := mocks.Plugin{}
 	return &RegexParser{
 		ParserPlugin: helper.ParserPlugin{
 			BasicPlugin: helper.BasicPlugin{
