@@ -18,7 +18,7 @@ func TestUDPInput(t *testing.T) {
 			InputConfig: helper.InputConfig{
 				BasicConfig: helper.BasicConfig{
 					PluginID:   "test_id",
-					PluginType: "tcp_input",
+					PluginType: "udp_input",
 				},
 				WriteTo: entry.Field{
 					Keys: []string{},

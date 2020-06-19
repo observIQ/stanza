@@ -58,11 +58,11 @@ type InputPlugin struct {
 	Output   plugin.Plugin
 }
 
-// Write will create an entry using the write_to field and send it to the connected output.
-func (i *InputPlugin) Write(ctx context.Context, value interface{}) error {
+// Write will create an entry using the write_to field.
+func (i *InputPlugin) Write(value interface{}) *entry.Entry {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
-	return i.Output.Process(ctx, entry)
+	return entry
 }
 
 // CanProcess will always return false for an input plugin.
@@ -105,7 +105,7 @@ func FindOutput(plugins []plugin.Plugin, outputID string) (plugin.Plugin, error)
 		if plugin.ID() == outputID {
 			if !plugin.CanProcess() {
 				return nil, errors.NewError(
-					"Input plugin could not use its designated output.",
+					"Plugin could not use its designated output.",
 					"Ensure that the output is a plugin that can process logs (such as a parser or destination).",
 					"output_id", outputID,
 				)
@@ -116,7 +116,7 @@ func FindOutput(plugins []plugin.Plugin, outputID string) (plugin.Plugin, error)
 	}
 
 	return nil, errors.NewError(
-		"Input plugin could not find its output plugin.",
+		"Plugin could not find its output plugin.",
 		"Ensure that the output plugin is spelled correctly and defined in the config.",
 		"output_id", outputID,
 	)

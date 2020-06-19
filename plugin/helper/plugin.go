@@ -39,6 +39,15 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 		)
 	}
 
+	if context.Logger == nil {
+		return BasicPlugin{}, errors.NewError(
+			"Plugin build context is missing a logger.",
+			"This is an unexpected internal error. Please submit a bug/issue.",
+			"plugin_id", c.PluginID,
+			"plugin_type", c.PluginType,
+		)
+	}
+
 	plugin := BasicPlugin{
 		PluginID:      c.PluginID,
 		PluginType:    c.PluginType,
