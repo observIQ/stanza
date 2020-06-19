@@ -129,18 +129,18 @@ Configuration:
 
 The `epoch` layout type uses can consume epoch-based timestamps. The following layouts are supported:
 
-| Layout | Meaning                                   | Example              | `parse_from` data type support                         |
+| Layout | Meaning                                   | Example              | `parse_from` data type support                           |
 | ---    | ---                                       | ---                  | ---                                                      |
-| `s`    | Seconds since the epoch                   | `1136214245`           | :+1:`string`&emsp;:+1:`int64`&emsp;:+1:`float64`                             |
-| `ms`   | Milliseconds since the epoch              | `1136214245123`        | :+1:`string`&emsp;:+1:`int64`&emsp;:+1:`float64`                             |
-| `us`   | Microseconds since the epoch              | `1136214245123456`     | :+1:`string`&emsp;:+1:`int64`&emsp;:+1:`float64`                             |
-| `ns`   | Nanoseconds since the epoch               | `1136214245123456789`  | :+1:`string`&emsp;:+1:`int64`&emsp;:crossed_fingers:`float64`               |
-| `s.ms` | Seconds plus milliseconds since the epoch | `1136214245.123`       | :+1:`string`&emsp;:hand:`int64`&emsp;:+1:`float64`               |
-| `s.us` | Seconds plus microseconds since the epoch | `1136214245.123456`    | :+1:`string`&emsp;:hand:`int64`&emsp;:+1:`float64`               |
-| `s.ns` | Seconds plus nanoseconds since the epoch  | `1136214245.123456789` | :+1:`string`&emsp;:hand:`int64`&emsp;:crossed_fingers:`float64`  |
+| `s`    | Seconds since the epoch                   | 1136214245           | `string`, `int64`, `float64`                             |
+| `ms`   | Milliseconds since the epoch              | 1136214245123        | `string`, `int64`, `float64`                             |
+| `us`   | Microseconds since the epoch              | 1136214245123456     | `string`, `int64`, `float64`                             |
+| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | `string`, `int64`, `float64`<sup>[2]</sup>               |
+| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | `string`, `int64`<sup>[1]</sup>, `float64`               |
+| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | `string`, `int64`<sup>[1]</sup>, `float64`               |
+| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | `string`, `int64`<sup>[1]</sup>, `float64`<sup>[2]</sup> |
 
-<sub>:hand: Interpretted as seconds. Equivalent to using `s` layout.</sub><br/>
-<sub>:crossed_fingers: Due to floating point precision limitations, loss of up to 100ns may be expected.</sub>
+<sub>[1] Interpretted as seconds. Equivalent to using `s` layout.</sub><br/>
+<sub>[2] Due to floating point precision limitations, loss of up to 100ns may be expected.</sub>
 
 
 
