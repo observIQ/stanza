@@ -63,6 +63,9 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 	return db
 }
 
+// StubDatabase is an implementation of Database that
+// succeeds on all calls without persisting anything to disk.
+// This is used when --database is unspecified.
 type StubDatabase struct{}
 
 func (d *StubDatabase) Close() error                          { return nil }
@@ -70,6 +73,7 @@ func (d *StubDatabase) Sync() error                           { return nil }
 func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
 func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error   { return nil }
 
+// NewStubDatabase creates a new StubDatabase
 func NewStubDatabase() *StubDatabase {
 	return &StubDatabase{}
 }
