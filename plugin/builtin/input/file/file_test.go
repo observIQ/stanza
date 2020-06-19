@@ -191,7 +191,7 @@ func TestFileSource_StartAtEnd(t *testing.T) {
 	defer source.Stop()
 
 	// Wait until file has been read the first time
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	_, err = temp.WriteString("testlog2\n")
 	require.NoError(t, err)
@@ -211,7 +211,7 @@ func TestFileSource_StartAtEndNewFile(t *testing.T) {
 	defer source.Stop()
 
 	// Wait for the first check to complete
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	temp, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
@@ -265,7 +265,7 @@ func TestFileSource_MoveFile(t *testing.T) {
 	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
 	require.NoError(t, err)
