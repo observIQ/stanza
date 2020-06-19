@@ -177,10 +177,10 @@ var now = time.Now
 func setTimestampYear(t *time.Time) *time.Time {
 	n := now()
 	year := n.Year()
-	// Ensure that we get the correct year in the case of a new year rollover
-	if n.Month()-t.Month() < -3 {
-		year -= 1
-	}
+
 	d := time.Date(year, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	if d.After(n.AddDate(0, 0, 7)) {
+		d = d.AddDate(-1, 0, 0)
+	}
 	return &d
 }
