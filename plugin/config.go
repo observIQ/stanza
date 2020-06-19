@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"testing"
 
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 )
 
 // Config is the configuration of a plugin
@@ -27,6 +30,15 @@ type BuildContext struct {
 	CustomRegistry CustomRegistry
 	Database       *bbolt.DB
 	Logger         *zap.SugaredLogger
+}
+
+// NewTestBuildContext returns a build context with a temporary database
+// and a logger that writes to the test
+func NewTestBuildContext(t *testing.T) BuildContext {
+	return BuildContext{
+		Database: testutil.NewTestDatabase(t),
+		Logger:   zaptest.NewLogger(t).Sugar(),
+	}
 }
 
 // registry is a global registry of plugin types to plugin builders.
