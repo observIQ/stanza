@@ -73,7 +73,7 @@ jobs:
           command: go test -race -v ./...
 
   test-windows:
-    executor: 
+    executor:
       name: win/default
       size: large
 
@@ -124,7 +124,7 @@ jobs:
         default: 128GB
 
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
 
     steps:
       - checkout
@@ -231,7 +231,7 @@ jobs:
 
   report-results:
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
     steps:
       - checkout
       - run:
