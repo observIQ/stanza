@@ -3,10 +3,12 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -28,15 +30,55 @@ type Builder interface {
 // BuildContext supplies contextual resources when building a plugin.
 type BuildContext struct {
 	CustomRegistry CustomRegistry
-	Database       *bbolt.DB
+	Database       Database
 	Logger         *zap.SugaredLogger
+}
+
+type Database interface {
+	Close() error
+	Sync() error
+	Update(func(*bbolt.Tx) error) error
+	View(func(*bbolt.Tx) error) error
+}
+
+func NewTestDatabase(t *testing.T) *bbolt.DB {
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
+
+	db, err := bbolt.Open(filepath.Join(tempDir, "test.db"), 0666, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	return db
+}
+
+type StubDatabase struct{}
+
+func (d *StubDatabase) Close() error                          { return nil }
+func (d *StubDatabase) Sync() error                           { return nil }
+func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
+func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error   { return nil }
+
+func NewStubDatabase() *StubDatabase {
+	return &StubDatabase{}
 }
 
 // NewTestBuildContext returns a build context with a temporary database
 // and a logger that writes to the test
 func NewTestBuildContext(t *testing.T) BuildContext {
 	return BuildContext{
-		Database: testutil.NewTestDatabase(t),
+		Database: NewTestDatabase(t),
 		Logger:   zaptest.NewLogger(t).Sugar(),
 	}
 }

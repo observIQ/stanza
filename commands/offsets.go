@@ -37,11 +37,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 		Short: "Clear persisted offsets from the database",
 		Args:  cobra.ArbitraryArgs,
 		Run: func(command *cobra.Command, args []string) {
-			cfg, err := agent.NewConfigFromGlobs(rootFlags.ConfigFiles)
-			exitOnErr("Failed to read configs from glob", err)
-			cfg.SetDefaults(rootFlags.DatabaseFile, rootFlags.PluginDir)
-
-			db, err := agent.OpenDatabase(cfg.Database)
+			db, err := agent.OpenDatabase(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 			defer db.Sync()
@@ -92,11 +88,7 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 		Short: "List plugins with persisted offsets",
 		Args:  cobra.NoArgs,
 		Run: func(command *cobra.Command, args []string) {
-			cfg, err := agent.NewConfigFromGlobs(rootFlags.ConfigFiles)
-			exitOnErr("Failed to read configs from glob", err)
-			cfg.SetDefaults(rootFlags.DatabaseFile, rootFlags.PluginDir)
-
-			db, err := agent.OpenDatabase(cfg.Database)
+			db, err := agent.OpenDatabase(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 

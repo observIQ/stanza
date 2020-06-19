@@ -116,7 +116,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
-		persist:          helper.NewScopedBBoltPersister(context.Database, c.ID()),
+		persist:          helper.NewScopedDBPersister(context.Database, c.ID()),
 		PathField:        c.PathField,
 		runningFiles:     make(map[string]struct{}),
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),

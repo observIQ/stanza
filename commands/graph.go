@@ -40,7 +40,6 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
-	cfg.SetDefaults(flags.DatabaseFile, flags.PluginDir)
 
 	customRegistry, err := plugin.NewCustomRegistry(flags.PluginDir)
 	if err != nil {
