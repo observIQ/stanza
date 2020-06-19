@@ -129,15 +129,20 @@ Configuration:
 
 The `epoch` layout type uses can consume epoch-based timestamps. The following layouts are supported:
 
-| Layout | Meaning                                   | Example              | `string` | `int64`    | `float64`  |
-| ---    | ---                                       | ---                  | ---      | ---        | ---        |
-| `s`    | Seconds since the epoch                   | 1136214245           | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark:        |
-| `ms`   | Milliseconds since the epoch              | 1136214245123        | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark:        |
-| `us`   | Microseconds since the epoch              | 1136214245123456     | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark:        |
-| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | :heavy_check_mark:      | :heavy_check_mark:        | :heavy_check_mark: (lossy) |
-| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | :heavy_check_mark:      | :heavy_check_mark: (lossy) | :heavy_check_mark:        |
-| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | :heavy_check_mark:      | :heavy_check_mark: (lossy) | :heavy_check_mark:        |
-| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | :heavy_check_mark:      | :heavy_check_mark: (lossy) | :heavy_check_mark: (lossy) |
+| Layout | Meaning                                   | Example              | `parse_from` data type support                           |
+| ---    | ---                                       | ---                  | ---                                                      |
+| `s`    | Seconds since the epoch                   | 1136214245           | `string`, `int64`, `float64`                             |
+| `ms`   | Milliseconds since the epoch              | 1136214245123        | `string`, `int64`, `float64`                             |
+| `us`   | Microseconds since the epoch              | 1136214245123456     | `string`, `int64`, `float64`                             |
+| `ns`   | Nanoseconds since the epoch               | 1136214245123456789  | `string`, `int64`, `float64`<sup>[2]</sup>               |
+| `s.ms` | Seconds plus milliseconds since the epoch | 1136214245.123       | `string`, `int64`<sup>[1]</sup>, `float64`               |
+| `s.us` | Seconds plus microseconds since the epoch | 1136214245.123456    | `string`, `int64`<sup>[1]</sup>, `float64`               |
+| `s.ns` | Seconds plus nanoseconds since the epoch  | 1136214245.123456789 | `string`, `int64`<sup>[1]</sup>, `float64`<sup>[2]</sup> |
+
+<sub>[1] Interpretted as seconds. Equivalent to using `s` layout.</sub><br/>
+<sub>[2] Due to floating point precision limitations, loss of up to 100ns may be expected.</sub>
+
+
 
 Configuration:
 ```yaml
