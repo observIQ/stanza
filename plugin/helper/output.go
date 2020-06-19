@@ -10,16 +10,6 @@ type OutputConfig struct {
 	BasicConfig `mapstructure:",squash" yaml:",inline"`
 }
 
-// ID will return the plugin id.
-func (c OutputConfig) ID() string {
-	return c.PluginID
-}
-
-// Type will return the plugin type.
-func (c OutputConfig) Type() string {
-	return c.PluginType
-}
-
 // Build will build an output plugin.
 func (c OutputConfig) Build(context plugin.BuildContext) (OutputPlugin, error) {
 	basicPlugin, err := c.BasicConfig.Build(context)
