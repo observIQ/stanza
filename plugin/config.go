@@ -78,22 +78,22 @@ func (c *Config) UnmarshalJSON(bytes []byte) error {
 
 	err := json.Unmarshal(bytes, &baseConfig)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal json to base config: %s", err)
+		return err
 	}
 
 	if baseConfig.Type == "" {
-		return fmt.Errorf("failed to unmarshal json to undefined plugin type")
+		return fmt.Errorf("missing required field 'type'")
 	}
 
 	builderFunc, ok := registry[baseConfig.Type]
 	if !ok {
-		return fmt.Errorf("failed to unmarshal json to unsupported type: %s", baseConfig.Type)
+		return fmt.Errorf("unsupported type '%s'", baseConfig.Type)
 	}
 
 	builder := builderFunc()
 	err = json.Unmarshal(bytes, builder)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal json to %s: %s", baseConfig.Type, err)
+		return fmt.Errorf("unmarshal to %s: %s", baseConfig.Type, err)
 	}
 
 	c.Builder = builder
@@ -115,7 +115,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	typeInterface, ok := rawConfig["type"]
 	if !ok {
-		return fmt.Errorf("plugin is missing required field 'type'")
+		return fmt.Errorf("missing required field 'type'")
 	}
 
 	typeString, ok := typeInterface.(string)
@@ -125,13 +125,13 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	builderFunc, ok := registry[typeString]
 	if !ok {
-		return fmt.Errorf("failed to unmarshal yaml to unsupported type: %s", typeString)
+		return fmt.Errorf("unsupported type '%s'", typeString)
 	}
 
 	builder := builderFunc()
 	err = unmarshal(builder)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal yaml to %s: %s", typeString, err)
+		return fmt.Errorf("unmarshal to %s: %s", typeString, err)
 	}
 
 	c.Builder = builder

@@ -403,6 +403,8 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
 
+	time.Sleep(50 * time.Millisecond)
+
 	temp2, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
 	defer temp2.Close()
