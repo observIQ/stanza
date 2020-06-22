@@ -12,16 +12,6 @@ type TransformerConfig struct {
 	OutputID string `json:"output" yaml:"output"`
 }
 
-// ID will return the plugin id.
-func (c TransformerConfig) ID() string {
-	return c.PluginID
-}
-
-// Type will return the plugin type.
-func (c TransformerConfig) Type() string {
-	return c.PluginType
-}
-
 // Build will build a transformer plugin.
 func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin, error) {
 	basicPlugin, err := c.BasicConfig.Build(context)
