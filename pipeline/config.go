@@ -14,7 +14,7 @@ type Config []Params
 func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
 	pluginConfigs, err := c.buildPluginConfigs(context)
 	if err != nil {
-		return nil, errors.Wrap(err, "build plugin configs")
+		return nil, err
 	}
 
 	plugins, err := c.buildPlugins(pluginConfigs, context)
