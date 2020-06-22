@@ -21,16 +21,6 @@ type ParserConfig struct {
 	TimeParser *TimeParser `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 }
 
-// ID will return the plugin id.
-func (c ParserConfig) ID() string {
-	return c.PluginID
-}
-
-// Type will return the plugin type.
-func (c ParserConfig) Type() string {
-	return c.PluginType
-}
-
 // Build will build a parser plugin.
 func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 	basicPlugin, err := c.BasicConfig.Build(context)

@@ -9,7 +9,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -93,12 +93,12 @@ func TestSyslogParser(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			buildContext := plugin.NewTestBuildContext(t)
+			buildContext := testutil.NewBuildContext(t)
 			newPlugin, err := tc.config.Build(buildContext)
 			require.NoError(t, err)
 			syslogParser := newPlugin.(*SyslogParser)
 
-			mockOutput := mocks.NewMockPlugin("output1")
+			mockOutput := testutil.NewMockPlugin("output1")
 			entryChan := make(chan *entry.Entry, 1)
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				entryChan <- args.Get(1).(*entry.Entry)

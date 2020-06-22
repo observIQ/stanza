@@ -15,21 +15,20 @@ import (
 	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
 
 func newTestFileSource(t *testing.T) (*FileInput, chan string) {
-	mockOutput := mocks.NewMockPlugin("output")
+	mockOutput := testutil.NewMockPlugin("output")
 	receivedMessages := make(chan string, 1000)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedMessages <- args.Get(1).(*entry.Entry).Record.(string)
 	})
 
 	logger := zaptest.NewLogger(t).Sugar()
-	db := plugin.NewTestDatabase(t)
+	db := testutil.NewTestDatabase(t)
 
 	source := &FileInput{
 		InputPlugin: helper.InputPlugin{
@@ -55,7 +54,7 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 
 func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
-	mockOutput := mocks.NewMockPlugin("mock")
+	mockOutput := testutil.NewMockPlugin("mock")
 
 	pathField := entry.NewField("testpath")
 
@@ -148,7 +147,7 @@ func TestFileSource_Build(t *testing.T) {
 			cfg := basicConfig()
 			tc.modifyBaseConfig(cfg)
 
-			plg, err := cfg.Build(plugin.NewTestBuildContext(t))
+			plg, err := cfg.Build(testutil.NewBuildContext(t))
 			tc.errorRequirement(t, err)
 			if err != nil {
 				return

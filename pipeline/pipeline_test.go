@@ -4,16 +4,16 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/topo"
 )
 
 func TestUnorderableToCycles(t *testing.T) {
-	mockPlugin1 := mocks.NewMockPlugin("plugin1")
-	mockPlugin2 := mocks.NewMockPlugin("plugin2")
-	mockPlugin3 := mocks.NewMockPlugin("plugin3")
+	mockPlugin1 := testutil.NewMockPlugin("plugin1")
+	mockPlugin2 := testutil.NewMockPlugin("plugin2")
+	mockPlugin3 := testutil.NewMockPlugin("plugin3")
 	mockPlugin1.On("Outputs").Return([]plugin.Plugin{mockPlugin2})
 	mockPlugin2.On("Outputs").Return([]plugin.Plugin{mockPlugin3})
 	mockPlugin3.On("Outputs").Return([]plugin.Plugin{mockPlugin1})

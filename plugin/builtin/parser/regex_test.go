@@ -6,16 +6,16 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
 
-func newFakeRegexParser() (*RegexParser, *mocks.Plugin) {
-	mockPlugin := mocks.Plugin{}
+func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
+	mockPlugin := testutil.Plugin{}
 	return &RegexParser{
 		ParserPlugin: helper.ParserPlugin{
 			BasicPlugin: helper.BasicPlugin{

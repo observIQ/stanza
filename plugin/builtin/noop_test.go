@@ -3,7 +3,7 @@ package builtin
 import (
 	"testing"
 
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ func TestNoopPluginBuild(t *testing.T) {
 		},
 	}
 
-	buildContext := plugin.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	_, err := cfg.Build(buildContext)
 	require.NoError(t, err)
 }

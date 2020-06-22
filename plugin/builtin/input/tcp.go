@@ -124,7 +124,8 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 				break
 			}
 
-			if err := t.Write(ctx, message); err != nil {
+			entry := t.Write(message)
+			if err := t.Output.Process(ctx, entry); err != nil {
 				t.Errorw("Failed to write entry", zap.Any("error", err))
 			}
 		}

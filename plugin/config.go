@@ -3,15 +3,10 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"reflect"
-	"testing"
 
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 )
 
 // Config is the configuration of a plugin
@@ -41,28 +36,6 @@ type Database interface {
 	View(func(*bbolt.Tx) error) error
 }
 
-func NewTestDatabase(t *testing.T) *bbolt.DB {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
-	})
-
-	db, err := bbolt.Open(filepath.Join(tempDir, "test.db"), 0666, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		db.Close()
-	})
-
-	return db
-}
-
 // StubDatabase is an implementation of Database that
 // succeeds on all calls without persisting anything to disk.
 // This is used when --database is unspecified.
@@ -76,15 +49,6 @@ func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error   { return nil }
 // NewStubDatabase creates a new StubDatabase
 func NewStubDatabase() *StubDatabase {
 	return &StubDatabase{}
-}
-
-// NewTestBuildContext returns a build context with a temporary database
-// and a logger that writes to the test
-func NewTestBuildContext(t *testing.T) BuildContext {
-	return BuildContext{
-		Database: NewTestDatabase(t),
-		Logger:   zaptest.NewLogger(t).Sugar(),
-	}
 }
 
 // registry is a global registry of plugin types to plugin builders.

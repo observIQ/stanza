@@ -9,7 +9,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -30,11 +30,11 @@ func TestRateLimit(t *testing.T) {
 		Burst: 1,
 	}
 
-	rateLimit, err := cfg.Build(plugin.NewTestBuildContext(t))
+	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 
 	receivedLog := make(chan struct{}, 100)
-	mockOutput := mocks.NewMockPlugin("output1")
+	mockOutput := testutil.NewMockPlugin("output1")
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedLog <- struct{}{}
 	})
