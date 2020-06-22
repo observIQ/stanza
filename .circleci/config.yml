@@ -27,8 +27,8 @@ jobs:
             export VERSION="$CIRCLE_TAG"
             make install-tools
             make build-all
-            sed "s|DEFAULT_VERSION=\"latest\"|DEFAULT_VERSION=\"tag/$VERSION\"|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
-            sed "s|DEFAULT_VERSION = 'latest'|DEFAULT_VERSION = 'tag/$VERSION'|g" < ./scripts/windows-install.ps1 > ./artifacts/windows-install.ps1
+            sed "s|/releases/latest/download|/releases/$VERSION/download|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
+            sed "s|/releases/latest/download|/releases/$VERSION/download|g" < ./scripts/windows-install.ps1 > ./artifacts/windows-install.ps1
       - persist_to_workspace:
           root: ./artifacts
           paths:

@@ -5,10 +5,9 @@
 set -e
 
 # Agent Constants
-DEFAULT_VERSION="latest"
 SERVICE_NAME="bplogagent"
 BINARY_NAME="bplogagent"
-DOWNLOAD_BASE="https://github.com/BlueMedora/bplogagent/releases/${DEFAULT_VERSION}/download"
+DOWNLOAD_BASE="https://github.com/BlueMedora/bplogagent/releases/latest/download"
 
 # Script Constants
 PREREQS="curl hostname printf ps sed uname cut tar"
