@@ -13,7 +13,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -42,10 +42,10 @@ func TestInputJournald(t *testing.T) {
 		},
 	}
 
-	journaldInput, err := cfg.Build(testutil.NewTestBuildContext(t))
+	journaldInput, err := cfg.Build(plugin.NewTestBuildContext(t))
 	require.NoError(t, err)
 
-	mockOutput := testutil.NewMockOutput("output")
+	mockOutput := mocks.NewMockPlugin("output")
 	received := make(chan *entry.Entry)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		received <- args.Get(1).(*entry.Entry)

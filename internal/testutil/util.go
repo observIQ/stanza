@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	plugin "github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )
@@ -33,20 +33,6 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 	return db
 }
 
-func NewTestBuildContext(t *testing.T) plugin.BuildContext {
-	return plugin.BuildContext{
-		Database: NewTestDatabase(t),
-		Logger:   zaptest.NewLogger(t).Sugar(),
-	}
-}
-
-func NewMockOutput(id string) *Plugin {
-	mockOutput := &Plugin{}
-	mockOutput.On("ID").Return(id)
-	mockOutput.On("CanProcess").Return(true)
-	return mockOutput
-}
-
 func NewTempDir(t *testing.T) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -58,4 +44,11 @@ func NewTempDir(t *testing.T) string {
 	})
 
 	return tempDir
+}
+
+func NewBuildContext(t *testing.T) plugin.BuildContext {
+	return plugin.BuildContext{
+		Database: NewTestDatabase(t),
+		Logger:   zaptest.NewLogger(t).Sugar(),
+	}
 }

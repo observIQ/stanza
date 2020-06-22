@@ -11,7 +11,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

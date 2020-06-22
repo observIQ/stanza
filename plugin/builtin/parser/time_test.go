@@ -8,7 +8,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -300,7 +300,7 @@ func runTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected tim
 func runTestLossy(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time, maxLoss time.Duration) func(*testing.T) {
 
 	return func(t *testing.T) {
-		buildContext := testutil.NewTestBuildContext(t)
+		buildContext := testutil.NewBuildContext(t)
 
 		gotimePlugin, err := cfg.Build(buildContext)
 		require.NoError(t, err)

@@ -81,20 +81,11 @@ func (a *LogAgent) Stop() {
 	a.Info("Agent stopped")
 }
 
-// Status will return the status of the agent.
-func (a *LogAgent) Status() struct{} {
-	return struct{}{}
-}
-
 // OpenDatabase will open and create a database.
 func OpenDatabase(file string) (*bbolt.DB, error) {
-	if file == "" {
-		file = defaultDatabaseFile()
-	}
-
 	if _, err := os.Stat(filepath.Dir(file)); err != nil {
 		if os.IsNotExist(err) {
-			err := os.MkdirAll(filepath.Dir(file), 0666)
+			err := os.MkdirAll(filepath.Dir(file), 0755)
 			if err != nil {
 				return nil, fmt.Errorf("creating database directory: %s", err)
 			}
@@ -105,15 +96,6 @@ func OpenDatabase(file string) (*bbolt.DB, error) {
 
 	options := &bbolt.Options{Timeout: 1 * time.Second}
 	return bbolt.Open(file, 0666, options)
-}
-
-// defaultDatabaseFile returns the default location of the database.
-func defaultDatabaseFile() string {
-	dir, err := os.UserCacheDir()
-	if err != nil {
-		return filepath.Join(".", "bplogagent.db")
-	}
-	return filepath.Join(dir, "bplogagent.db")
 }
 
 // NewLogAgent creates a new log agent.

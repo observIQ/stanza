@@ -8,7 +8,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,15 +32,12 @@ func TestInputGenerate(t *testing.T) {
 		}
 	}
 
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	newPlugin, err := basicConfig().Build(buildContext)
 	require.NoError(t, err)
 
-	mockOutput := &testutil.Plugin{}
-	mockOutput.On("ID").Return("output1")
-	mockOutput.On("CanProcess").Return(true)
-
 	receivedEntries := make(chan *entry.Entry)
+	mockOutput := testutil.NewMockPlugin("output1")
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedEntries <- args.Get(1).(*entry.Entry)
 	})

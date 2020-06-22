@@ -6,7 +6,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +15,7 @@ func TestInputConfigMissingBase(t *testing.T) {
 		WriteTo:  entry.Field{},
 		OutputID: "test-output",
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Plugin config is missing the `id` field.")
@@ -29,7 +29,7 @@ func TestInputConfigMissingOutput(t *testing.T) {
 		},
 		WriteTo: entry.Field{},
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Plugin config is missing the `output` field.")
@@ -44,7 +44,7 @@ func TestInputConfigValid(t *testing.T) {
 		WriteTo:  entry.Field{},
 		OutputID: "test-output",
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.NoError(t, err)
 }
@@ -64,7 +64,7 @@ func TestInputConfigSetNamespace(t *testing.T) {
 }
 
 func TestInputPluginCanProcess(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -76,7 +76,7 @@ func TestInputPluginCanProcess(t *testing.T) {
 }
 
 func TestInputPluginProcess(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -92,7 +92,7 @@ func TestInputPluginProcess(t *testing.T) {
 }
 
 func TestInputPluginCanOutput(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -105,7 +105,7 @@ func TestInputPluginCanOutput(t *testing.T) {
 
 func TestInputPluginOutputs(t *testing.T) {
 	output := &testutil.Plugin{}
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -121,7 +121,7 @@ func TestInputPluginSetOutputsValid(t *testing.T) {
 	output := &testutil.Plugin{}
 	output.On("ID").Return("test-output")
 	output.On("CanProcess").Return(true)
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -140,7 +140,7 @@ func TestInputPluginSetOutputsInvalid(t *testing.T) {
 	output := &testutil.Plugin{}
 	output.On("ID").Return("test-output")
 	output.On("CanProcess").Return(false)
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -155,7 +155,7 @@ func TestInputPluginSetOutputsInvalid(t *testing.T) {
 }
 
 func TestInputPluginWrite(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	writeTo := entry.NewField("test-field")
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{

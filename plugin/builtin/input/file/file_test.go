@@ -12,16 +12,16 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
 
 func newTestFileSource(t *testing.T) (*FileInput, chan string) {
-	mockOutput := testutil.NewMockOutput("output")
+	mockOutput := testutil.NewMockPlugin("output")
 	receivedMessages := make(chan string, 1000)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedMessages <- args.Get(1).(*entry.Entry).Record.(string)
@@ -54,36 +54,112 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 
 func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
-	mockOutput := testutil.NewMockOutput("mock")
+	mockOutput := testutil.NewMockPlugin("mock")
 
 	pathField := entry.NewField("testpath")
 
-	sourceConfig := &FileInputConfig{
-		InputConfig: helper.InputConfig{
-			BasicConfig: helper.BasicConfig{
-				PluginID:   "testfile",
-				PluginType: "file_input",
+	basicConfig := func() *FileInputConfig {
+		return &FileInputConfig{
+			InputConfig: helper.InputConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "testfile",
+					PluginType: "file_input",
+				},
+				OutputID: "mock",
 			},
-			OutputID: "mock",
-		},
-		Include: []string{"/var/log/testpath.*"},
-		PollInterval: &plugin.Duration{
-			Duration: 10 * time.Millisecond,
-		},
-		PathField: &pathField,
+			Include: []string{"/var/log/testpath.*"},
+			Exclude: []string{"/var/log/testpath.ex*"},
+			PollInterval: &plugin.Duration{
+				Duration: 10 * time.Millisecond,
+			},
+			PathField: &pathField,
+		}
 	}
 
-	source, err := sourceConfig.Build(testutil.NewTestBuildContext(t))
-	require.NoError(t, err)
+	cases := []struct {
+		name             string
+		modifyBaseConfig func(*FileInputConfig)
+		errorRequirement require.ErrorAssertionFunc
+		validate         func(*testing.T, *FileInput)
+	}{
+		{
+			"Basic",
+			func(f *FileInputConfig) { return },
+			require.NoError,
+			func(t *testing.T, f *FileInput) {
+				require.Equal(t, f.Output, mockOutput)
+				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
+				require.Equal(t, f.PathField, &pathField)
+				require.Equal(t, f.PollInterval, 10*time.Millisecond)
+			},
+		},
+		{
+			"BadIncludeGlob",
+			func(f *FileInputConfig) {
+				f.Include = []string{"["}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"BadExcludeGlob",
+			func(f *FileInputConfig) {
+				f.Include = []string{"["}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"MultilineConfiguredStartAndEndPatterns",
+			func(f *FileInputConfig) {
+				f.Multiline = &FileSourceMultilineConfig{
+					LineEndPattern:   "Exists",
+					LineStartPattern: "Exists",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"MultilineConfiguredStartPattern",
+			func(f *FileInputConfig) {
+				f.Multiline = &FileSourceMultilineConfig{
+					LineStartPattern: "START.*",
+				}
+			},
+			require.NoError,
+			func(t *testing.T, f *FileInput) {},
+		},
+		{
+			"MultilineConfiguredEndPattern",
+			func(f *FileInputConfig) {
+				f.Multiline = &FileSourceMultilineConfig{
+					LineEndPattern: "END.*",
+				}
+			},
+			require.NoError,
+			func(t *testing.T, f *FileInput) {},
+		},
+	}
 
-	err = source.SetOutputs([]plugin.Plugin{mockOutput})
-	require.NoError(t, err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := basicConfig()
+			tc.modifyBaseConfig(cfg)
 
-	fileInput := source.(*FileInput)
-	require.Equal(t, fileInput.Output, mockOutput)
-	require.Equal(t, fileInput.Include, []string{"/var/log/testpath.*"})
-	require.Equal(t, fileInput.PathField, sourceConfig.PathField)
-	require.Equal(t, fileInput.PollInterval, 10*time.Millisecond)
+			plg, err := cfg.Build(testutil.NewBuildContext(t))
+			tc.errorRequirement(t, err)
+			if err != nil {
+				return
+			}
+
+			err = plg.SetOutputs([]plugin.Plugin{mockOutput})
+			require.NoError(t, err)
+
+			fileInput := plg.(*FileInput)
+			tc.validate(t, fileInput)
+		})
+	}
 }
 
 func TestFileSource_CleanStop(t *testing.T) {
@@ -191,7 +267,7 @@ func TestFileSource_StartAtEnd(t *testing.T) {
 	defer source.Stop()
 
 	// Wait until file has been read the first time
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	_, err = temp.WriteString("testlog2\n")
 	require.NoError(t, err)
@@ -211,7 +287,7 @@ func TestFileSource_StartAtEndNewFile(t *testing.T) {
 	defer source.Stop()
 
 	// Wait for the first check to complete
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	temp, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
@@ -265,7 +341,7 @@ func TestFileSource_MoveFile(t *testing.T) {
 	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
 	require.NoError(t, err)

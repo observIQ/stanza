@@ -9,7 +9,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -93,14 +93,12 @@ func TestSyslogParser(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			buildContext := testutil.NewTestBuildContext(t)
+			buildContext := testutil.NewBuildContext(t)
 			newPlugin, err := tc.config.Build(buildContext)
 			require.NoError(t, err)
 			syslogParser := newPlugin.(*SyslogParser)
 
-			mockOutput := &testutil.Plugin{}
-			mockOutput.On("CanProcess").Return(true)
-			mockOutput.On("ID").Return("output1")
+			mockOutput := testutil.NewMockPlugin("output1")
 			entryChan := make(chan *entry.Entry, 1)
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				entryChan <- args.Get(1).(*entry.Entry)
@@ -137,14 +135,36 @@ func Test_setTimestampYear(t *testing.T) {
 		require.Equal(t, &expected, yearAdded)
 	})
 
-	t.Run("Rollover", func(t *testing.T) {
+	t.Run("FutureOneDay", func(t *testing.T) {
 		now = func() time.Time {
 			return time.Date(2020, 01, 16, 3, 31, 34, 525, time.UTC)
 		}
 
-		noYear := time.Date(0, 06, 16, 3, 31, 34, 525, time.UTC)
+		noYear := time.Date(0, 01, 17, 3, 31, 34, 525, time.UTC)
 		yearAdded := setTimestampYear(&noYear)
-		expected := time.Date(2019, 06, 16, 3, 31, 34, 525, time.UTC)
+		expected := time.Date(2020, 01, 17, 3, 31, 34, 525, time.UTC)
+		require.Equal(t, &expected, yearAdded)
+	})
+
+	t.Run("FutureEightDays", func(t *testing.T) {
+		now = func() time.Time {
+			return time.Date(2020, 01, 16, 3, 31, 34, 525, time.UTC)
+		}
+
+		noYear := time.Date(0, 01, 24, 3, 31, 34, 525, time.UTC)
+		yearAdded := setTimestampYear(&noYear)
+		expected := time.Date(2019, 01, 24, 3, 31, 34, 525, time.UTC)
+		require.Equal(t, &expected, yearAdded)
+	})
+
+	t.Run("RolloverYear", func(t *testing.T) {
+		now = func() time.Time {
+			return time.Date(2020, 01, 01, 3, 31, 34, 525, time.UTC)
+		}
+
+		noYear := time.Date(0, 12, 31, 3, 31, 34, 525, time.UTC)
+		yearAdded := setTimestampYear(&noYear)
+		expected := time.Date(2019, 12, 31, 3, 31, 34, 525, time.UTC)
 		require.Equal(t, &expected, yearAdded)
 	})
 }

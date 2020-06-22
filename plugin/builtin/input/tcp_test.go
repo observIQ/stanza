@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +32,7 @@ func TestTCPInput(t *testing.T) {
 		cfg := basicTCPInputConfig()
 		cfg.ListenAddress = "127.0.0.1:64001"
 
-		buildContext := testutil.NewTestBuildContext(t)
+		buildContext := testutil.NewBuildContext(t)
 		newPlugin, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 

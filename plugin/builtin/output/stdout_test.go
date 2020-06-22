@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +23,7 @@ func TestStdoutPlugin(t *testing.T) {
 		},
 	}
 
-	plugin, err := cfg.Build(testutil.NewTestBuildContext(t))
+	plugin, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 
 	var buf bytes.Buffer

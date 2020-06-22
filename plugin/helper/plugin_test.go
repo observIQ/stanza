@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -61,7 +61,7 @@ func TestBasicConfigBuildValid(t *testing.T) {
 		PluginID:   "test-id",
 		PluginType: "test-type",
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	plugin, err := config.Build(context)
 	require.NoError(t, err)
 	require.Equal(t, "test-id", plugin.PluginID)

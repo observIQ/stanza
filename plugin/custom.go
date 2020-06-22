@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/bluemedora/bplogagent/errors"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // CustomConfig is the rendered config of a custom plugin.

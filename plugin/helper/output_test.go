@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOutputConfigMissingBase(t *testing.T) {
 	config := OutputConfig{}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Plugin config is missing the `id` field.")
@@ -23,7 +23,7 @@ func TestOutputConfigBuildValid(t *testing.T) {
 			PluginType: "test-type",
 		},
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.NoError(t, err)
 }
@@ -40,7 +40,7 @@ func TestOutputConfigNamespace(t *testing.T) {
 }
 
 func TestOutputPluginCanProcess(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	output := OutputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -52,7 +52,7 @@ func TestOutputPluginCanProcess(t *testing.T) {
 }
 
 func TestOutputPluginCanOutput(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	output := OutputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -64,7 +64,7 @@ func TestOutputPluginCanOutput(t *testing.T) {
 }
 
 func TestOutputPluginOutputs(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	output := OutputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -76,7 +76,7 @@ func TestOutputPluginOutputs(t *testing.T) {
 }
 
 func TestOutputPluginSetOutputs(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	output := OutputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",

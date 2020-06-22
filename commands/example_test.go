@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/builtin/output"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
 	"github.com/stretchr/testify/require"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/testutil"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,7 +12,7 @@ func TestTransformerConfigMissingBase(t *testing.T) {
 	config := TransformerConfig{
 		OutputID: "test-output",
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Plugin config is missing the `id` field.")
@@ -25,7 +25,7 @@ func TestTransformerConfigMissingOutput(t *testing.T) {
 			PluginType: "test-type",
 		},
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Plugin config is missing the `output` field.")
@@ -39,7 +39,7 @@ func TestTransformerConfigValid(t *testing.T) {
 		},
 		OutputID: "test-output",
 	}
-	context := testutil.NewTestBuildContext(t)
+	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.NoError(t, err)
 }
@@ -58,7 +58,7 @@ func TestTransformerConfigSetNamespace(t *testing.T) {
 }
 
 func TestTransformerPluginCanProcess(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	transformer := TransformerPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -71,7 +71,7 @@ func TestTransformerPluginCanProcess(t *testing.T) {
 
 
 func TestTransformerPluginCanOutput(t *testing.T) {
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	transformer := TransformerPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -84,7 +84,7 @@ func TestTransformerPluginCanOutput(t *testing.T) {
 
 func TestTransformerPluginOutputs(t *testing.T) {
 	output := &testutil.Plugin{}
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	transformer := TransformerPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -100,7 +100,7 @@ func TestTransformerPluginSetOutputsValid(t *testing.T) {
 	output := &testutil.Plugin{}
 	output.On("ID").Return("test-output")
 	output.On("CanProcess").Return(true)
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	transformer := TransformerPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
@@ -119,7 +119,7 @@ func TestTransformerPluginSetOutputsInvalid(t *testing.T) {
 	output := &testutil.Plugin{}
 	output.On("ID").Return("test-output")
 	output.On("CanProcess").Return(false)
-	buildContext := testutil.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	transformer := TransformerPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",
