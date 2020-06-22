@@ -251,7 +251,7 @@ func TestRestructureSerializeRoundtrip(t *testing.T) {
 			require.NoError(t, err)
 
 			var yamlOp Op
-			err = yaml.Unmarshal(yamlBytes, &yamlOp)
+			err = yaml.UnmarshalStrict(yamlBytes, &yamlOp)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.op, yamlOp)
@@ -357,7 +357,7 @@ ops:
 	})
 
 	var unmarshalledYAML plugin.Config
-	err := yaml.Unmarshal([]byte(configYAML), &unmarshalledYAML)
+	err := yaml.UnmarshalStrict([]byte(configYAML), &unmarshalledYAML)
 	require.NoError(t, err)
 	require.Equal(t, expected, unmarshalledYAML)
 
@@ -399,4 +399,12 @@ func TestOpType(t *testing.T) {
 			require.Equal(t, tc.expectedType, tc.op.Type())
 		})
 	}
+
+	t.Run("InvalidOpType", func(t *testing.T) {
+		raw := "- unknown: test"
+		var ops []Op
+		err := yaml.UnmarshalStrict([]byte(raw), &ops)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unknown op type")
+	})
 }

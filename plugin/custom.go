@@ -42,7 +42,7 @@ func (r CustomRegistry) Render(pluginType string, params map[string]interface{})
 	}
 
 	var config CustomConfig
-	if err := yaml.Unmarshal(writer.Bytes(), &config); err != nil {
+	if err := yaml.UnmarshalStrict(writer.Bytes(), &config); err != nil {
 		return CustomConfig{}, errors.NewError(
 			"failed to unmarshal custom template to custom config",
 			"ensure that the custom template renders a valid pipeline",

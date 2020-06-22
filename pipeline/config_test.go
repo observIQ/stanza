@@ -77,6 +77,18 @@ func TestInvalidParams(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
+	params := Params{
+		"id":      "noop",
+		"type":    "noop",
+		"unknown": true,
+		"output":  "test_output",
+	}
+	context := plugin.BuildContext{}
+	_, err := params.BuildConfigs(context, "test_namespace")
+	require.Error(t, err)
+}
+
 func TestBuildBuiltinFromValidParams(t *testing.T) {
 	params := Params{
 		"id":     "noop",
@@ -98,7 +110,7 @@ func TestBuildCustomFromValidParams(t *testing.T) {
 pipeline:
   - id: custom_noop
     type: noop
-    output: {{.output}} 
+    output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)
@@ -128,7 +140,7 @@ pipeline:
     count: 1
     record:
       message: test
-    output: {{.output}} 
+    output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)
@@ -195,7 +207,7 @@ pipeline:
     count: invalid_value
     record:
       message: test
-    output: {{.output}} 
+    output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)

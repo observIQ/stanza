@@ -22,7 +22,7 @@ func NewConfigFromFile(file string) (*Config, error) {
 	}
 
 	config := &Config{}
-	if err := yaml.Unmarshal(contents, config); err != nil {
+	if err := yaml.UnmarshalStrict(contents, config); err != nil {
 		return nil, fmt.Errorf("failed to read config file as yaml: %s", err)
 	}
 

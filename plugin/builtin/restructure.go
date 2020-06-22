@@ -162,6 +162,8 @@ func (o *Op) unmarshalDecodedType(typeDecoder map[string]rawMessage) error {
 			return err
 		}
 		o.OpApplier = &flatten
+	default:
+		return fmt.Errorf("unknown op type '%s'", opType)
 	}
 
 	return nil

@@ -107,29 +107,31 @@ func (c Config) MarshalJSON() ([]byte, error) {
 
 // UnmarshalYAML will unmarshal a config from YAML.
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var baseConfig struct {
-		ID   string
-		Type string
-	}
-
-	err := unmarshal(&baseConfig)
+	rawConfig := map[string]interface{}{}
+	err := unmarshal(&rawConfig)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal yaml to base config: %s", err)
 	}
 
-	if baseConfig.Type == "" {
-		return fmt.Errorf("failed to unmarshal yaml to undefined plugin type")
+	typeInterface, ok := rawConfig["type"]
+	if !ok {
+		return fmt.Errorf("plugin is missing required field 'type'")
 	}
 
-	builderFunc, ok := registry[baseConfig.Type]
+	typeString, ok := typeInterface.(string)
 	if !ok {
-		return fmt.Errorf("failed to unmarshal yaml to unsupported type: %s", baseConfig.Type)
+		return fmt.Errorf("non-string type %T for field 'type'", typeInterface)
+	}
+
+	builderFunc, ok := registry[typeString]
+	if !ok {
+		return fmt.Errorf("failed to unmarshal yaml to unsupported type: %s", typeString)
 	}
 
 	builder := builderFunc()
 	err = unmarshal(builder)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal yaml to %s: %s", baseConfig.Type, err)
+		return fmt.Errorf("failed to unmarshal yaml to %s: %s", typeString, err)
 	}
 
 	c.Builder = builder

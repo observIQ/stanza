@@ -156,7 +156,7 @@ func (p Params) buildAsBuiltin(namespace string) ([]plugin.Config, error) {
 	}
 
 	var config plugin.Config
-	if err := yaml.Unmarshal(bytes, &config); err != nil {
+	if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
 		return nil, err
 	}
 
