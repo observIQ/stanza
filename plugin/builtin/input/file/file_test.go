@@ -343,8 +343,22 @@ func TestFileSource_MoveFile(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog1")
 	time.Sleep(200 * time.Millisecond)
 
-	err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
-	require.NoError(t, err)
+	i := 0
+	for {
+		err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
+		if err != nil {
+			if i < 3 {
+				t.Error(err)
+				i++
+				time.Sleep(10 * time.Millisecond)
+				continue
+			} else {
+				require.NoError(t, err)
+			}
+		}
+
+		break
+	}
 
 	expectNoMessages(t, logReceived)
 }
