@@ -47,7 +47,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet.StringVar(&rootFlags.LogFile, "log_file", "", "write logs to configured path rather than stderr")
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{defaultConfig()}, "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
-	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", defaultDatabaseFile(), "path to the log agent offset database")
+	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the log agent offset database")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
 	// Profiling flags
@@ -91,9 +91,8 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 	logger.Debugw("Parsed config", "config", cfg)
-	cfg.SetDefaults(flags.DatabaseFile, flags.PluginDir)
 
-	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir)
+	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir, flags.DatabaseFile)
 	ctx, cancel := context.WithCancel(command.Context())
 	service, err := newAgentService(agent, ctx, cancel)
 	if err != nil {

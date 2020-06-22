@@ -28,14 +28,6 @@ func defaultConfig() string {
 	return filepath.Join(agentHome(), "config.yaml")
 }
 
-func defaultDatabaseFile() string {
-	if _, err := os.Stat("./offsets.db"); err == nil {
-		return "./offsets.db"
-	}
-
-	return filepath.Join(agentHome(), "offsets.db")
-}
-
 func agentHome() string {
 	if home := os.Getenv(strings.ToUpper(agentName) + "_HOME"); home != "" {
 		return home

@@ -18,9 +18,10 @@ import (
 type LogAgent struct {
 	Config    *Config
 	PluginDir string
+	Database  string
 	*zap.SugaredLogger
 
-	database *bbolt.DB
+	database pg.Database
 	pipeline *pipeline.Pipeline
 	running  bool
 }
@@ -31,7 +32,7 @@ func (a *LogAgent) Start() error {
 		return nil
 	}
 
-	database, err := OpenDatabase(a.Config.Database)
+	database, err := OpenDatabase(a.Database)
 	if err != nil {
 		a.Errorw("Failed to open database", zap.Any("error", err))
 		return err
@@ -82,7 +83,11 @@ func (a *LogAgent) Stop() {
 }
 
 // OpenDatabase will open and create a database.
-func OpenDatabase(file string) (*bbolt.DB, error) {
+func OpenDatabase(file string) (pg.Database, error) {
+	if file == "" {
+		return pg.NewStubDatabase(), nil
+	}
+
 	if _, err := os.Stat(filepath.Dir(file)); err != nil {
 		if os.IsNotExist(err) {
 			err := os.MkdirAll(filepath.Dir(file), 0755)
@@ -99,10 +104,11 @@ func OpenDatabase(file string) (*bbolt.DB, error) {
 }
 
 // NewLogAgent creates a new log agent.
-func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir string) *LogAgent {
+func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,
 		PluginDir:     pluginDir,
+		Database:      databaseFile,
 	}
 }

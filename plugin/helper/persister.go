@@ -3,6 +3,7 @@ package helper
 import (
 	"sync"
 
+	"github.com/bluemedora/bplogagent/plugin"
 	"go.etcd.io/bbolt"
 )
 
@@ -15,12 +16,12 @@ type Persister interface {
 
 type ScopedBBoltPersister struct {
 	scope    []byte
-	db       *bbolt.DB
+	db       plugin.Database
 	cache    map[string][]byte
 	cacheMux sync.Mutex
 }
 
-func NewScopedBBoltPersister(db *bbolt.DB, scope string) *ScopedBBoltPersister {
+func NewScopedDBPersister(db plugin.Database, scope string) *ScopedBBoltPersister {
 	return &ScopedBBoltPersister{
 		scope: []byte(scope),
 		db:    db,

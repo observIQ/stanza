@@ -25,8 +25,30 @@ type Builder interface {
 // BuildContext supplies contextual resources when building a plugin.
 type BuildContext struct {
 	CustomRegistry CustomRegistry
-	Database       *bbolt.DB
+	Database       Database
 	Logger         *zap.SugaredLogger
+}
+
+type Database interface {
+	Close() error
+	Sync() error
+	Update(func(*bbolt.Tx) error) error
+	View(func(*bbolt.Tx) error) error
+}
+
+// StubDatabase is an implementation of Database that
+// succeeds on all calls without persisting anything to disk.
+// This is used when --database is unspecified.
+type StubDatabase struct{}
+
+func (d *StubDatabase) Close() error                          { return nil }
+func (d *StubDatabase) Sync() error                           { return nil }
+func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
+func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error   { return nil }
+
+// NewStubDatabase creates a new StubDatabase
+func NewStubDatabase() *StubDatabase {
+	return &StubDatabase{}
 }
 
 // registry is a global registry of plugin types to plugin builders.

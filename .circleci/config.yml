@@ -24,8 +24,11 @@ jobs:
       - run:
           name: Build
           command: |
+            export VERSION="$CIRCLE_TAG"
             make install-tools
-            VERSION="$CIRCLE_TAG" make build-all
+            make build-all
+            sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
+            sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/windows-install.ps1 > ./artifacts/windows-install.ps1
       - persist_to_workspace:
           root: ./artifacts
           paths:
@@ -49,8 +52,7 @@ jobs:
       - checkout
       - run:
           name: Run Unit Tests
-          command: |
-            go test -race -v -coverprofile coverage.txt -coverpkg ./... ./...
+          command: make test
       - codecov/upload:
           file: ./coverage.txt
 
@@ -70,7 +72,7 @@ jobs:
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
       - run:
           name: Run Unit Tests
-          command: go test -race -v ./...
+          command: make test
 
   test-windows:
     executor:
@@ -94,7 +96,7 @@ jobs:
       - run:
           name: Unit Tests
           shell: powershell.exe
-          command: go test -race -v ./...
+          command: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
 
   run-benchmark:
     parameters:
@@ -183,7 +185,7 @@ jobs:
                   gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
                     '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
                       -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
-                      ~/benchmark/bplogagent --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
+                      ~/benchmark/bplogagent --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
                       --mem_profile ~/benchmark/out/mem.pprof --mem_profile_delay 10s > ~/benchmark/out/notes 2>&1'
       - unless:
           condition: << parameters.profile >>
@@ -194,7 +196,7 @@ jobs:
                   gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
                     '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
                       -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
-                      ~/benchmark/bplogagent --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
+                      ~/benchmark/bplogagent --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
 
       - run:
           name: Retrieve Results

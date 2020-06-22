@@ -10,15 +10,15 @@ go get github.com/bluemedora/bplogagent
 ```
 #### Linux
 ```shell
-sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Darwin
 ```shell
-sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/raw/master/scripts/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Windows
 ```pwsh
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/raw/master/scripts/windows-install.ps1')); Log-Agent-Install
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
 ## How do I run the agent?

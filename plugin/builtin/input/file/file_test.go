@@ -41,7 +41,7 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     50 * time.Millisecond,
-		persist:          helper.NewScopedBBoltPersister(db, "testfile"),
+		persist:          helper.NewScopedDBPersister(db, "testfile"),
 		runningFiles:     make(map[string]struct{}),
 		knownFiles:       make(map[string]*knownFileInfo),
 		fileUpdateChan:   make(chan fileUpdateMessage),
