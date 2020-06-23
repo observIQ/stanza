@@ -6,6 +6,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
+	"go.uber.org/zap"
 )
 
 // InputConfig provides a basic implementation of an input plugin config.
@@ -72,6 +73,7 @@ func (i *InputPlugin) CanProcess() bool {
 
 // Process will always return an error if called.
 func (i *InputPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+	i.Errorw("Plugin received an entry, but can not process", zap.Any("entry", entry))
 	return errors.NewError(
 		"Plugin can not process logs.",
 		"Ensure that plugin is not configured to receive logs from other plugins",

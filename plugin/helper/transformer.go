@@ -1,15 +1,19 @@
 package helper
 
 import (
+	"context"
+
+	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
+	"go.uber.org/zap"
 )
 
 // TransformerConfig provides a basic implementation of a transformer config.
 type TransformerConfig struct {
 	BasicConfig `yaml:",inline"`
-
-	OutputID string `json:"output" yaml:"output"`
+	OnError     string `json:"on_error" yaml:"on_error"`
+	OutputID    string `json:"output" yaml:"output"`
 }
 
 // Build will build a transformer plugin.
@@ -17,6 +21,20 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 	basicPlugin, err := c.BasicConfig.Build(context)
 	if err != nil {
 		return TransformerPlugin{}, err
+	}
+
+	if c.OnError == "" {
+		c.OnError = "send"
+	}
+
+	switch c.OnError {
+	case "send", "drop":
+	default:
+		return TransformerPlugin{}, errors.NewError(
+			"Plugin config has an invalid `on_error` field.",
+			"Ensure that the `on_error` field is set to either `send` or `drop`.",
+			"on_error", c.OnError,
+		)
 	}
 
 	if c.OutputID == "" {
@@ -28,6 +46,7 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 
 	transformerPlugin := TransformerPlugin{
 		BasicPlugin: basicPlugin,
+		OnError:     c.OnError,
 		OutputID:    c.OutputID,
 	}
 
@@ -48,6 +67,7 @@ func (c *TransformerConfig) SetNamespace(namespace string, exclusions ...string)
 // TransformerPlugin provides a basic implementation of a transformer plugin.
 type TransformerPlugin struct {
 	BasicPlugin
+	OnError  string
 	OutputID string
 	Output   plugin.Plugin
 }
@@ -55,6 +75,24 @@ type TransformerPlugin struct {
 // CanProcess will always return true for a transformer plugin.
 func (t *TransformerPlugin) CanProcess() bool {
 	return true
+}
+
+// ProcessWith will process an entry with a transform function.
+func (t *TransformerPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, transform TransformFunction) error {
+	newEntry, err := transform(entry)
+	if err != nil {
+		return t.HandleEntryError(ctx, entry, err)
+	}
+	return t.Output.Process(ctx, newEntry)
+}
+
+// HandleEntryError will handle an entry error using the on_error strategy.
+func (t *TransformerPlugin) HandleEntryError(ctx context.Context, entry *entry.Entry, err error) error {
+	t.Errorw("Failed to process entry", zap.Any("error", err), zap.Any("action", t.OnError), zap.Any("entry", entry))
+	if t.OnError == "send" {
+		return t.Output.Process(ctx, entry)
+	}
+	return err
 }
 
 // CanOutput will always return true for an input plugin.
@@ -77,3 +115,6 @@ func (t *TransformerPlugin) SetOutputs(plugins []plugin.Plugin) error {
 	t.Output = output
 	return nil
 }
+
+// TransformFunction is function that transforms an entry.
+type TransformFunction = func(*entry.Entry) (*entry.Entry, error)

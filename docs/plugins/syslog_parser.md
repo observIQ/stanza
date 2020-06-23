@@ -11,7 +11,7 @@ The `syslog_parser` plugin parses the string-type field selected by `parse_from`
 | `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                |
 | `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                |
 | `preserve`   | false    | Preserve the unparsed value on the record                                                    |
-| `on_error`   | "ignore" | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md)                  |
+| `on_error`   | `send`   | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md)|
 | `protocol`   | required | The protocol to parse the syslog messages as. Options are `rfc3164` and `rfc5424`            |
 
 ### Example Configurations

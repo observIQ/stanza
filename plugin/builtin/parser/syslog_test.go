@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -18,11 +18,13 @@ func TestSyslogParser(t *testing.T) {
 	basicConfig := func() *SyslogParserConfig {
 		return &SyslogParserConfig{
 			ParserConfig: helper.ParserConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_plugin_id",
-					PluginType: "syslog_parser",
+				TransformerConfig: helper.TransformerConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "test_plugin_id",
+						PluginType: "syslog_parser",
+					},
+					OutputID: "output1",
 				},
-				OutputID: "output1",
 			},
 		}
 	}

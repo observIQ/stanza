@@ -4,12 +4,13 @@ The `metadata` plugin adds tags and labels to the entry.
 
 ### Configuration Fields
 
-| Field    | Default  | Description                                       |
-| ---      | ---      | ---                                               |
-| `id`     | required | A unique identifier for the plugin                |
-| `output` | required | The `id` for the plugin to send parsed entries to |
-| `labels` | {}       | An map of `key: value` labels to add to the entry |
-| `tags`   | []       | An array of tags to add to the entry              |
+| Field      | Default  | Description                                                                                   |
+| ---        | ---      | ---                                                                                           |
+| `id`       | required | A unique identifier for the plugin                                                            |
+| `output`   | required | The `id` for the plugin to send parsed entries to                                             |
+| `labels`   | {}       | An map of `key: value` labels to add to the entry                                             |
+| `tags`     | []       | An array of tags to add to the entry                                                          |
+| `on_error` | `send`   | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
 Inside the label and tag values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
 will be replaced with the evaluated form of the expression. The entry's record can be accessed
