@@ -119,7 +119,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 			}
 		case int:
 			if s < minSeverity || s > maxSeverity {
-				return SeverityParser{}, fmt.Errorf("Severity must be an integer between 0 to 1000 inclusive")
+				return SeverityParser{}, fmt.Errorf("Severity must be an integer between %d and %d inclusive", minSeverity, maxSeverity)
 			}
 		default:
 			return SeverityParser{}, fmt.Errorf("type %T cannot be parsed as a severity", s)
