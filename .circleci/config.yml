@@ -335,6 +335,10 @@ workflows:
             - f10-1000
             - f10-5000
             - f10-10000
+          filters:
+            branches:
+              ignore:
+                - master
 
   test_build_release:
     jobs:
