@@ -226,7 +226,7 @@ jobs:
       - run:
           name: Report Results
           command: >
-            curl --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" --request POST --data-binary "@tmp/payload.json" $RESULTS_SERVICE
+            curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" --request POST --data-binary "@tmp/payload.json" $RESULTS_SERVICE
 
       - run:
           name: Delete VM
