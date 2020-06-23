@@ -32,7 +32,7 @@ func TestTransformerConfigMissingOutput(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin config is missing the `output` field.")
+	require.Contains(t, err.Error(), "plugin config is missing the `output` field.")
 }
 
 func TestTransformerConfigValid(t *testing.T) {
@@ -59,7 +59,7 @@ func TestTransformerOnErrorDefault(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	transformer, err := config.Build(context)
 	require.NoError(t, err)
-	require.Equal(t, "send", transformer.OnError)
+	require.Equal(t, SendOnError, transformer.OnError)
 }
 
 func TestTransformerOnErrorInvalid(t *testing.T) {
@@ -74,7 +74,7 @@ func TestTransformerOnErrorInvalid(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin config has an invalid `on_error` field.")
+	require.Contains(t, err.Error(), "plugin config has an invalid `on_error` field.")
 }
 
 func TestTransformerConfigSetNamespace(t *testing.T) {
@@ -176,7 +176,7 @@ func TestTransformerDropOnError(t *testing.T) {
 			PluginType:    "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
-		OnError:  "drop",
+		OnError:  DropOnError,
 		Output:   output,
 		OutputID: "test-output",
 	}
@@ -202,7 +202,7 @@ func TestTransformerSendOnError(t *testing.T) {
 			PluginType:    "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
-		OnError:  "send",
+		OnError:  SendOnError,
 		Output:   output,
 		OutputID: "test-output",
 	}
@@ -228,7 +228,7 @@ func TestTransformerProcessWithValid(t *testing.T) {
 			PluginType:    "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
-		OnError:  "send",
+		OnError:  SendOnError,
 		Output:   output,
 		OutputID: "test-output",
 	}

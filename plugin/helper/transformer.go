@@ -24,23 +24,23 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 	}
 
 	if c.OnError == "" {
-		c.OnError = "send"
+		c.OnError = SendOnError
 	}
 
 	switch c.OnError {
-	case "send", "drop":
+	case SendOnError, DropOnError:
 	default:
 		return TransformerPlugin{}, errors.NewError(
-			"Plugin config has an invalid `on_error` field.",
-			"Ensure that the `on_error` field is set to either `send` or `drop`.",
+			"plugin config has an invalid `on_error` field.",
+			"ensure that the `on_error` field is set to either `send` or `drop`.",
 			"on_error", c.OnError,
 		)
 	}
 
 	if c.OutputID == "" {
 		return TransformerPlugin{}, errors.NewError(
-			"Plugin config is missing the `output` field.",
-			"Ensure that a valid `output` field exists on the plugin config.",
+			"plugin config is missing the `output` field.",
+			"ensure that a valid `output` field exists on the plugin config.",
 		)
 	}
 
@@ -89,7 +89,7 @@ func (t *TransformerPlugin) ProcessWith(ctx context.Context, entry *entry.Entry,
 // HandleEntryError will handle an entry error using the on_error strategy.
 func (t *TransformerPlugin) HandleEntryError(ctx context.Context, entry *entry.Entry, err error) error {
 	t.Errorw("Failed to process entry", zap.Any("error", err), zap.Any("action", t.OnError), zap.Any("entry", entry))
-	if t.OnError == "send" {
+	if t.OnError == SendOnError {
 		return t.Output.Process(ctx, entry)
 	}
 	return err
@@ -118,3 +118,9 @@ func (t *TransformerPlugin) SetOutputs(plugins []plugin.Plugin) error {
 
 // TransformFunction is function that transforms an entry.
 type TransformFunction = func(*entry.Entry) (*entry.Entry, error)
+
+// SendOnError specifies an on_error mode for sending entries after an error.
+const SendOnError = "send"
+
+// DropOnError specifies an on_error mode for dropping entries after an error.
+const DropOnError = "drop"

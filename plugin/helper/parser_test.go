@@ -67,7 +67,7 @@ func TestParserMissingField(t *testing.T) {
 				PluginType:    "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OnError: "drop",
+			OnError: DropOnError,
 		},
 		ParseFrom: entry.NewField("test"),
 	}
@@ -90,7 +90,7 @@ func TestParserInvalidParse(t *testing.T) {
 				PluginType:    "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OnError: "drop",
+			OnError: DropOnError,
 		},
 	}
 	parse := func(i interface{}) (interface{}, error) {
@@ -112,7 +112,7 @@ func TestParserInvalidTimeParse(t *testing.T) {
 				PluginType:    "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OnError: "drop",
+			OnError: DropOnError,
 		},
 		TimeParser: &TimeParser{
 			ParseFrom: entry.NewField("missing-key"),
@@ -140,7 +140,7 @@ func TestParserOutput(t *testing.T) {
 				PluginType:    "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OnError: "drop",
+			OnError: DropOnError,
 			Output:  output,
 		},
 	}
@@ -166,7 +166,7 @@ func TestParserWithPreserve(t *testing.T) {
 				PluginType:    "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OnError: "drop",
+			OnError: DropOnError,
 			Output:  output,
 		},
 		ParseFrom: entry.NewField("parse_from"),
@@ -203,7 +203,7 @@ func TestParserWithoutPreserve(t *testing.T) {
 				PluginType:    "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OnError: "drop",
+			OnError: DropOnError,
 			Output:  output,
 		},
 		ParseFrom: entry.NewField("parse_from"),
