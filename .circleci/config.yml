@@ -217,9 +217,7 @@ jobs:
           command: printf '{"log_files":%s,"logs_per_second":%s,"profile":%s}\n' << parameters.files >> << parameters.rate >> << parameters.profile >> > tmp/parameters.json
       - run:
           name: Stash Benchmark Results
-          # command: cat out/results.json | jq 'del(.results[0].rate).results[0]' > tmp/stats.json
-          command: printf '{"cpu_avg":0.0,"mem_avg":0.0,"mem_max":100.0}\n' > tmp/stats.json
-
+          command: cat out/results.json | jq 'del(.results[0].rate).results[0]' > tmp/stats.json
       - run:
           name: Combine Stashes
           command: jq -s '.[0] * .[1] * .[2] * .[3]' tmp/context.json tmp/command.json tmp/parameters.json tmp/stats.json > tmp/payload.json
