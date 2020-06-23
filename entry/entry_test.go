@@ -10,6 +10,7 @@ func TestRead(t *testing.T) {
 	testEntry := &Entry{
 		Record: map[string]interface{}{
 			"string_field": "string_val",
+			"byte_field":   []byte(`test`),
 			"map_string_interface_field": map[string]interface{}{
 				"nested": "interface_val",
 			},
@@ -47,7 +48,6 @@ func TestRead(t *testing.T) {
 		var s string
 		err := testEntry.Read(Field{[]string{"string_field"}}, &s)
 		require.NoError(t, err)
-
 		require.Equal(t, "string_val", s)
 	})
 
@@ -61,7 +61,6 @@ func TestRead(t *testing.T) {
 		var m map[string]interface{}
 		err := testEntry.Read(Field{[]string{"map_string_interface_field"}}, &m)
 		require.NoError(t, err)
-
 		require.Equal(t, map[string]interface{}{"nested": "interface_val"}, m)
 	})
 
@@ -75,7 +74,6 @@ func TestRead(t *testing.T) {
 		var m map[string]string
 		err := testEntry.Read(Field{[]string{"map_string_interface_field"}}, &m)
 		require.NoError(t, err)
-
 		require.Equal(t, map[string]string{"nested": "interface_val"}, m)
 	})
 
@@ -89,7 +87,6 @@ func TestRead(t *testing.T) {
 		var m map[string]string
 		err := testEntry.Read(Field{[]string{"map_interface_interface_field"}}, &m)
 		require.NoError(t, err)
-
 		require.Equal(t, map[string]string{"nested": "interface_val"}, m)
 	})
 
@@ -109,7 +106,13 @@ func TestRead(t *testing.T) {
 		var i interface{}
 		err := testEntry.Read(Field{[]string{"map_interface_interface_field"}}, &i)
 		require.NoError(t, err)
-
 		require.Equal(t, map[interface{}]interface{}{"nested": "interface_val"}, i)
+	})
+
+	t.Run("string from []byte", func(t *testing.T) {
+		var i string
+		err := testEntry.Read(NewField("byte_field"), &i)
+		require.NoError(t, err)
+		require.Equal(t, "test", i)
 	})
 }
