@@ -1,9 +1,11 @@
 package helper
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
@@ -111,6 +113,10 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 			if _, ok := defaultMapping[s]; !ok {
 				return SeverityParser{}, fmt.Errorf("Unrecognized severity in mapping: %v", s)
 			}
+		case []byte:
+			if _, ok := defaultMapping[string(s)]; !ok {
+				return SeverityParser{}, fmt.Errorf("Unrecognized severity in mapping: %v", s)
+			}
 		case int:
 			if s < minSeverity || s > maxSeverity {
 				return SeverityParser{}, fmt.Errorf("Severity must be an integer between 0 to 1000 inclusive")
@@ -138,30 +144,33 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 	return p, nil
 }
 
-/*
-	Severity parsing order of operations
-	0. If mapping is specified, look for match there. If match is found, use it.
-	1. If value matches enum value directly, use it.
-	2. If value is an integer, use it.
-	3. Map to default
-*/
-
 // Parse will parse severity from a field and attach it to the entry
-// func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
-// 	value, ok := entry.Get(p.ParseFrom)
-// 	if !ok {
-// 		return errors.NewError(
-// 			"log entry does not have the expected parse_from field",
-// 			"ensure that all entries forwarded to this parser contain the parse_from field",
-// 			"parse_from", p.ParseFrom.String(),
-// 		)
-// 	}
+func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
+	value, ok := entry.Get(p.ParseFrom)
+	if !ok {
+		return errors.NewError(
+			"log entry does not have the expected parse_from field",
+			"ensure that all entries forwarded to this parser contain the parse_from field",
+			"parse_from", p.ParseFrom.String(),
+		)
+	}
 
-// 	// TODO what do?
+	switch v := value.(type) {
+	case string, int:
+		if severity, ok := p.Mapping[v]; ok {
+			entry.Severity = int(severity)
+		}
+	case []byte:
+		if severity, ok := p.Mapping[string(v)]; ok {
+			entry.Severity = int(severity)
+		}
+	default:
+		return fmt.Errorf("type %T cannot be parsed as a severity", v)
+	}
 
-// 	if !p.Preserve {
-// 		entry.Delete(p.ParseFrom)
-// 	}
+	if !p.Preserve {
+		entry.Delete(p.ParseFrom)
+	}
 
-// 	return nil
-// }
+	return nil
+}
