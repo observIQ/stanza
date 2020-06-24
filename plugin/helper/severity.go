@@ -80,13 +80,16 @@ func getDefaultMapping() map[interface{}]Severity {
 	}
 }
 
+// MappingConfig defines how values will be parsed to severity.
+type MappingConfig struct {
+	Mapping map[interface{}][]interface{} `json:"mapping"   yaml:"mapping"`
+}
+
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
 type SeverityParserConfig struct {
-	ParseFrom entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
-	Preserve  bool        `json:"preserve"   yaml:"preserve"`
-
-	// map[SeverityAsIntOrString][ValuesToParseAsSeverity]
-	Mapping map[interface{}][]interface{} `json:"mapping"   yaml:"mapping"`
+	ParseFrom     entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
+	Preserve      bool        `json:"preserve"   yaml:"preserve"`
+	MappingConfig `yaml:",omitempty,inline"`
 }
 
 // SeverityParser is a helper that parses severity onto an entry.
@@ -128,7 +131,9 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		for _, value := range values {
 			switch v := value.(type) {
 			case string, int:
-				pluginMapping[value] = defaultMapping[severity]
+				pluginMapping[v] = defaultMapping[severity]
+			case []byte:
+				pluginMapping[string(v)] = defaultMapping[severity]
 			default:
 				return SeverityParser{}, fmt.Errorf("type %T cannot be parsed as a severity", v)
 			}
@@ -171,6 +176,30 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	if !p.Preserve {
 		entry.Delete(p.ParseFrom)
 	}
+
+	return nil
+}
+
+// UnmarshalYAML will unmarshal a severity parser config from YAML.
+func (c *MappingConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	rawMap := make(map[interface{}]interface{})
+	err := unmarshal(&rawMap)
+	if err != nil {
+		return err
+	}
+
+	mapping := make(map[interface{}][]interface{})
+
+	for key, value := range rawMap {
+		switch v := value.(type) {
+		case []interface{}:
+			mapping[key] = v
+		case interface{}:
+			mapping[key] = []interface{}{v}
+		}
+	}
+
+	c = &MappingConfig{mapping}
 
 	return nil
 }
