@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/errors"
@@ -51,7 +52,7 @@ const minSeverity = 0
 const maxSeverity = 100
 
 // map[string or int input]sev-level
-func getDefaultMapping() map[interface{}]Severity {
+func defaultMapping() map[interface{}]Severity {
 	return map[interface{}]Severity{
 		int(Default):     Default,
 		"default":        Default,
@@ -80,16 +81,11 @@ func getDefaultMapping() map[interface{}]Severity {
 	}
 }
 
-// MappingConfig defines how values will be parsed to severity.
-type MappingConfig struct {
-	Mapping map[interface{}][]interface{} `json:"mapping"   yaml:"mapping"`
-}
-
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
 type SeverityParserConfig struct {
-	ParseFrom     entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
-	Preserve      bool        `json:"preserve"   yaml:"preserve"`
-	MappingConfig `yaml:",omitempty,inline"`
+	ParseFrom entry.Field                 `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
+	Preserve  bool                        `json:"preserve"   yaml:"preserve"`
+	Mapping   map[interface{}]interface{} `json:"mapping"   yaml:"mapping"`
 }
 
 // SeverityParser is a helper that parses severity onto an entry.
@@ -104,39 +100,67 @@ type SeverityParser struct {
 // Build builds a SeverityParser from a SeverityParserConfig
 func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParser, error) {
 
-	// used for reference during build
-	defaultMapping := getDefaultMapping()
+	validSeverity := func(severity interface{}) (Severity, error) {
 
-	// used in actual plugin
-	pluginMapping := getDefaultMapping()
-
-	for severity, values := range c.Mapping {
 		switch s := severity.(type) {
 		case string:
-			if _, ok := defaultMapping[s]; !ok {
-				return SeverityParser{}, fmt.Errorf("Unrecognized severity in mapping: %v", s)
+			defaultSev, ok := defaultMapping()[strings.ToLower(s)]
+			if !ok {
+				return -1, fmt.Errorf("Unrecognized severity in mapping: %v", s)
 			}
+			return defaultSev, nil
 		case []byte:
-			if _, ok := defaultMapping[string(s)]; !ok {
-				return SeverityParser{}, fmt.Errorf("Unrecognized severity in mapping: %v", s)
+			defaultSev, ok := defaultMapping()[strings.ToLower(string(s))]
+			if !ok {
+				return -1, fmt.Errorf("Unrecognized severity in mapping: %v", s)
 			}
+			return defaultSev, nil
 		case int:
 			if s < minSeverity || s > maxSeverity {
-				return SeverityParser{}, fmt.Errorf("Severity must be an integer between %d and %d inclusive", minSeverity, maxSeverity)
+				return -1, fmt.Errorf("Severity must be an integer between %d and %d inclusive", minSeverity, maxSeverity)
 			}
+			return Severity(s), nil // may or may not be custom
 		default:
-			return SeverityParser{}, fmt.Errorf("type %T cannot be parsed as a severity", s)
+			return -1, fmt.Errorf("type %T cannot be parsed as a severity", s)
+		}
+	}
+
+	validValue := func(value interface{}) (interface{}, error) {
+		switch v := value.(type) {
+		case int:
+			return v, nil
+		case string:
+			return strings.ToLower(v), nil
+		case []byte:
+			return strings.ToLower(string(v)), nil
+		default:
+			return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
+		}
+	}
+
+	pluginMapping := defaultMapping()
+
+	for severity, unknown := range c.Mapping {
+		sev, err := validSeverity(severity)
+		if err != nil {
+			return SeverityParser{}, err
 		}
 
-		for _, value := range values {
-			switch v := value.(type) {
-			case string, int:
-				pluginMapping[v] = defaultMapping[severity]
-			case []byte:
-				pluginMapping[string(v)] = defaultMapping[severity]
-			default:
-				return SeverityParser{}, fmt.Errorf("type %T cannot be parsed as a severity", v)
+		switch u := unknown.(type) {
+		case []interface{}:
+			for _, value := range u {
+				v, err := validValue(value)
+				if err != nil {
+					return SeverityParser{}, err
+				}
+				pluginMapping[v] = sev
 			}
+		case interface{}:
+			v, err := validValue(u)
+			if err != nil {
+				return SeverityParser{}, err
+			}
+			pluginMapping[v] = sev
 		}
 	}
 
@@ -161,12 +185,16 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	}
 
 	switch v := value.(type) {
-	case string, int:
+	case int:
 		if severity, ok := p.Mapping[v]; ok {
 			entry.Severity = int(severity)
 		}
+	case string:
+		if severity, ok := p.Mapping[strings.ToLower(v)]; ok {
+			entry.Severity = int(severity)
+		}
 	case []byte:
-		if severity, ok := p.Mapping[string(v)]; ok {
+		if severity, ok := p.Mapping[strings.ToLower(string(v))]; ok {
 			entry.Severity = int(severity)
 		}
 	default:
@@ -176,30 +204,6 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	if !p.Preserve {
 		entry.Delete(p.ParseFrom)
 	}
-
-	return nil
-}
-
-// UnmarshalYAML will unmarshal a severity parser config from YAML.
-func (c *MappingConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	rawMap := make(map[interface{}]interface{})
-	err := unmarshal(&rawMap)
-	if err != nil {
-		return err
-	}
-
-	mapping := make(map[interface{}][]interface{})
-
-	for key, value := range rawMap {
-		switch v := value.(type) {
-		case []interface{}:
-			mapping[key] = v
-		case interface{}:
-			mapping[key] = []interface{}{v}
-		}
-	}
-
-	c = &MappingConfig{mapping}
 
 	return nil
 }
