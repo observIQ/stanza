@@ -36,15 +36,14 @@ pipeline:
       preserve: true
       mapping:
         error:
-          - 401
-          - 402
-          - 403
-          - 404
+          - min: 400
+            max: 499
         info:
-          - 301
-          - 302
+          - min: 300
+            max: 399
         debug:
-          - 200
+          - min: 200
+            max: 299
 
   # Write the log to stdout
   # Example input:

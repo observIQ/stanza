@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/bluemedora/bplogagent/entry"
@@ -13,79 +14,84 @@ import (
 // Severity indicates the seriousness of a log entry
 type Severity int
 
+// ToString converts a severity to a string
+func (s Severity) ToString() string {
+	return strconv.Itoa(int(s))
+}
+
 const (
 	// Default indicates an unknown severity
 	Default Severity = 0
 
 	// Trace indicates that the log may be useful for detailed debugging
-	Trace = 10
+	Trace Severity = 10
 
 	// Debug indicates that the log may be useful for debugging purposes
-	Debug = 20
+	Debug Severity = 20
 
 	// Info indicates that the log may be useful for understanding high level details about an application
-	Info = 30
+	Info Severity = 30
 
 	// Notice indicates that the log should be noticed
-	Notice = 40
+	Notice Severity = 40
 
 	// Warning indicates that someone should look into an issue
-	Warning = 50
+	Warning Severity = 50
 
 	// Error indicates that something undesireable has actually happened
-	Error = 60
+	Error Severity = 60
 
 	// Critical indicates that a problem requires attention immediately
-	Critical = 70
+	Critical Severity = 70
 
 	// Alert indicates that action must be taken immediately
-	Alert = 80
+	Alert Severity = 80
 
 	// Emergency indicates that the application is unusable
-	Emergency = 90
+	Emergency Severity = 90
 
 	// Catastrophe indicates that it is already too late
-	Catastrophe = 100
+	Catastrophe Severity = 100
 
 	// used internally
-	notFound = -1
+	notFound Severity = -1
 )
 
 const minSeverity = 0
 const maxSeverity = 100
 
 // map[string or int input]sev-level
-func defaultSeverityMap() SeverityMap {
-	return map[interface{}]Severity{
-		int(Default):     Default,
-		"default":        Default,
-		int(Trace):       Trace,
-		"trace":          Trace,
-		int(Debug):       Debug,
-		"debug":          Debug,
-		int(Info):        Info,
-		"info":           Info,
-		int(Notice):      Notice,
-		"notice":         Notice,
-		int(Warning):     Warning,
-		"warning":        Warning,
-		"warn":           Warning,
-		int(Error):       Error,
-		"error":          Error,
-		"err":            Error,
-		int(Critical):    Critical,
-		"critical":       Critical,
-		"crit":           Critical,
-		int(Alert):       Alert,
-		"alert":          Alert,
-		int(Emergency):   Emergency,
-		"emergency":      Emergency,
-		int(Catastrophe): Catastrophe,
-		"catastrophe":    Catastrophe,
+func defaultSeverityMap() severityMap {
+	return map[string]Severity{
+		Default.ToString():     Default,
+		"default":              Default,
+		Trace.ToString():       Trace,
+		"trace":                Trace,
+		Debug.ToString():       Debug,
+		"debug":                Debug,
+		Info.ToString():        Info,
+		"info":                 Info,
+		Notice.ToString():      Notice,
+		"notice":               Notice,
+		Warning.ToString():     Warning,
+		"warning":              Warning,
+		"warn":                 Warning,
+		Error.ToString():       Error,
+		"error":                Error,
+		"err":                  Error,
+		Critical.ToString():    Critical,
+		"critical":             Critical,
+		"crit":                 Critical,
+		Alert.ToString():       Alert,
+		"alert":                Alert,
+		Emergency.ToString():   Emergency,
+		"emergency":            Emergency,
+		Catastrophe.ToString(): Catastrophe,
+		"catastrophe":          Catastrophe,
 	}
 }
 
-type SeverityMap map[interface{}]Severity
+type severityMap map[string]Severity
 
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
 type SeverityParserConfig struct {
@@ -98,7 +104,7 @@ type SeverityParserConfig struct {
 type SeverityParser struct {
 	ParseFrom entry.Field
 	Preserve  bool
-	Mapping   SeverityMap
+	Mapping   severityMap
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
@@ -116,22 +122,47 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		if sev, ok := severity.(int); !ok {
 			return notFound, fmt.Errorf("type %T cannot be used as a custom severity (%v)", severity, severity)
 		} else if sev < minSeverity || sev > maxSeverity {
-			return -1, fmt.Errorf("custom severity must be between %d and %d", minSeverity, maxSeverity)
+			return notFound, fmt.Errorf("custom severity must be between %d and %d", minSeverity, maxSeverity)
 		} else {
 			return Severity(sev), nil
 		}
 	}
 
-	validValue := func(value interface{}) (interface{}, error) {
+	validValues := func(value interface{}) ([]string, error) {
 		switch v := value.(type) {
 		case int:
-			return fmt.Sprintf("%d", v), nil // store as string because we will compare as string
+			return []string{strconv.Itoa(v)}, nil // store as string because we will compare as string
 		case string:
-			return strings.ToLower(v), nil
+			return []string{strings.ToLower(v)}, nil
 		case []byte:
-			return strings.ToLower(string(v)), nil
+			return []string{strings.ToLower(string(v))}, nil
 		default:
-			return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
+			rawMap, ok := v.(map[interface{}]interface{})
+			if !ok {
+				return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
+			}
+
+			min, minOK := rawMap["min"]
+			max, maxOK := rawMap["max"]
+			if !minOK || !maxOK {
+				return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
+			}
+
+			minInt, minOK := min.(int)
+			maxInt, maxOK := max.(int)
+			if !minOK || !maxOK {
+				return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
+			}
+
+			if minInt > maxInt {
+				minInt, maxInt = maxInt, minInt
+			}
+
+			rangeOfStrings := []string{}
+			for i := minInt; i <= maxInt; i++ {
+				rangeOfStrings = append(rangeOfStrings, strconv.Itoa(i))
+			}
+			return rangeOfStrings, nil
 		}
 	}
 
@@ -146,18 +177,22 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		switch u := unknown.(type) {
 		case []interface{}:
 			for _, value := range u {
-				v, err := validValue(value)
+				v, err := validValues(value)
 				if err != nil {
 					return SeverityParser{}, err
 				}
-				pluginMapping[v] = sev
+				for _, str := range v {
+					pluginMapping[str] = sev
+				}
 			}
 		case interface{}:
-			v, err := validValue(u)
+			v, err := validValues(u)
 			if err != nil {
 				return SeverityParser{}, err
 			}
-			pluginMapping[v] = sev
+			for _, str := range v {
+				pluginMapping[str] = sev
+			}
 		}
 	}
 
@@ -197,9 +232,9 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	return nil
 }
 
-func (m SeverityMap) find(value interface{}) (Severity, error) {
+func (m severityMap) find(value interface{}) (Severity, error) {
 	switch v := value.(type) {
-	case int:
+	case int, Severity:
 		if severity, ok := m[fmt.Sprintf("%d", v)]; ok {
 			return severity, nil
 		}

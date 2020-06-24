@@ -121,6 +121,24 @@ func TestSeverityParser(t *testing.T) {
 			mapping:  map[interface{}]interface{}{16: []interface{}{"hey!", 1234}},
 			parseErr: true,
 		},
+		{
+			name:     "in-range",
+			sample:   123,
+			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
+			expected: helper.Error,
+		},
+		{
+			name:     "out-of-range",
+			sample:   127,
+			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
+			expected: helper.Default,
+		},
+		{
+			name:     "range-out-of-order",
+			sample:   123,
+			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 125, "max": 120}},
+			expected: helper.Error,
+		},
 	}
 
 	rootField := entry.NewField()
