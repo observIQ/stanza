@@ -64,6 +64,7 @@ func defaultSeverityMap() SeverityMap {
 		int(Debug):       Debug,
 		"debug":          Debug,
 		int(Info):        Info,
+		"info":           Info,
 		int(Notice):      Notice,
 		"notice":         Notice,
 		int(Warning):     Warning,
@@ -113,7 +114,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 
 		// If integer between 0 and 100, then allow as custom severity
 		if sev, ok := severity.(int); !ok {
-			return notFound, fmt.Errorf("type %T cannot be used as a custom severity", severity)
+			return notFound, fmt.Errorf("type %T cannot be used as a custom severity (%v)", severity, severity)
 		} else if sev < minSeverity || sev > maxSeverity {
 			return -1, fmt.Errorf("custom severity must be between %d and %d", minSeverity, maxSeverity)
 		} else {
@@ -124,7 +125,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 	validValue := func(value interface{}) (interface{}, error) {
 		switch v := value.(type) {
 		case int:
-			return v, nil
+			return fmt.Sprintf("%d", v), nil // store as string because we will compare as string
 		case string:
 			return strings.ToLower(v), nil
 		case []byte:
@@ -199,7 +200,7 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 func (m SeverityMap) find(value interface{}) (Severity, error) {
 	switch v := value.(type) {
 	case int:
-		if severity, ok := m[v]; ok {
+		if severity, ok := m[fmt.Sprintf("%d", v)]; ok {
 			return severity, nil
 		}
 		return notFound, nil
