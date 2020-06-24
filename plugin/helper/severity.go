@@ -97,36 +97,27 @@ type SeverityParserConfig struct {
 type SeverityParser struct {
 	ParseFrom entry.Field
 	Preserve  bool
-
-	// map[ValueToParseAsSeverity][Severity]
-	Mapping SeverityMap
+	Mapping   SeverityMap
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
 func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParser, error) {
 
 	validSeverity := func(severity interface{}) (Severity, error) {
+		// If already defined as a standard severity
+		if sev, err := defaultSeverityMap().find(severity); err != nil {
+			return notFound, err
+		} else if sev != notFound {
+			return sev, nil
+		}
 
-		switch s := severity.(type) {
-		case string:
-			defaultSev, ok := defaultSeverityMap()[strings.ToLower(s)]
-			if !ok {
-				return -1, fmt.Errorf("Unrecognized severity in mapping: %v", s)
-			}
-			return defaultSev, nil
-		case []byte:
-			defaultSev, ok := defaultSeverityMap()[strings.ToLower(string(s))]
-			if !ok {
-				return -1, fmt.Errorf("Unrecognized severity in mapping: %v", s)
-			}
-			return defaultSev, nil
-		case int:
-			if s < minSeverity || s > maxSeverity {
-				return -1, fmt.Errorf("Severity must be an integer between %d and %d inclusive", minSeverity, maxSeverity)
-			}
-			return Severity(s), nil // may or may not be custom
-		default:
-			return -1, fmt.Errorf("type %T cannot be parsed as a severity", s)
+		// If integer between 0 and 100, then allow as custom severity
+		if sev, ok := severity.(int); !ok {
+			return notFound, fmt.Errorf("type %T cannot be used as a custom severity", severity)
+		} else if sev < minSeverity || sev > maxSeverity {
+			return -1, fmt.Errorf("custom severity must be between %d and %d", minSeverity, maxSeverity)
+		} else {
+			return Severity(sev), nil
 		}
 	}
 

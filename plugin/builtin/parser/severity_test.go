@@ -14,12 +14,12 @@ import (
 )
 
 type severityTestCase struct {
-	name      string
-	sample    interface{}
-	mapping   map[interface{}]interface{}
-	configErr bool
-	parseErr  bool
-	expected  helper.Severity
+	name     string
+	sample   interface{}
+	mapping  map[interface{}]interface{}
+	buildErr bool
+	parseErr bool
+	expected helper.Severity
 }
 
 func TestSeverityParser(t *testing.T) {
@@ -97,6 +97,30 @@ func TestSeverityParser(t *testing.T) {
 			mapping:  map[interface{}]interface{}{12: "weird"},
 			expected: 12,
 		},
+		{
+			name:     "custom-level-list",
+			sample:   "hey!",
+			mapping:  map[interface{}]interface{}{16: []interface{}{"hey!", 1234}},
+			expected: 16,
+		},
+		{
+			name:     "custom-level-list-unfound",
+			sample:   "not-in-the-list-but-thats-ok",
+			mapping:  map[interface{}]interface{}{16: []interface{}{"hey!", 1234}},
+			expected: helper.Default,
+		},
+		{
+			name:     "custom-level-unbuildable",
+			sample:   "not-in-the-list-but-thats-ok",
+			mapping:  map[interface{}]interface{}{16: []interface{}{"hey!", 1234, 12.34}},
+			buildErr: true,
+		},
+		{
+			name:     "custom-level-list-unparseable",
+			sample:   12.34,
+			mapping:  map[interface{}]interface{}{16: []interface{}{"hey!", 1234}},
+			parseErr: true,
+		},
 	}
 
 	rootField := entry.NewField()
@@ -106,24 +130,26 @@ func TestSeverityParser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rootCfg := parseSeverityTestConfig(rootField, tc.mapping)
 			rootEntry := makeTestEntry(rootField, tc.sample)
-			t.Run("root", runSeverityParseTest(t, rootCfg, rootEntry, tc.configErr, tc.parseErr, tc.expected))
+			t.Run("root", runSeverityParseTest(t, rootCfg, rootEntry, tc.buildErr, tc.parseErr, tc.expected))
 
 			nonRootCfg := parseSeverityTestConfig(someField, tc.mapping)
 			nonRootEntry := makeTestEntry(someField, tc.sample)
-			t.Run("non-root", runSeverityParseTest(t, nonRootCfg, nonRootEntry, tc.configErr, tc.parseErr, tc.expected))
+			t.Run("non-root", runSeverityParseTest(t, nonRootCfg, nonRootEntry, tc.buildErr, tc.parseErr, tc.expected))
 		})
 	}
 }
 
-func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.Entry, configErr bool, parseErr bool, expected helper.Severity) func(*testing.T) {
+func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.Entry, buildErr bool, parseErr bool, expected helper.Severity) func(*testing.T) {
 
 	return func(t *testing.T) {
 		buildContext := plugin.NewTestBuildContext(t)
 
 		severityPlugin, err := cfg.Build(buildContext)
-		if configErr {
+		if buildErr {
 			require.Error(t, err, "expected error when configuring plugin")
+			return
 		}
+		require.NoError(t, err, "unexpected error when configuring plugin")
 
 		mockOutput := &mocks.Plugin{}
 		resultChan := make(chan *entry.Entry, 1)
@@ -137,6 +163,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 		err = severityParser.Process(context.Background(), ent)
 		if parseErr {
 			require.Error(t, err, "expected error when parsing sample")
+			return
 		}
 
 		select {
