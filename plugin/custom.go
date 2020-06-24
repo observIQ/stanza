@@ -14,7 +14,9 @@ import (
 
 // CustomConfig is the rendered config of a custom plugin.
 type CustomConfig struct {
-	Pipeline []Config
+	Version    string
+	Parameters map[string]interface{}
+	Pipeline   []Config
 }
 
 // CustomRegistry is a registry of custom plugin templates.
