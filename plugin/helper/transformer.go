@@ -11,14 +11,19 @@ import (
 
 // TransformerConfig provides a basic implementation of a transformer config.
 type TransformerConfig struct {
-	BasicConfig `yaml:",inline"`
-	OnError     string `json:"on_error" yaml:"on_error"`
-	OutputID    string `json:"output" yaml:"output"`
+	BasicConfig  `yaml:",inline"`
+	WriterConfig `yaml:",inline"`
+	OnError      string `json:"on_error" yaml:"on_error"`
 }
 
 // Build will build a transformer plugin.
 func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin, error) {
 	basicPlugin, err := c.BasicConfig.Build(context)
+	if err != nil {
+		return TransformerPlugin{}, err
+	}
+
+	writerPlugin, err := c.WriterConfig.Build(context)
 	if err != nil {
 		return TransformerPlugin{}, err
 	}
@@ -37,17 +42,10 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 		)
 	}
 
-	if c.OutputID == "" {
-		return TransformerPlugin{}, errors.NewError(
-			"plugin config is missing the `output` field.",
-			"ensure that a valid `output` field exists on the plugin config.",
-		)
-	}
-
 	transformerPlugin := TransformerPlugin{
-		BasicPlugin: basicPlugin,
-		OnError:     c.OnError,
-		OutputID:    c.OutputID,
+		BasicPlugin:  basicPlugin,
+		WriterPlugin: writerPlugin,
+		OnError:      c.OnError,
 	}
 
 	return transformerPlugin, nil
@@ -55,21 +53,15 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 
 // SetNamespace will namespace the id and output of the plugin config.
 func (c *TransformerConfig) SetNamespace(namespace string, exclusions ...string) {
-	if CanNamespace(c.PluginID, exclusions) {
-		c.PluginID = AddNamespace(c.PluginID, namespace)
-	}
-
-	if CanNamespace(c.OutputID, exclusions) {
-		c.OutputID = AddNamespace(c.OutputID, namespace)
-	}
+	c.BasicConfig.SetNamespace(namespace, exclusions...)
+	c.WriterConfig.SetNamespace(namespace, exclusions...)
 }
 
 // TransformerPlugin provides a basic implementation of a transformer plugin.
 type TransformerPlugin struct {
 	BasicPlugin
-	OnError  string
-	OutputID string
-	Output   plugin.Plugin
+	WriterPlugin
+	OnError string
 }
 
 // CanProcess will always return true for a transformer plugin.
@@ -83,37 +75,18 @@ func (t *TransformerPlugin) ProcessWith(ctx context.Context, entry *entry.Entry,
 	if err != nil {
 		return t.HandleEntryError(ctx, entry, err)
 	}
-	return t.Output.Process(ctx, newEntry)
+	t.Write(ctx, newEntry)
+	return nil
 }
 
 // HandleEntryError will handle an entry error using the on_error strategy.
 func (t *TransformerPlugin) HandleEntryError(ctx context.Context, entry *entry.Entry, err error) error {
 	t.Errorw("Failed to process entry", zap.Any("error", err), zap.Any("action", t.OnError), zap.Any("entry", entry))
 	if t.OnError == SendOnError {
-		return t.Output.Process(ctx, entry)
+		t.Write(ctx, entry)
+		return nil
 	}
 	return err
-}
-
-// CanOutput will always return true for an input plugin.
-func (t *TransformerPlugin) CanOutput() bool {
-	return true
-}
-
-// Outputs will return an array containing the output plugin.
-func (t *TransformerPlugin) Outputs() []plugin.Plugin {
-	return []plugin.Plugin{t.Output}
-}
-
-// SetOutputs will set the output plugin.
-func (t *TransformerPlugin) SetOutputs(plugins []plugin.Plugin) error {
-	output, err := FindOutput(plugins, t.OutputID)
-	if err != nil {
-		return err
-	}
-
-	t.Output = output
-	return nil
 }
 
 // TransformFunction is function that transforms an entry.

@@ -57,6 +57,13 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 	return plugin, nil
 }
 
+// SetNamespace will namespace the plugin id.
+func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
+	if CanNamespace(c.PluginID, exclusions) {
+		c.PluginID = AddNamespace(c.PluginID, namespace)
+	}
+}
+
 // BasicPlugin provides a basic implementation of a plugin.
 type BasicPlugin struct {
 	PluginID   string
