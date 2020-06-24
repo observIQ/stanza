@@ -13,12 +13,13 @@ import (
 type ParserConfig struct {
 	BasicConfig `yaml:",inline"`
 
-	OutputID   string      `json:"output"     yaml:"output"`
-	ParseFrom  entry.Field `json:"parse_from" yaml:"parse_from"`
-	ParseTo    entry.Field `json:"parse_to"   yaml:"parse_to"`
-	Preserve   bool        `json:"preserve"   yaml:"preserve"`
-	OnError    string      `json:"on_error"   yaml:"on_error"`
-	TimeParser *TimeParser `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
+	OutputID             string                `json:"output"     yaml:"output"`
+	ParseFrom            entry.Field           `json:"parse_from" yaml:"parse_from"`
+	ParseTo              entry.Field           `json:"parse_to"   yaml:"parse_to"`
+	Preserve             bool                  `json:"preserve"   yaml:"preserve"`
+	OnError              string                `json:"on_error"   yaml:"on_error"`
+	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
+	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
 
 // ID will return the plugin id.
@@ -75,6 +76,14 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 		parserPlugin.TimeParser = c.TimeParser
 	}
 
+	if c.SeverityParserConfig != nil {
+		severityParser, err := c.SeverityParserConfig.Build(context)
+		if err != nil {
+			return ParserPlugin{}, err
+		}
+		parserPlugin.SeverityParser = &severityParser
+	}
+
 	return parserPlugin, nil
 }
 
@@ -92,13 +101,14 @@ func (c *ParserConfig) SetNamespace(namespace string, exclusions ...string) {
 // ParserPlugin provides a basic implementation of a parser plugin.
 type ParserPlugin struct {
 	BasicPlugin
-	OutputID   string
-	ParseFrom  entry.Field
-	ParseTo    entry.Field
-	Preserve   bool
-	OnError    string
-	Output     plugin.Plugin
-	TimeParser *TimeParser
+	OutputID       string
+	ParseFrom      entry.Field
+	ParseTo        entry.Field
+	Preserve       bool
+	OnError        string
+	Output         plugin.Plugin
+	TimeParser     *TimeParser
+	SeverityParser *SeverityParser
 }
 
 // CanProcess will always return true for a parser plugin.
@@ -152,6 +162,12 @@ func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, pars
 
 	if p.TimeParser != nil {
 		if err := p.TimeParser.Parse(ctx, entry); err != nil {
+			return p.HandleParserError(ctx, entry, err)
+		}
+	}
+
+	if p.SeverityParser != nil {
+		if err := p.SeverityParser.Parse(ctx, entry); err != nil {
 			return p.HandleParserError(ctx, entry, err)
 		}
 	}
