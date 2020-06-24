@@ -128,6 +128,35 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		}
 	}
 
+	parseRange := func(value interface{}) ([]string, bool) {
+		rawMap, ok := value.(map[interface{}]interface{})
+		if !ok {
+			return nil, false
+		}
+
+		min, minOK := rawMap["min"]
+		max, maxOK := rawMap["max"]
+		if !minOK || !maxOK {
+			return nil, false
+		}
+
+		minInt, minOK := min.(int)
+		maxInt, maxOK := max.(int)
+		if !minOK || !maxOK {
+			return nil, false
+		}
+
+		if minInt > maxInt {
+			minInt, maxInt = maxInt, minInt
+		}
+
+		rangeOfStrings := []string{}
+		for i := minInt; i <= maxInt; i++ {
+			rangeOfStrings = append(rangeOfStrings, strconv.Itoa(i))
+		}
+		return rangeOfStrings, true
+	}
+
 	validValues := func(value interface{}) ([]string, error) {
 		switch v := value.(type) {
 		case int:
@@ -137,32 +166,11 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		case []byte:
 			return []string{strings.ToLower(string(v))}, nil
 		default:
-			rawMap, ok := v.(map[interface{}]interface{})
-			if !ok {
-				return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
+			minToMax, ok := parseRange(v)
+			if ok {
+				return minToMax, nil
 			}
-
-			min, minOK := rawMap["min"]
-			max, maxOK := rawMap["max"]
-			if !minOK || !maxOK {
-				return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
-			}
-
-			minInt, minOK := min.(int)
-			maxInt, maxOK := max.(int)
-			if !minOK || !maxOK {
-				return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
-			}
-
-			if minInt > maxInt {
-				minInt, maxInt = maxInt, minInt
-			}
-
-			rangeOfStrings := []string{}
-			for i := minInt; i <= maxInt; i++ {
-				rangeOfStrings = append(rangeOfStrings, strconv.Itoa(i))
-			}
-			return rangeOfStrings, nil
+			return nil, fmt.Errorf("type %T cannot be parsed as a severity", v)
 		}
 	}
 
