@@ -15,11 +15,20 @@ func NewLineStartSplitFunc(re *regexp.Regexp) bufio.SplitFunc {
 		}
 		firstMatchStart := firstLoc[0]
 		firstMatchEnd := firstLoc[1]
+
 		if firstMatchStart != 0 {
 			// the beginning of the file does not match the start pattern, so return a token up to the first match so we don't lose data
 			advance = firstMatchStart
 			token = data[0:firstMatchStart]
 			return
+		}
+
+		if firstMatchEnd == len(data) {
+			// the first match goes to the end of the buffer, so don't look for a second match
+			if atEOF {
+				return len(data), data[firstMatchStart:], nil // return the rest of the file and advance to end
+			}
+			return 0, nil, nil // read more data and try again
 		}
 
 		secondLocOffset := firstMatchEnd + 1
