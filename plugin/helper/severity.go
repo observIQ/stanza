@@ -46,13 +46,16 @@ const (
 
 	// Catastrophe indicates that it is already too late
 	Catastrophe = 100
+
+	// used internally
+	notFound = -1
 )
 
 const minSeverity = 0
 const maxSeverity = 100
 
 // map[string or int input]sev-level
-func defaultMapping() map[interface{}]Severity {
+func defaultSeverityMap() SeverityMap {
 	return map[interface{}]Severity{
 		int(Default):     Default,
 		"default":        Default,
@@ -81,6 +84,8 @@ func defaultMapping() map[interface{}]Severity {
 	}
 }
 
+type SeverityMap map[interface{}]Severity
+
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
 type SeverityParserConfig struct {
 	ParseFrom entry.Field                 `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
@@ -94,7 +99,7 @@ type SeverityParser struct {
 	Preserve  bool
 
 	// map[ValueToParseAsSeverity][Severity]
-	Mapping map[interface{}]Severity
+	Mapping SeverityMap
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
@@ -104,13 +109,13 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 
 		switch s := severity.(type) {
 		case string:
-			defaultSev, ok := defaultMapping()[strings.ToLower(s)]
+			defaultSev, ok := defaultSeverityMap()[strings.ToLower(s)]
 			if !ok {
 				return -1, fmt.Errorf("Unrecognized severity in mapping: %v", s)
 			}
 			return defaultSev, nil
 		case []byte:
-			defaultSev, ok := defaultMapping()[strings.ToLower(string(s))]
+			defaultSev, ok := defaultSeverityMap()[strings.ToLower(string(s))]
 			if !ok {
 				return -1, fmt.Errorf("Unrecognized severity in mapping: %v", s)
 			}
@@ -138,7 +143,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		}
 	}
 
-	pluginMapping := defaultMapping()
+	pluginMapping := defaultSeverityMap()
 
 	for severity, unknown := range c.Mapping {
 		sev, err := validSeverity(severity)
@@ -184,26 +189,40 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 		)
 	}
 
-	switch v := value.(type) {
-	case int:
-		if severity, ok := p.Mapping[v]; ok {
-			entry.Severity = int(severity)
-		}
-	case string:
-		if severity, ok := p.Mapping[strings.ToLower(v)]; ok {
-			entry.Severity = int(severity)
-		}
-	case []byte:
-		if severity, ok := p.Mapping[strings.ToLower(string(v))]; ok {
-			entry.Severity = int(severity)
-		}
-	default:
-		return fmt.Errorf("type %T cannot be parsed as a severity", v)
+	severity, err := p.Mapping.find(value)
+	if err != nil {
+		return errors.Wrap(err, "parse")
 	}
+	if severity == notFound {
+		severity = Default
+	}
+	entry.Severity = int(severity)
 
 	if !p.Preserve {
 		entry.Delete(p.ParseFrom)
 	}
 
 	return nil
+}
+
+func (m SeverityMap) find(value interface{}) (Severity, error) {
+	switch v := value.(type) {
+	case int:
+		if severity, ok := m[v]; ok {
+			return severity, nil
+		}
+		return notFound, nil
+	case string:
+		if severity, ok := m[strings.ToLower(v)]; ok {
+			return severity, nil
+		}
+		return notFound, nil
+	case []byte:
+		if severity, ok := m[strings.ToLower(string(v))]; ok {
+			return severity, nil
+		}
+		return notFound, nil
+	default:
+		return notFound, fmt.Errorf("type %T cannot be a severity", v)
+	}
 }
