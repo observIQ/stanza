@@ -39,7 +39,7 @@ func (entry *Entry) Delete(field Field) (interface{}, bool) {
 func (entry *Entry) Read(field Field, dest interface{}) error {
 	val, ok := entry.Get(field)
 	if !ok {
-		return fmt.Errorf("Field does not exist")
+		return fmt.Errorf("field does not exist")
 	}
 
 	switch dest := dest.(type) {
