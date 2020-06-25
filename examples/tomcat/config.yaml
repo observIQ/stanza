@@ -35,15 +35,11 @@ pipeline:
       parse_from: http_status
       preserve: true
       mapping:
-        error:
-          - min: 400
-            max: 499
+        error: "4xx"
         info:
           - min: 300
             max: 399
-        debug:
-          - min: 200
-            max: 299
+        debug: 200
 
   # Write the log to stdout
   # Example input:

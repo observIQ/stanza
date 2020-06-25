@@ -185,7 +185,7 @@ func TestSeverityParser(t *testing.T) {
 				helper.Trace: []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
-					map[interface{}]interface{}{"min": 1000, "max": 2000},
+					map[interface{}]interface{}{"min": 1111, "max": 1234},
 				},
 				77: "",
 			},
@@ -201,7 +201,7 @@ func TestSeverityParser(t *testing.T) {
 				helper.Trace: []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
-					map[interface{}]interface{}{"min": 1000, "max": 2000},
+					map[interface{}]interface{}{"min": 1111, "max": 1234},
 				},
 				77: "",
 			},
@@ -217,7 +217,7 @@ func TestSeverityParser(t *testing.T) {
 				helper.Trace: []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
-					map[interface{}]interface{}{"min": 1000, "max": 2000},
+					map[interface{}]interface{}{"min": 1111, "max": 1234},
 				},
 				77: "",
 			},
@@ -233,7 +233,7 @@ func TestSeverityParser(t *testing.T) {
 				helper.Trace: []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
-					map[interface{}]interface{}{"min": 1000, "max": 2000},
+					map[interface{}]interface{}{"min": 1111, "max": 1234},
 				},
 				77: "",
 			},
@@ -249,7 +249,7 @@ func TestSeverityParser(t *testing.T) {
 				helper.Trace: []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
-					map[interface{}]interface{}{"min": 1000, "max": 2000},
+					map[interface{}]interface{}{"min": 1111, "max": 2000},
 				},
 				77: "",
 			},
