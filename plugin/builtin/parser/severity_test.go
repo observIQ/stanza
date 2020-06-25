@@ -87,7 +87,7 @@ func TestSeverityParser(t *testing.T) {
 		{
 			name:     "overload-native",
 			sample:   "E",
-			mapping:  map[interface{}]interface{}{helper.Error: "E"},
+			mapping:  map[interface{}]interface{}{int(helper.Error): "E"},
 			expected: helper.Error, // 60
 		},
 		{
@@ -178,10 +178,10 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-midrange",
 			sample: 1234,
 			mapping: map[interface{}]interface{}{
-				"30":         "3xx",
-				helper.Error: "4xx",
-				"critical":   "5xx",
-				helper.Trace: []interface{}{
+				"30":              "3xx",
+				int(helper.Error): "4xx",
+				"critical":        "5xx",
+				int(helper.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
@@ -194,10 +194,10 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-bytes",
 			sample: []byte{100, 100, 100},
 			mapping: map[interface{}]interface{}{
-				"30":         "3xx",
-				helper.Error: "4xx",
-				"critical":   "5xx",
-				helper.Trace: []interface{}{
+				"30":              "3xx",
+				int(helper.Error): "4xx",
+				"critical":        "5xx",
+				int(helper.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
@@ -210,10 +210,10 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-empty",
 			sample: "",
 			mapping: map[interface{}]interface{}{
-				"30":         "3xx",
-				helper.Error: "4xx",
-				"critical":   "5xx",
-				helper.Trace: []interface{}{
+				"30":              "3xx",
+				int(helper.Error): "4xx",
+				"critical":        "5xx",
+				int(helper.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
@@ -226,10 +226,10 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-3xx",
 			sample: "399",
 			mapping: map[interface{}]interface{}{
-				"30":         "3xx",
-				helper.Error: "4xx",
-				"critical":   "5xx",
-				helper.Trace: []interface{}{
+				"30":              "3xx",
+				int(helper.Error): "4xx",
+				"critical":        "5xx",
+				int(helper.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
@@ -242,10 +242,10 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-miss",
 			sample: "miss",
 			mapping: map[interface{}]interface{}{
-				"30":         "3xx",
-				helper.Error: "4xx",
-				"critical":   "5xx",
-				helper.Trace: []interface{}{
+				"30":              "3xx",
+				int(helper.Error): "4xx",
+				"critical":        "5xx",
+				int(helper.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 2000},

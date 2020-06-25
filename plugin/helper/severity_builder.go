@@ -15,31 +15,20 @@ const maxSeverity = 100
 // map[string or int input]sev-level
 func defaultSeverityMap() severityMap {
 	return map[string]Severity{
-		Default.ToString():     Default,
-		"default":              Default,
-		Trace.ToString():       Trace,
-		"trace":                Trace,
-		Debug.ToString():       Debug,
-		"debug":                Debug,
-		Info.ToString():        Info,
-		"info":                 Info,
-		Notice.ToString():      Notice,
-		"notice":               Notice,
-		Warning.ToString():     Warning,
-		"warning":              Warning,
-		"warn":                 Warning,
-		Error.ToString():       Error,
-		"error":                Error,
-		"err":                  Error,
-		Critical.ToString():    Critical,
-		"critical":             Critical,
-		"crit":                 Critical,
-		Alert.ToString():       Alert,
-		"alert":                Alert,
-		Emergency.ToString():   Emergency,
-		"emergency":            Emergency,
-		Catastrophe.ToString(): Catastrophe,
-		"catastrophe":          Catastrophe,
+		"default":     Default,
+		"trace":       Trace,
+		"debug":       Debug,
+		"info":        Info,
+		"notice":      Notice,
+		"warning":     Warning,
+		"warn":        Warning,
+		"error":       Error,
+		"err":         Error,
+		"critical":    Critical,
+		"crit":        Critical,
+		"alert":       Alert,
+		"emergency":   Emergency,
+		"catastrophe": Catastrophe,
 	}
 }
 
@@ -109,21 +98,33 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 }
 
 func validateSeverity(severity interface{}) (Severity, error) {
-	// If already defined as a standard severity
+	// If defined as a default alias
 	if sev, err := defaultSeverityMap().find(severity); err != nil {
 		return notFound, err
 	} else if sev != notFound {
 		return sev, nil
 	}
 
-	// If integer between 0 and 100, then allow as custom severity
-	if sev, ok := severity.(int); !ok {
-		return notFound, fmt.Errorf("type %T cannot be used as a custom severity (%v)", severity, severity)
-	} else if sev < minSeverity || sev > maxSeverity {
-		return notFound, fmt.Errorf("custom severity must be between %d and %d", minSeverity, maxSeverity)
-	} else {
-		return Severity(sev), nil
+	// If integer between 0 and 100
+	var intSev int
+	switch s := severity.(type) {
+	case int:
+		intSev = s
+	case string:
+		// TODO try to parse int
+		i, err := strconv.ParseInt(s, 10, 8)
+		if err != nil {
+			return notFound, fmt.Errorf("%s cannot be used as a severity", severity)
+		}
+		intSev = int(i)
+	default:
+		return notFound, fmt.Errorf("type %T cannot be used as a severity (%v)", severity, severity)
 	}
+
+	if intSev < minSeverity || intSev > maxSeverity {
+		return notFound, fmt.Errorf("severity must be between %d and %d", minSeverity, maxSeverity)
+	}
+	return Severity(intSev), nil
 }
 
 func isRange(value interface{}) (int, int, bool) {
