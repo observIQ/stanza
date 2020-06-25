@@ -7,7 +7,7 @@ The `metadata` plugin adds tags and labels to the entry.
 | Field      | Default  | Description                                                                                   |
 | ---        | ---      | ---                                                                                           |
 | `id`       | required | A unique identifier for the plugin                                                            |
-| `output`   | required | The `id` for the plugin to send parsed entries to                                             |
+| `output`   | required | The connected plugin(s) that will receive all outbound entries                                |
 | `labels`   | {}       | An map of `key: value` labels to add to the entry                                             |
 | `tags`     | []       | An array of tags to add to the entry                                                          |
 | `on_error` | `send`   | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md) |

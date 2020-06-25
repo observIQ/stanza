@@ -54,6 +54,6 @@ func (t *TimeParserPlugin) Process(ctx context.Context, entry *entry.Entry) erro
 	if err := t.Parse(ctx, entry); err != nil {
 		return errors.Wrap(err, "parse timestamp")
 	}
-
-	return t.Output.Process(ctx, entry)
+	t.Write(ctx, entry)
+	return nil
 }

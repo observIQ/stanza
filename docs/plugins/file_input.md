@@ -7,7 +7,7 @@ The `file_input` plugin reads logs from files. It will place the lines read into
 | Field           | Default     | Description                                                                                      |
 | ---             | ---         | ---                                                                                              |
 | `id`            | required    | A unique identifier for the plugin                                                               |
-| `output`        | required    | The `id` for the plugin to send parsed entries to                                                |
+| `output`        | required    | The connected plugin(s) that will receive all outbound entries                                   |
 | `include`       | required    | A list of file glob patterns that match the file paths to be read                                |
 | `exclude`       | []          | A list of file glob patterns to exclude from reading                                             |
 | `poll_interval` | 200ms       | The duration between filesystem polls                                                            |

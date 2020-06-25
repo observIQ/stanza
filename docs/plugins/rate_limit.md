@@ -9,7 +9,7 @@ send as fast as possible.
 | Field      | Default  | Description                                                                        |
 | ---        | ---      | ---                                                                                |
 | `id`       | required | A unique identifier for the plugin                                                 |
-| `output`   | required | The `id` for the plugin to send parsed entries to                                  |
+| `output`   | required | The connected plugin(s) that will receive all outbound entries                     |
 | `rate`     |          | The number of logs to allow per second                                             |
 | `interval` |          | A [duration](/docs/types/duration.md) that indicates the time between sent entries |
 | `burst`    | 0        | The max number of entries to "save up" for spikes of load                          |

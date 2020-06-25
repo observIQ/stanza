@@ -26,23 +26,23 @@ func (c BasicConfig) Type() string {
 func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 	if c.PluginID == "" {
 		return BasicPlugin{}, errors.NewError(
-			"Plugin config is missing the `id` field.",
-			"Ensure that all plugins have a uniquely defined `id` field.",
+			"missing required `id` field.",
+			"ensure that all plugins have a uniquely defined `id` field.",
 		)
 	}
 
 	if c.PluginType == "" {
 		return BasicPlugin{}, errors.NewError(
-			"Plugin config is missing the `type` field.",
-			"Ensure that all plugins have a uniquely defined `type` field.",
+			"missing required `type` field.",
+			"ensure that all plugins have a uniquely defined `type` field.",
 			"plugin_id", c.PluginID,
 		)
 	}
 
 	if context.Logger == nil {
 		return BasicPlugin{}, errors.NewError(
-			"Plugin build context is missing a logger.",
-			"This is an unexpected internal error. Please submit a bug/issue.",
+			"plugin build context is missing a logger.",
+			"this is an unexpected internal error",
 			"plugin_id", c.PluginID,
 			"plugin_type", c.PluginType,
 		)
@@ -55,6 +55,13 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 	}
 
 	return plugin, nil
+}
+
+// SetNamespace will namespace the plugin id.
+func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
+	if CanNamespace(c.PluginID, exclusions) {
+		c.PluginID = AddNamespace(c.PluginID, namespace)
+	}
 }
 
 // BasicPlugin provides a basic implementation of a plugin.

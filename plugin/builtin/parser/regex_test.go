@@ -23,8 +23,10 @@ func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
 					PluginID:   "regex_parser",
 					PluginType: "regex_parser",
 				},
-				OutputID: "mock_output",
-				Output:   &mockPlugin,
+				WriterPlugin: helper.WriterPlugin{
+					OutputIDs: []string{"mock_output"},
+					OutputPlugins: []plugin.Plugin{&mockPlugin},
+				},
 			},
 		},
 	}, &mockPlugin
@@ -90,7 +92,9 @@ func TestBuildParserRegex(t *testing.T) {
 						PluginID:   "test",
 						PluginType: "test",
 					},
-					OutputID: "test",
+					WriterConfig: helper.WriterConfig{
+						OutputIDs: []string{"test"},
+					},
 				},
 			},
 			Regex: ".*",

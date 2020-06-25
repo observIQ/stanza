@@ -3,8 +3,8 @@ package helper
 import (
 	"testing"
 
-	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -32,7 +32,7 @@ func TestBasicConfigBuildWithoutID(t *testing.T) {
 	context := plugin.BuildContext{}
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin config is missing the `id` field.")
+	require.Contains(t, err.Error(), "missing required `id` field.")
 }
 
 func TestBasicConfigBuildWithoutType(t *testing.T) {
@@ -42,7 +42,7 @@ func TestBasicConfigBuildWithoutType(t *testing.T) {
 	context := plugin.BuildContext{}
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin config is missing the `type` field.")
+	require.Contains(t, err.Error(), "missing required `type` field.")
 }
 
 func TestBasicConfigBuildMissingLogger(t *testing.T) {
@@ -53,7 +53,7 @@ func TestBasicConfigBuildMissingLogger(t *testing.T) {
 	context := plugin.BuildContext{}
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin build context is missing a logger.")
+	require.Contains(t, err.Error(), "plugin build context is missing a logger.")
 }
 
 func TestBasicConfigBuildValid(t *testing.T) {

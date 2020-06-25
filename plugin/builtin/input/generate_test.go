@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +25,9 @@ func TestInputGenerate(t *testing.T) {
 				WriteTo: entry.Field{
 					Keys: []string{},
 				},
-				OutputID: "output1",
+				WriterConfig: helper.WriterConfig{
+					OutputIDs: []string{"output1"},
+				},
 			},
 			Record: "test message",
 			Count:  count,
@@ -91,7 +93,9 @@ pipeline:
 							PluginID:   "my_generator",
 							PluginType: "generate_input",
 						},
-						OutputID: "sampleoutput",
+						WriterConfig: helper.WriterConfig{
+							OutputIDs: []string{"sampleoutput"},
+						},
 					},
 					Record: map[interface{}]interface{}{
 						"message": "testmessage",

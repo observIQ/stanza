@@ -7,7 +7,7 @@ The `regex` plugin parses the string-type field selected by `parse_from` with th
 | Field        | Default  | Description                                                                                                                                     |
 | ---          | ---      | ---                                                                                                                                             |
 | `id`         | required | A unique identifier for the plugin                                                                                                              |
-| `output`     | required | The `id` for the plugin to send parsed entries to                                                                                               |
+| `output`     | required | The connected plugin(s) that will receive all outbound entries                                                                               |
 | `regex`      | required | A [Go regular expression](https://github.com/google/re2/wiki/Syntax). The named capture groups will be extracted as fields in the parsed object |
 | `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
 | `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |

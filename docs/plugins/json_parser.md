@@ -7,7 +7,7 @@ The `json_parser` plugin parses the string-type field selected by `parse_from` a
 | Field        | Default  | Description                                                                                                                                     |
 | ---          | ---      | ---                                                                                                                                             |
 | `id`         | required | A unique identifier for the plugin                                                                                                              |
-| `output`     | required | The `id` for the plugin to send parsed entries to                                                                                               |
+| `output`     | required | The connected plugin(s) that will receive all outbound entries                                                                                                |
 | `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                                   |
 | `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                                   |
 | `preserve`   | false    | Preserve the unparsed value on the record                                                                                                       |

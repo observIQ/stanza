@@ -15,7 +15,9 @@ func TestNoopPluginBuild(t *testing.T) {
 				PluginID:   "test_plugin_id",
 				PluginType: "noop",
 			},
-			OutputID: "output",
+			WriterConfig: helper.WriterConfig{
+				OutputIDs: []string{"output"},
+			},
 		},
 	}
 
