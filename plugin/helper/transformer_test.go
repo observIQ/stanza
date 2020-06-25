@@ -21,7 +21,7 @@ func TestTransformerConfigMissingBase(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin config is missing the `id` field.")
+	require.Contains(t, err.Error(), "missing required `id` field.")
 }
 
 func TestTransformerConfigMissingOutput(t *testing.T) {
@@ -34,7 +34,7 @@ func TestTransformerConfigMissingOutput(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "plugin config is missing the `output` field")
+	require.Contains(t, err.Error(), "missing required `output` field")
 }
 
 func TestTransformerConfigValid(t *testing.T) {
@@ -110,75 +110,6 @@ func TestTransformerPluginCanProcess(t *testing.T) {
 		},
 	}
 	require.True(t, transformer.CanProcess())
-}
-
-func TestTransformerPluginCanOutput(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
-		},
-	}
-	require.True(t, transformer.CanOutput())
-}
-
-func TestTransformerPluginOutputs(t *testing.T) {
-	output := &testutil.Plugin{}
-	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
-		},
-		WriterPlugin: WriterPlugin{
-			OutputPlugins: []plugin.Plugin{output},
-		},
-	}
-	require.Equal(t, []plugin.Plugin{output}, transformer.Outputs())
-}
-
-func TestTransformerPluginSetOutputsValid(t *testing.T) {
-	output := &testutil.Plugin{}
-	output.On("ID").Return("test-output")
-	output.On("CanProcess").Return(true)
-	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
-		},
-		WriterPlugin: WriterPlugin{
-			OutputIDs: []string{"test-output"},
-		},
-	}
-
-	err := transformer.SetOutputs([]plugin.Plugin{output})
-	require.NoError(t, err)
-	require.Equal(t, []plugin.Plugin{output}, transformer.Outputs())
-}
-
-func TestTransformerPluginSetOutputsInvalid(t *testing.T) {
-	output := &testutil.Plugin{}
-	output.On("ID").Return("test-output")
-	output.On("CanProcess").Return(false)
-	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
-		},
-		WriterPlugin: WriterPlugin{
-			OutputIDs: []string{"test-output"},
-		},
-	}
-
-	err := transformer.SetOutputs([]plugin.Plugin{output})
-	require.Error(t, err)
 }
 
 func TestTransformerDropOnError(t *testing.T) {

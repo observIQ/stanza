@@ -19,8 +19,8 @@ type WriterConfig struct {
 func (c WriterConfig) Build(context plugin.BuildContext) (WriterPlugin, error) {
 	if len(c.OutputIDs) == 0 {
 		return WriterPlugin{}, errors.NewError(
-			"plugin config is missing the `output` field",
-			"ensure that the `output` field is assigned",
+			"missing required `output` field",
+			"ensure that the `output` field is defined",
 		)
 	}
 
@@ -67,13 +67,13 @@ func (w *WriterPlugin) SetOutputs(plugins []plugin.Plugin) error {
 	outputPlugins := make([]plugin.Plugin, 0)
 
 	for _, pluginID := range w.OutputIDs {
-		plugin, ok := w.FindPlugin(plugins, pluginID)
+		plugin, ok := w.findPlugin(plugins, pluginID)
 		if !ok {
-			return fmt.Errorf("output %s does not exist", pluginID)
+			return fmt.Errorf("plugin `%s` does not exist", pluginID)
 		}
 
 		if !plugin.CanProcess() {
-			return fmt.Errorf("output %s can not process entries", pluginID)
+			return fmt.Errorf("plugin `%s` can not process entries", pluginID)
 		}
 
 		outputPlugins = append(outputPlugins, plugin)
@@ -84,7 +84,7 @@ func (w *WriterPlugin) SetOutputs(plugins []plugin.Plugin) error {
 }
 
 // FindPlugin will find a plugin matching the supplied id.
-func (w *WriterPlugin) FindPlugin(plugins []plugin.Plugin, pluginID string) (plugin.Plugin, bool) {
+func (w *WriterPlugin) findPlugin(plugins []plugin.Plugin, pluginID string) (plugin.Plugin, bool) {
 	for _, plugin := range plugins {
 		if plugin.ID() == pluginID {
 			return plugin, true
@@ -140,7 +140,7 @@ func (o *OutputIDs) fromInterface(value interface{}) (OutputIDs, error) {
 		return o.fromArray(array)
 	}
 
-	return nil, fmt.Errorf("output id is not of type string or string array")
+	return nil, fmt.Errorf("value is not of type string or string array")
 }
 
 // fromArray will parse OutputIDs from a raw array.

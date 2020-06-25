@@ -3,8 +3,8 @@ package helper
 import (
 	"testing"
 
-	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +13,7 @@ func TestOutputConfigMissingBase(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin config is missing the `id` field.")
+	require.Contains(t, err.Error(), "missing required `id` field.")
 }
 
 func TestOutputConfigBuildValid(t *testing.T) {
