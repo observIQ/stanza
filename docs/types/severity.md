@@ -76,7 +76,7 @@ The following example illustrates many of the ways in which mapping can configur
       - 5xx
 ```
 
-### How to simplify configuration with `mapping_set`
+### How to simplify configuration with a `mapping_set`
 
 A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. 
 
