@@ -135,6 +135,14 @@ func TestUnmarshalJSONArray(t *testing.T) {
 }
 
 func TestUnmarshalJSONInvalidValue(t *testing.T) {
+	bytes := []byte("..")
+	var config WriterConfig
+	err := json.Unmarshal(bytes, &config)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid character")
+}
+
+func TestUnmarshalJSONInvalidString(t *testing.T) {
 	bytes := []byte("{\"output\": true}")
 	var config WriterConfig
 	err := json.Unmarshal(bytes, &config)
@@ -167,6 +175,14 @@ func TestUnmarshalYAMLArray(t *testing.T) {
 }
 
 func TestUnmarshalYAMLInvalidValue(t *testing.T) {
+	bytes := []byte("..")
+	var config WriterConfig
+	err := yaml.Unmarshal(bytes, &config)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot unmarshal")
+}
+
+func TestUnmarshalYAMLInvalidString(t *testing.T) {
 	bytes := []byte("output: true")
 	var config WriterConfig
 	err := yaml.Unmarshal(bytes, &config)
