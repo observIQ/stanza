@@ -1,6 +1,8 @@
 ## Severity Parsing
 
-`bplogagent` establishes a flexible severity parsing system based on a simple contract between input and output plugins. Output plugins automatically interpret these values as appropriate for the backend to which your logs are sen
+`bplogagent` uses a flexible severity parsing system based on the integers 0 to 100. Standard severities are provided at multiples of 10.
+
+This severity system allows each output plugin to interpret the values 0 to 100 as appropriate for the corresponding backend.
 
 The following named severity levels are supported.
 
@@ -17,8 +19,6 @@ The following named severity levels are supported.
 | Alert       |       80      | `"alert"`                  |
 | Emergenccy  |       90      | `"emergency"`              |
 | Catastrophe |      100      | `"catastrophe"`            |
-
-Additionally, custom severity levels between 0 and 100 can easily be specified. 
 
 
 ### How `severity` mapping works
@@ -74,7 +74,7 @@ Parser plugins can parse a severity and attach the resulting value to a log entr
 | ---           | ---          | ---                                                                           |
 | `parse_from`  | required     | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON |
 | `preserve`    | false        | Preserve the unparsed value on the record                                     |
-| `mapping`     | Aliases Only | A formatted list of values that should be interpretted as severity levels.    |
+| `mapping`     | Aliases Only | A formatted set of values that should be interpretted as severity levels.     |
 
 
 ### How to use severity parsing
