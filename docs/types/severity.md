@@ -78,9 +78,7 @@ The following example illustrates many of the ways in which mapping can configur
 
 ### How to simplify configuration with a `mapping_set`
 
-A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. 
-
-Values specified in the more verbose `mapping` structure will then be added to the severity map.
+A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. Values specified in the more verbose `mapping` structure will then be added to the severity map.
 
 By default, a common `mapping_set` is used. Alternately, `mapping_set: none` can be specified to start with an empty mapping set.
 
