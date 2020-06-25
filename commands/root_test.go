@@ -57,7 +57,7 @@ pipeline:
 	defer cancel()
 
 	go func() {
-		err = rootCmd.ExecuteContext(ctx)
+		err := rootCmd.ExecuteContext(ctx)
 		require.NoError(t, err)
 	}()
 
