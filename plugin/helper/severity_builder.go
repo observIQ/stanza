@@ -43,6 +43,12 @@ func defaultSeverityMap() severityMap {
 	}
 }
 
+func (s severityMap) add(severity Severity, parseableValues []string) {
+	for _, str := range parseableValues {
+		s[str] = severity
+	}
+}
+
 const (
 	// HTTP2xx is a special key that is represents a range from 200 to 299. Literal value is "2xx"
 	HTTP2xx = "2xx"
@@ -76,24 +82,20 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		}
 
 		switch u := unknown.(type) {
-		case []interface{}:
+		case []interface{}: // check before interface{}
 			for _, value := range u {
 				v, err := parseableValues(value)
 				if err != nil {
 					return SeverityParser{}, err
 				}
-				for _, str := range v {
-					pluginMapping[str] = sev
-				}
+				pluginMapping.add(sev, v)
 			}
 		case interface{}:
 			v, err := parseableValues(u)
 			if err != nil {
 				return SeverityParser{}, err
 			}
-			for _, str := range v {
-				pluginMapping[str] = sev
-			}
+			pluginMapping.add(sev, v)
 		}
 	}
 
