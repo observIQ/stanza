@@ -91,6 +91,20 @@ func defaultSeverityMap() severityMap {
 	}
 }
 
+const (
+	// HTTP2xx is a special key that is represents a range from 200 to 299. Literal value is "2xx"
+	HTTP2xx = "2xx"
+
+	// HTTP3xx is a special key that is represents a range from 300 to 399. Literal value is "3xx"
+	HTTP3xx = "3xx"
+
+	// HTTP4xx is a special key that is represents a range from 400 to 499. Literal value is "4xx"
+	HTTP4xx = "4xx"
+
+	// HTTP5xx is a special key that is represents a range from 500 to 599. Literal value is "5xx"
+	HTTP5xx = "5xx"
+)
+
 type severityMap map[string]Severity
 
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
@@ -128,7 +142,19 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		}
 	}
 
-	parseRange := func(value interface{}) ([]string, bool) {
+	rangeOver := func(min, max int) []string {
+		if min > max {
+			min, max = max, min
+		}
+
+		rangeOfStrings := []string{}
+		for i := min; i <= max; i++ {
+			rangeOfStrings = append(rangeOfStrings, strconv.Itoa(i))
+		}
+		return rangeOfStrings
+	}
+
+	parseableRange := func(value interface{}) ([]string, bool) {
 		rawMap, ok := value.(map[interface{}]interface{})
 		if !ok {
 			return nil, false
@@ -146,27 +172,30 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 			return nil, false
 		}
 
-		if minInt > maxInt {
-			minInt, maxInt = maxInt, minInt
-		}
-
-		rangeOfStrings := []string{}
-		for i := minInt; i <= maxInt; i++ {
-			rangeOfStrings = append(rangeOfStrings, strconv.Itoa(i))
-		}
-		return rangeOfStrings, true
+		return rangeOver(minInt, maxInt), true
 	}
 
-	validValues := func(value interface{}) ([]string, error) {
+	parseableValues := func(value interface{}) ([]string, error) {
 		switch v := value.(type) {
 		case int:
 			return []string{strconv.Itoa(v)}, nil // store as string because we will compare as string
 		case string:
-			return []string{strings.ToLower(v)}, nil
+			switch v {
+			case HTTP2xx:
+				return rangeOver(200, 299), nil
+			case HTTP3xx:
+				return rangeOver(300, 399), nil
+			case HTTP4xx:
+				return rangeOver(400, 499), nil
+			case HTTP5xx:
+				return rangeOver(500, 599), nil
+			default:
+				return []string{strings.ToLower(v)}, nil
+			}
 		case []byte:
 			return []string{strings.ToLower(string(v))}, nil
 		default:
-			minToMax, ok := parseRange(v)
+			minToMax, ok := parseableRange(v)
 			if ok {
 				return minToMax, nil
 			}
@@ -185,7 +214,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		switch u := unknown.(type) {
 		case []interface{}:
 			for _, value := range u {
-				v, err := validValues(value)
+				v, err := parseableValues(value)
 				if err != nil {
 					return SeverityParser{}, err
 				}
@@ -194,7 +223,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 				}
 			}
 		case interface{}:
-			v, err := validValues(u)
+			v, err := parseableValues(u)
 			if err != nil {
 				return SeverityParser{}, err
 			}

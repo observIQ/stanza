@@ -139,6 +139,122 @@ func TestSeverityParser(t *testing.T) {
 			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 125, "max": 120}},
 			expected: helper.Error,
 		},
+		{
+			name:     "Http2xx-hit",
+			sample:   201,
+			mapping:  map[interface{}]interface{}{"error": "2xx"},
+			expected: helper.Error,
+		},
+		{
+			name:     "Http2xx-miss",
+			sample:   301,
+			mapping:  map[interface{}]interface{}{"error": "2xx"},
+			expected: helper.Default,
+		},
+		{
+			name:     "Http3xx-hit",
+			sample:   301,
+			mapping:  map[interface{}]interface{}{"error": "3xx"},
+			expected: helper.Error,
+		},
+		{
+			name:     "Http4xx-hit",
+			sample:   "404",
+			mapping:  map[interface{}]interface{}{"error": "4xx"},
+			expected: helper.Error,
+		},
+		{
+			name:     "Http5xx-hit",
+			sample:   555,
+			mapping:  map[interface{}]interface{}{"error": "5xx"},
+			expected: helper.Error,
+		},
+		{
+			name:     "Http-All",
+			sample:   "301",
+			mapping:  map[interface{}]interface{}{20: "2xx", 30: "3xx", 40: "4xx", 50: "5xx"},
+			expected: 30,
+		},
+		{
+			name:   "all-the-things-midrange",
+			sample: 1234,
+			mapping: map[interface{}]interface{}{
+				"30":         "3xx",
+				helper.Error: "4xx",
+				"critical":   "5xx",
+				helper.Trace: []interface{}{
+					"ttttttracer",
+					[]byte{100, 100, 100},
+					map[interface{}]interface{}{"min": 1000, "max": 2000},
+				},
+				77: "",
+			},
+			expected: helper.Trace,
+		},
+		{
+			name:   "all-the-things-bytes",
+			sample: []byte{100, 100, 100},
+			mapping: map[interface{}]interface{}{
+				"30":         "3xx",
+				helper.Error: "4xx",
+				"critical":   "5xx",
+				helper.Trace: []interface{}{
+					"ttttttracer",
+					[]byte{100, 100, 100},
+					map[interface{}]interface{}{"min": 1000, "max": 2000},
+				},
+				77: "",
+			},
+			expected: helper.Trace,
+		},
+		{
+			name:   "all-the-things-empty",
+			sample: "",
+			mapping: map[interface{}]interface{}{
+				"30":         "3xx",
+				helper.Error: "4xx",
+				"critical":   "5xx",
+				helper.Trace: []interface{}{
+					"ttttttracer",
+					[]byte{100, 100, 100},
+					map[interface{}]interface{}{"min": 1000, "max": 2000},
+				},
+				77: "",
+			},
+			expected: 77,
+		},
+		{
+			name:   "all-the-things-3xx",
+			sample: "399",
+			mapping: map[interface{}]interface{}{
+				"30":         "3xx",
+				helper.Error: "4xx",
+				"critical":   "5xx",
+				helper.Trace: []interface{}{
+					"ttttttracer",
+					[]byte{100, 100, 100},
+					map[interface{}]interface{}{"min": 1000, "max": 2000},
+				},
+				77: "",
+			},
+			expected: 30,
+		},
+		{
+			name:   "all-the-things-miss",
+			sample: "miss",
+			mapping: map[interface{}]interface{}{
+				"30":         "3xx",
+				helper.Error: "4xx",
+				"critical":   "5xx",
+				helper.Trace: []interface{}{
+					"ttttttracer",
+					[]byte{100, 100, 100},
+					map[interface{}]interface{}{"min": 1000, "max": 2000},
+				},
+				77: "",
+			},
+			expected: helper.Default,
+		},
 	}
 
 	rootField := entry.NewField()
