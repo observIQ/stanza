@@ -35,7 +35,7 @@ func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
 	if severity == entry.Nil {
 		severity = entry.Default
 	}
-	ent.Severity = int(severity)
+	ent.Severity = severity
 
 	if !p.Preserve {
 		ent.Delete(p.ParseFrom)

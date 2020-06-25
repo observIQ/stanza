@@ -8,7 +8,7 @@ import (
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
 	Timestamp time.Time         `json:"timestamp" yaml:"timestamp"`
-	Severity  int               `json:"severity" yaml:"severity"`
+	Severity  Severity          `json:"severity" yaml:"severity"`
 	Tags      []string          `json:"tags,omitempty"      yaml:"tags,omitempty"`
 	Labels    map[string]string `json:"labels,omitempty"    yaml:"labels,omitempty"`
 	Record    interface{}       `json:"record"    yaml:"record"`

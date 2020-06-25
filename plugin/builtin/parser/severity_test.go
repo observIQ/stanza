@@ -309,7 +309,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 
 		select {
 		case e := <-resultChan:
-			require.Equal(t, int(expected), e.Severity)
+			require.Equal(t, expected, e.Severity)
 		case <-time.After(time.Second):
 			require.FailNow(t, "Timed out waiting for entry to be processed")
 		}
