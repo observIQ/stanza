@@ -76,9 +76,9 @@ The following example illustrates many of the ways in which mapping can configur
       - 5xx
 ```
 
-### How to simplify configuration with `mapping_set`'s
+### How to simplify configuration with `mapping_set`
 
-Mapping Sets are provided in order to reduce the amount of configuration needed in the `mapping` structure.
+A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure. 
 
 By default, severity parsing will automatically recognize some common values. This is due to a default `mapping_set` that is **equivalent** to the following configuration:
 
