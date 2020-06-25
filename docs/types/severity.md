@@ -266,71 +266,6 @@ Note that the default `mapping_set` is in place, and one additional values has b
 </tr>
 </table>
 
-#### Parse a severity from a value without using the default mapping set
-
-Configuration:
-```yaml
-- id: my_severity_parser
-  type: severity_parser
-  parse_from: severity_field
-  mapping_set: none
-  mapping:
-    error: nooo!
-  output: my_next_plugin
-```
-
-<table>
-<tr><td> Input entry </td> <td> Output entry </td></tr>
-<tr>
-<td>
-
-```json
-{
-  "severity": 0,
-  "record": {
-    "severity_field": "nooo!"
-  }
-}
-```
-
-</td>
-<td>
-
-```json
-{
-  "severity": 60,
-  "record": {}
-}
-```
-
-</td>
-</tr>
-<tr>
-<td>
-
-```json
-{
-  "severity": 0,
-  "record": {
-    "severity_field": "ERROR"
-  }
-}
-```
-
-</td>
-<td>
-
-```json
-{
-  "severity": 0,
-  "record": {}
-}
-```
-
-</td>
-</tr>
-</table>
-
 #### Parse a severity from any of several non-standard values
 
 Configuration:
@@ -656,6 +591,71 @@ Configuration:
 ```json
 {
   "severity": 20, 
+  "record": {}
+}
+```
+
+</td>
+</tr>
+</table>
+
+#### Parse a severity from a value without using the default mapping set
+
+Configuration:
+```yaml
+- id: my_severity_parser
+  type: severity_parser
+  parse_from: severity_field
+  mapping_set: none
+  mapping:
+    error: nooo!
+  output: my_next_plugin
+```
+
+<table>
+<tr><td> Input entry </td> <td> Output entry </td></tr>
+<tr>
+<td>
+
+```json
+{
+  "severity": 0,
+  "record": {
+    "severity_field": "nooo!"
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "severity": 60,
+  "record": {}
+}
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+```json
+{
+  "severity": 0,
+  "record": {
+    "severity_field": "ERROR"
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "severity": 0,
   "record": {}
 }
 ```
