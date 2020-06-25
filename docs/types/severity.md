@@ -38,12 +38,12 @@ The following example :
   mapping:
 
     # single value to be parsed as "error"
-    error: "oops" 
+    error: oops
 
     # list of values to be parsed as "warning"
     warning: 
-      - "hey!" 
-      - "YSK" 
+      - hey!
+      - YSK
 
     # range of values to be parsed as "info"
     info: 
@@ -51,17 +51,17 @@ The following example :
       - max: 399
 
     # special value representing the range 200-299, to be parsed as "debug"
-    debug: "2xx"
+    debug: 2xx
 
     # single value to be parsed as a custom level of 36
-    36: "medium"
+    36: medium
 
     # mix and match the above concepts
     95:
-      - "really serious"
+      - really serious
       - min: 9001
         max: 9050
-      - "5xx"
+      - 5xx
 ```
 
 Notice that it is not necessary to specify the aliases defined in the table above. These will be automatically recognized. 
@@ -92,10 +92,10 @@ If a severity block is specified, the parser plugin will perform the severity pa
   severity:
     parse_from: severity_field
     mapping:
-      critical: "5xx"
-      error: "4xx"
-      info: "3xx"
-      debug: "2xx"
+      critical: 5xx
+      error: 4xx
+      info: 3xx
+      debug: 2xx
   output: my_next_plugin
 ```
 
@@ -107,10 +107,10 @@ As a special case, the [`severity_parser`](/docs/plugins/severity_parser.md) plu
   type: severity_parser
   parse_from: severity_field
   mapping:
-    critical: "5xx"
-    error: "4xx"
-    info: "3xx"
-    debug: "2xx"
+    critical: 5xx
+    error: 4xx
+    info: 3xx
+    debug: 2xx
   output: my_next_plugin
 ```
 
@@ -162,7 +162,7 @@ Configuration:
   type: severity_parser
   parse_from: severity_field
   mapping:
-    error: "nooo!"
+    error: nooo!
   output: my_next_plugin
 ```
 
@@ -203,9 +203,9 @@ Configuration:
   parse_from: severity_field
   mapping:
     error: 
-      - "nooo!"
-      - "nooooooo"
-    info: "HEY"
+      - nooo!
+      - nooooooo
+    info: HEY
     debug: 1234
   output: my_next_plugin
 ```
@@ -444,10 +444,10 @@ Configuration:
   type: severity_parser
   parse_from: severity_field
   mapping:
-    critical: "5xx"
-    error: "4xx"
-    info: "3xx"
-    debug: "2xx"
+    critical: 5xx
+    error: 4xx
+    info: 3xx
+    debug: 2xx
   output: my_next_plugin
 ```
 
