@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/mock"
@@ -16,17 +16,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewFakeJSONPlugin() (*JSONParser, *mocks.Plugin) {
-	mock := mocks.Plugin{}
+func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
+	mock := testutil.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
 		ParserPlugin: helper.ParserPlugin{
-			BasicPlugin: helper.BasicPlugin{
-				PluginID:      "test",
-				PluginType:    "json_parser",
-				SugaredLogger: logger.Sugar(),
+			TransformerPlugin: helper.TransformerPlugin{
+				BasicPlugin: helper.BasicPlugin{
+					PluginID:      "test",
+					PluginType:    "json_parser",
+					SugaredLogger: logger.Sugar(),
+				},
+				Output: &mock,
 			},
-			Output:    &mock,
 			ParseFrom: entry.NewField("testfield"),
 			ParseTo:   entry.NewField("testparsed"),
 		},

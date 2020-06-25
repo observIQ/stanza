@@ -1,4 +1,4 @@
-//go:generate mockery -name=^(Plugin)$ -output=./mocks -outpkg=mocks -case=snake
+//go:generate mockery -name=^(Plugin)$ -output=../internal/testutil -outpkg=testutil -case=snake
 
 package plugin
 

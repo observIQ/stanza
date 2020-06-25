@@ -4,12 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"testing"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 )
 
 // Config is the configuration of a plugin
@@ -28,17 +25,30 @@ type Builder interface {
 // BuildContext supplies contextual resources when building a plugin.
 type BuildContext struct {
 	CustomRegistry CustomRegistry
-	Database       *bbolt.DB
+	Database       Database
 	Logger         *zap.SugaredLogger
 }
 
-// NewTestBuildContext returns a build context with a temporary database
-// and a logger that writes to the test
-func NewTestBuildContext(t *testing.T) BuildContext {
-	return BuildContext{
-		Database: testutil.NewTestDatabase(t),
-		Logger:   zaptest.NewLogger(t).Sugar(),
-	}
+type Database interface {
+	Close() error
+	Sync() error
+	Update(func(*bbolt.Tx) error) error
+	View(func(*bbolt.Tx) error) error
+}
+
+// StubDatabase is an implementation of Database that
+// succeeds on all calls without persisting anything to disk.
+// This is used when --database is unspecified.
+type StubDatabase struct{}
+
+func (d *StubDatabase) Close() error                          { return nil }
+func (d *StubDatabase) Sync() error                           { return nil }
+func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
+func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error   { return nil }
+
+// NewStubDatabase creates a new StubDatabase
+func NewStubDatabase() *StubDatabase {
+	return &StubDatabase{}
 }
 
 // registry is a global registry of plugin types to plugin builders.
@@ -68,22 +78,22 @@ func (c *Config) UnmarshalJSON(bytes []byte) error {
 
 	err := json.Unmarshal(bytes, &baseConfig)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal json to base config: %s", err)
+		return err
 	}
 
 	if baseConfig.Type == "" {
-		return fmt.Errorf("failed to unmarshal json to undefined plugin type")
+		return fmt.Errorf("missing required field 'type'")
 	}
 
 	builderFunc, ok := registry[baseConfig.Type]
 	if !ok {
-		return fmt.Errorf("failed to unmarshal json to unsupported type: %s", baseConfig.Type)
+		return fmt.Errorf("unsupported type '%s'", baseConfig.Type)
 	}
 
 	builder := builderFunc()
 	err = json.Unmarshal(bytes, builder)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal json to %s: %s", baseConfig.Type, err)
+		return fmt.Errorf("unmarshal to %s: %s", baseConfig.Type, err)
 	}
 
 	c.Builder = builder
@@ -97,29 +107,31 @@ func (c Config) MarshalJSON() ([]byte, error) {
 
 // UnmarshalYAML will unmarshal a config from YAML.
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var baseConfig struct {
-		ID   string
-		Type string
-	}
-
-	err := unmarshal(&baseConfig)
+	rawConfig := map[string]interface{}{}
+	err := unmarshal(&rawConfig)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal yaml to base config: %s", err)
 	}
 
-	if baseConfig.Type == "" {
-		return fmt.Errorf("failed to unmarshal yaml to undefined plugin type")
+	typeInterface, ok := rawConfig["type"]
+	if !ok {
+		return fmt.Errorf("missing required field 'type'")
 	}
 
-	builderFunc, ok := registry[baseConfig.Type]
+	typeString, ok := typeInterface.(string)
 	if !ok {
-		return fmt.Errorf("failed to unmarshal yaml to unsupported type: %s", baseConfig.Type)
+		return fmt.Errorf("non-string type %T for field 'type'", typeInterface)
+	}
+
+	builderFunc, ok := registry[typeString]
+	if !ok {
+		return fmt.Errorf("unsupported type '%s'", typeString)
 	}
 
 	builder := builderFunc()
 	err = unmarshal(builder)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal yaml to %s: %s", baseConfig.Type, err)
+		return fmt.Errorf("unmarshal to %s: %s", typeString, err)
 	}
 
 	c.Builder = builder

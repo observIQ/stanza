@@ -10,7 +10,6 @@ import (
 
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -124,9 +123,8 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 				break
 			}
 
-			if err := t.Write(ctx, message); err != nil {
-				t.Errorw("Failed to write entry", zap.Any("error", err))
-			}
+			entry := t.Write(message)
+			_ = t.Output.Process(ctx, entry)
 		}
 	}()
 }

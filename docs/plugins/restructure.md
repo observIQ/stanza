@@ -7,11 +7,12 @@ they are defined.
 
 ### Configuration Fields
 
-| Field    | Default  | Description                                                  |
-| ---      | ---      | ---                                                          |
-| `id`     | required | A unique identifier for the plugin                           |
-| `output` | required | The `id` for the plugin to send parsed entries to            |
-| `ops`    | required | A list of ops. The available op types are defined below      |
+| Field      | Default  | Description                                                                                   |
+| ---        | ---      | ---                                                                                           |
+| `id`       | required | A unique identifier for the plugin                                                            |
+| `output`   | required | The `id` for the plugin to send parsed entries to                                             |
+| `ops`      | required | A list of ops. The available op types are defined below                                       |
+| `on_error` | `send`   | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
 ### Op types
 

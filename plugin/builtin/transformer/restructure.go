@@ -1,4 +1,4 @@
-package builtin
+package transformer
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -42,15 +41,20 @@ type RestructurePlugin struct {
 	ops []Op
 }
 
-func (p *RestructurePlugin) Process(ctx context.Context, e *entry.Entry) error {
+// Process will process an entry with a restructure transformation.
+func (p *RestructurePlugin) Process(ctx context.Context, entry *entry.Entry) error {
+	return p.ProcessWith(ctx, entry, p.Transform)
+}
+
+// Transform will apply the restructure operations to an entry
+func (p *RestructurePlugin) Transform(entry *entry.Entry) (*entry.Entry, error) {
 	for _, op := range p.ops {
-		err := op.Apply(e)
+		err := op.Apply(entry)
 		if err != nil {
-			p.Warnw("Failed to apply operation", zap.Error(err), "entry", e)
+			return entry, err
 		}
 	}
-
-	return p.Output.Process(ctx, e)
+	return entry, nil
 }
 
 /*****************
@@ -162,6 +166,8 @@ func (o *Op) unmarshalDecodedType(typeDecoder map[string]rawMessage) error {
 			return err
 		}
 		o.OpApplier = &flatten
+	default:
+		return fmt.Errorf("unknown op type '%s'", opType)
 	}
 
 	return nil

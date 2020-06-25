@@ -123,13 +123,14 @@ func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
 	switch v := value.(type) {
 	case string:
 		return time.ParseInLocation(t.Layout, v, time.Local)
+	case []byte:
+		return time.ParseInLocation(t.Layout, string(v), time.Local)
 	default:
 		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
 }
 
 func (t *TimeParser) parseEpochTime(value interface{}) (time.Time, error) {
-
 	stamp, err := getEpochStamp(t.Layout, value)
 	if err != nil {
 		return time.Time{}, err
@@ -162,6 +163,8 @@ func getEpochStamp(layout string, value interface{}) (string, error) {
 	switch v := value.(type) {
 	case string:
 		return v, nil
+	case []byte:
+		return string(v), nil
 	case int, int32, int64, uint32, uint64:
 		switch layout {
 		case "s", "ms", "us", "ns":

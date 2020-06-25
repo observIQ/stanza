@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +18,7 @@ func TestUDPInput(t *testing.T) {
 			InputConfig: helper.InputConfig{
 				BasicConfig: helper.BasicConfig{
 					PluginID:   "test_id",
-					PluginType: "tcp_input",
+					PluginType: "udp_input",
 				},
 				WriteTo: entry.Field{
 					Keys: []string{},
@@ -33,22 +32,24 @@ func TestUDPInput(t *testing.T) {
 		cfg := basicUDPInputConfig()
 		cfg.ListenAddress = "127.0.0.1:63001"
 
-		buildContext := plugin.NewTestBuildContext(t)
+		buildContext := testutil.NewBuildContext(t)
 		newPlugin, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 
-		mockOutput := mocks.Plugin{}
-		tcpInput := newPlugin.(*UDPInput)
-		tcpInput.InputPlugin.Output = &mockOutput
+		mockOutput := testutil.Plugin{}
+		udpInput, ok := newPlugin.(*UDPInput)
+		require.True(t, ok)
+
+		udpInput.InputPlugin.Output = &mockOutput
 
 		entryChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			entryChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		err = tcpInput.Start()
+		err = udpInput.Start()
 		require.NoError(t, err)
-		defer tcpInput.Stop()
+		defer udpInput.Stop()
 
 		conn, err := net.Dial("udp", "127.0.0.1:63001")
 		require.NoError(t, err)

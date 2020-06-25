@@ -59,7 +59,7 @@ func (c JournaldInputConfig) Build(buildContext plugin.BuildContext) (plugin.Plu
 
 	journaldInput := &JournaldInput{
 		InputPlugin: inputPlugin,
-		persist:     helper.NewScopedBBoltPersister(buildContext.Database, c.ID()),
+		persist:     helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 		newCmd: func(ctx context.Context, cursor []byte) cmd {
 			if cursor != nil {
 				args = append(args, "--after-cursor", string(cursor))
@@ -152,10 +152,7 @@ func (plugin *JournaldInput) Start() error {
 			}
 			plugin.persist.Set(lastReadCursorKey, []byte(cursor))
 
-			err = plugin.Output.Process(ctx, entry)
-			if err != nil {
-				plugin.Infow("Failed to process entry: %s", zap.Error(err))
-			}
+			_ = plugin.Output.Process(ctx, entry)
 		}
 	}()
 

@@ -1,4 +1,4 @@
-package mocks
+package testutil
 
 func NewMockPlugin(id string) *Plugin {
 	mockOutput := &Plugin{}

@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -276,7 +275,7 @@ func TestSeverityParser(t *testing.T) {
 func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.Entry, buildErr bool, parseErr bool, expected helper.Severity) func(*testing.T) {
 
 	return func(t *testing.T) {
-		buildContext := plugin.NewTestBuildContext(t)
+		buildContext := testutil.NewBuildContext(t)
 
 		severityPlugin, err := cfg.Build(buildContext)
 		if buildErr {
@@ -285,7 +284,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 		}
 		require.NoError(t, err, "unexpected error when configuring plugin")
 
-		mockOutput := &mocks.Plugin{}
+		mockOutput := &testutil.Plugin{}
 		resultChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			resultChan <- args.Get(1).(*entry.Entry)

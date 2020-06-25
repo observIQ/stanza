@@ -40,7 +40,7 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	d.Duration, err = durationFromInterface(v)
 	if d.Duration < 0 {
-		d.Duration = d.Duration * -1
+		d.Duration *= -1
 	}
 	return err
 }

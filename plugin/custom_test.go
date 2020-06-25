@@ -7,9 +7,21 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func NewTempDir(t *testing.T) string {
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
+
+	return tempDir
+}
 
 func TestCustomRegistry_LoadAll(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
@@ -96,7 +108,7 @@ func TestCustomRegistryLoad(t *testing.T) {
 	})
 
 	t.Run("LoadAllWithFailures", func(t *testing.T) {
-		tempDir := testutil.NewTempDir(t)
+		tempDir := NewTempDir(t)
 		pluginPath := filepath.Join(tempDir, "copy.yaml")
 		err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
 		require.NoError(t, err)

@@ -35,7 +35,7 @@ func TestParseDuration(t *testing.T) {
 	for _, tc := range cases {
 		t.Run("yaml "+tc.name, func(t *testing.T) {
 			var dur Duration
-			err := yaml.Unmarshal([]byte(tc.input), &dur)
+			err := yaml.UnmarshalStrict([]byte(tc.input), &dur)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, dur)
 		})
@@ -74,7 +74,7 @@ func TestParseDurationRoundtrip(t *testing.T) {
 			require.NoError(t, err)
 
 			var dur Duration
-			err = yaml.Unmarshal(durBytes, &dur)
+			err = yaml.UnmarshalStrict(durBytes, &dur)
 			require.NoError(t, err)
 			require.Equal(t, tc.input, dur)
 		})

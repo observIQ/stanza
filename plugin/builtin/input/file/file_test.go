@@ -15,14 +15,13 @@ import (
 	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
 
 func newTestFileSource(t *testing.T) (*FileInput, chan string) {
-	mockOutput := mocks.NewMockPlugin("output")
+	mockOutput := testutil.NewMockPlugin("output")
 	receivedMessages := make(chan string, 1000)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedMessages <- args.Get(1).(*entry.Entry).Record.(string)
@@ -42,7 +41,7 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     50 * time.Millisecond,
-		persist:          helper.NewScopedBBoltPersister(db, "testfile"),
+		persist:          helper.NewScopedDBPersister(db, "testfile"),
 		runningFiles:     make(map[string]struct{}),
 		knownFiles:       make(map[string]*knownFileInfo),
 		fileUpdateChan:   make(chan fileUpdateMessage),
@@ -55,7 +54,7 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 
 func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
-	mockOutput := mocks.NewMockPlugin("mock")
+	mockOutput := testutil.NewMockPlugin("mock")
 
 	pathField := entry.NewField("testpath")
 
@@ -148,7 +147,7 @@ func TestFileSource_Build(t *testing.T) {
 			cfg := basicConfig()
 			tc.modifyBaseConfig(cfg)
 
-			plg, err := cfg.Build(plugin.NewTestBuildContext(t))
+			plg, err := cfg.Build(testutil.NewBuildContext(t))
 			tc.errorRequirement(t, err)
 			if err != nil {
 				return
@@ -272,6 +271,7 @@ func TestFileSource_StartAtEnd(t *testing.T) {
 
 	_, err = temp.WriteString("testlog2\n")
 	require.NoError(t, err)
+	temp.Close()
 
 	waitForMessage(t, logReceived, "testlog2")
 }
@@ -344,8 +344,22 @@ func TestFileSource_MoveFile(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog1")
 	time.Sleep(200 * time.Millisecond)
 
-	err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
-	require.NoError(t, err)
+	i := 0
+	for {
+		err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
+		if err != nil {
+			if i < 3 {
+				t.Error(err)
+				i++
+				time.Sleep(10 * time.Millisecond)
+				continue
+			} else {
+				require.NoError(t, err)
+			}
+		}
+
+		break
+	}
 
 	expectNoMessages(t, logReceived)
 }
@@ -403,6 +417,8 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
+
+	time.Sleep(50 * time.Millisecond)
 
 	temp2, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)

@@ -31,6 +31,11 @@ func TestWithDetails(t *testing.T) {
 
 		require.Equal(t, err2.Details, ErrorDetails{"foo": "bar"})
 	})
+
+	t.Run("AgentMethod", func(t *testing.T) {
+		err := NewError("Test error", "").WithDetails("foo", "bar")
+		require.Equal(t, err.Details, ErrorDetails{"foo": "bar"})
+	})
 }
 
 func TestErrorMessage(t *testing.T) {

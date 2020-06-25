@@ -1,4 +1,4 @@
-package builtin
+package transformer
 
 import (
 	"context"
@@ -11,15 +11,15 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 )
 
-func NewFakeRestructurePlugin() (*RestructurePlugin, *mocks.Plugin) {
-	mock := mocks.Plugin{}
+func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
+	mock := testutil.Plugin{}
 	logger, _ := zap.NewProduction()
 	return &RestructurePlugin{
 		TransformerPlugin: helper.TransformerPlugin{
@@ -251,7 +251,7 @@ func TestRestructureSerializeRoundtrip(t *testing.T) {
 			require.NoError(t, err)
 
 			var yamlOp Op
-			err = yaml.Unmarshal(yamlBytes, &yamlOp)
+			err = yaml.UnmarshalStrict(yamlBytes, &yamlOp)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.op, yamlOp)
@@ -357,7 +357,7 @@ ops:
 	})
 
 	var unmarshalledYAML plugin.Config
-	err := yaml.Unmarshal([]byte(configYAML), &unmarshalledYAML)
+	err := yaml.UnmarshalStrict([]byte(configYAML), &unmarshalledYAML)
 	require.NoError(t, err)
 	require.Equal(t, expected, unmarshalledYAML)
 
@@ -399,4 +399,12 @@ func TestOpType(t *testing.T) {
 			require.Equal(t, tc.expectedType, tc.op.Type())
 		})
 	}
+
+	t.Run("InvalidOpType", func(t *testing.T) {
+		raw := "- unknown: test"
+		var ops []Op
+		err := yaml.UnmarshalStrict([]byte(raw), &ops)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unknown op type")
+	})
 }

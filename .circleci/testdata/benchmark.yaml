@@ -1,4 +1,4 @@
-database: ./logagent.db
+---
 pipeline:
   - id: fileinput
     type: file_input

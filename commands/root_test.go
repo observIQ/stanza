@@ -35,7 +35,6 @@ log3`)
 	configPath := filepath.Join(tempDir, "config.yaml")
 
 	config := `
-database_file: '%s'
 pipeline:
   - id: file_input
     type: file_input
@@ -47,7 +46,7 @@ pipeline:
     type: file_output
     path: '%s'
 `
-	config = fmt.Sprintf(config, dbPath, inputPath, outputPath)
+	config = fmt.Sprintf(config, inputPath, outputPath)
 	err = ioutil.WriteFile(configPath, []byte(config), 0666)
 	require.NoError(t, err)
 

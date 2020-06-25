@@ -7,7 +7,7 @@ import (
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/plugin/mocks"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -21,17 +21,17 @@ func TestCopy(t *testing.T) {
 		OutputIDs: []string{"output1", "output2"},
 	}
 
-	buildContext := plugin.NewTestBuildContext(t)
+	buildContext := testutil.NewBuildContext(t)
 	copyPlugin, err := cfg.Build(buildContext)
 	require.NoError(t, err)
 
 	results := map[string]int{}
 
-	mock1 := mocks.NewMockPlugin("output1")
+	mock1 := testutil.NewMockPlugin("output1")
 	mock1.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		results["output1"] = results["output1"] + 1
 	})
-	mock2 := mocks.NewMockPlugin("output2")
+	mock2 := testutil.NewMockPlugin("output2")
 	mock2.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		results["output2"] = results["output2"] + 1
 	})

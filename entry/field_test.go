@@ -358,7 +358,7 @@ func TestFieldUnmarshalYAML(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var f Field
-			err := yaml.Unmarshal(tc.input, &f)
+			err := yaml.UnmarshalStrict(tc.input, &f)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expected, f)

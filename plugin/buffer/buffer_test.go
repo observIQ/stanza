@@ -93,7 +93,7 @@ func TestBufferSerializationRoundtrip(t *testing.T) {
 			require.NoError(t, err)
 
 			var cfg BufferConfig
-			err = yaml.Unmarshal(cfgBytes, &cfg)
+			err = yaml.UnmarshalStrict(cfgBytes, &cfg)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.config, cfg)

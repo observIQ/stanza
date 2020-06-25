@@ -79,7 +79,7 @@ func (s *SyslogParser) Process(ctx context.Context, entry *entry.Entry) error {
 
 // parse will parse a value as syslog.
 func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
-	bytes, err := s.toBytes(value)
+	bytes, err := toBytes(value)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 	return message, nil
 }
 
-func (s *SyslogParser) toBytes(value interface{}) ([]byte, error) {
+func toBytes(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 	case string:
 		return []byte(v), nil

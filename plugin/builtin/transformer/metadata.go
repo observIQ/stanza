@@ -1,4 +1,4 @@
-package builtin
+package transformer
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -52,18 +51,24 @@ type MetadataPlugin struct {
 	tagger  *tagger
 }
 
-func (p *MetadataPlugin) Process(ctx context.Context, e *entry.Entry) error {
-	err := p.labeler.Label(e)
+// Process will process an incoming entry using the metadata transform.
+func (p *MetadataPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+	return p.ProcessWith(ctx, entry, p.Transform)
+}
+
+// Transform will transform an entry using the labeler and tagger.
+func (p *MetadataPlugin) Transform(entry *entry.Entry) (*entry.Entry, error) {
+	err := p.labeler.Label(entry)
 	if err != nil {
-		p.Warnw("Failed to apply labels", zap.Error(err))
+		return entry, err
 	}
 
-	err = p.tagger.Tag(e)
+	err = p.tagger.Tag(entry)
 	if err != nil {
-		p.Warnw("Failed to apply tags", zap.Error(err))
+		return entry, err
 	}
 
-	return p.Output.Process(ctx, e)
+	return entry, nil
 }
 
 type labeler struct {

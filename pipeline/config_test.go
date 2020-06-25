@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/builtin"
+	_ "github.com/bluemedora/bplogagent/plugin/builtin"
+	"github.com/bluemedora/bplogagent/plugin/builtin/transformer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -77,6 +78,18 @@ func TestInvalidParams(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
+	params := Params{
+		"id":      "noop",
+		"type":    "noop",
+		"unknown": true,
+		"output":  "test_output",
+	}
+	context := plugin.BuildContext{}
+	_, err := params.BuildConfigs(context, "test_namespace")
+	require.Error(t, err)
+}
+
 func TestBuildBuiltinFromValidParams(t *testing.T) {
 	params := Params{
 		"id":     "noop",
@@ -88,7 +101,7 @@ func TestBuildBuiltinFromValidParams(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
-	require.IsType(t, &builtin.NoopPluginConfig{}, configs[0].Builder)
+	require.IsType(t, &transformer.NoopPluginConfig{}, configs[0].Builder)
 	require.Equal(t, "test_namespace.noop", configs[0].ID())
 }
 
@@ -98,7 +111,7 @@ func TestBuildCustomFromValidParams(t *testing.T) {
 pipeline:
   - id: custom_noop
     type: noop
-    output: {{.output}} 
+    output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)
@@ -115,7 +128,7 @@ pipeline:
 	configs, err := params.BuildConfigs(context, "test_namespace")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
-	require.IsType(t, &builtin.NoopPluginConfig{}, configs[0].Builder)
+	require.IsType(t, &transformer.NoopPluginConfig{}, configs[0].Builder)
 	require.Equal(t, "test_namespace.custom_plugin.custom_noop", configs[0].ID())
 }
 
@@ -128,7 +141,7 @@ pipeline:
     count: 1
     record:
       message: test
-    output: {{.output}} 
+    output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)
@@ -195,7 +208,7 @@ pipeline:
     count: invalid_value
     record:
       message: test
-    output: {{.output}} 
+    output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)

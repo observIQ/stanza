@@ -102,7 +102,6 @@ func (e *ElasticOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry
 	var buffer bytes.Buffer
 	var err error
 	for _, entry := range entries {
-
 		directive := indexDirective{}
 		directive.Index.Index, err = e.FindIndex(entry)
 		if err != nil {
@@ -167,23 +166,13 @@ func (e *ElasticOutput) FindIndex(entry *entry.Entry) (string, error) {
 		return "default", nil
 	}
 
-	value, ok := e.indexField.Get(entry)
-	if !ok {
-		return "", errors.NewError(
-			"Failed to extract index from record.",
-			"Ensure that all records contain the assigned index field.",
-		)
+	var value string
+	err := entry.Read(*e.indexField, &value)
+	if err != nil {
+		return "", errors.Wrap(err, "extract index from record")
 	}
 
-	strValue, ok := value.(string)
-	if !ok {
-		return "", errors.NewError(
-			"Extracted index is not a string.",
-			"Ensure that the index field contains a string value.",
-		)
-	}
-
-	return strValue, nil
+	return value, nil
 }
 
 // FindID will find the id that will represent an entry in elasticsearch.
@@ -192,21 +181,11 @@ func (e *ElasticOutput) FindID(entry *entry.Entry) (string, error) {
 		return uuid.GenerateUUID()
 	}
 
-	value, ok := e.idField.Get(entry)
-	if !ok {
-		return "", errors.NewError(
-			"Failed to extract id from record.",
-			"Ensure that all records contain the assigned id field.",
-		)
+	var value string
+	err := entry.Read(*e.idField, &value)
+	if err != nil {
+		return "", errors.Wrap(err, "extract id from record")
 	}
 
-	strValue, ok := value.(string)
-	if !ok {
-		return "", errors.NewError(
-			"Extracted id is not a string.",
-			"Ensure that the id field contains a string value.",
-		)
-	}
-
-	return strValue, nil
+	return value, nil
 }
