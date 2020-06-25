@@ -43,9 +43,12 @@ func (entry *Entry) Read(field Field, dest interface{}) error {
 
 	switch dest := dest.(type) {
 	case *string:
-		if str, ok := val.(string); ok {
-			*dest = str
-		} else {
+		switch typed := val.(type) {
+		case string:
+			*dest = typed
+		case []byte:
+			*dest = string(typed)
+		default:
 			return fmt.Errorf("can not cast field '%s' of type '%T' to string", field, val)
 		}
 	case *map[string]interface{}:

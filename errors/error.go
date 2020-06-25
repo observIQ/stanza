@@ -41,6 +41,10 @@ func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	return nil
 }
 
+func (e AgentError) WithDetails(keyValues ...string) AgentError {
+	return WithDetails(e, keyValues...)
+}
+
 // WithDetails will add details to an agent error.
 func WithDetails(err error, keyValues ...string) AgentError {
 	if agentErr, ok := err.(AgentError); ok {

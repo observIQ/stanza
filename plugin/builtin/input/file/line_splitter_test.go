@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type tokenizerTestCase struct {
@@ -117,6 +118,25 @@ func TestLineStartSplitFunc(t *testing.T) {
 		splitFunc := NewLineStartSplitFunc(re)
 		t.Run(tc.Name, tc.RunFunc(splitFunc))
 	}
+
+	t.Run("FirstMatchHitsEndOfBuffer", func(t *testing.T) {
+		splitFunc := NewLineStartSplitFunc(regexp.MustCompile("LOGSTART"))
+		data := []byte(`LOGSTART`)
+
+		t.Run("NotAtEOF", func(t *testing.T) {
+			advance, token, err := splitFunc(data[:], false)
+			require.NoError(t, err)
+			require.Equal(t, 0, advance)
+			require.Nil(t, token)
+		})
+
+		t.Run("AtEOF", func(t *testing.T) {
+			advance, token, err := splitFunc(data[:], true)
+			require.NoError(t, err)
+			require.Equal(t, len(data), advance)
+			require.Equal(t, data, token)
+		})
+	})
 }
 
 func TestLineEndSplitFunc(t *testing.T) {

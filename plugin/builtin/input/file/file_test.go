@@ -275,6 +275,7 @@ func TestFileSource_StartAtEnd(t *testing.T) {
 
 	_, err = temp.WriteString("testlog2\n")
 	require.NoError(t, err)
+	temp.Close()
 
 	waitForMessage(t, logReceived, "testlog2")
 }

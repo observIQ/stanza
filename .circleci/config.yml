@@ -208,7 +208,7 @@ jobs:
           name: Stash Context
           command: >
             printf '{"github_pr_url":"%s","git_branch":"%s","git_commit_hash":"%s","circle_build_number":%s,"circle_job_name":"%s"}\n' \
-              $CIRCLE_PULL_REQUEST $CIRCLE_BRANCH $CIRCLE_SHA1 << pipeline.number >> $CIRCLE_JOB > tmp/context.json
+              ${CIRCLE_PULL_REQUEST:-master} $CIRCLE_BRANCH $CIRCLE_SHA1 << pipeline.number >> $CIRCLE_JOB > tmp/context.json
       - run:
           name: Stash VM Details
           command: printf '{"create_command":"gcloud compute instances create ... --image=<< parameters.image >> --image-project=<< parameters.image-project >> --machine-type=<< parameters.machine-type >> --boot-disk-size=<< parameters.boot-disk-size >>"}\n' > tmp/command.json
@@ -269,100 +269,60 @@ workflows:
           instance: circleci-<< pipeline.number >>-f1-1000
           rate: 1000
           files: 1
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f1-5000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f1-5000
           rate: 5000
           files: 1
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f1-10000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f1-10000
           rate: 10000
           files: 1
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f1-50000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f1-50000
           rate: 50000
           files: 1
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f1-100000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f1-100000
           rate: 100000
           files: 1
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f10-100
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-100
           rate: 100
           files: 10
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f10-500
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-500
           rate: 500
           files: 10
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f10-1000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-1000
           rate: 1000
           files: 10
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f10-5000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-5000
           rate: 5000
           files: 10
-          filters:
-            branches:
-              ignore:
-                - master
       - run-benchmark:
           name: f10-10000
           context: logagent-benchmark
           instance: circleci-<< pipeline.number >>-f10-10000
           rate: 10000
           files: 10
-          filters:
-            branches:
-              ignore:
-                - master
       - report-results:
           requires:
             - f1-1000
