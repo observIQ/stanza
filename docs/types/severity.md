@@ -70,11 +70,11 @@ Notice that it is not necessary to specify the aliases defined in the table abov
 
 Parser plugins can parse a severity and attach the resulting value to a log entry.
 
-| Field         | Default      | Description                                                                   |
-| ---           | ---          | ---                                                                           |
-| `parse_from`  | required     | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON |
-| `preserve`    | false        | Preserve the unparsed value on the record                                     |
-| `mapping`     | Aliases Only | A formatted set of values that should be interpretted as severity levels.     |
+| Field         | Default  | Description                                                                   |
+| ---           | ---      | ---                                                                           |
+| `parse_from`  | required | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON |
+| `preserve`    | false    | Preserve the unparsed value on the record                                     |
+| `mapping`     | Aliases  | A formatted set of values that should be interpretted as severity levels.     |
 
 
 ### How to use severity parsing

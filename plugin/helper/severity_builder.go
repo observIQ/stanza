@@ -111,7 +111,6 @@ func validateSeverity(severity interface{}) (Severity, error) {
 	case int:
 		intSev = s
 	case string:
-		// TODO try to parse int
 		i, err := strconv.ParseInt(s, 10, 8)
 		if err != nil {
 			return notFound, fmt.Errorf("%s cannot be used as a severity", severity)
