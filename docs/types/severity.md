@@ -78,12 +78,30 @@ The following example illustrates many of the ways in which mapping can configur
 
 ### How to simplify configuration with `mapping_set`
 
-A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure. 
+A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. 
 
-By default, severity parsing will automatically recognize some common values. This is due to a default `mapping_set` that is **equivalent** to the following configuration:
+Values specified in the more verbose `mapping` structure will then be added to the severity map.
+
+By default, a common `mapping_set` is used. Alternately, `mapping_set: none` can be specified to start with an empty mapping set.
+
+The following configurations are equivalent:
 
 ```yaml
 ...
+  mapping:
+    error: NOOOOOOO
+```
+
+```yaml
+...
+  mapping_set: default
+  mapping:
+    error: NOOOOOOO
+```
+
+```yaml
+...
+  mapping_set: none
   mapping:
     trace: trace
     debug: debug
@@ -95,6 +113,7 @@ By default, severity parsing will automatically recognize some common values. Th
     error: 
       - error
       - err
+      - NOOOOOOO
     critical:
       - critical
       - crit
@@ -103,11 +122,7 @@ By default, severity parsing will automatically recognize some common values. Th
     catastrophe: catastrophe
 ```
 
-Values specified in the more verbose `mapping` structure will be added to the default `mapping_set`.
-
-If the default mapping set is not a desirable starting point for configuration, specify `mapping_set: none` to start with an empty set.
-
-Other mapping sets will be added later for common severity systems.
+<sub>Additional built-in mapping sets coming soon</sub>
 
 
 ### How to use severity parsing
