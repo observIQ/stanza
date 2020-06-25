@@ -7,7 +7,7 @@ The `udp_input` plugin listens for logs from UDP packets.
 | Field            | Default  | Description                                                         |
 | ---              | ---      | ---                                                                 |
 | `id`             | required | A unique identifier for the plugin                                  |
-| `output`         | required | The `id` for the plugin to send parsed entries to                   |
+| `output`         | required | The connected plugin(s) that will receive all outbound entries      |
 | `listen_address` | required | A listen address of the form `<ip>:<port>`                          |
 | `write_to`       | $        | A [field](/docs/types/field.md) that will be set to the log message |
 

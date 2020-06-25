@@ -8,7 +8,7 @@ coupled with the [`rate_limit`](/docs/plugins/rate_limit.md) plugin.
 | Field      | Default  | Description                                                                                      |
 | ---        | ---      | ---                                                                                              |
 | `id`       | required | A unique identifier for the plugin                                                               |
-| `output`   | required | The `id` for the plugin to send parsed entries to                                                |
+| `output`   | required | The connected plugin(s) that will receive all outbound entries                                   |
 | `write_to` | $        | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
 | `record`   |          | A log entry record to repeatedly generate. Must be either a string or map                        |
 | `count`    | 0        | The number of entries to generate before stopping. A value of 0 indicates unlimited              |
