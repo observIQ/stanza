@@ -13,26 +13,34 @@ const minSeverity = 0
 const maxSeverity = 100
 
 // map[string or int input]sev-level
-func defaultSeverityMap() severityMap {
-	return map[string]entry.Severity{
-		"default":     entry.Default,
-		"trace":       entry.Trace,
-		"debug":       entry.Debug,
-		"info":        entry.Info,
-		"notice":      entry.Notice,
-		"warning":     entry.Warning,
-		"warn":        entry.Warning,
-		"error":       entry.Error,
-		"err":         entry.Error,
-		"critical":    entry.Critical,
-		"crit":        entry.Critical,
-		"alert":       entry.Alert,
-		"emergency":   entry.Emergency,
-		"catastrophe": entry.Catastrophe,
+func getBuiltinMapping(name string) severityMap {
+	switch name {
+	case "none":
+		return map[string]entry.Severity{}
+	case "aliases":
+		return map[string]entry.Severity{
+			"default":     entry.Default,
+			"trace":       entry.Trace,
+			"debug":       entry.Debug,
+			"info":        entry.Info,
+			"notice":      entry.Notice,
+			"warning":     entry.Warning,
+			"error":       entry.Error,
+			"critical":    entry.Critical,
+			"alert":       entry.Alert,
+			"emergency":   entry.Emergency,
+			"catastrophe": entry.Catastrophe,
+		}
+	default:
+		mapping := getBuiltinMapping("aliases")
+		mapping.add(entry.Warning, "warn")
+		mapping.add(entry.Error, "err")
+		mapping.add(entry.Critical, "crit")
+		return mapping
 	}
 }
 
-func (s severityMap) add(severity entry.Severity, parseableValues []string) {
+func (s severityMap) add(severity entry.Severity, parseableValues ...string) {
 	for _, str := range parseableValues {
 		s[str] = severity
 	}
@@ -56,13 +64,14 @@ const (
 type SeverityParserConfig struct {
 	ParseFrom entry.Field                 `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
 	Preserve  bool                        `json:"preserve"   yaml:"preserve"`
+	MappingSet string                     `json:"mapping_set" yaml:"mapping_set"`
 	Mapping   map[interface{}]interface{} `json:"mapping"   yaml:"mapping"`
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
 func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParser, error) {
 
-	pluginMapping := defaultSeverityMap()
+	pluginMapping := getBuiltinMapping(c.MappingSet)
 
 	for severity, unknown := range c.Mapping {
 		sev, err := validateSeverity(severity)
@@ -77,14 +86,14 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 				if err != nil {
 					return SeverityParser{}, err
 				}
-				pluginMapping.add(sev, v)
+				pluginMapping.add(sev, v...)
 			}
 		case interface{}:
 			v, err := parseableValues(u)
 			if err != nil {
 				return SeverityParser{}, err
 			}
-			pluginMapping.add(sev, v)
+			pluginMapping.add(sev, v...)
 		}
 	}
 
@@ -98,8 +107,7 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 }
 
 func validateSeverity(severity interface{}) (entry.Severity, error) {
-	// If defined as a default alias
-	if sev, err := defaultSeverityMap().find(severity); err != nil {
+	if sev, err := getBuiltinMapping("aliases").find(severity); err != nil {
 		return entry.Nil, err
 	} else if sev != entry.Nil {
 		return sev, nil

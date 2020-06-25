@@ -13,12 +13,13 @@ import (
 )
 
 type severityTestCase struct {
-	name     string
-	sample   interface{}
-	mapping  map[interface{}]interface{}
-	buildErr bool
-	parseErr bool
-	expected entry.Severity
+	name       string
+	sample     interface{}
+	mappingSet string
+	mapping    map[interface{}]interface{}
+	buildErr   bool
+	parseErr   bool
+	expected   entry.Severity
 }
 
 func TestSeverityParser(t *testing.T) {
@@ -254,6 +255,13 @@ func TestSeverityParser(t *testing.T) {
 			},
 			expected: entry.Default,
 		},
+		{
+			name:       "base-mapping-none",
+			sample:     "error",
+			mappingSet: "none",
+			mapping:    nil,
+			expected:   entry.Default, // not error
+		},
 	}
 
 	rootField := entry.NewField()
@@ -261,11 +269,11 @@ func TestSeverityParser(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rootCfg := parseSeverityTestConfig(rootField, tc.mapping)
+			rootCfg := parseSeverityTestConfig(rootField, tc.mappingSet, tc.mapping)
 			rootEntry := makeTestEntry(rootField, tc.sample)
 			t.Run("root", runSeverityParseTest(t, rootCfg, rootEntry, tc.buildErr, tc.parseErr, tc.expected))
 
-			nonRootCfg := parseSeverityTestConfig(someField, tc.mapping)
+			nonRootCfg := parseSeverityTestConfig(someField, tc.mappingSet, tc.mapping)
 			nonRootEntry := makeTestEntry(someField, tc.sample)
 			t.Run("non-root", runSeverityParseTest(t, nonRootCfg, nonRootEntry, tc.buildErr, tc.parseErr, tc.expected))
 		})
@@ -308,7 +316,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 	}
 }
 
-func parseSeverityTestConfig(parseFrom entry.Field, mapping map[interface{}]interface{}) *SeverityParserConfig {
+func parseSeverityTestConfig(parseFrom entry.Field, mappingSet string, mapping map[interface{}]interface{}) *SeverityParserConfig {
 	return &SeverityParserConfig{
 		TransformerConfig: helper.TransformerConfig{
 			BasicConfig: helper.BasicConfig{
@@ -318,8 +326,9 @@ func parseSeverityTestConfig(parseFrom entry.Field, mapping map[interface{}]inte
 			OutputID: "output1",
 		},
 		SeverityParserConfig: helper.SeverityParserConfig{
-			ParseFrom: parseFrom,
-			Mapping:   mapping,
+			ParseFrom:  parseFrom,
+			MappingSet: mappingSet,
+			Mapping:    mapping,
 		},
 	}
 }

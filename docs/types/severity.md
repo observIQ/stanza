@@ -6,33 +6,45 @@ This severity system allows each output plugin to interpret the values 0 to 100 
 
 The following named severity levels are supported.
 
-| Severity    | Numeric Value | Aliases (Case Insensitive) |
-| ---         | ---           | ---                        |
-| Default     |        0      | `"default"`                |
-| Trace       |       10      | `"trace"`                  |
-| Debug       |       20      | `"debug"`                  |
-| Info        |       30      | `"info"`                   |
-| Notice      |       40      | `"notice"`                 |
-| Warning     |       50      | `"warning"`, `"warn"`      |
-| Error       |       60      | `"error"`, `"err"`         |
-| Critical    |       70      | `"critical"`, `"crit"`     |
-| Alert       |       80      | `"alert"`                  |
-| Emergency   |       90      | `"emergency"`              |
-| Catastrophe |      100      | `"catastrophe"`            |
+| Severity    | Numeric Value | Alias           |
+| ---         | ---           | ---             |
+| Default     |        0      | `"default"`     |
+| Trace       |       10      | `"trace"`       |
+| Debug       |       20      | `"debug"`       |
+| Info        |       30      | `"info"`        |
+| Notice      |       40      | `"notice"`      |
+| Warning     |       50      | `"warning"`     |
+| Error       |       60      | `"error"`       |
+| Critical    |       70      | `"critical"`    |
+| Alert       |       80      | `"alert"`       |
+| Emergency   |       90      | `"emergency"`   |
+| Catastrophe |      100      | `"catastrophe"` |
 
 
-### How `severity` mapping works
+### `severity` parsing parameters
+
+Parser plugins can parse a severity and attach the resulting value to a log entry.
+
+| Field          | Default   | Description                                                                        |
+| ---            | ---       | ---                                                                                |
+| `parse_from`   | required  | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON      |
+| `preserve`     | false     | Preserve the unparsed value on the record                                          |
+| `mapping_set`  | `default` | A predefined set of values that should be interpretted at specific severity levels |
+| `mapping`      |           | A custom set of values that should be interpretted at designated severity levels   |
+
+
+### How severity `mapping` works
 
 Severity parsing behavior is defined in a config file using a severity `mapping`. The general structure of the `mapping` is as follows:
 
 ```yaml
 ...
   mapping:
-    severity_as_number_or_alias: value | list of values | range | special
-    severity_as_number_or_alias: value | list of values | range | special
+    severity_as_int_or_alias: value | list of values | range | special
+    severity_as_int_or_alias: value | list of values | range | special
 ```
 
-The following example :
+The following example illustrates many of the ways in which mapping can configured:
 ```yaml
 ...
   mapping:
@@ -64,19 +76,38 @@ The following example :
       - 5xx
 ```
 
-Notice that it is not necessary to specify the aliases defined in the table above. These will be automatically recognized. 
+### How to simplify configuration with `mapping_set`'s
 
-Aliases can be overridden if desired. For example, including `info: debug` in the mapping would indicate that value `"debug"` should parse as `info` severity.
+Mapping Sets are provided in order to reduce the amount of configuration needed in the `mapping` structure.
 
-### `severity` parsing parameters
+By default, severity parsing will automatically recognize some common values. This is due to a default `mapping_set` that is **equivalent** to the following configuration:
 
-Parser plugins can parse a severity and attach the resulting value to a log entry.
+```yaml
+...
+  mapping:
+    trace: trace
+    debug: debug
+    info: info
+    notice: notice
+    warning:
+      - warning
+      - warn
+    error: 
+      - error
+      - err
+    critical:
+      - critical
+      - crit
+    alert: alert
+    emergency: emergency
+    catastrophe: catastrophe
+```
 
-| Field         | Default  | Description                                                                   |
-| ---           | ---      | ---                                                                           |
-| `parse_from`  | required | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON |
-| `preserve`    | false    | Preserve the unparsed value on the record                                     |
-| `mapping`     | Aliases  | A formatted set of values that should be interpretted as severity levels.     |
+Values specified in the more verbose `mapping` structure will be added to the default `mapping_set`.
+
+If the default mapping set is not a desirable starting point for configuration, specify `mapping_set: none` to start with an empty set.
+
+Other mapping sets will be added later for common severity systems.
 
 
 ### How to use severity parsing
@@ -126,6 +157,8 @@ Configuration:
   output: my_next_plugin
 ```
 
+Note that the default `mapping_set` is in place, and no additional values have been specified.
+
 <table>
 <tr><td> Input entry </td> <td> Output entry </td></tr>
 <tr>
@@ -166,6 +199,8 @@ Configuration:
   output: my_next_plugin
 ```
 
+Note that the default `mapping_set` is in place, and one additional values has been specified.
+
 <table>
 <tr><td> Input entry </td> <td> Output entry </td></tr>
 <tr>
@@ -186,6 +221,95 @@ Configuration:
 ```json
 {
   "severity": 60,
+  "record": {}
+}
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+```json
+{
+  "severity": 0,
+  "record": {
+    "severity_field": "ERROR"
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "severity": 60,
+  "record": {}
+}
+```
+
+</td>
+</tr>
+</table>
+
+#### Parse a severity from a value without using the default mapping set
+
+Configuration:
+```yaml
+- id: my_severity_parser
+  type: severity_parser
+  parse_from: severity_field
+  mapping_set: none
+  mapping:
+    error: nooo!
+  output: my_next_plugin
+```
+
+<table>
+<tr><td> Input entry </td> <td> Output entry </td></tr>
+<tr>
+<td>
+
+```json
+{
+  "severity": 0,
+  "record": {
+    "severity_field": "nooo!"
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "severity": 60,
+  "record": {}
+}
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+```json
+{
+  "severity": 0,
+  "record": {
+    "severity_field": "ERROR"
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "severity": 0,
   "record": {}
 }
 ```
