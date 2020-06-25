@@ -21,7 +21,9 @@ func TestMetadata(t *testing.T) {
 					PluginID:   "test_plugin_id",
 					PluginType: "metadata",
 				},
-				OutputID: "output1",
+				WriterConfig: helper.WriterConfig{
+					OutputIDs: []string{"output1"},
+				},
 			},
 		}
 	}

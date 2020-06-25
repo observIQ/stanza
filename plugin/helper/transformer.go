@@ -20,12 +20,12 @@ type TransformerConfig struct {
 func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin, error) {
 	basicPlugin, err := c.BasicConfig.Build(context)
 	if err != nil {
-		return TransformerPlugin{}, err
+		return TransformerPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
 	}
 
 	writerPlugin, err := c.WriterConfig.Build(context)
 	if err != nil {
-		return TransformerPlugin{}, err
+		return TransformerPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
 	}
 
 	if c.OnError == "" {

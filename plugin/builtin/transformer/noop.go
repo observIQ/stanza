@@ -38,5 +38,6 @@ type NoopPlugin struct {
 
 // Process will forward the entry to the next output without any alterations.
 func (p *NoopPlugin) Process(ctx context.Context, entry *entry.Entry) error {
-	return p.Output.Process(ctx, entry)
+	p.Write(ctx, entry)
+	return nil
 }

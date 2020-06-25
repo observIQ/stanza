@@ -64,7 +64,8 @@ type RateLimitPlugin struct {
 // Process will wait until a rate is met before sending an entry to the output.
 func (p *RateLimitPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	<-p.isReady
-	return p.Output.Process(ctx, entry)
+	p.Write(ctx, entry)
+	return nil
 }
 
 // Start will start the rate limit plugin.

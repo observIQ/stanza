@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,9 @@ func TestParserConfigInvalidTimeParser(t *testing.T) {
 				PluginID:   "test-id",
 				PluginType: "test-type",
 			},
-			OutputID: "test-output",
+			WriterConfig: WriterConfig{
+				OutputIDs: []string{"test-output"},
+			},
 		},
 		TimeParser: &TimeParser{
 			Layout:     "",
@@ -46,7 +49,9 @@ func TestParserConfigBuildValid(t *testing.T) {
 				PluginID:   "test-id",
 				PluginType: "test-type",
 			},
-			OutputID: "test-output",
+			WriterConfig: WriterConfig{
+				OutputIDs: []string{"test-output"},
+			},
 		},
 		TimeParser: &TimeParser{
 			Layout:     "",
@@ -141,7 +146,9 @@ func TestParserOutput(t *testing.T) {
 				SugaredLogger: buildContext.Logger,
 			},
 			OnError: DropOnError,
-			Output:  output,
+			WriterPlugin: WriterPlugin{
+				OutputPlugins: []plugin.Plugin{output},
+			},
 		},
 	}
 	parse := func(i interface{}) (interface{}, error) {
@@ -167,7 +174,9 @@ func TestParserWithPreserve(t *testing.T) {
 				SugaredLogger: buildContext.Logger,
 			},
 			OnError: DropOnError,
-			Output:  output,
+			WriterPlugin: WriterPlugin{
+				OutputPlugins: []plugin.Plugin{output},
+			},
 		},
 		ParseFrom: entry.NewField("parse_from"),
 		ParseTo:   entry.NewField("parse_to"),
@@ -204,7 +213,9 @@ func TestParserWithoutPreserve(t *testing.T) {
 				SugaredLogger: buildContext.Logger,
 			},
 			OnError: DropOnError,
-			Output:  output,
+			WriterPlugin: WriterPlugin{
+				OutputPlugins: []plugin.Plugin{output},
+			},
 		},
 		ParseFrom: entry.NewField("parse_from"),
 		ParseTo:   entry.NewField("parse_to"),

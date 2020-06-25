@@ -66,7 +66,7 @@ pipeline:
 {"timestamp":".*","record":{"message":"log3"}}
 `
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	actual, err := ioutil.ReadFile(outputPath)
 	require.NoError(t, err)

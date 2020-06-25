@@ -34,7 +34,7 @@ func TestTransformerConfigMissingOutput(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "plugin config is missing the `output` field.")
+	require.Contains(t, err.Error(), "plugin config is missing the `output` field")
 }
 
 func TestTransformerConfigValid(t *testing.T) {

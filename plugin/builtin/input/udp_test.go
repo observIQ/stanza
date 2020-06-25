@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,9 @@ func TestUDPInput(t *testing.T) {
 				WriteTo: entry.Field{
 					Keys: []string{},
 				},
-				OutputID: "test_output_id",
+				WriterConfig: helper.WriterConfig{
+					OutputIDs: []string{"test_output_id"},
+				},
 			},
 		}
 	}
@@ -40,7 +43,7 @@ func TestUDPInput(t *testing.T) {
 		udpInput, ok := newPlugin.(*UDPInput)
 		require.True(t, ok)
 
-		udpInput.InputPlugin.Output = &mockOutput
+		udpInput.InputPlugin.OutputPlugins = []plugin.Plugin{&mockOutput}
 
 		entryChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

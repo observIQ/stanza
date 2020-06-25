@@ -151,8 +151,7 @@ func (plugin *JournaldInput) Start() error {
 				continue
 			}
 			plugin.persist.Set(lastReadCursorKey, []byte(cursor))
-
-			_ = plugin.Output.Process(ctx, entry)
+			plugin.Write(ctx, entry)
 		}
 	}()
 
@@ -183,11 +182,8 @@ func (plugin *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, strin
 		return nil, "", errors.New("journald record missing __CURSOR field")
 	}
 
-	entry := &entry.Entry{
-		Timestamp: time.Unix(0, timestampInt*1000), // in microseconds
-	}
-	entry.Set(plugin.WriteTo, record)
-
+	entry := plugin.NewEntry(record)
+	entry.Timestamp = time.Unix(0, timestampInt*1000) // in microseconds
 	return entry, cursor, nil
 }
 

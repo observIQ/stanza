@@ -28,7 +28,9 @@ func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
 				PluginType:    "restructure",
 				SugaredLogger: logger.Sugar(),
 			},
-			Output: &mock,
+			WriterPlugin: helper.WriterPlugin{
+				OutputPlugins: []plugin.Plugin{&mock},
+			},
 		},
 	}, &mock
 }
@@ -318,7 +320,9 @@ ops:
 					PluginID:   "my_restructure",
 					PluginType: "restructure",
 				},
-				OutputID: "test_output",
+				WriterConfig: helper.WriterConfig{
+					OutputIDs: []string{"test_output"},
+				},
 			},
 			Ops: []Op{
 				Op{&OpAdd{

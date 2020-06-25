@@ -23,7 +23,9 @@ func TestRateLimit(t *testing.T) {
 				PluginID:   "my_rate_limit",
 				PluginType: "rate_limit",
 			},
-			OutputID: "output1",
+			WriterConfig: helper.WriterConfig{
+				OutputIDs: []string{"output1"},
+			},
 		},
 
 		Rate:  10,

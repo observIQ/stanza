@@ -27,7 +27,9 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 					PluginType:    "json_parser",
 					SugaredLogger: logger.Sugar(),
 				},
-				Output: &mock,
+				WriterPlugin: helper.WriterPlugin{
+					OutputPlugins: []plugin.Plugin{&mock},
+				},
 			},
 			ParseFrom: entry.NewField("testfield"),
 			ParseTo:   entry.NewField("testparsed"),

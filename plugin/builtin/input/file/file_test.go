@@ -37,7 +37,9 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 				PluginType:    "file_input",
 				SugaredLogger: logger,
 			},
-			Output: mockOutput,
+			WriterPlugin: helper.WriterPlugin{
+				OutputPlugins: []plugin.Plugin{mockOutput},
+			},
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     50 * time.Millisecond,
@@ -65,7 +67,9 @@ func TestFileSource_Build(t *testing.T) {
 					PluginID:   "testfile",
 					PluginType: "file_input",
 				},
-				OutputID: "mock",
+				WriterConfig: helper.WriterConfig{
+					OutputIDs: []string{"mock"},
+				},
 			},
 			Include: []string{"/var/log/testpath.*"},
 			Exclude: []string{"/var/log/testpath.ex*"},
@@ -87,7 +91,7 @@ func TestFileSource_Build(t *testing.T) {
 			func(f *FileInputConfig) { return },
 			require.NoError,
 			func(t *testing.T, f *FileInput) {
-				require.Equal(t, f.Output, mockOutput)
+				require.Equal(t, f.OutputPlugins[0], mockOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.PathField, &pathField)
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)

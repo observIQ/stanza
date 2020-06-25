@@ -6,16 +6,24 @@ import (
 	"fmt"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin"
 )
 
 // WriterConfig is the configuration of a writer plugin.
 type WriterConfig struct {
-	OutputIDs []string `json:"output" yaml:"output"`
+	OutputIDs OutputIDs `json:"output" yaml:"output"`
 }
 
 // Build will build a writer plugin from the config.
 func (c WriterConfig) Build(context plugin.BuildContext) (WriterPlugin, error) {
+	if len(c.OutputIDs) == 0 {
+		return WriterPlugin{}, errors.NewError(
+			"plugin config is missing the `output` field",
+			"ensure that the `output` field is assigned",
+		)
+	}
+
 	writer := WriterPlugin{
 		OutputIDs: c.OutputIDs,
 	}
@@ -31,59 +39,9 @@ func (c *WriterConfig) SetNamespace(namespace string, exclusions ...string) {
 	}
 }
 
-// UnmarshalJSON will unmarshal a writer config from JSON.
-func (c *WriterConfig) UnmarshalJSON(bytes []byte) error {
-	rawMap := map[string]interface{}{}
-	err := json.Unmarshal(bytes, &rawMap)
-	if err != nil {
-		return err
-	}
-
-	outputInterface, ok := rawMap["output"]
-	if !ok {
-		return fmt.Errorf("missing required field `output`")
-	}
-
-	switch value := outputInterface.(type) {
-	case string:
-		c = &WriterConfig{[]string{value}}
-	case []string:
-		c = &WriterConfig{value}
-	default:
-		return fmt.Errorf("output is not of type string or array of strings")
-	}
-
-	return nil
-}
-
-// UnmarshalYAML will unmarshal a writer config from YAML.
-func (c *WriterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	rawMap := map[string]interface{}{}
-	err := unmarshal(&rawMap)
-	if err != nil {
-		return err
-	}
-
-	outputInterface, ok := rawMap["output"]
-	if !ok {
-		return fmt.Errorf("missing required field `output`")
-	}
-
-	switch value := outputInterface.(type) {
-	case string:
-		c = &WriterConfig{[]string{value}}
-	case []string:
-		c = &WriterConfig{value}
-	default:
-		return fmt.Errorf("output is not of type string or array of strings")
-	}
-
-	return nil
-}
-
 // WriterPlugin is a plugin that can write to other plugins.
 type WriterPlugin struct {
-	OutputIDs     []string
+	OutputIDs     OutputIDs
 	OutputPlugins []plugin.Plugin
 }
 
@@ -133,4 +91,67 @@ func (w *WriterPlugin) FindPlugin(plugins []plugin.Plugin, pluginID string) (plu
 		}
 	}
 	return nil, false
+}
+
+// OutputIDs is a collection of plugin IDs used as outputs.
+type OutputIDs []string
+
+// UnmarshalJSON will unmarshal a string or array of strings to OutputIDs.
+func (o *OutputIDs) UnmarshalJSON(bytes []byte) error {
+	var value interface{}
+	err := json.Unmarshal(bytes, &value)
+	if err != nil {
+		return err
+	}
+
+	ids, err := o.fromInterface(value)
+	if err != nil {
+		return err
+	}
+
+	*o = ids
+	return nil
+}
+
+// UnmarshalYAML will unmarshal a string or array of strings to OutputIDs.
+func (o *OutputIDs) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value interface{}
+	err := unmarshal(&value)
+	if err != nil {
+		return err
+	}
+
+	ids, err := o.fromInterface(value)
+	if err != nil {
+		return err
+	}
+
+	*o = ids
+	return nil
+}
+
+// fromInterface will parse OutputIDs from a raw interface.
+func (o *OutputIDs) fromInterface(value interface{}) (OutputIDs, error) {
+	if str, ok := value.(string); ok {
+		return OutputIDs{str}, nil
+	}
+
+	if array, ok := value.([]interface{}); ok {
+		return o.fromArray(array)
+	}
+
+	return nil, fmt.Errorf("output id is not of type string or string array")
+}
+
+// fromArray will parse OutputIDs from a raw array.
+func (o *OutputIDs) fromArray(array []interface{}) (OutputIDs, error) {
+	ids := OutputIDs{}
+	for _, rawValue := range array {
+		strValue, ok := rawValue.(string)
+		if !ok {
+			return nil, fmt.Errorf("value in array is not of type string")
+		}
+		ids = append(ids, strValue)
+	}
+	return ids, nil
 }
