@@ -323,3 +323,18 @@ func parseSeverityTestConfig(parseFrom entry.Field, mapping map[interface{}]inte
 		},
 	}
 }
+
+func TestStringer(t *testing.T) {
+	require.Equal(t, "default", helper.Default.String())
+	require.Equal(t, "trace", helper.Trace.String())
+	require.Equal(t, "debug", helper.Debug.String())
+	require.Equal(t, "info", helper.Info.String())
+	require.Equal(t, "notice", helper.Notice.String())
+	require.Equal(t, "warning", helper.Warning.String())
+	require.Equal(t, "error", helper.Error.String())
+	require.Equal(t, "critical", helper.Critical.String())
+	require.Equal(t, "alert", helper.Alert.String())
+	require.Equal(t, "emergency", helper.Emergency.String())
+	require.Equal(t, "catastrophe", helper.Catastrophe.String())
+	require.Equal(t, "12", helper.Severity(12).String())
+}

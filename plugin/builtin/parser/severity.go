@@ -45,16 +45,11 @@ type SeverityParserPlugin struct {
 	helper.SeverityParser
 }
 
-// CanOutput will always return true for a parser plugin.
-func (t *SeverityParserPlugin) CanOutput() bool {
-	return true
-}
-
 // Process will parse time from an entry.
-func (t *SeverityParserPlugin) Process(ctx context.Context, entry *entry.Entry) error {
-	if err := t.Parse(ctx, entry); err != nil {
+func (p *SeverityParserPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+	if err := p.Parse(ctx, entry); err != nil {
 		return errors.Wrap(err, "parse severity")
 	}
 
-	return t.Output.Process(ctx, entry)
+	return p.Output.Process(ctx, entry)
 }

@@ -17,7 +17,7 @@ The following named severity levels are supported.
 | Error       |       60      | `"error"`, `"err"`         |
 | Critical    |       70      | `"critical"`, `"crit"`     |
 | Alert       |       80      | `"alert"`                  |
-| Emergenccy  |       90      | `"emergency"`              |
+| Emergency   |       90      | `"emergency"`              |
 | Catastrophe |      100      | `"catastrophe"`            |
 
 
@@ -64,7 +64,9 @@ The following example :
       - "5xx"
 ```
 
-Notice that it is not necessary to specify the aliases defined in the table above. These will be automatically recognized. Aliases can be overridden.
+Notice that it is not necessary to specify the aliases defined in the table above. These will be automatically recognized. 
+
+Aliases can be overridden if desired. For example, including `info: debug` in the mapping would indicate that value `"debug"` should parse as `info` severity.
 
 ### `severity` parsing parameters
 
@@ -87,7 +89,7 @@ If a severity block is specified, the parser plugin will perform the severity pa
 - id: my_regex_parser
   type: regex_parser
   regexp: '^StatusCode=(?P<severity_field>\d{3}), Host=(?P<host>[^,]+)'
-  timestamp:
+  severity:
     parse_from: severity_field
     mapping:
       critical: "5xx"
@@ -131,7 +133,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": "ERROR"
   }
@@ -143,7 +145,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60, // Error
+  "severity": 60,
   "record": {}
 }
 ```
@@ -155,7 +157,6 @@ Configuration:
 #### Parse a severity from a non-standard value
 
 Configuration:
-```yaml
 ```yaml
 - id: my_severity_parser
   type: severity_parser
@@ -172,7 +173,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": "nooo!"
   }
@@ -184,7 +185,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60, // Error
+  "severity": 60,
   "record": {}
 }
 ```
@@ -196,7 +197,6 @@ Configuration:
 #### Parse a severity from any of several non-standard values
 
 Configuration:
-```yaml
 ```yaml
 - id: my_severity_parser
   type: severity_parser
@@ -217,7 +217,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": "nooo!"
   }
@@ -229,7 +229,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60, // Error
+  "severity": 60,
   "record": {}
 }
 ```
@@ -241,7 +241,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": "nooooooo"
   }
@@ -253,7 +253,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60, // Error
+  "severity": 60,
   "record": {}
 }
 ```
@@ -265,7 +265,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": "hey"
   }
@@ -277,7 +277,7 @@ Configuration:
 
 ```json
 {
-  "severity": 30, // Info
+  "severity": 30,
   "record": {}
 }
 ```
@@ -289,7 +289,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 1234
   }
@@ -301,7 +301,7 @@ Configuration:
 
 ```json
 {
-  "severity": 20, // Debug
+  "severity": 20,
   "record": {}
 }
 ```
@@ -313,7 +313,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": "unknown"
   }
@@ -325,7 +325,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {}
 }
 ```
@@ -337,7 +337,6 @@ Configuration:
 #### Parse a severity from a range of values
 
 Configuration:
-```yaml
 ```yaml
 - id: my_severity_parser
   type: severity_parser
@@ -359,7 +358,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 3
   }
@@ -371,7 +370,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60, // Error
+  "severity": 60,
   "record": {}
 }
 ```
@@ -383,7 +382,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 9
   }
@@ -395,7 +394,7 @@ Configuration:
 
 ```json
 {
-  "severity": 80, // Alert
+  "severity": 80,
   "record": {}
 }
 ```
@@ -407,7 +406,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 12
   }
@@ -419,7 +418,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {}
 }
 ```
@@ -441,7 +440,6 @@ Special values are provided to represent http status code ranges.
 
 Configuration:
 ```yaml
-```yaml
 - id: my_severity_parser
   type: severity_parser
   parse_from: severity_field
@@ -460,7 +458,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 302
   }
@@ -472,7 +470,7 @@ Configuration:
 
 ```json
 {
-  "severity": 30, // Warn
+  "severity": 30,
   "record": {}
 }
 ```
@@ -484,7 +482,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 404
   }
@@ -496,7 +494,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60, // Error
+  "severity": 60,
   "record": {}
 }
 ```
@@ -508,7 +506,7 @@ Configuration:
 
 ```json
 {
-  "severity": 0, // Default
+  "severity": 0,
   "record": {
     "severity_field": 200
   }
@@ -520,7 +518,7 @@ Configuration:
 
 ```json
 {
-  "severity": 20, // Debug
+  "severity": 20, 
   "record": {}
 }
 ```

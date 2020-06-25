@@ -14,7 +14,31 @@ import (
 type Severity int
 
 // ToString converts a severity to a string
-func (s Severity) ToString() string {
+func (s Severity) String() string {
+	switch s {
+	case Default:
+		return "default"
+	case Trace:
+		return "trace"
+	case Debug:
+		return "debug"
+	case Info:
+		return "info"
+	case Notice:
+		return "notice"
+	case Warning:
+		return "warning"
+	case Error:
+		return "error"
+	case Critical:
+		return "critical"
+	case Alert:
+		return "alert"
+	case Emergency:
+		return "emergency"
+	case Catastrophe:
+		return "catastrophe"
+	}
 	return strconv.Itoa(int(s))
 }
 
@@ -60,8 +84,8 @@ type severityMap map[string]Severity
 
 func (m severityMap) find(value interface{}) (Severity, error) {
 	switch v := value.(type) {
-	case int, Severity:
-		if severity, ok := m[fmt.Sprintf("%d", v)]; ok {
+	case int:
+		if severity, ok := m[strconv.Itoa(v)]; ok {
 			return severity, nil
 		}
 		return notFound, nil
