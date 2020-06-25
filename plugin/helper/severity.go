@@ -10,100 +10,6 @@ import (
 	"github.com/bluemedora/bplogagent/errors"
 )
 
-// Severity indicates the seriousness of a log entry
-type Severity int
-
-// ToString converts a severity to a string
-func (s Severity) String() string {
-	switch s {
-	case Default:
-		return "default"
-	case Trace:
-		return "trace"
-	case Debug:
-		return "debug"
-	case Info:
-		return "info"
-	case Notice:
-		return "notice"
-	case Warning:
-		return "warning"
-	case Error:
-		return "error"
-	case Critical:
-		return "critical"
-	case Alert:
-		return "alert"
-	case Emergency:
-		return "emergency"
-	case Catastrophe:
-		return "catastrophe"
-	}
-	return strconv.Itoa(int(s))
-}
-
-const (
-	// Default indicates an unknown severity
-	Default Severity = 0
-
-	// Trace indicates that the log may be useful for detailed debugging
-	Trace Severity = 10
-
-	// Debug indicates that the log may be useful for debugging purposes
-	Debug Severity = 20
-
-	// Info indicates that the log may be useful for understanding high level details about an application
-	Info Severity = 30
-
-	// Notice indicates that the log should be noticed
-	Notice Severity = 40
-
-	// Warning indicates that someone should look into an issue
-	Warning Severity = 50
-
-	// Error indicates that something undesireable has actually happened
-	Error Severity = 60
-
-	// Critical indicates that a problem requires attention immediately
-	Critical Severity = 70
-
-	// Alert indicates that action must be taken immediately
-	Alert Severity = 80
-
-	// Emergency indicates that the application is unusable
-	Emergency Severity = 90
-
-	// Catastrophe indicates that it is already too late
-	Catastrophe Severity = 100
-
-	// used internally
-	notFound Severity = -1
-)
-
-type severityMap map[string]Severity
-
-func (m severityMap) find(value interface{}) (Severity, error) {
-	switch v := value.(type) {
-	case int:
-		if severity, ok := m[strconv.Itoa(v)]; ok {
-			return severity, nil
-		}
-		return notFound, nil
-	case string:
-		if severity, ok := m[strings.ToLower(v)]; ok {
-			return severity, nil
-		}
-		return notFound, nil
-	case []byte:
-		if severity, ok := m[strings.ToLower(string(v))]; ok {
-			return severity, nil
-		}
-		return notFound, nil
-	default:
-		return notFound, fmt.Errorf("type %T cannot be a severity", v)
-	}
-}
-
 // SeverityParser is a helper that parses severity onto an entry.
 type SeverityParser struct {
 	ParseFrom entry.Field
@@ -112,8 +18,8 @@ type SeverityParser struct {
 }
 
 // Parse will parse severity from a field and attach it to the entry
-func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
-	value, ok := entry.Get(p.ParseFrom)
+func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
+	value, ok := ent.Get(p.ParseFrom)
 	if !ok {
 		return errors.NewError(
 			"log entry does not have the expected parse_from field",
@@ -126,14 +32,38 @@ func (p *SeverityParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	if err != nil {
 		return errors.Wrap(err, "parse")
 	}
-	if severity == notFound {
-		severity = Default
+	if severity == entry.Nil {
+		severity = entry.Default
 	}
-	entry.Severity = int(severity)
+	ent.Severity = int(severity)
 
 	if !p.Preserve {
-		entry.Delete(p.ParseFrom)
+		ent.Delete(p.ParseFrom)
 	}
 
 	return nil
+}
+
+type severityMap map[string]entry.Severity
+
+func (m severityMap) find(value interface{}) (entry.Severity, error) {
+	switch v := value.(type) {
+	case int:
+		if severity, ok := m[strconv.Itoa(v)]; ok {
+			return severity, nil
+		}
+		return entry.Nil, nil
+	case string:
+		if severity, ok := m[strings.ToLower(v)]; ok {
+			return severity, nil
+		}
+		return entry.Nil, nil
+	case []byte:
+		if severity, ok := m[strings.ToLower(string(v))]; ok {
+			return severity, nil
+		}
+		return entry.Nil, nil
+	default:
+		return entry.Nil, fmt.Errorf("type %T cannot be a severity", v)
+	}
 }

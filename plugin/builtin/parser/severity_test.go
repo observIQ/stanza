@@ -18,7 +18,7 @@ type severityTestCase struct {
 	mapping  map[interface{}]interface{}
 	buildErr bool
 	parseErr bool
-	expected helper.Severity
+	expected entry.Severity
 }
 
 func TestSeverityParser(t *testing.T) {
@@ -28,67 +28,67 @@ func TestSeverityParser(t *testing.T) {
 			name:     "unknown",
 			sample:   "blah",
 			mapping:  nil,
-			expected: helper.Default,
+			expected: entry.Default,
 		},
 		{
 			name:     "error",
 			sample:   "error",
 			mapping:  nil,
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "error-capitalized",
 			sample:   "Error",
 			mapping:  nil,
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "error-all-caps",
 			sample:   "ERROR",
 			mapping:  nil,
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "custom-string",
 			sample:   "NOOOOOOO",
 			mapping:  map[interface{}]interface{}{"error": "NOOOOOOO"},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "custom-string-caps-key",
 			sample:   "NOOOOOOO",
 			mapping:  map[interface{}]interface{}{"ErRoR": "NOOOOOOO"},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "custom-int",
 			sample:   1234,
 			mapping:  map[interface{}]interface{}{"error": 1234},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "mixed-list-string",
 			sample:   "ThiS Is BaD",
 			mapping:  map[interface{}]interface{}{"error": []interface{}{"NOOOOOOO", "this is bad", 1234}},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "mixed-list-int",
 			sample:   1234,
 			mapping:  map[interface{}]interface{}{"error": []interface{}{"NOOOOOOO", "this is bad", 1234}},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "overload-int-key",
 			sample:   "E",
 			mapping:  map[interface{}]interface{}{60: "E"},
-			expected: helper.Error, // 60
+			expected: entry.Error, // 60
 		},
 		{
 			name:     "overload-native",
 			sample:   "E",
-			mapping:  map[interface{}]interface{}{int(helper.Error): "E"},
-			expected: helper.Error, // 60
+			mapping:  map[interface{}]interface{}{int(entry.Error): "E"},
+			expected: entry.Error, // 60
 		},
 		{
 			name:     "custom-level",
@@ -106,7 +106,7 @@ func TestSeverityParser(t *testing.T) {
 			name:     "custom-level-list-unfound",
 			sample:   "not-in-the-list-but-thats-ok",
 			mapping:  map[interface{}]interface{}{16: []interface{}{"hey!", 1234}},
-			expected: helper.Default,
+			expected: entry.Default,
 		},
 		{
 			name:     "custom-level-unbuildable",
@@ -124,49 +124,49 @@ func TestSeverityParser(t *testing.T) {
 			name:     "in-range",
 			sample:   123,
 			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "out-of-range",
 			sample:   127,
 			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
-			expected: helper.Default,
+			expected: entry.Default,
 		},
 		{
 			name:     "range-out-of-order",
 			sample:   123,
 			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 125, "max": 120}},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "Http2xx-hit",
 			sample:   201,
 			mapping:  map[interface{}]interface{}{"error": "2xx"},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "Http2xx-miss",
 			sample:   301,
 			mapping:  map[interface{}]interface{}{"error": "2xx"},
-			expected: helper.Default,
+			expected: entry.Default,
 		},
 		{
 			name:     "Http3xx-hit",
 			sample:   301,
 			mapping:  map[interface{}]interface{}{"error": "3xx"},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "Http4xx-hit",
 			sample:   "404",
 			mapping:  map[interface{}]interface{}{"error": "4xx"},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "Http5xx-hit",
 			sample:   555,
 			mapping:  map[interface{}]interface{}{"error": "5xx"},
-			expected: helper.Error,
+			expected: entry.Error,
 		},
 		{
 			name:     "Http-All",
@@ -178,42 +178,42 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-midrange",
 			sample: 1234,
 			mapping: map[interface{}]interface{}{
-				"30":              "3xx",
-				int(helper.Error): "4xx",
-				"critical":        "5xx",
-				int(helper.Trace): []interface{}{
+				"30":             "3xx",
+				int(entry.Error): "4xx",
+				"critical":       "5xx",
+				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
 				},
 				77: "",
 			},
-			expected: helper.Trace,
+			expected: entry.Trace,
 		},
 		{
 			name:   "all-the-things-bytes",
 			sample: []byte{100, 100, 100},
 			mapping: map[interface{}]interface{}{
-				"30":              "3xx",
-				int(helper.Error): "4xx",
-				"critical":        "5xx",
-				int(helper.Trace): []interface{}{
+				"30":             "3xx",
+				int(entry.Error): "4xx",
+				"critical":       "5xx",
+				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
 				},
 				77: "",
 			},
-			expected: helper.Trace,
+			expected: entry.Trace,
 		},
 		{
 			name:   "all-the-things-empty",
 			sample: "",
 			mapping: map[interface{}]interface{}{
-				"30":              "3xx",
-				int(helper.Error): "4xx",
-				"critical":        "5xx",
-				int(helper.Trace): []interface{}{
+				"30":             "3xx",
+				int(entry.Error): "4xx",
+				"critical":       "5xx",
+				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
@@ -226,10 +226,10 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-3xx",
 			sample: "399",
 			mapping: map[interface{}]interface{}{
-				"30":              "3xx",
-				int(helper.Error): "4xx",
-				"critical":        "5xx",
-				int(helper.Trace): []interface{}{
+				"30":             "3xx",
+				int(entry.Error): "4xx",
+				"critical":       "5xx",
+				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 1234},
@@ -242,17 +242,17 @@ func TestSeverityParser(t *testing.T) {
 			name:   "all-the-things-miss",
 			sample: "miss",
 			mapping: map[interface{}]interface{}{
-				"30":              "3xx",
-				int(helper.Error): "4xx",
-				"critical":        "5xx",
-				int(helper.Trace): []interface{}{
+				"30":             "3xx",
+				int(entry.Error): "4xx",
+				"critical":       "5xx",
+				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
 					map[interface{}]interface{}{"min": 1111, "max": 2000},
 				},
 				77: "",
 			},
-			expected: helper.Default,
+			expected: entry.Default,
 		},
 	}
 
@@ -272,7 +272,7 @@ func TestSeverityParser(t *testing.T) {
 	}
 }
 
-func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.Entry, buildErr bool, parseErr bool, expected helper.Severity) func(*testing.T) {
+func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.Entry, buildErr bool, parseErr bool, expected entry.Severity) func(*testing.T) {
 
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)
@@ -322,19 +322,4 @@ func parseSeverityTestConfig(parseFrom entry.Field, mapping map[interface{}]inte
 			Mapping:   mapping,
 		},
 	}
-}
-
-func TestStringer(t *testing.T) {
-	require.Equal(t, "default", helper.Default.String())
-	require.Equal(t, "trace", helper.Trace.String())
-	require.Equal(t, "debug", helper.Debug.String())
-	require.Equal(t, "info", helper.Info.String())
-	require.Equal(t, "notice", helper.Notice.String())
-	require.Equal(t, "warning", helper.Warning.String())
-	require.Equal(t, "error", helper.Error.String())
-	require.Equal(t, "critical", helper.Critical.String())
-	require.Equal(t, "alert", helper.Alert.String())
-	require.Equal(t, "emergency", helper.Emergency.String())
-	require.Equal(t, "catastrophe", helper.Catastrophe.String())
-	require.Equal(t, "12", helper.Severity(12).String())
 }
