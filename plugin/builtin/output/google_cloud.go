@@ -76,7 +76,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		Buffer:          newBuffer,
 		logNameField:    c.LogNameField,
 		labelsField:     c.LabelsField,
-		severityField:   c.SeverityField,
+		severityField:   c.SeverityField, // TODO deprecate or remove?
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         timeout,
@@ -98,7 +98,7 @@ type GoogleCloudOutput struct {
 
 	logNameField  *entry.Field
 	labelsField   *entry.Field
-	severityField *entry.Field
+	severityField *entry.Field // TODO deprecate or remove?
 	traceField    *entry.Field
 	spanIDField   *entry.Field
 
@@ -255,6 +255,18 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		}
 	}
 
+	/* TODO
+	if removing p.severityField {
+		if p.severityField != nil {
+			map e.Severity to sev.LogSeverity
+		}
+		else {
+			map e.Severity to sev.LogSeverity
+		}
+	} else if deleting p.severityField {
+		map e.Severity to sev.LogSeverity
+	}
+	*/
 	if p.severityField != nil {
 		var severityString string
 		err := e.Read(*p.severityField, &severityString)
@@ -331,6 +343,48 @@ func globalResource(projectID string) *mrpb.MonitoredResource {
 	}
 }
 
+/* TODO
+switch s {
+case s >= entry.Emergency:
+	return sev.LogSeverity_value["EMERGENCY"]
+case s >= entry.Alert:
+	return sev.LogSeverity_value["ALERT"]
+case ...:
+	.
+	.
+	.
+default:
+	return sev.LogSeverity_value["DEFAULT"]
+}
+
+OR
+
+if s >= entry.Emergency {
+	return sev.LogSeverity_value["EMERGENCY"]
+}
+if s >= entry.Alert {
+	return sev.LogSeverity_value["ALERT"]
+}
+if s >= entry.Critical {
+	return sev.LogSeverity_value["CRITICAL"]
+}
+if s >= entry.Error {
+	return sev.LogSeverity_value["ERROR"]
+}
+if s >= entry.Warning {
+	return sev.LogSeverity_value["WARNING"]
+}
+if s >= entry.Notice {
+	return sev.LogSeverity_value["NOTICE"]
+}
+if s >= entry.Info {
+	return sev.LogSeverity_value["INFO"]
+}
+if s >= entry.Debug {
+return sev.LogSeverity_value["DEBUG"]
+}
+return sev.LogSeverity_value["DEFAULT"]
+*/
 func parseSeverity(severity string) (sev.LogSeverity, error) {
 	val, ok := sev.LogSeverity_value[strings.ToUpper(severity)]
 	if !ok {
