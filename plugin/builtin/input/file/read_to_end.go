@@ -42,7 +42,7 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 	}
 
 	scanner := bufio.NewScanner(file)
-	buf := make([]byte, 0, 1024)
+	buf := make([]byte, 0, 4096)
 	scanner.Buffer(buf, maxLogSize)
 	pos := startOffset
 	scanFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
