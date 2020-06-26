@@ -87,7 +87,11 @@ type MetadataCache struct {
 
 func (m *MetadataCache) Load(key string) (MetadataCacheEntry, bool) {
 	entry, ok := m.m.Load(key)
-	return entry.(MetadataCacheEntry), ok
+	if ok {
+		return entry.(MetadataCacheEntry), ok
+	} else {
+		return MetadataCacheEntry{}, ok
+	}
 }
 
 func (m *MetadataCache) Store(key string, entry MetadataCacheEntry) {

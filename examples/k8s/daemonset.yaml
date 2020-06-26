@@ -50,7 +50,7 @@ data:
       - id: path_parser
         type: regex_parser
         parse_from: path
-        regex: '/var/log/containers/(?P<pod_name>.*)_(?P<namespace>.*)_(?P<service>.*)-[a-z0-9]+\.log'
+        regex: '^/var/log/containers/(?P<pod_name>.*)_(?P<namespace>.*)_(?P<service>.*)-[a-z0-9]+\.log'
         output: k8s_metadata
 
       - id: k8s_metadata
