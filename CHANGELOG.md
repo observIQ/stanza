@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File input plugin `start_at` parameter to configure starting from the end of the file (#108)
 - Metadata plugin and top-level labels and tags (#86)
 - Embedded expression syntax, currently only for metadata plugin (#107)
+- Configurable max_log_size for file input plugin
 ### Changed
 - Parsing the config fails on unknown fields (#127)
 - Offset tracking is now opt-in by including the --database flag, which is used by default in the service installations (#126)
