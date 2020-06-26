@@ -6,19 +6,19 @@ This severity system allows each output plugin to interpret the values 0 to 100 
 
 The following named severity levels are supported.
 
-| Severity    | Numeric Value | Alias           |
-| ---         | ---           | ---             |
-| Default     |        0      | `"default"`     |
-| Trace       |       10      | `"trace"`       |
-| Debug       |       20      | `"debug"`       |
-| Info        |       30      | `"info"`        |
-| Notice      |       40      | `"notice"`      |
-| Warning     |       50      | `"warning"`     |
-| Error       |       60      | `"error"`       |
-| Critical    |       70      | `"critical"`    |
-| Alert       |       80      | `"alert"`       |
-| Emergency   |       90      | `"emergency"`   |
-| Catastrophe |      100      | `"catastrophe"` |
+| Severity    | Numeric Value | Alias         |
+| ---         | ---           | ---           |
+| Default     |        0      | `default`     |
+| Trace       |       10      | `trace`       |
+| Debug       |       20      | `debug`       |
+| Info        |       30      | `info`        |
+| Notice      |       40      | `notice`      |
+| Warning     |       50      | `warning`     |
+| Error       |       60      | `error`       |
+| Critical    |       70      | `critical`    |
+| Alert       |       80      | `alert`       |
+| Emergency   |       90      | `emergency`   |
+| Catastrophe |      100      | `catastrophe` |
 
 
 ### `severity` parsing parameters
