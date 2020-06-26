@@ -64,14 +64,14 @@ const (
 type SeverityParserConfig struct {
 	ParseFrom entry.Field                 `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
 	Preserve  bool                        `json:"preserve"   yaml:"preserve"`
-	MappingSet string                     `json:"mapping_set" yaml:"mapping_set"`
+	Preset    string                      `json:"preset" yaml:"preset"`
 	Mapping   map[interface{}]interface{} `json:"mapping"   yaml:"mapping"`
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
 func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParser, error) {
 
-	pluginMapping := getBuiltinMapping(c.MappingSet)
+	pluginMapping := getBuiltinMapping(c.Preset)
 
 	for severity, unknown := range c.Mapping {
 		sev, err := validateSeverity(severity)
