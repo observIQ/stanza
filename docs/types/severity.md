@@ -523,6 +523,27 @@ Configuration:
   output: my_next_plugin
 ```
 
+Equivalent Configuration:
+```yaml
+- id: my_severity_parser
+  type: severity_parser
+  parse_from: severity_field
+  mapping:
+    critical:
+      - min: 500
+        max: 599
+    error:
+      - min: 400
+        max: 499
+    info:
+      - min: 300
+        max: 399
+    debug:
+      - min: 200
+        max: 299
+  output: my_next_plugin
+```
+
 <table>
 <tr><td> Input entry </td> <td> Output entry </td></tr>
 <tr>
