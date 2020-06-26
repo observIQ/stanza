@@ -60,7 +60,7 @@ The following example illustrates many of the ways in which mapping can configur
     # range of values to be parsed as "info"
     info: 
       - min: 300
-      - max: 399
+        max: 399
 
     # special value representing the range 200-299, to be parsed as "debug"
     debug: 2xx

@@ -2,6 +2,7 @@ package output
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,9 +12,11 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/buffer"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/golang/protobuf/ptypes"
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	gax "github.com/googleapis/gax-go"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
+	sev "google.golang.org/genproto/googleapis/logging/type"
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
 )
 
@@ -32,48 +35,56 @@ func (client *mockCloudLoggingClient) WriteLogEntries(ctx context.Context, req *
 	return nil, nil
 }
 
-func TestGoogleCloudOutput(t *testing.T) {
-	basicConfig := func() *GoogleCloudOutputConfig {
-		return &GoogleCloudOutputConfig{
-			OutputConfig: helper.OutputConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_id",
-					PluginType: "google_cloud_output",
-				},
-			},
-			BufferConfig: buffer.BufferConfig{
-				DelayThreshold: plugin.Duration{
-					Duration: time.Millisecond,
-				},
-			},
-			ProjectID: "test_project_id",
-		}
-	}
+type googleCloudTestCase struct {
+	name           string
+	config         *GoogleCloudOutputConfig
+	input          *entry.Entry
+	expectedOutput *logpb.WriteLogEntriesRequest
+}
 
-	basicWriteEntriesRequest := func() *logpb.WriteLogEntriesRequest {
-		return &logpb.WriteLogEntriesRequest{
-			LogName: "projects/test_project_id/logs/default",
-			Resource: &monitoredres.MonitoredResource{
-				Type: "global",
-				Labels: map[string]string{
-					"project_id": "test_project_id",
-				},
+func googleCloudBasicConfig() *GoogleCloudOutputConfig {
+	return &GoogleCloudOutputConfig{
+		OutputConfig: helper.OutputConfig{
+			BasicConfig: helper.BasicConfig{
+				PluginID:   "test_id",
+				PluginType: "google_cloud_output",
 			},
-		}
+		},
+		BufferConfig: buffer.BufferConfig{
+			DelayThreshold: plugin.Duration{
+				Duration: time.Millisecond,
+			},
+		},
+		ProjectID: "test_project_id",
 	}
+}
 
+func googleCloudBasicWriteEntriesRequest() *logpb.WriteLogEntriesRequest {
+	return &logpb.WriteLogEntriesRequest{
+		LogName: "projects/test_project_id/logs/default",
+		Resource: &monitoredres.MonitoredResource{
+			Type: "global",
+			Labels: map[string]string{
+				"project_id": "test_project_id",
+			},
+		},
+	}
+}
+
+func googleCloudTimes() (time.Time, *tspb.Timestamp) {
 	now, _ := time.Parse(time.RFC3339, time.RFC3339)
 	protoTs, _ := ptypes.TimestampProto(now)
+	return now, protoTs
+}
 
-	cases := []struct {
-		name           string
-		config         *GoogleCloudOutputConfig
-		input          *entry.Entry
-		expectedOutput *logpb.WriteLogEntriesRequest
-	}{
+func TestGoogleCloudOutput(t *testing.T) {
+
+	now, protoTs := googleCloudTimes()
+
+	cases := []googleCloudTestCase{
 		{
 			"Basic",
-			basicConfig(),
+			googleCloudBasicConfig(),
 			&entry.Entry{
 				Timestamp: now,
 				Record: map[string]interface{}{
@@ -81,7 +92,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				},
 			},
 			func() *logpb.WriteLogEntriesRequest {
-				req := basicWriteEntriesRequest()
+				req := googleCloudBasicWriteEntriesRequest()
 				req.Entries = []*logpb.LogEntry{
 					{
 						Timestamp: protoTs,
@@ -96,7 +107,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 		{
 			"LogNameField",
 			func() *GoogleCloudOutputConfig {
-				c := basicConfig()
+				c := googleCloudBasicConfig()
 				f := entry.NewField("log_name")
 				c.LogNameField = &f
 				return c
@@ -109,7 +120,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				},
 			},
 			func() *logpb.WriteLogEntriesRequest {
-				req := basicWriteEntriesRequest()
+				req := googleCloudBasicWriteEntriesRequest()
 				req.Entries = []*logpb.LogEntry{
 					{
 						LogName:   "projects/test_project_id/logs/mylogname",
@@ -125,8 +136,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 		{
 			"Labels",
 			func() *GoogleCloudOutputConfig {
-				c := basicConfig()
-				return c
+				return googleCloudBasicConfig()
 			}(),
 			&entry.Entry{
 				Timestamp: now,
@@ -138,7 +148,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				},
 			},
 			func() *logpb.WriteLogEntriesRequest {
-				req := basicWriteEntriesRequest()
+				req := googleCloudBasicWriteEntriesRequest()
 				req.Entries = []*logpb.LogEntry{
 					{
 						Labels: map[string]string{
@@ -153,39 +163,31 @@ func TestGoogleCloudOutput(t *testing.T) {
 				return req
 			}(),
 		},
-		{
-			"SeverityField",
-			func() *GoogleCloudOutputConfig {
-				c := basicConfig()
-				f := entry.NewField("severity")
-				c.SeverityField = &f
-				return c
-			}(),
-			&entry.Entry{
-				Timestamp: now,
-				Record: map[string]interface{}{
-					"message":  "test message",
-					"severity": "error",
-				},
-			},
-			func() *logpb.WriteLogEntriesRequest {
-				req := basicWriteEntriesRequest()
-				req.Entries = []*logpb.LogEntry{
-					{
-						Severity:  500,
-						Timestamp: protoTs,
-						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
-							"message": "test message",
-						})},
-					},
-				}
-				return req
-			}(),
-		},
+		googleCloudSeverityTestCase(entry.Catastrophe, sev.LogSeverity_EMERGENCY),
+		googleCloudSeverityTestCase(entry.Severity(95), sev.LogSeverity_EMERGENCY),
+		googleCloudSeverityTestCase(entry.Emergency, sev.LogSeverity_EMERGENCY),
+		googleCloudSeverityTestCase(entry.Severity(85), sev.LogSeverity_ALERT),
+		googleCloudSeverityTestCase(entry.Alert, sev.LogSeverity_ALERT),
+		googleCloudSeverityTestCase(entry.Severity(75), sev.LogSeverity_CRITICAL),
+		googleCloudSeverityTestCase(entry.Critical, sev.LogSeverity_CRITICAL),
+		googleCloudSeverityTestCase(entry.Severity(65), sev.LogSeverity_ERROR),
+		googleCloudSeverityTestCase(entry.Error, sev.LogSeverity_ERROR),
+		googleCloudSeverityTestCase(entry.Severity(55), sev.LogSeverity_WARNING),
+		googleCloudSeverityTestCase(entry.Warning, sev.LogSeverity_WARNING),
+		googleCloudSeverityTestCase(entry.Severity(45), sev.LogSeverity_NOTICE),
+		googleCloudSeverityTestCase(entry.Notice, sev.LogSeverity_NOTICE),
+		googleCloudSeverityTestCase(entry.Severity(35), sev.LogSeverity_INFO),
+		googleCloudSeverityTestCase(entry.Info, sev.LogSeverity_INFO),
+		googleCloudSeverityTestCase(entry.Severity(25), sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Debug, sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Severity(15), sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Trace, sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Severity(5), sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Default, sev.LogSeverity_DEFAULT),
 		{
 			"TraceAndSpanFields",
 			func() *GoogleCloudOutputConfig {
-				c := basicConfig()
+				c := googleCloudBasicConfig()
 				traceField := entry.NewField("trace")
 				spanIDField := entry.NewField("span_id")
 				c.TraceField = &traceField
@@ -201,7 +203,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				},
 			},
 			func() *logpb.WriteLogEntriesRequest {
-				req := basicWriteEntriesRequest()
+				req := googleCloudBasicWriteEntriesRequest()
 				req.Entries = []*logpb.LogEntry{
 					{
 						Trace:     "projects/my-projectid/traces/06796866738c859f2f19b7cfb3214824",
@@ -239,5 +241,35 @@ func TestGoogleCloudOutput(t *testing.T) {
 				require.FailNow(t, "Timed out waiting for writeLogEntries request")
 			}
 		})
+	}
+}
+
+func googleCloudSeverityTestCase(s entry.Severity, expected sev.LogSeverity) googleCloudTestCase {
+	now, protoTs := googleCloudTimes()
+	return googleCloudTestCase{
+		fmt.Sprintf("Severity%s", s),
+		func() *GoogleCloudOutputConfig {
+			return googleCloudBasicConfig()
+		}(),
+		&entry.Entry{
+			Timestamp: now,
+			Severity:  s,
+			Record: map[string]interface{}{
+				"message": "test message",
+			},
+		},
+		func() *logpb.WriteLogEntriesRequest {
+			req := googleCloudBasicWriteEntriesRequest()
+			req.Entries = []*logpb.LogEntry{
+				{
+					Severity:  expected,
+					Timestamp: protoTs,
+					Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+						"message": "test message",
+					})},
+				},
+			}
+			return req
+		}(),
 	}
 }

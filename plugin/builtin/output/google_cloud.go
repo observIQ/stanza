@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"strings"
 	"time"
 
 	vkit "cloud.google.com/go/logging/apiv2"
@@ -38,7 +37,6 @@ type GoogleCloudOutputConfig struct {
 	CredentialsFile string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
 	ProjectID       string          `json:"project_id"                 yaml:"project_id"`
 	LogNameField    *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
-	SeverityField   *entry.Field    `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
 	TraceField      *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
 	SpanIDField     *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 	Timeout         plugin.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
@@ -74,7 +72,6 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		projectID:       c.ProjectID,
 		Buffer:          newBuffer,
 		logNameField:    c.LogNameField,
-		severityField:   c.SeverityField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         timeout,
@@ -94,10 +91,9 @@ type GoogleCloudOutput struct {
 	credentialsFile string
 	projectID       string
 
-	logNameField  *entry.Field
-	severityField *entry.Field
-	traceField    *entry.Field
-	spanIDField   *entry.Field
+	logNameField *entry.Field
+	traceField   *entry.Field
+	spanIDField  *entry.Field
 
 	client  CloudLoggingClient
 	timeout time.Duration
@@ -244,19 +240,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		}
 	}
 
-	if p.severityField != nil {
-		var severityString string
-		err := e.Read(*p.severityField, &severityString)
-		if err != nil {
-			p.Warnw("Failed to set severity", zap.Error(err), "entry", e)
-		} else {
-			e.Delete(*p.severityField)
-		}
-		newEntry.Severity, err = parseSeverity(severityString)
-		if err != nil {
-			p.Warnw("Failed to parse severity", zap.Error(err), "entry", e)
-		}
-	}
+	newEntry.Severity = interpretSeverity(e.Severity)
 
 	// Protect against the panic condition inside `jsonValueToStructValue`
 	defer func() {
@@ -320,11 +304,43 @@ func globalResource(projectID string) *mrpb.MonitoredResource {
 	}
 }
 
-func parseSeverity(severity string) (sev.LogSeverity, error) {
-	val, ok := sev.LogSeverity_value[strings.ToUpper(severity)]
-	if !ok {
-		return sev.LogSeverity_DEFAULT, fmt.Errorf("unknown severity '%s'", severity)
+var fastSev = map[entry.Severity]sev.LogSeverity{
+	entry.Catastrophe: sev.LogSeverity_EMERGENCY,
+	entry.Emergency:   sev.LogSeverity_EMERGENCY,
+	entry.Alert:       sev.LogSeverity_ALERT,
+	entry.Critical:    sev.LogSeverity_CRITICAL,
+	entry.Error:       sev.LogSeverity_ERROR,
+	entry.Warning:     sev.LogSeverity_WARNING,
+	entry.Notice:      sev.LogSeverity_NOTICE,
+	entry.Info:        sev.LogSeverity_INFO,
+	entry.Debug:       sev.LogSeverity_DEBUG,
+	entry.Trace:       sev.LogSeverity_DEBUG,
+	entry.Default:     sev.LogSeverity_DEFAULT,
+}
+
+func interpretSeverity(s entry.Severity) sev.LogSeverity {
+	if logSev, ok := fastSev[s]; ok {
+		return logSev
 	}
 
-	return sev.LogSeverity(val), nil
+	switch {
+	case s >= entry.Emergency:
+		return sev.LogSeverity_EMERGENCY
+	case s >= entry.Alert:
+		return sev.LogSeverity_ALERT
+	case s >= entry.Critical:
+		return sev.LogSeverity_CRITICAL
+	case s >= entry.Error:
+		return sev.LogSeverity_ERROR
+	case s >= entry.Warning:
+		return sev.LogSeverity_WARNING
+	case s >= entry.Notice:
+		return sev.LogSeverity_NOTICE
+	case s >= entry.Info:
+		return sev.LogSeverity_INFO
+	case s > entry.Default:
+		return sev.LogSeverity_DEBUG
+	default:
+		return sev.LogSeverity_DEFAULT
+	}
 }
