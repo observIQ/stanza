@@ -12,10 +12,11 @@ import (
 type ParserConfig struct {
 	TransformerConfig `yaml:",inline"`
 
-	ParseFrom  entry.Field `json:"parse_from" yaml:"parse_from"`
-	ParseTo    entry.Field `json:"parse_to"   yaml:"parse_to"`
-	Preserve   bool        `json:"preserve"   yaml:"preserve"`
-	TimeParser *TimeParser `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
+	ParseFrom            entry.Field           `json:"parse_from" yaml:"parse_from"`
+	ParseTo              entry.Field           `json:"parse_to"   yaml:"parse_to"`
+	Preserve             bool                  `json:"preserve"   yaml:"preserve"`
+	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
+	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
 
 // Build will build a parser plugin.
@@ -25,18 +26,26 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 		return ParserPlugin{}, err
 	}
 
-	if c.TimeParser != nil {
-		if err := c.TimeParser.Validate(context); err != nil {
-			return ParserPlugin{}, err
-		}
-	}
-
 	parserPlugin := ParserPlugin{
 		TransformerPlugin: transformerPlugin,
 		ParseFrom:         c.ParseFrom,
 		ParseTo:           c.ParseTo,
 		Preserve:          c.Preserve,
-		TimeParser:        c.TimeParser,
+	}
+
+	if c.TimeParser != nil {
+		if err := c.TimeParser.Validate(context); err != nil {
+			return ParserPlugin{}, err
+		}
+		parserPlugin.TimeParser = c.TimeParser
+	}
+
+	if c.SeverityParserConfig != nil {
+		severityParser, err := c.SeverityParserConfig.Build(context)
+		if err != nil {
+			return ParserPlugin{}, err
+		}
+		parserPlugin.SeverityParser = &severityParser
 	}
 
 	return parserPlugin, nil
@@ -45,10 +54,11 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 // ParserPlugin provides a basic implementation of a parser plugin.
 type ParserPlugin struct {
 	TransformerPlugin
-	ParseFrom  entry.Field
-	ParseTo    entry.Field
-	Preserve   bool
-	TimeParser *TimeParser
+	ParseFrom      entry.Field
+	ParseTo        entry.Field
+	Preserve       bool
+	TimeParser     *TimeParser
+	SeverityParser *SeverityParser
 }
 
 // ProcessWith will process an entry with a parser function.
@@ -76,6 +86,12 @@ func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, pars
 
 	if p.TimeParser != nil {
 		if err := p.TimeParser.Parse(ctx, entry); err != nil {
+			return p.HandleEntryError(ctx, entry, err)
+		}
+	}
+
+	if p.SeverityParser != nil {
+		if err := p.SeverityParser.Parse(ctx, entry); err != nil {
 			return p.HandleEntryError(ctx, entry, err)
 		}
 	}

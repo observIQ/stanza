@@ -18,7 +18,7 @@ pipeline:
   # }
   - id: access_regex_parser
     type: regex_parser
-    output: access_time_parser
+    output: stdout
     regex: >-
       (?P<remote_host>[^\s]+)
       -
@@ -28,31 +28,24 @@ pipeline:
       (?P<url_path>[^\s]+)[^"]*"
       (?P<http_status>\d+)
       (?P<bytes_sent>[\d-]+)
-
-  # Parse the time and set the timestamp on the entry
-  # Example input:
-  # {
-  #   "timestamp": "2020-06-13T11:00:53-04:00",
-  #   "record": {
-  #     "bytes_sent": "19698",
-  #     "http_method": "GET",
-  #     "http_status": "200",
-  #     "remote_host": "10.66.2.46",
-  #     "remote_user": "-",
-  #     "timestamp": "13/Mar/2019:11:00:53 -0400",
-  #     "url_path": "/manager/images/asf-logo.svg"
-  #   }
-  # }
-  - id: access_time_parser
-    type: time_parser
-    output: stdout
-    parse_from: timestamp
-    layout: '%d/%b/%Y:%H:%M:%S %z'
+    timestamp:
+      parse_from: timestamp
+      layout: '%d/%b/%Y:%H:%M:%S %z'
+    severity:
+      parse_from: http_status
+      preserve: true
+      mapping:
+        error: "4xx"
+        info:
+          - min: 300
+            max: 399
+        debug: 200
 
   # Write the log to stdout
   # Example input:
   # {
   #   "timestamp": "2019-03-13T11:00:53-04:00",
+  #   "severity": 60,
   #   "record": {
   #     "bytes_sent": "19698",
   #     "http_method": "GET",

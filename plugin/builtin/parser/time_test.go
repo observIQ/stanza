@@ -117,16 +117,16 @@ func TestTimeParser(t *testing.T) {
 			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
 
 			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)
-			t.Run("gotime-root", runTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
+			t.Run("gotime-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
 
 			gotimeNonRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, someField)
-			t.Run("gotime-non-root", runTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
+			t.Run("gotime-non-root", runTimeParseTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 
 			strptimeRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, rootField)
-			t.Run("strptime-root", runTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
+			t.Run("strptime-root", runTimeParseTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
 
 			strptimeNonRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, someField)
-			t.Run("strptime-non-root", runTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
+			t.Run("strptime-non-root", runTimeParseTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
 		})
 	}
 }
@@ -280,10 +280,10 @@ func TestTimeEpochs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, rootField)
-			t.Run("gotime-root", runTestLossy(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected, tc.maxLoss))
+			t.Run("gotime-root", runLossyTimeParseTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected, tc.maxLoss))
 
 			nonRootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, someField)
-			t.Run("gotime-non-root", runTestLossy(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected, tc.maxLoss))
+			t.Run("gotime-non-root", runLossyTimeParseTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected, tc.maxLoss))
 		})
 	}
 }
@@ -294,11 +294,11 @@ func makeTestEntry(field entry.Field, value interface{}) *entry.Entry {
 	return e
 }
 
-func runTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time) func(*testing.T) {
-	return runTestLossy(t, cfg, ent, expected, time.Duration(0))
+func runTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time) func(*testing.T) {
+	return runLossyTimeParseTest(t, cfg, ent, expected, time.Duration(0))
 }
 
-func runTestLossy(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time, maxLoss time.Duration) func(*testing.T) {
+func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time, maxLoss time.Duration) func(*testing.T) {
 
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)

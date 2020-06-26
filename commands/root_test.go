@@ -61,9 +61,9 @@ pipeline:
 		require.NoError(t, err)
 	}()
 
-	expectedPattern := `{"timestamp":".*","record":{"message":"log1"}}
-{"timestamp":".*","record":{"message":"log2"}}
-{"timestamp":".*","record":{"message":"log3"}}
+	expectedPattern := `{"timestamp":".*","severity":0,"record":{"message":"log1"}}
+{"timestamp":".*","severity":0,"record":{"message":"log2"}}
+{"timestamp":".*","severity":0,"record":{"message":"log3"}}
 `
 
 	time.Sleep(1000 * time.Millisecond)
