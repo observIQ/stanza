@@ -23,7 +23,7 @@ func TestTimeParser(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		sample         string
+		sample         interface{}
 		gotimeLayout   string
 		strptimeLayout string
 	}{
@@ -42,6 +42,12 @@ func TestTimeParser(t *testing.T) {
 		{
 			name:           "kitchen",
 			sample:         "12:34PM",
+			gotimeLayout:   time.Kitchen,
+			strptimeLayout: "%H:%M%p",
+		},
+		{
+			name:           "kitchen-bytes",
+			sample:         []byte("12:34PM"),
 			gotimeLayout:   time.Kitchen,
 			strptimeLayout: "%H:%M%p",
 		},
@@ -118,7 +124,17 @@ func TestTimeParser(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			expected, err := time.ParseInLocation(tc.gotimeLayout, tc.sample, time.Local)
+			var sampleStr string
+			switch s := tc.sample.(type) {
+			case string:
+				sampleStr = s
+			case []byte:
+				sampleStr = string(s)
+			default:
+				require.FailNow(t, "unexpected sample type")
+			}
+
+			expected, err := time.ParseInLocation(tc.gotimeLayout, sampleStr, time.Local)
 			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
 
 			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)
@@ -148,6 +164,12 @@ func TestTimeEpochs(t *testing.T) {
 		{
 			name:     "s-default-string",
 			sample:   "1136214245",
+			layout:   "s",
+			expected: time.Unix(1136214245, 0),
+		},
+		{
+			name:     "s-default-bytes",
+			sample:   []byte("1136214245"),
 			layout:   "s",
 			expected: time.Unix(1136214245, 0),
 		},
@@ -318,6 +340,26 @@ func TestTimeErrors(t *testing.T) {
 			layoutType: "epoch",
 			layout:     "years",
 			buildErr:   true,
+		},
+		{
+			name:       "bad-native-value",
+			layoutType: "native",
+			sample:     1,
+			parseErr:   true,
+		},
+		{
+			name:       "bad-gotime-value",
+			layoutType: "gotime",
+			layout:     time.Kitchen,
+			sample:     1,
+			parseErr:   true,
+		},
+		{
+			name:       "bad-epoch-value",
+			layoutType: "epoch",
+			layout:     "s",
+			sample:     "not-a-number",
+			parseErr:   true,
 		},
 	}
 
