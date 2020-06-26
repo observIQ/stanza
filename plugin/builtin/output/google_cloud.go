@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"strings"
 	"time"
 
 	vkit "cloud.google.com/go/logging/apiv2"
@@ -39,7 +38,6 @@ type GoogleCloudOutputConfig struct {
 	ProjectID       string          `json:"project_id"                 yaml:"project_id"`
 	LogNameField    *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
 	LabelsField     *entry.Field    `json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
-	SeverityField   *entry.Field    `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
 	TraceField      *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
 	SpanIDField     *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 	Timeout         plugin.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
@@ -76,7 +74,6 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		Buffer:          newBuffer,
 		logNameField:    c.LogNameField,
 		labelsField:     c.LabelsField,
-		severityField:   c.SeverityField, // TODO deprecate or remove?
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         timeout,
@@ -96,11 +93,10 @@ type GoogleCloudOutput struct {
 	credentialsFile string
 	projectID       string
 
-	logNameField  *entry.Field
-	labelsField   *entry.Field
-	severityField *entry.Field // TODO deprecate or remove?
-	traceField    *entry.Field
-	spanIDField   *entry.Field
+	logNameField *entry.Field
+	labelsField  *entry.Field
+	traceField   *entry.Field
+	spanIDField  *entry.Field
 
 	client  CloudLoggingClient
 	timeout time.Duration
@@ -255,31 +251,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		}
 	}
 
-	/* TODO
-	if removing p.severityField {
-		if p.severityField != nil {
-			map e.Severity to sev.LogSeverity
-		}
-		else {
-			map e.Severity to sev.LogSeverity
-		}
-	} else if deleting p.severityField {
-		map e.Severity to sev.LogSeverity
-	}
-	*/
-	if p.severityField != nil {
-		var severityString string
-		err := e.Read(*p.severityField, &severityString)
-		if err != nil {
-			p.Warnw("Failed to set severity", zap.Error(err), "entry", e)
-		} else {
-			e.Delete(*p.severityField)
-		}
-		newEntry.Severity, err = parseSeverity(severityString)
-		if err != nil {
-			p.Warnw("Failed to parse severity", zap.Error(err), "entry", e)
-		}
-	}
+	newEntry.Severity = interpretSeverity(e.Severity)
 
 	// Protect against the panic condition inside `jsonValueToStructValue`
 	defer func() {
@@ -343,53 +315,25 @@ func globalResource(projectID string) *mrpb.MonitoredResource {
 	}
 }
 
-/* TODO
-switch s {
-case s >= entry.Emergency:
-	return sev.LogSeverity_value["EMERGENCY"]
-case s >= entry.Alert:
-	return sev.LogSeverity_value["ALERT"]
-case ...:
-	.
-	.
-	.
-default:
-	return sev.LogSeverity_value["DEFAULT"]
-}
-
-OR
-
-if s >= entry.Emergency {
-	return sev.LogSeverity_value["EMERGENCY"]
-}
-if s >= entry.Alert {
-	return sev.LogSeverity_value["ALERT"]
-}
-if s >= entry.Critical {
-	return sev.LogSeverity_value["CRITICAL"]
-}
-if s >= entry.Error {
-	return sev.LogSeverity_value["ERROR"]
-}
-if s >= entry.Warning {
-	return sev.LogSeverity_value["WARNING"]
-}
-if s >= entry.Notice {
-	return sev.LogSeverity_value["NOTICE"]
-}
-if s >= entry.Info {
-	return sev.LogSeverity_value["INFO"]
-}
-if s >= entry.Debug {
-return sev.LogSeverity_value["DEBUG"]
-}
-return sev.LogSeverity_value["DEFAULT"]
-*/
-func parseSeverity(severity string) (sev.LogSeverity, error) {
-	val, ok := sev.LogSeverity_value[strings.ToUpper(severity)]
-	if !ok {
-		return sev.LogSeverity_DEFAULT, fmt.Errorf("unknown severity '%s'", severity)
+func interpretSeverity(s entry.Severity) sev.LogSeverity {
+	switch {
+	case s >= entry.Emergency:
+		return sev.LogSeverity(sev.LogSeverity_value["EMERGENCY"])
+	case s >= entry.Alert:
+		return sev.LogSeverity(sev.LogSeverity_value["ALERT"])
+	case s >= entry.Critical:
+		return sev.LogSeverity(sev.LogSeverity_value["CRITICAL"])
+	case s >= entry.Error:
+		return sev.LogSeverity(sev.LogSeverity_value["ERROR"])
+	case s >= entry.Warning:
+		return sev.LogSeverity(sev.LogSeverity_value["WARNING"])
+	case s >= entry.Notice:
+		return sev.LogSeverity(sev.LogSeverity_value["NOTICE"])
+	case s >= entry.Info:
+		return sev.LogSeverity(sev.LogSeverity_value["INFO"])
+	case s >= entry.Debug:
+		return sev.LogSeverity(sev.LogSeverity_value["DEBUG"])
+	default:
+		return sev.LogSeverity(sev.LogSeverity_value["DEFAULT"])
 	}
-
-	return sev.LogSeverity(val), nil
 }
