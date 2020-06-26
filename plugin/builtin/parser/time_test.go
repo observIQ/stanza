@@ -14,6 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestIsZero(t *testing.T) {
+	require.True(t, (&helper.TimeParser{}).IsZero())
+	require.False(t, (&helper.TimeParser{Layout: "strptime"}).IsZero())
+}
+
 func TestTimeParser(t *testing.T) {
 
 	testCases := []struct {
@@ -117,16 +122,16 @@ func TestTimeParser(t *testing.T) {
 			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
 
 			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)
-			t.Run("gotime-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
+			t.Run("gotime-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, expected))
 
 			gotimeNonRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, someField)
-			t.Run("gotime-non-root", runTimeParseTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
+			t.Run("gotime-non-root", runTimeParseTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, expected))
 
 			strptimeRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, rootField)
-			t.Run("strptime-root", runTimeParseTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), expected))
+			t.Run("strptime-root", runTimeParseTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, expected))
 
 			strptimeNonRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, someField)
-			t.Run("strptime-non-root", runTimeParseTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), expected))
+			t.Run("strptime-non-root", runTimeParseTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, expected))
 		})
 	}
 }
@@ -138,7 +143,6 @@ func TestTimeEpochs(t *testing.T) {
 		sample   interface{}
 		layout   string
 		expected time.Time
-		err      bool
 		maxLoss  time.Duration
 	}{
 		{
@@ -280,10 +284,53 @@ func TestTimeEpochs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, rootField)
-			t.Run("gotime-root", runLossyTimeParseTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.expected, tc.maxLoss))
+			t.Run("epoch-root", runLossyTimeParseTest(t, rootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected, tc.maxLoss))
 
 			nonRootCfg := parseTimeTestConfig(helper.EpochKey, tc.layout, someField)
-			t.Run("gotime-non-root", runLossyTimeParseTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.expected, tc.maxLoss))
+			t.Run("epoch-non-root", runLossyTimeParseTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected, tc.maxLoss))
+		})
+	}
+}
+
+func TestTimeErrors(t *testing.T) {
+
+	testCases := []struct {
+		name       string
+		sample     interface{}
+		layoutType string
+		layout     string
+		buildErr   bool
+		parseErr   bool
+	}{
+		{
+			name:       "bad-layout-type",
+			layoutType: "fake",
+			buildErr:   true,
+		},
+		{
+			name:       "bad-strptime-directive",
+			layoutType: "strptime",
+			layout:     "%1",
+			buildErr:   true,
+		},
+		{
+			name:       "bad-epoch-layout",
+			layoutType: "epoch",
+			layout:     "years",
+			buildErr:   true,
+		},
+	}
+
+	rootField := entry.NewField()
+	someField := entry.NewField("some_field")
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rootCfg := parseTimeTestConfig(tc.layoutType, tc.layout, rootField)
+			t.Run("err-root", runTimeParseTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.buildErr, tc.parseErr, time.Now()))
+
+			nonRootCfg := parseTimeTestConfig(tc.layoutType, tc.layout, someField)
+			t.Run("err-non-root", runTimeParseTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.buildErr, tc.parseErr, time.Now()))
 		})
 	}
 }
@@ -294,16 +341,20 @@ func makeTestEntry(field entry.Field, value interface{}) *entry.Entry {
 	return e
 }
 
-func runTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time) func(*testing.T) {
-	return runLossyTimeParseTest(t, cfg, ent, expected, time.Duration(0))
+func runTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, buildErr bool, parseErr bool, expected time.Time) func(*testing.T) {
+	return runLossyTimeParseTest(t, cfg, ent, buildErr, parseErr, expected, time.Duration(0))
 }
 
-func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, expected time.Time, maxLoss time.Duration) func(*testing.T) {
+func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry, buildErr bool, parseErr bool, expected time.Time, maxLoss time.Duration) func(*testing.T) {
 
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)
 
 		gotimePlugin, err := cfg.Build(buildContext)
+		if buildErr {
+			require.Error(t, err, "expected error when configuring plugin")
+			return
+		}
 		require.NoError(t, err)
 
 		mockOutput := &testutil.Plugin{}
@@ -315,7 +366,12 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 		timeParser := gotimePlugin.(*TimeParserPlugin)
 		timeParser.OutputPlugins = []plugin.Plugin{mockOutput}
 
-		require.NoError(t, timeParser.Process(context.Background(), ent))
+		err = timeParser.Process(context.Background(), ent)
+		if parseErr {
+			require.Error(t, err, "expected error when configuring plugin")
+			return
+		}
+		require.NoError(t, err)
 
 		select {
 		case e := <-resultChan:
