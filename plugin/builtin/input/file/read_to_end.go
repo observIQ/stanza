@@ -61,10 +61,11 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 
 		ok := scanner.Scan()
 		if !ok {
-			if scanner.Err() == bufio.ErrTooLong {
+			if err := scanner.Err(); err == bufio.ErrTooLong {
 				return errors.NewError("log entry too large", "increase max_log_size or ensure that multiline regex patterns terminate")
+			} else {
+				return scanner.Err()
 			}
-			return scanner.Err()
 		}
 
 		message := scanner.Text()
