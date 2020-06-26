@@ -41,24 +41,15 @@ func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.P
 		c.NamespaceField = &field
 	}
 
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, errors.NewError(
-			"agent not in kubernetes cluster",
-			"the k8s_metadata_decorator plugin only supports running in a pod inside a kubernetes cluster",
-		)
-	}
-
 	if c.CacheTTL.Duration == time.Duration(0) {
 		c.CacheTTL.Duration = 10 * time.Minute
 	}
 
 	return &K8sMetadataDecorator{
 		TransformerPlugin: transformer,
-		clientConfig:      config,
 		podNameField:      *c.PodNameField,
 		namespaceField:    *c.NamespaceField,
-		cache_ttl:         time.Hour,
+		cache_ttl:         c.CacheTTL.Raw(),
 	}, nil
 }
 
@@ -67,8 +58,7 @@ type K8sMetadataDecorator struct {
 	podNameField   entry.Field
 	namespaceField entry.Field
 
-	clientConfig *rest.Config
-	client       *corev1.CoreV1Client
+	client *corev1.CoreV1Client
 
 	namespaceCache MetadataCache
 	podCache       MetadataCache
@@ -99,8 +89,15 @@ func (m *MetadataCache) Store(key string, entry MetadataCacheEntry) {
 }
 
 func (k *K8sMetadataDecorator) Start() error {
-	var err error
-	k.client, err = corev1.NewForConfig(k.clientConfig)
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return errors.NewError(
+			"agent not in kubernetes cluster",
+			"the k8s_metadata_decorator plugin only supports running in a pod inside a kubernetes cluster",
+		)
+	}
+
+	k.client, err = corev1.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "build client")
 	}
@@ -235,7 +232,11 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 }
 
 func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
-	for k, v := range nsMeta.Labels {
+	if entry.Labels == nil {
+		entry.Labels = make(map[string]string)
+	}
+
+	for k, v := range nsMeta.Annotations {
 		entry.Labels["k8s_ns_annotation/"+k] = v
 	}
 
@@ -245,7 +246,11 @@ func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta Metadat
 }
 
 func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
-	for k, v := range nsMeta.Labels {
+	if entry.Labels == nil {
+		entry.Labels = make(map[string]string)
+	}
+
+	for k, v := range nsMeta.Annotations {
 		entry.Labels["k8s_pod_annotation/"+k] = v
 	}
 
