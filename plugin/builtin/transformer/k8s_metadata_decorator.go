@@ -135,7 +135,8 @@ func (c *K8sMetadataDecorator) Process(ctx context.Context, entry *entry.Entry) 
 	}
 	c.decorateEntryWithPodMetadata(podMeta, entry)
 
-	return c.Output.Process(ctx, entry)
+	c.Write(ctx, entry)
+	return nil
 }
 
 func (c *K8sMetadataDecorator) getNamespaceMetadata(ctx context.Context, namespace string) (MetadataCacheEntry, error) {
