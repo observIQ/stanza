@@ -48,6 +48,7 @@ Output plugins:
 
 General purpose plugins:
 - [Time parser](/docs/plugins/time_parser.md)
+- [Severity parser](/docs/plugins/severity_parser.md)
 - [Metadata](/docs/plugins/metadata.md)
 - [Restructure records](/docs/plugins/restructure.md)
 - [Copy to multiple outputs](/docs/plugins/copy.md)
