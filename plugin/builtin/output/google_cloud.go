@@ -304,25 +304,43 @@ func globalResource(projectID string) *mrpb.MonitoredResource {
 	}
 }
 
+var fastSev = map[entry.Severity]sev.LogSeverity{
+	entry.Catastrophe: sev.LogSeverity_EMERGENCY,
+	entry.Emergency:   sev.LogSeverity_EMERGENCY,
+	entry.Alert:       sev.LogSeverity_ALERT,
+	entry.Critical:    sev.LogSeverity_CRITICAL,
+	entry.Error:       sev.LogSeverity_ERROR,
+	entry.Warning:     sev.LogSeverity_WARNING,
+	entry.Notice:      sev.LogSeverity_NOTICE,
+	entry.Info:        sev.LogSeverity_INFO,
+	entry.Debug:       sev.LogSeverity_DEBUG,
+	entry.Trace:       sev.LogSeverity_DEFAULT,
+	entry.Default:     sev.LogSeverity_DEFAULT,
+}
+
 func interpretSeverity(s entry.Severity) sev.LogSeverity {
+	if logSev, ok := fastSev[s]; ok {
+		return logSev
+	}
+
 	switch {
 	case s >= entry.Emergency:
-		return sev.LogSeverity(sev.LogSeverity_value["EMERGENCY"])
+		return sev.LogSeverity_EMERGENCY
 	case s >= entry.Alert:
-		return sev.LogSeverity(sev.LogSeverity_value["ALERT"])
+		return sev.LogSeverity_ALERT
 	case s >= entry.Critical:
-		return sev.LogSeverity(sev.LogSeverity_value["CRITICAL"])
+		return sev.LogSeverity_CRITICAL
 	case s >= entry.Error:
-		return sev.LogSeverity(sev.LogSeverity_value["ERROR"])
+		return sev.LogSeverity_ERROR
 	case s >= entry.Warning:
-		return sev.LogSeverity(sev.LogSeverity_value["WARNING"])
+		return sev.LogSeverity_WARNING
 	case s >= entry.Notice:
-		return sev.LogSeverity(sev.LogSeverity_value["NOTICE"])
+		return sev.LogSeverity_NOTICE
 	case s >= entry.Info:
-		return sev.LogSeverity(sev.LogSeverity_value["INFO"])
+		return sev.LogSeverity_INFO
 	case s >= entry.Debug:
-		return sev.LogSeverity(sev.LogSeverity_value["DEBUG"])
+		return sev.LogSeverity_DEBUG
 	default:
-		return sev.LogSeverity(sev.LogSeverity_value["DEFAULT"])
+		return sev.LogSeverity_DEFAULT
 	}
 }
