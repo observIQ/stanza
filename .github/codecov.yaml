@@ -1,4 +1,6 @@
 coverage:
+  range: 50..90
+  round: nearest
   status:
     project: off
     patch: off
