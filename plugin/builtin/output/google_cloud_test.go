@@ -123,53 +123,18 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 		},
 		{
-			"LabelsField",
+			"Labels",
 			func() *GoogleCloudOutputConfig {
 				c := basicConfig()
-				f := entry.NewField("labels")
-				c.LabelsField = &f
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
-					"message": "test message",
-					"labels": map[string]interface{}{
-						"label1": "value1",
-					},
+				Labels: map[string]string{
+					"label1": "value1",
 				},
-			},
-			func() *logpb.WriteLogEntriesRequest {
-				req := basicWriteEntriesRequest()
-				req.Entries = []*logpb.LogEntry{
-					{
-						Labels: map[string]string{
-							"label1": "value1",
-						},
-						Timestamp: protoTs,
-						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
-							"message": "test message",
-						})},
-					},
-				}
-				return req
-			}(),
-		},
-		{
-			"LabelsField",
-			func() *GoogleCloudOutputConfig {
-				c := basicConfig()
-				f := entry.NewField("labels")
-				c.LabelsField = &f
-				return c
-			}(),
-			&entry.Entry{
-				Timestamp: now,
 				Record: map[string]interface{}{
 					"message": "test message",
-					"labels": map[string]interface{}{
-						"label1": "value1",
-					},
 				},
 			},
 			func() *logpb.WriteLogEntriesRequest {

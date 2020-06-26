@@ -38,7 +38,6 @@ type GoogleCloudOutputConfig struct {
 	CredentialsFile string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
 	ProjectID       string          `json:"project_id"                 yaml:"project_id"`
 	LogNameField    *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
-	LabelsField     *entry.Field    `json:"labels_field,omitempty"     yaml:"labels_field,omitempty"`
 	SeverityField   *entry.Field    `json:"severity_field,omitempty"   yaml:"severity_field,omitempty"`
 	TraceField      *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
 	SpanIDField     *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
@@ -75,7 +74,6 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		projectID:       c.ProjectID,
 		Buffer:          newBuffer,
 		logNameField:    c.LogNameField,
-		labelsField:     c.LabelsField,
 		severityField:   c.SeverityField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
@@ -97,7 +95,6 @@ type GoogleCloudOutput struct {
 	projectID       string
 
 	logNameField  *entry.Field
-	labelsField   *entry.Field
 	severityField *entry.Field
 	traceField    *entry.Field
 	spanIDField   *entry.Field
@@ -215,6 +212,7 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry = &logpb.LogEntry{
 		Timestamp: ts,
+		Labels:    e.Labels,
 	}
 
 	if p.logNameField != nil {
@@ -225,15 +223,6 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		} else {
 			newEntry.LogName = p.toLogNamePath(rawLogName)
 			e.Delete(*p.logNameField)
-		}
-	}
-
-	if p.labelsField != nil {
-		err := e.Read(*p.labelsField, &newEntry.Labels)
-		if err != nil {
-			p.Warnw("Failed to set labels", zap.Error(err), "entry", e)
-		} else {
-			e.Delete(*p.labelsField)
 		}
 	}
 
