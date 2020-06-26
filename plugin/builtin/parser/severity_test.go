@@ -325,6 +325,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 			require.Error(t, err, "expected error when parsing sample")
 			return
 		}
+		require.NoError(t, err)
 
 		select {
 		case e := <-resultChan:
