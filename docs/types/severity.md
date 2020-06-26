@@ -29,7 +29,7 @@ Parser plugins can parse a severity and attach the resulting value to a log entr
 | ---            | ---       | ---                                                                                |
 | `parse_from`   | required  | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON      |
 | `preserve`     | false     | Preserve the unparsed value on the record                                          |
-| `mapping_set`  | `default` | A predefined set of values that should be interpretted at specific severity levels |
+| `preset`  | `default` | A predefined set of values that should be interpretted at specific severity levels |
 | `mapping`      |           | A custom set of values that should be interpretted at designated severity levels   |
 
 
@@ -76,11 +76,11 @@ The following example illustrates many of the ways in which mapping can configur
       - 5xx
 ```
 
-### How to simplify configuration with a `mapping_set`
+### How to simplify configuration with a `preset`
 
-A `mapping_set` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. Values specified in the more verbose `mapping` structure will then be added to the severity map.
+A `preset` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. Values specified in the more verbose `mapping` structure will then be added to the severity map.
 
-By default, a common `mapping_set` is used. Alternately, `mapping_set: none` can be specified to start with an empty mapping set.
+By default, a common `preset` is used. Alternately, `preset: none` can be specified to start with an empty mapping set.
 
 The following configurations are equivalent:
 
@@ -92,14 +92,14 @@ The following configurations are equivalent:
 
 ```yaml
 ...
-  mapping_set: default
+  preset: default
   mapping:
     error: 404
 ```
 
 ```yaml
 ...
-  mapping_set: none
+  preset: none
   mapping:
     trace: trace
     debug: debug
@@ -170,7 +170,7 @@ Configuration:
   output: my_next_plugin
 ```
 
-Note that the default `mapping_set` is in place, and no additional values have been specified.
+Note that the default `preset` is in place, and no additional values have been specified.
 
 <table>
 <tr><td> Input entry </td> <td> Output entry </td></tr>
@@ -212,7 +212,7 @@ Configuration:
   output: my_next_plugin
 ```
 
-Note that the default `mapping_set` is in place, and one additional values has been specified.
+Note that the default `preset` is in place, and one additional values has been specified.
 
 <table>
 <tr><td> Input entry </td> <td> Output entry </td></tr>
@@ -627,7 +627,7 @@ Configuration:
 - id: my_severity_parser
   type: severity_parser
   parse_from: severity_field
-  mapping_set: none
+  preset: none
   mapping:
     error: nooo!
   output: my_next_plugin

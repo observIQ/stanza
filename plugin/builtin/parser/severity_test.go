@@ -335,7 +335,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 	}
 }
 
-func parseSeverityTestConfig(parseFrom entry.Field, mappingSet string, mapping map[interface{}]interface{}) *SeverityParserConfig {
+func parseSeverityTestConfig(parseFrom entry.Field, preset string, mapping map[interface{}]interface{}) *SeverityParserConfig {
 	return &SeverityParserConfig{
 		TransformerConfig: helper.TransformerConfig{
 			BasicConfig: helper.BasicConfig{
@@ -347,9 +347,9 @@ func parseSeverityTestConfig(parseFrom entry.Field, mappingSet string, mapping m
 			},
 		},
 		SeverityParserConfig: helper.SeverityParserConfig{
-			ParseFrom:  parseFrom,
-			MappingSet: mappingSet,
-			Mapping:    mapping,
+			ParseFrom: parseFrom,
+			Preset:    preset,
+			Mapping:   mapping,
 		},
 	}
 }
