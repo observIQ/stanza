@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/errors"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
@@ -60,6 +61,9 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 
 		ok := scanner.Scan()
 		if !ok {
+			if scanner.Err() == bufio.ErrTooLong {
+				return errors.NewError("log entry too large", "increase max_log_size or ensure that multiline regex patterns terminate")
+			}
 			return scanner.Err()
 		}
 
