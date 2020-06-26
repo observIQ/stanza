@@ -87,14 +87,14 @@ The following configurations are equivalent:
 ```yaml
 ...
   mapping:
-    error: NOOOOOOO
+    error: 404
 ```
 
 ```yaml
 ...
   mapping_set: default
   mapping:
-    error: NOOOOOOO
+    error: 404
 ```
 
 ```yaml
@@ -111,7 +111,7 @@ The following configurations are equivalent:
     error: 
       - error
       - err
-      - NOOOOOOO
+      - 404
     critical:
       - critical
       - crit
