@@ -70,8 +70,8 @@ type K8sMetadataDecorator struct {
 	clientConfig *rest.Config
 	client       *corev1.CoreV1Client
 
-	namespaceCache sync.Map
-	podCache       sync.Map
+	namespaceCache MetadataCache
+	podCache       MetadataCache
 	cache_ttl      time.Duration
 }
 
@@ -81,9 +81,22 @@ type MetadataCacheEntry struct {
 	Annotations    map[string]string
 }
 
-func (c *K8sMetadataDecorator) Start() error {
+type MetadataCache struct {
+	m sync.Map
+}
+
+func (m *MetadataCache) Load(key string) (MetadataCacheEntry, bool) {
+	entry, ok := m.m.Load(key)
+	return entry.(MetadataCacheEntry), ok
+}
+
+func (m *MetadataCache) Store(key string, entry MetadataCacheEntry) {
+	m.m.Store(key, entry)
+}
+
+func (k *K8sMetadataDecorator) Start() error {
 	var err error
-	c.client, err = corev1.NewForConfig(c.clientConfig)
+	k.client, err = corev1.NewForConfig(k.clientConfig)
 	if err != nil {
 		return errors.Wrap(err, "build client")
 	}
@@ -91,18 +104,18 @@ func (c *K8sMetadataDecorator) Start() error {
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	namespaceList, err := c.client.Namespaces().List(ctx, metav1.ListOptions{})
+	namespaceList, err := k.client.Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "test connection list namespaces")
 	}
 
 	if len(namespaceList.Items) == 0 {
-		c.Warn("During test connection, namespace list came back empty")
+		k.Warn("During test connection, namespace list came back empty")
 		return nil
 	}
 
 	namespaceName := namespaceList.Items[0].ObjectMeta.Name
-	_, err = c.client.Pods(namespaceName).List(ctx, metav1.ListOptions{})
+	_, err = k.client.Pods(namespaceName).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "test connection list pods")
 	}
@@ -110,86 +123,114 @@ func (c *K8sMetadataDecorator) Start() error {
 	return nil
 }
 
-func (c *K8sMetadataDecorator) Process(ctx context.Context, entry *entry.Entry) error {
+func (k *K8sMetadataDecorator) Process(ctx context.Context, entry *entry.Entry) error {
 	var podName string
-	err := entry.Read(c.podNameField, &podName)
+	err := entry.Read(k.podNameField, &podName)
 	if err != nil {
-		return c.HandleEntryError(ctx, entry, errors.Wrap(err, "find pod name").WithDetails("search_field", c.podNameField.String()))
+		return k.HandleEntryError(ctx, entry, errors.Wrap(err, "find pod name").WithDetails("search_field", k.podNameField.String()))
 	}
 
 	var namespace string
-	err = entry.Read(c.namespaceField, &namespace)
+	err = entry.Read(k.namespaceField, &namespace)
 	if err != nil {
-		return c.HandleEntryError(ctx, entry, errors.Wrap(err, "find namespace").WithDetails("search_field", c.podNameField.String()))
+		return k.HandleEntryError(ctx, entry, errors.Wrap(err, "find namespace").WithDetails("search_field", k.podNameField.String()))
 	}
 
-	nsMeta, err := c.getNamespaceMetadata(ctx, namespace)
+	nsMeta, err := k.getNamespaceMetadata(ctx, namespace)
 	if err != nil {
-		return c.HandleEntryError(ctx, entry, err)
+		return k.HandleEntryError(ctx, entry, err)
 	}
-	c.decorateEntryWithNamespaceMetadata(nsMeta, entry)
+	k.decorateEntryWithNamespaceMetadata(nsMeta, entry)
 
-	podMeta, err := c.getPodMetadata(ctx, namespace, podName)
+	podMeta, err := k.getPodMetadata(ctx, namespace, podName)
 	if err != nil {
-		return c.HandleEntryError(ctx, entry, err)
+		return k.HandleEntryError(ctx, entry, err)
 	}
-	c.decorateEntryWithPodMetadata(podMeta, entry)
+	k.decorateEntryWithPodMetadata(podMeta, entry)
 
-	c.Write(ctx, entry)
+	k.Write(ctx, entry)
 	return nil
 }
 
-func (c *K8sMetadataDecorator) getNamespaceMetadata(ctx context.Context, namespace string) (MetadataCacheEntry, error) {
-	cacheEntry, ok := c.namespaceCache.Load(namespace)
-	now := time.Now()
-	if !ok || cacheEntry.(MetadataCacheEntry).ExpirationTime.Before(now) {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // TODO configurable timeout
-		defer cancel()
-		namespaceResponse, err := c.client.Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-		if err != nil {
-			cacheEntry = MetadataCacheEntry{ExpirationTime: now.Add(10 * time.Second)}
-			c.namespaceCache.Store(namespace, cacheEntry)
-			return cacheEntry.(MetadataCacheEntry), errors.Wrap(err, "get namespace metadata").WithDetails("namespace", namespace).WithDetails("retry_after", "10s")
-		}
-		cacheEntry = MetadataCacheEntry{
-			ExpirationTime: now.Add(c.cache_ttl),
-			Labels:         namespaceResponse.Labels,
-			Annotations:    namespaceResponse.Annotations,
-		}
-		c.namespaceCache.Store(namespace, cacheEntry)
+func (k *K8sMetadataDecorator) getNamespaceMetadata(ctx context.Context, namespace string) (MetadataCacheEntry, error) {
+	cacheEntry, ok := k.namespaceCache.Load(namespace)
+
+	var err error
+	if !ok || cacheEntry.ExpirationTime.Before(time.Now()) {
+		cacheEntry, err = k.refreshNamespaceMetadata(ctx, namespace)
 	}
-	return cacheEntry.(MetadataCacheEntry), nil
+
+	return cacheEntry, err
 }
 
-func (c *K8sMetadataDecorator) getPodMetadata(ctx context.Context, namespace, podName string) (MetadataCacheEntry, error) {
+func (k *K8sMetadataDecorator) getPodMetadata(ctx context.Context, namespace, podName string) (MetadataCacheEntry, error) {
 	key := namespace + ":" + podName
-	cacheEntry, ok := c.podCache.Load(key)
+	cacheEntry, ok := k.podCache.Load(key)
 
-	now := time.Now()
-	if !ok || cacheEntry.(MetadataCacheEntry).ExpirationTime.Before(now) {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // TODO configurable timeout
-		defer cancel()
-		podResponse, err := c.client.Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-		if err != nil {
-			cacheEntry = MetadataCacheEntry{ExpirationTime: now.Add(10 * time.Second)}
-			c.podCache.Store(key, cacheEntry)
-			return cacheEntry.(MetadataCacheEntry), errors.Wrap(err, "get pod metadata").WithDetails(
-				"namespace", namespace,
-				"pod_name", podName,
-				"retry_after", "10s",
-			)
-		}
-		cacheEntry = MetadataCacheEntry{
-			ExpirationTime: now.Add(c.cache_ttl),
-			Labels:         podResponse.Labels,
-			Annotations:    podResponse.Annotations,
-		}
-		c.podCache.Store(key, cacheEntry)
+	var err error
+	if !ok || cacheEntry.ExpirationTime.Before(time.Now()) {
+		cacheEntry, err = k.refreshPodMetadata(ctx, namespace, podName)
 	}
-	return cacheEntry.(MetadataCacheEntry), nil
+
+	return cacheEntry, err
 }
 
-func (c *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
+func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, namespace string) (MetadataCacheEntry, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Query the API
+	namespaceResponse, err := k.client.Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		// Add an empty entry to the cache so we don't continuously retry
+		cacheEntry := MetadataCacheEntry{ExpirationTime: time.Now().Add(10 * time.Second)}
+		k.namespaceCache.Store(namespace, cacheEntry)
+		return cacheEntry, errors.Wrap(err, "get namespace metadata").WithDetails("namespace", namespace).WithDetails("retry_after", "10s")
+	}
+
+	// Cache the results
+	cacheEntry := MetadataCacheEntry{
+		ExpirationTime: time.Now().Add(k.cache_ttl),
+		Labels:         namespaceResponse.Labels,
+		Annotations:    namespaceResponse.Annotations,
+	}
+	k.namespaceCache.Store(namespace, cacheEntry)
+
+	return cacheEntry, nil
+}
+
+func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace, podName string) (MetadataCacheEntry, error) {
+	key := namespace + ":" + podName
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Query the API
+	podResponse, err := k.client.Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		// Add an empty entry to the cache so we don't continuously retry
+		cacheEntry := MetadataCacheEntry{ExpirationTime: time.Now().Add(10 * time.Second)}
+		k.podCache.Store(key, cacheEntry)
+
+		return cacheEntry, errors.Wrap(err, "get pod metadata").WithDetails(
+			"namespace", namespace,
+			"pod_name", podName,
+			"retry_after", "10s",
+		)
+	}
+
+	// Cache the results
+	cacheEntry := MetadataCacheEntry{
+		ExpirationTime: time.Now().Add(k.cache_ttl),
+		Labels:         podResponse.Labels,
+		Annotations:    podResponse.Annotations,
+	}
+	k.podCache.Store(key, cacheEntry)
+
+	return cacheEntry, nil
+}
+
+func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
 	for k, v := range nsMeta.Labels {
 		entry.Labels["k8s_ns_annotation/"+k] = v
 	}
@@ -199,7 +240,7 @@ func (c *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta Metadat
 	}
 }
 
-func (c *K8sMetadataDecorator) decorateEntryWithPodMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
+func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
 	for k, v := range nsMeta.Labels {
 		entry.Labels["k8s_pod_annotation/"+k] = v
 	}
