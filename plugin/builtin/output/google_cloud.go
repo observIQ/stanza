@@ -314,7 +314,7 @@ var fastSev = map[entry.Severity]sev.LogSeverity{
 	entry.Notice:      sev.LogSeverity_NOTICE,
 	entry.Info:        sev.LogSeverity_INFO,
 	entry.Debug:       sev.LogSeverity_DEBUG,
-	entry.Trace:       sev.LogSeverity_DEFAULT,
+	entry.Trace:       sev.LogSeverity_DEBUG,
 	entry.Default:     sev.LogSeverity_DEFAULT,
 }
 
@@ -338,7 +338,7 @@ func interpretSeverity(s entry.Severity) sev.LogSeverity {
 		return sev.LogSeverity_NOTICE
 	case s >= entry.Info:
 		return sev.LogSeverity_INFO
-	case s >= entry.Debug:
+	case s > entry.Default:
 		return sev.LogSeverity_DEBUG
 	default:
 		return sev.LogSeverity_DEFAULT

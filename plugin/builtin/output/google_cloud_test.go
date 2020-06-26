@@ -180,9 +180,9 @@ func TestGoogleCloudOutput(t *testing.T) {
 		googleCloudSeverityTestCase(entry.Info, sev.LogSeverity_INFO),
 		googleCloudSeverityTestCase(entry.Severity(25), sev.LogSeverity_DEBUG),
 		googleCloudSeverityTestCase(entry.Debug, sev.LogSeverity_DEBUG),
-		googleCloudSeverityTestCase(entry.Severity(15), sev.LogSeverity_DEFAULT),
-		googleCloudSeverityTestCase(entry.Trace, sev.LogSeverity_DEFAULT),
-		googleCloudSeverityTestCase(entry.Severity(5), sev.LogSeverity_DEFAULT),
+		googleCloudSeverityTestCase(entry.Severity(15), sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Trace, sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Severity(5), sev.LogSeverity_DEBUG),
 		googleCloudSeverityTestCase(entry.Default, sev.LogSeverity_DEFAULT),
 		{
 			"TraceAndSpanFields",
