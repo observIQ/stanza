@@ -10,7 +10,7 @@ import (
 	"github.com/bluemedora/bplogagent/plugin/helper"
 )
 
-func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin) error {
+func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
 	defer messenger.FinishedReading()
 
 	select {
@@ -41,6 +41,8 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 	}
 
 	scanner := bufio.NewScanner(file)
+	buf := make([]byte, 1024)
+	scanner.Buffer(buf, maxLogSize)
 	pos := startOffset
 	scanFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		advance, token, err = splitFunc(data, atEOF)

@@ -33,7 +33,8 @@ type FileInputConfig struct {
 	PollInterval *plugin.Duration           `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 	Multiline    *FileSourceMultilineConfig `json:"multiline,omitempty"     yaml:"multiline,omitempty"`
 	PathField    *entry.Field               `json:"path_field,omitempty"    yaml:"path_field,omitempty"`
-	StartAt      string                     `json:"start_at,omitempty" yaml:"start_at,omitempty"`
+	StartAt      string                     `json:"start_at,omitempty"      yaml:"start_at,omitempty"`
+	MaxLogSize   int                        `json:"max_log_size,omitempty"  yaml:"max_log_size,omitempty"`
 }
 
 type FileSourceMultilineConfig struct {
@@ -124,6 +125,12 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		startAtBeginning: startAtBeginning,
 	}
 
+	if c.MaxLogSize == 0 {
+		plugin.MaxLogSize = 1024 * 1024
+	} else {
+		plugin.MaxLogSize = c.MaxLogSize
+	}
+
 	return plugin, nil
 }
 
@@ -135,6 +142,7 @@ type FileInput struct {
 	PathField    *entry.Field
 	PollInterval time.Duration
 	SplitFunc    bufio.SplitFunc
+	MaxLogSize   int
 
 	persist helper.Persister
 
@@ -245,7 +253,7 @@ func (f *FileInput) checkFile(ctx context.Context, path string, firstCheck bool)
 	go func(ctx context.Context, path string, offset int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, messenger, f.SplitFunc, f.PathField, f.InputPlugin)
+		err := ReadToEnd(ctx, path, offset, messenger, f.SplitFunc, f.PathField, f.InputPlugin, f.MaxLogSize)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}
