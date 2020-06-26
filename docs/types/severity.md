@@ -29,7 +29,7 @@ Parser plugins can parse a severity and attach the resulting value to a log entr
 | ---            | ---       | ---                                                                                |
 | `parse_from`   | required  | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON      |
 | `preserve`     | false     | Preserve the unparsed value on the record                                          |
-| `preset`  | `default` | A predefined set of values that should be interpretted at specific severity levels |
+| `preset`       | `default` | A predefined set of values that should be interpretted at specific severity levels |
 | `mapping`      |           | A custom set of values that should be interpretted at designated severity levels   |
 
 
@@ -80,7 +80,7 @@ The following example illustrates many of the ways in which mapping can configur
 
 A `preset` can reduce the amount of configuration needed in the `mapping` structure by initializing the severity mapping with common values. Values specified in the more verbose `mapping` structure will then be added to the severity map.
 
-By default, a common `preset` is used. Alternately, `preset: none` can be specified to start with an empty mapping set.
+By default, a common `preset` is used. Alternately, `preset: none` can be specified to start with an empty mapping.
 
 The following configurations are equivalent:
 
@@ -120,7 +120,7 @@ The following configurations are equivalent:
     catastrophe: catastrophe
 ```
 
-<sub>Additional built-in mapping sets coming soon</sub>
+<sub>Additional built-in presets coming soon</sub>
 
 
 ### How to use severity parsing
@@ -620,7 +620,7 @@ Equivalent Configuration:
 </tr>
 </table>
 
-#### Parse a severity from a value without using the default mapping set
+#### Parse a severity from a value without using the default preset
 
 Configuration:
 ```yaml
