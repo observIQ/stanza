@@ -69,11 +69,7 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 			entry.Set(*pathField, path)
 		}
 
-		err := inputPlugin.Output.Process(ctx, entry)
-		if err != nil {
-			return err
-		}
-
+		inputPlugin.Write(ctx, entry)
 		messenger.SetOffset(pos)
 	}
 }

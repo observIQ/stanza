@@ -22,8 +22,8 @@ type RouterPluginConfig struct {
 }
 
 type RouterPluginRouteConfig struct {
-	Expression string `json:"expr"   yaml:"expr"`
-	Output     string `json:"output" yaml:"output"`
+	Expression string           `json:"expr"   yaml:"expr"`
+	OutputIDs  helper.OutputIDs `json:"output" yaml:"output"`
 }
 
 func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
@@ -40,7 +40,7 @@ func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 		}
 		route := RouterPluginRoute{
 			Expression: compiled,
-			OutputID:   routeConfig.Output,
+			OutputIDs:  routeConfig.OutputIDs,
 		}
 		routes = append(routes, &route)
 	}
@@ -54,13 +54,12 @@ func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 }
 
 func (c *RouterPluginConfig) SetNamespace(namespace string, exclusions ...string) {
-	if helper.CanNamespace(c.PluginID, exclusions) {
-		c.PluginID = helper.AddNamespace(c.PluginID, namespace)
-	}
-
+	c.BasicConfig.SetNamespace(namespace, exclusions...)
 	for _, route := range c.Routes {
-		if helper.CanNamespace(route.Output, exclusions) {
-			route.Output = helper.AddNamespace(route.Output, namespace)
+		for i, outputID := range route.OutputIDs {
+			if helper.CanNamespace(outputID, exclusions) {
+				route.OutputIDs[i] = helper.AddNamespace(outputID, namespace)
+			}
 		}
 	}
 }
@@ -71,9 +70,9 @@ type RouterPlugin struct {
 }
 
 type RouterPluginRoute struct {
-	Expression *vm.Program
-	Output     plugin.Plugin
-	OutputID   string
+	Expression    *vm.Program
+	OutputIDs     helper.OutputIDs
+	OutputPlugins []plugin.Plugin
 }
 
 func (p *RouterPlugin) CanProcess() bool {
@@ -94,9 +93,8 @@ func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 
 		// we compile the expression with "AsBool", so this should be safe
 		if matches.(bool) {
-			err := route.Output.Process(ctx, entry)
-			if err != nil {
-				return err
+			for _, output := range route.OutputPlugins {
+				_ = output.Process(ctx, entry)
 			}
 			break
 		}
@@ -113,20 +111,42 @@ func (p *RouterPlugin) CanOutput() bool {
 func (p *RouterPlugin) Outputs() []plugin.Plugin {
 	outputs := make([]plugin.Plugin, 0, len(p.routes))
 	for _, route := range p.routes {
-		outputs = append(outputs, route.Output)
+		outputs = append(outputs, route.OutputPlugins...)
 	}
 	return outputs
 }
 
-// SetOutputs will set the outputs of the copy plugin.
+// SetOutputs will set the outputs of the router plugin.
 func (p *RouterPlugin) SetOutputs(plugins []plugin.Plugin) error {
 	for _, route := range p.routes {
-		output, err := helper.FindOutput(plugins, route.OutputID)
+		outputPlugins, err := p.findPlugins(plugins, route.OutputIDs)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to set outputs on route: %s", err)
 		}
-		route.Output = output
+		route.OutputPlugins = outputPlugins
 	}
-
 	return nil
+}
+
+// findPlugins will find a subset of plugins from a collection.
+func (p *RouterPlugin) findPlugins(plugins []plugin.Plugin, pluginIDs []string) ([]plugin.Plugin, error) {
+	result := make([]plugin.Plugin, 0)
+	for _, pluginID := range pluginIDs {
+		plugin, err := p.findPlugin(plugins, pluginID)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, plugin)
+	}
+	return result, nil
+}
+
+// findPlugin will find a plugin from a collection.
+func (p *RouterPlugin) findPlugin(plugins []plugin.Plugin, pluginID string) (plugin.Plugin, error) {
+	for _, plugin := range plugins {
+		if plugin.ID() == pluginID {
+			return plugin, nil
+		}
+	}
+	return nil, fmt.Errorf("plugin %s does not exist", pluginID)
 }

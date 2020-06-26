@@ -63,8 +63,8 @@ func (g *GenerateInput) Start() error {
 			}
 
 			record := helper.CopyRecord(g.record)
-			entry := g.Write(record)
-			_ = g.Output.Process(ctx, entry)
+			entry := g.NewEntry(record)
+			g.Write(ctx, entry)
 
 			i++
 			if i == g.count {

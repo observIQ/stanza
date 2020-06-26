@@ -22,7 +22,9 @@ func TestSyslogParser(t *testing.T) {
 						PluginID:   "test_plugin_id",
 						PluginType: "syslog_parser",
 					},
-					OutputID: "output1",
+					WriterConfig: helper.WriterConfig{
+						OutputIDs: []string{"output1"},
+					},
 				},
 			},
 		}

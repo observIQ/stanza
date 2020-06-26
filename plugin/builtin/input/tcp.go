@@ -123,8 +123,8 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 				break
 			}
 
-			entry := t.Write(message)
-			_ = t.Output.Process(ctx, entry)
+			entry := t.NewEntry(message)
+			t.Write(ctx, entry)
 		}
 	}()
 }

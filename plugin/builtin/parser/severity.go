@@ -51,5 +51,6 @@ func (p *SeverityParserPlugin) Process(ctx context.Context, entry *entry.Entry) 
 		return errors.Wrap(err, "parse severity")
 	}
 
-	return p.Output.Process(ctx, entry)
+	p.Write(ctx, entry)
+	return nil
 }

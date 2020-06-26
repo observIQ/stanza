@@ -96,7 +96,8 @@ func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, pars
 		}
 	}
 
-	return p.Output.Process(ctx, entry)
+	p.Write(ctx, entry)
+	return nil
 }
 
 // ParseFunction is function that parses a raw value.

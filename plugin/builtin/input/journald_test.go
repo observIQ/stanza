@@ -38,7 +38,9 @@ func TestInputJournald(t *testing.T) {
 				PluginID:   "my_journald_input",
 				PluginType: "journald_input",
 			},
-			OutputID: "output",
+			WriterConfig: helper.WriterConfig{
+				OutputIDs: []string{"output"},
+			},
 		},
 	}
 

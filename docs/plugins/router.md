@@ -19,7 +19,7 @@ An entry that does not match any of the routes is dropped and not processed furt
 
 | Field    | Default  | Description                                                                                                           |
 | ---      | ---      | ---                                                                                                                   |
-| `output` | required | A plugin id to send an entry to if `expr` returns `true`                                                              |
+| `output` | required | The connected plugin(s) that will receive all outbound entries for this route                                         |
 | `expr`   | required | An [expression](/docs/types/expression.md) that returns a boolean. The record of the routed entry is available as `$` |
 
 

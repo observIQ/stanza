@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/bluemedora/bplogagent/entry"
+	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +34,7 @@ func TestRouterPlugin(t *testing.T) {
 			[]*RouterPluginRouteConfig{
 				{
 					"true",
-					"output1",
+					[]string{"output1"},
 				},
 			},
 			map[string]int{"output1": 1},
@@ -45,7 +45,7 @@ func TestRouterPlugin(t *testing.T) {
 			[]*RouterPluginRouteConfig{
 				{
 					`false`,
-					"output1",
+					[]string{"output1"},
 				},
 			},
 			map[string]int{},
@@ -60,11 +60,11 @@ func TestRouterPlugin(t *testing.T) {
 			[]*RouterPluginRouteConfig{
 				{
 					`$.message == "non_match"`,
-					"output1",
+					[]string{"output1"},
 				},
 				{
 					`$.message == "test_message"`,
-					"output2",
+					[]string{"output2"},
 				},
 			},
 			map[string]int{"output2": 1},

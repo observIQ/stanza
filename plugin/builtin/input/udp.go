@@ -85,8 +85,8 @@ func (u *UDPInput) goHandleMessages(ctx context.Context) {
 				break
 			}
 
-			entry := u.Write(message)
-			_ = u.Output.Process(ctx, entry)
+			entry := u.NewEntry(message)
+			u.Write(ctx, entry)
 		}
 	}()
 }

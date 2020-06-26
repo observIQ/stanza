@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -312,7 +313,7 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 		}).Return(nil)
 
 		timeParser := gotimePlugin.(*TimeParserPlugin)
-		timeParser.Output = mockOutput
+		timeParser.OutputPlugins = []plugin.Plugin{mockOutput}
 
 		require.NoError(t, timeParser.Process(context.Background(), ent))
 
@@ -333,7 +334,9 @@ func parseTimeTestConfig(layoutType, layout string, parseFrom entry.Field) *Time
 				PluginID:   "test_plugin_id",
 				PluginType: "time_parser",
 			},
-			OutputID: "output1",
+			WriterConfig: helper.WriterConfig{
+				OutputIDs: []string{"output1"},
+			},
 		},
 		TimeParser: helper.TimeParser{
 			LayoutType: layoutType,

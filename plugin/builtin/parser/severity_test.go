@@ -7,6 +7,7 @@ import (
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/bluemedora/bplogagent/plugin"
 	"github.com/bluemedora/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -299,7 +300,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 		}).Return(nil)
 
 		severityParser := severityPlugin.(*SeverityParserPlugin)
-		severityParser.Output = mockOutput
+		severityParser.OutputPlugins = []plugin.Plugin{mockOutput}
 
 		err = severityParser.Process(context.Background(), ent)
 		if parseErr {
@@ -323,7 +324,9 @@ func parseSeverityTestConfig(parseFrom entry.Field, mappingSet string, mapping m
 				PluginID:   "test_plugin_id",
 				PluginType: "severity_parser",
 			},
-			OutputID: "output1",
+			WriterConfig: helper.WriterConfig{
+				OutputIDs: []string{"output1"},
+			},
 		},
 		SeverityParserConfig: helper.SeverityParserConfig{
 			ParseFrom:  parseFrom,
