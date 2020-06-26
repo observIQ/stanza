@@ -129,8 +129,26 @@ func TestSeverityParser(t *testing.T) {
 			expected: entry.Error,
 		},
 		{
-			name:     "out-of-range",
-			sample:   127,
+			name:     "in-range-min",
+			sample:   120,
+			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
+			expected: entry.Error,
+		},
+		{
+			name:     "in-range-max",
+			sample:   125,
+			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
+			expected: entry.Error,
+		},
+		{
+			name:     "out-of-range-min-minus",
+			sample:   119,
+			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
+			expected: entry.Default,
+		},
+		{
+			name:     "out-of-range-max-plus",
+			sample:   126,
 			mapping:  map[interface{}]interface{}{"error": map[interface{}]interface{}{"min": 120, "max": 125}},
 			expected: entry.Default,
 		},
