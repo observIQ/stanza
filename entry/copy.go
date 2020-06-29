@@ -66,23 +66,17 @@ func copyIntArray(a []int) []int {
 // copyInterfaceArray will deep copy an array of interfaces.
 func copyInterfaceArray(a []interface{}) []interface{} {
 	arrayCopy := make([]interface{}, 0, len(a))
-	for i, v := range a {
-		arrayCopy[i] = copyValue(v)
+	for _, v := range a {
+		arrayCopy = append(arrayCopy, copyValue(v))
 	}
 	return arrayCopy
 }
 
-// copyUnknown will use json encoding to copy an unknown value.
+// copyUnknown will copy an unknown value using json encoding.
+// If this process fails, the result will be an empty interface.
 func copyUnknown(value interface{}) interface{} {
 	var result interface{}
-	b, err := json.Marshal(value)
-	if err != nil {
-		return value
-	}
-
-	err = json.Unmarshal(b, &result)
-	if err != nil {
-		return value
-	}
+	b, _ := json.Marshal(value)
+	_ = json.Unmarshal(b, &result)
 	return result
 }
