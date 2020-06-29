@@ -2,6 +2,7 @@ package entry
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -115,4 +116,26 @@ func TestRead(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "test", i)
 	})
+}
+
+func TestCopy(t *testing.T) {
+	entry := New()
+	entry.Severity = Severity(0)
+	entry.Timestamp = time.Time{}
+	entry.Record = "test"
+	entry.Labels = map[string]string{"label": "value"}
+	entry.Tags = []string{"tag"}
+	copy := entry.Copy()
+
+	entry.Severity = Severity(1)
+	entry.Timestamp = time.Now()
+	entry.Record = "new"
+	entry.Labels = map[string]string{"label": "new value"}
+	entry.Tags = []string{"new tag"}
+
+	require.Equal(t, time.Time{}, copy.Timestamp)
+	require.Equal(t, Severity(0), copy.Severity)
+	require.Equal(t, []string{"tag"}, copy.Tags)
+	require.Equal(t, map[string]string{"label": "value"}, copy.Labels)
+	require.Equal(t, "test", copy.Record)
 }

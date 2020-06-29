@@ -29,8 +29,10 @@ func TestInputGenerate(t *testing.T) {
 					OutputIDs: []string{"output1"},
 				},
 			},
-			Record: "test message",
-			Count:  count,
+			Entry: entry.Entry{
+				Record: "test message",
+			},
+			Count: count,
 		}
 	}
 
@@ -68,8 +70,9 @@ pipeline:
   - id: my_generator
     type: generate_input
     output: {{ .output }}
-    record:
-      message: testmessage
+    entry:
+      record:
+        message: testmessage
 `
 	tmpl, err := template.New("my_generator").Parse(templateText)
 	require.NoError(t, err)
@@ -97,8 +100,10 @@ pipeline:
 							OutputIDs: []string{"sampleoutput"},
 						},
 					},
-					Record: map[interface{}]interface{}{
-						"message": "testmessage",
+					Entry: entry.Entry{
+						Record: map[interface{}]interface{}{
+							"message": "testmessage",
+						},
 					},
 				},
 			},

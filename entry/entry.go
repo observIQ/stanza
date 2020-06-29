@@ -98,3 +98,14 @@ func (entry *Entry) Read(field Field, dest interface{}) error {
 
 	return nil
 }
+
+// Copy will return a deep copy of the entry.
+func (entry *Entry) Copy() *Entry {
+	return &Entry{
+		Timestamp: entry.Timestamp,
+		Severity:  entry.Severity,
+		Tags:      copyStringArray(entry.Tags),
+		Labels:    copyStringMap(entry.Labels),
+		Record:    copyValue(entry.Record),
+	}
+}

@@ -41,18 +41,17 @@ func TestParamsWithoutType(t *testing.T) {
 }
 
 func TestParamsWithOutput(t *testing.T) {
-	expectedOutput := "test"
 	params := Params{
-		"output": expectedOutput,
+		"output": "test",
 	}
-	actualOutput := params.Output()
-	require.Equal(t, expectedOutput, actualOutput)
+	actualOutput := params.Outputs()
+	require.Equal(t, []string{"test"}, actualOutput)
 }
 
 func TestParamsWithoutOutput(t *testing.T) {
 	params := Params{}
-	actualOutput := params.Output()
-	require.Equal(t, "", actualOutput)
+	actualOutput := params.Outputs()
+	require.Equal(t, []string{}, actualOutput)
 }
 
 func TestValidParams(t *testing.T) {
@@ -139,8 +138,9 @@ pipeline:
   - id: custom_generate
     type: generate_input
     count: 1
-    record:
-      message: test
+    entry:
+      record:
+        message: test
     output: {{.output}}
 `
 	err := registry.Add("custom_plugin", customTemplate)
@@ -283,8 +283,10 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 			"id":    "generate_input",
 			"type":  "generate_input",
 			"count": 1,
-			"record": map[string]interface{}{
-				"message": "test",
+			"entry": map[string]interface{}{
+				"record": map[string]interface{}{
+					"message": "test",
+				},
 			},
 			"output": "invalid_output",
 		},

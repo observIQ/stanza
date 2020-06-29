@@ -16,8 +16,9 @@ pipeline:
   - id: generate
     type: generate_input
     output: json_parser
-    record:
-      test: value
+    entry:
+      record:
+        test: value
 
   - id: json_parser
     type: json_parser
