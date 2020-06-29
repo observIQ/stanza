@@ -51,8 +51,8 @@ func TestWriterPluginWrite(t *testing.T) {
 	testEntry := entry.New()
 
 	writer.Write(ctx, testEntry)
-	output1.AssertCalled(t, "Process", ctx, testEntry)
-	output2.AssertCalled(t, "Process", ctx, testEntry)
+	output1.AssertCalled(t, "Process", ctx, mock.Anything)
+	output2.AssertCalled(t, "Process", ctx, mock.Anything)
 }
 
 func TestWriterPluginCanOutput(t *testing.T) {
@@ -73,8 +73,8 @@ func TestWriterPluginOutputs(t *testing.T) {
 	testEntry := entry.New()
 
 	writer.Write(ctx, testEntry)
-	output1.AssertCalled(t, "Process", ctx, testEntry)
-	output2.AssertCalled(t, "Process", ctx, testEntry)
+	output1.AssertCalled(t, "Process", ctx, mock.Anything)
+	output2.AssertCalled(t, "Process", ctx, mock.Anything)
 }
 
 func TestWriterSetOutputsMissing(t *testing.T) {
