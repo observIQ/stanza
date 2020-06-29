@@ -18,10 +18,14 @@ type Entry struct {
 func New() *Entry {
 	return &Entry{
 		Timestamp: time.Now(),
-		Record:    map[string]interface{}{},
-		Tags:      make([]string, 0),
-		Labels:    make(map[string]string, 0),
 	}
+}
+
+func (entry *Entry) AddLabel(key, value string) {
+	if entry.Labels == nil {
+		entry.Labels = make(map[string]string)
+	}
+	entry.Labels[key] = value
 }
 
 func (entry *Entry) Get(field Field) (interface{}, bool) {

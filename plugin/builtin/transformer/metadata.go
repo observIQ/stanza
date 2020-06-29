@@ -85,7 +85,7 @@ func (l *labeler) Label(e *entry.Entry) error {
 		if err != nil {
 			return err
 		}
-		e.Labels[k] = rendered
+		e.AddLabel(k, rendered)
 	}
 
 	return nil
