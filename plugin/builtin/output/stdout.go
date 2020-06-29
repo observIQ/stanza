@@ -36,7 +36,7 @@ func (c StdoutConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) 
 	}, nil
 }
 
-// LoggerOutput is a plugin that logs entries using the internal logger.
+// StdoutPlugin is a plugin that logs entries using stdout.
 type StdoutPlugin struct {
 	helper.OutputPlugin
 	encoder *json.Encoder
@@ -49,6 +49,7 @@ func (o *StdoutPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	err := o.encoder.Encode(entry)
 	if err != nil {
 		o.mux.Unlock()
+		o.Errorf("Failed to process entry: %s, $s", err, entry.Record)
 		return err
 	}
 	o.mux.Unlock()
