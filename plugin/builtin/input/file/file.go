@@ -103,9 +103,9 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 
 	var startAtBeginning bool
 	switch c.StartAt {
-	case "beginning", "":
+	case "beginning":
 		startAtBeginning = true
-	case "end":
+	case "end", "":
 		startAtBeginning = false
 	default:
 		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
