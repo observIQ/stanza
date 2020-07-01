@@ -1,6 +1,6 @@
 ## `severity_parser` plugin
 
-The `severity_parser` plugin sets the timestamp on an entry by parsing a value from the record.
+The `severity_parser` plugin sets the severity on an entry by parsing a value from the record.
 
 ### Configuration Fields
 
