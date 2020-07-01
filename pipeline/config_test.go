@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/bluemedora/bplogagent/plugin"
@@ -40,7 +41,7 @@ func TestParamsWithoutType(t *testing.T) {
 	require.Equal(t, "", actualType)
 }
 
-func TestParamsWithOutput(t *testing.T) {
+func TestParamsWithOutputs(t *testing.T) {
 	params := Params{
 		"output": "test",
 	}
@@ -48,10 +49,111 @@ func TestParamsWithOutput(t *testing.T) {
 	require.Equal(t, []string{"test"}, actualOutput)
 }
 
-func TestParamsWithoutOutput(t *testing.T) {
+func TestParamsWithoutOutputs(t *testing.T) {
 	params := Params{}
 	actualOutput := params.Outputs()
 	require.Equal(t, []string{}, actualOutput)
+}
+
+func TestParamsNamespacedID(t *testing.T) {
+	params := Params{
+		"id": "test-id",
+	}
+	result := params.NamespacedID("namespace")
+	require.Equal(t, "namespace.test-id", result)
+}
+
+func TestParamsNamespacedOutputs(t *testing.T) {
+	params := Params{
+		"output": "test-output",
+	}
+	result := params.NamespacedOutputs("namespace")
+	require.Equal(t, []string{"namespace.test-output"}, result)
+}
+
+func TestParamsTemplateInput(t *testing.T) {
+	params := Params{
+		"id": "test-id",
+	}
+	result := params.TemplateInput("namespace")
+	require.Equal(t, "namespace.test-id", result)
+}
+
+func TestParamsTemplateOutput(t *testing.T) {
+	params := Params{
+		"output": "test-output",
+	}
+	result := params.TemplateOutput("namespace")
+	require.Equal(t, "[namespace.test-output]", result)
+}
+
+func TestParamsNamespaceExclusions(t *testing.T) {
+	params := Params{
+		"id":     "test-id",
+		"output": "test-output",
+	}
+	result := params.NamespaceExclusions("namespace")
+	require.Equal(t, []string{"namespace.test-id", "namespace.test-output"}, result)
+}
+
+func TestParamsGetExistingString(t *testing.T) {
+	params := Params{
+		"key": "string",
+	}
+	result := params.getString("key")
+	require.Equal(t, "string", result)
+}
+
+func TestParamsGetMissingString(t *testing.T) {
+	params := Params{}
+	result := params.getString("missing")
+	require.Equal(t, "", result)
+}
+
+func TestParamsGetInvalidString(t *testing.T) {
+	params := Params{
+		"key": true,
+	}
+	result := params.getString("key")
+	require.Equal(t, "", result)
+}
+
+func TestParamsGetStringArrayMissing(t *testing.T) {
+	params := Params{}
+	result := params.getStringArray("missing")
+	require.Equal(t, []string{}, result)
+}
+
+func TestParamsGetStringArrayFromString(t *testing.T) {
+	params := Params{
+		"key": "string",
+	}
+	result := params.getStringArray("key")
+	require.Equal(t, []string{"string"}, result)
+}
+
+func TestParamsGetStringArrayFromArray(t *testing.T) {
+	params := Params{
+		"key": []string{"one", "two"},
+	}
+	result := params.getStringArray("key")
+	require.Equal(t, []string{"one", "two"}, result)
+}
+
+func TestParamsGetStringArrayFromInterface(t *testing.T) {
+	params := Params{
+		"key": []interface{}{"one", "two"},
+	}
+	result := params.getStringArray("key")
+	require.Equal(t, []string{"one", "two"}, result)
+}
+
+func TestParamsGetStringArrayFromInvalid(t *testing.T) {
+	params := Params{
+		"key": true,
+	}
+	result := params.getStringArray("key")
+	require.Equal(t, []string{}, result)
 }
 
 func TestValidParams(t *testing.T) {
@@ -75,6 +177,24 @@ func TestInvalidParams(t *testing.T) {
 	}
 	err = paramsWithoutType.Validate()
 	require.Error(t, err)
+}
+
+type invalidMarshaller struct {}
+func (i invalidMarshaller) MarshalYAML() (interface{}, error) {
+	return nil, fmt.Errorf("failed")
+}
+
+func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
+	params := Params{
+		"id":     "noop",
+		"type":   "noop",
+		"output": "test",
+		"field": invalidMarshaller{},
+	}
+	context := plugin.BuildContext{}
+	_, err := params.BuildConfigs(context, "test_namespace")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to parse config map as yaml")
 }
 
 func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
