@@ -118,23 +118,13 @@ func (p Params) NamespaceExclusions(namespace string) []string {
 	return exclusions
 }
 
-// String will return the string representation of the params.
-func (p Params) String() string {
-	bytes, err := yaml.Marshal(p)
-	if err != nil {
-		return ""
-	}
-
-	return string(bytes)
-}
-
 // Validate will validate the basic fields required to make a plugin config.
 func (p Params) Validate() error {
 	if p.ID() == "" {
 		return errors.NewError(
 			"missing required `id` field for plugin config",
 			"ensure that all plugin configs have a defined id field",
-			"config", p.String(),
+			"type", p.Type(),
 		)
 	}
 
@@ -142,7 +132,7 @@ func (p Params) Validate() error {
 		return errors.NewError(
 			"missing required `type` field for plugin config",
 			"ensure that all plugin configs have a defined type field",
-			"config", p.String(),
+			"id", p.ID(),
 		)
 	}
 
@@ -202,7 +192,8 @@ func (p Params) BuildConfigs(context plugin.BuildContext, namespace string) ([]p
 	return nil, errors.NewError(
 		"unsupported `type` for plugin config",
 		"ensure that all plugins have a supported builtin or custom type",
-		"config", p.String(),
+		"type", p.Type(),
+		"id", p.ID(),
 	)
 }
 

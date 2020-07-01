@@ -10,9 +10,9 @@ coupled with the [`rate_limit`](/docs/plugins/rate_limit.md) plugin.
 | `id`       | required | A unique identifier for the plugin                                                               |
 | `output`   | required | The connected plugin(s) that will receive all outbound entries                                   |
 | `write_to` | $        | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
-| `entry`    |          | A [entry](/docs/types/entry.md) log entry to repeatedly generate.                                |
-| `count`    | 0        | The number of entries to generate before stopping. A value of 0 indicates unlimited              |
-
+| `entry`    |          | A [entry](/docs/types/entry.md) log entry to repeatedly generate                                 |
+| `count`    | 0        | The number of entries to generate before stopping. A value of 0 indicates unlimited   .          |
+| `static`   | `false`  | If true, the timestamp of the entry will remain static after each invocation                     |
 
 ### Example Configurations
 

@@ -47,20 +47,12 @@ type WriterPlugin struct {
 
 // Write will write an entry to the outputs of the plugin.
 func (w *WriterPlugin) Write(ctx context.Context, e *entry.Entry) {
-	outputCount := len(w.OutputPlugins)
-	entries := make([]*entry.Entry, 0, outputCount)
-	entries = append(entries, e)
-
-	entryCount := 1
-	for entryCount < outputCount {
-		entryCount++
-		entryCopy := e.Copy()
-		entries = append(entries, entryCopy)
-	}
-
 	for i, plugin := range w.OutputPlugins {
-		outboundEntry := entries[i]
-		_ = plugin.Process(ctx, outboundEntry)
+		if i == len(w.OutputPlugins)-1 {
+			_ = plugin.Process(ctx, e)
+			return
+		}
+		plugin.Process(ctx, e.Copy())
 	}
 }
 
