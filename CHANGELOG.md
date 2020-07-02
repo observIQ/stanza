@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Custom plugin metadata format enhanced to allow title, description, and richer parameter descriptions (#156)
+- The file input plugin's `start_at` parameter now defaults to `end` (#153)
 - Various performance improvements (#151)
 
 ### Fixed
