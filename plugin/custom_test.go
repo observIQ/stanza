@@ -118,3 +118,178 @@ func TestCustomRegistryLoad(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestCustomPluginMetadata(t *testing.T) {
+
+	testCases := []struct {
+		name      string
+		expectErr bool
+		template  string
+	}{
+		{
+			name:      "no_meta",
+			expectErr: false,
+			template: `pipeline:
+`,
+		},
+		{
+			name:      "full_meta",
+			expectErr: false,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: integer
+pipeline:
+`,
+		},
+		{
+			name:      "bad_version",
+			expectErr: true,
+			template: `version: []
+title: My Super Plugin
+description: This is the best plugin ever
+parameters: 
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: integer
+pipeline:
+`,
+		},
+		{
+			name:      "bad_title",
+			expectErr: true,
+			template: `version: 0.0.0
+title: []
+description: This is the best plugin ever
+parameters: 
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: integer
+pipeline:
+`,
+		},
+		{
+			name:      "bad_description",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: []
+parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: integer
+pipeline:
+`,
+		},
+		{
+			name:      "bad_parameters_type",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters: hello
+`,
+		},
+		{
+			name:      "bad_parameter_structure",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path: this used to be supported
+pipeline:
+`,
+		},
+		{
+			name:      "bad_parameter_label",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: []
+    description: The path to a thing
+    type: string
+pipeline:
+`,
+		},
+		{
+			name:      "bad_parameter_description",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Path
+    description: []
+    type: string
+pipeline:
+`,
+		},
+		{
+			name:      "bad_parameter_type",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: []
+pipeline:
+`,
+		},
+		{
+			name:      "empty_parameter",
+			expectErr: false,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+pipeline:
+`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := CustomRegistry{}
+			err := reg.Add(tc.name, tc.template)
+			require.NoError(t, err)
+			_, err = reg.Render(tc.name, map[string]interface{}{})
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
