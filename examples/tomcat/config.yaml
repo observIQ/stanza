@@ -6,6 +6,7 @@ pipeline:
   # 10.66.2.46 - - [13/Mar/2019:10:43:00 -0400] "GET / HTTP/1.1" 404 -
   - id: access_logs
     type: file_input
+    start_at: beginning
     include:
       - ./access.log
     output: access_regex_parser

@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
 	"github.com/bluemedora/bplogagent/plugin/builtin/output"
 	"github.com/stretchr/testify/require"
 )
@@ -44,12 +42,8 @@ func TestTomcatExample(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	_ = os.Remove("./logagent.db")
-
-	tempDir := testutil.NewTempDir(t)
-
 	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"--database", filepath.Join(tempDir, "logagent.db")})
+	cmd.SetArgs([]string{})
 
 	buf := muxWriter{}
 	output.Stdout = &buf

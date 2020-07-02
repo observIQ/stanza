@@ -40,6 +40,7 @@ pipeline:
     type: file_input
     include: ['%s']
     write_to: message
+    start_at: beginning
     output: file_output
 
   - id: file_output
