@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/bluemedora/bplogagent/entry"
 	"github.com/bluemedora/bplogagent/internal/testutil"
@@ -130,7 +131,104 @@ func TestParserInvalidTimeParse(t *testing.T) {
 	testEntry := entry.New()
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "log entry does not have the expected parse_from field")
+	require.Contains(t, err.Error(), "time parser: log entry does not have the expected parse_from field")
+}
+
+func TestParserInvalidSeverityParse(t *testing.T) {
+	buildContext := testutil.NewBuildContext(t)
+	parser := ParserPlugin{
+		TransformerPlugin: TransformerPlugin{
+			BasicPlugin: BasicPlugin{
+				PluginID:      "test-id",
+				PluginType:    "test-type",
+				SugaredLogger: buildContext.Logger,
+			},
+			OnError: DropOnError,
+		},
+		SeverityParser: &SeverityParser{
+			ParseFrom: entry.NewField("missing-key"),
+		},
+	}
+	parse := func(i interface{}) (interface{}, error) {
+		return i, nil
+	}
+	ctx := context.Background()
+	testEntry := entry.New()
+	err := parser.ProcessWith(ctx, testEntry, parse)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "severity parser: log entry does not have the expected parse_from field")
+}
+
+func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
+	buildContext := testutil.NewBuildContext(t)
+	parser := ParserPlugin{
+		TransformerPlugin: TransformerPlugin{
+			BasicPlugin: BasicPlugin{
+				PluginID:      "test-id",
+				PluginType:    "test-type",
+				SugaredLogger: buildContext.Logger,
+			},
+			OnError: DropOnError,
+		},
+		TimeParser: &TimeParser{
+			ParseFrom: entry.NewField("missing-key"),
+		},
+		SeverityParser: &SeverityParser{
+			ParseFrom: entry.NewField("severity"),
+			Mapping: map[string]entry.Severity{
+				"info": entry.Info,
+			},
+		},
+	}
+	parse := func(i interface{}) (interface{}, error) {
+		return i, nil
+	}
+	ctx := context.Background()
+	testEntry := entry.New()
+	testEntry.Set(entry.NewField("severity"), "info")
+
+	err := parser.ProcessWith(ctx, testEntry, parse)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "time parser: log entry does not have the expected parse_from field")
+
+	// But, this should have been set anyways
+	require.Equal(t, entry.Info, testEntry.Severity)
+}
+
+func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
+	buildContext := testutil.NewBuildContext(t)
+	parser := ParserPlugin{
+		TransformerPlugin: TransformerPlugin{
+			BasicPlugin: BasicPlugin{
+				PluginID:      "test-id",
+				PluginType:    "test-type",
+				SugaredLogger: buildContext.Logger,
+			},
+			OnError: DropOnError,
+		},
+		TimeParser: &TimeParser{
+			ParseFrom:  entry.NewField("timestamp"),
+			LayoutType: "gotime",
+			Layout:     time.Kitchen,
+		},
+		SeverityParser: &SeverityParser{
+			ParseFrom: entry.NewField("missing-key"),
+		},
+	}
+	parse := func(i interface{}) (interface{}, error) {
+		return i, nil
+	}
+	ctx := context.Background()
+	testEntry := entry.New()
+	testEntry.Set(entry.NewField("timestamp"), "12:34PM")
+
+	err := parser.ProcessWith(ctx, testEntry, parse)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "severity parser: log entry does not have the expected parse_from field")
+
+	expected, _ := time.ParseInLocation(time.Kitchen, "12:34PM", time.Local)
+	// But, this should have been set anyways
+	require.Equal(t, expected, testEntry.Timestamp)
 }
 
 func TestParserOutput(t *testing.T) {

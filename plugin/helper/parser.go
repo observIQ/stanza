@@ -84,16 +84,22 @@ func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, pars
 
 	entry.Set(p.ParseTo, newValue)
 
+	var timeParseErr error
 	if p.TimeParser != nil {
-		if err := p.TimeParser.Parse(ctx, entry); err != nil {
-			return p.HandleEntryError(ctx, entry, err)
-		}
+		timeParseErr = p.TimeParser.Parse(ctx, entry)
 	}
 
+	var severityParseErr error
 	if p.SeverityParser != nil {
-		if err := p.SeverityParser.Parse(ctx, entry); err != nil {
-			return p.HandleEntryError(ctx, entry, err)
-		}
+		severityParseErr = p.SeverityParser.Parse(ctx, entry)
+	}
+
+	// Handle time or severity parsing errors after attempting to parse both
+	if timeParseErr != nil {
+		return p.HandleEntryError(ctx, entry, errors.Wrap(timeParseErr, "time parser"))
+	}
+	if severityParseErr != nil {
+		return p.HandleEntryError(ctx, entry, errors.Wrap(severityParseErr, "severity parser"))
 	}
 
 	p.Write(ctx, entry)
