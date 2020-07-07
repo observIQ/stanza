@@ -1,5 +1,5 @@
-[![<observIQ>](https://circleci.com/gh/observIQ/bplogagent.svg?style=shield&circle-token=b3a927f2797a62157b99f1e592edc0b14b764e8c)](https://app.circleci.com/pipelines/github/observIQ/bplogagent)
-[![codecov](https://codecov.io/gh/observIQ/bplogagent/branch/master/graph/badge.svg?token=MvU9xtiqxd)](https://codecov.io/gh/observIQ/bplogagent)
+[![<observIQ>](https://circleci.com/gh/observIQ/observiq-logagent.svg?style=shield&circle-token=b3a927f2797a62157b99f1e592edc0b14b764e8c)](https://app.circleci.com/pipelines/github/observIQ/observiq-logagent)
+[![codecov](https://codecov.io/gh/observIQ/observiq-logagent/branch/master/graph/badge.svg?token=MvU9xtiqxd)](https://codecov.io/gh/observIQ/observiq-logagent)
 
 # Bindplane Log Agent
 
