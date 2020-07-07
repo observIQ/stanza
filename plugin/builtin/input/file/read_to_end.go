@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/plugin/helper"
 )
 
 func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {

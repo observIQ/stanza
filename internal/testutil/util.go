@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )

@@ -3,9 +3,9 @@ package commands
 import (
 	"os"
 
-	"github.com/bluemedora/bplogagent/agent"
-	"github.com/bluemedora/bplogagent/plugin"
-	pg "github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/agent"
+	"github.com/observiq/bplogagent/plugin"
+	pg "github.com/observiq/bplogagent/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

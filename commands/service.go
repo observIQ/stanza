@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bluemedora/bplogagent/agent"
 	"github.com/kardianos/service"
+	"github.com/observiq/bplogagent/agent"
 	"go.uber.org/zap"
 )
 

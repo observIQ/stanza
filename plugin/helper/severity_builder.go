@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/plugin"
 )
 
 const minSeverity = 0

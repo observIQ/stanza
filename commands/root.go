@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/bluemedora/bplogagent/agent"
+	agent "github.com/observiq/bplogagent/agent"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	agent "github.com/bluemedora/bplogagent/agent"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	agent "github.com/observiq/bplogagent/agent"
+	"github.com/observiq/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/bbolt"
 )

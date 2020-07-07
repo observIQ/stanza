@@ -3,7 +3,7 @@ package pipeline
 import (
 	"hash/fnv"
 
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin"
 )
 
 // PluginNode is a basic node that represents a plugin in a pipeline.

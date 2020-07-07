@@ -1,11 +1,10 @@
-module github.com/bluemedora/bplogagent
+module github.com/observiq/bplogagent
 
 go 1.14
 
 require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/antonmedv/expr v1.8.2
-	github.com/bluemedora/ctimefmt v0.0.0-20200612160717-3e07deba22cf
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v7 v7.7.0
 	github.com/golang/protobuf v1.3.4
@@ -16,6 +15,7 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/kardianos/service v1.0.0
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/observiq/ctimefmt v1.0.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5 // indirect

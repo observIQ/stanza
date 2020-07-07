@@ -1,7 +1,7 @@
 package output
 
 import (
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/plugin/helper"
 )
 
 func newFakeNullOutput() *DropOutput {

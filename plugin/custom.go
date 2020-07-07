@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/bluemedora/bplogagent/errors"
+	"github.com/observiq/bplogagent/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 

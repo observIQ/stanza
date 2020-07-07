@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/helper"
 )
 
 func init() {

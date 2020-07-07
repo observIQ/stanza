@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/buffer"
-	"github.com/bluemedora/bplogagent/plugin/helper"
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/buffer"
+	"github.com/observiq/bplogagent/plugin/helper"
 	"go.uber.org/zap"
 )
 

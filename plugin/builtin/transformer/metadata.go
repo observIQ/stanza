@@ -3,10 +3,10 @@ package transformer
 import (
 	"context"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/helper"
 )
 
 func init() {

@@ -78,7 +78,7 @@ spec:
       serviceAccountName: bplogagent-metadata
       containers:
         - name: bplogagent
-          image: bluemedora/bplogagent:0.0.0-alpha.1
+          image: observiq/bplogagent:0.0.0-alpha.1
           imagePullPolicy: Always
           resources:
             limits:

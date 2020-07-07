@@ -1,24 +1,24 @@
-[![<BlueMedora>](https://circleci.com/gh/BlueMedora/observiq-logagent.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/BlueMedora/bplogagent)
-[![codecov](https://codecov.io/gh/BlueMedora/observiq-logagent/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/BlueMedora/observiq-logagent)
+[![<observIQ>](https://circleci.com/gh/observIQ/observiq-logagent.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/observiq-logagent)
+[![codecov](https://codecov.io/gh/observIQ/observiq-logagent/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/observIQ/observiq-logagent)
 
-# Bindplane Log Agent
+# observIQ Log Agent
 
 ## How do I install the agent?
 #### Golang Project
 ```shell
-go get github.com/bluemedora/bplogagent
+go get github.com/observiq/bplogagent
 ```
 #### Linux
 ```shell
-sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/observiq/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Darwin
 ```shell
-sh -c "$(curl -fsSl https://github.com/BlueMedora/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/observiq/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Windows
 ```pwsh
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/BlueMedora/bplogagent/releases/latest/download/windows-install.ps1')); Log-Agent-Install
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/bplogagent/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
 ## How do I run the agent?
@@ -44,7 +44,7 @@ service bplogagent start
 ```
 #### Darwin
 ```shell
-launchctl start com.bluemedora.bplogagent
+launchctl start com.observiq.bplogagent
 ```
 #### Windows
 ```pwsh

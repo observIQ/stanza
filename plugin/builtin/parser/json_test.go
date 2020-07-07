@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/internal/testutil"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/helper"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

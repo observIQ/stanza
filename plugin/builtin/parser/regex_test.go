@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/internal/testutil"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -24,7 +24,7 @@ func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
 					PluginType: "regex_parser",
 				},
 				WriterPlugin: helper.WriterPlugin{
-					OutputIDs: []string{"mock_output"},
+					OutputIDs:     []string{"mock_output"},
 					OutputPlugins: []plugin.Plugin{&mockPlugin},
 				},
 			},
