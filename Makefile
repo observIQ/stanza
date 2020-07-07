@@ -30,7 +30,7 @@ generate:
 
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build -o ./artifacts/bplogagent_$(GOOS)_$(GOARCH) $(BUILD_INFO) .
+	CGO_ENABLED=0 go build -o ./artifacts/observiq_logagent_$(GOOS)_$(GOARCH) $(BUILD_INFO) .
 
 .PHONY: install
 install:
