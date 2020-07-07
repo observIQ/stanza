@@ -6,7 +6,7 @@
 ## How do I install the agent?
 #### Golang Project
 ```shell
-go get github.com/observiq/bplogagent
+go get github.com/observiq/observiq-logagent
 ```
 #### Linux
 ```shell
@@ -25,7 +25,7 @@ sh -c "$(curl -fsSl https://github.com/observiq/observiq-logagent/releases/lates
 #### Manual
 ```shell
 # Example Command
-bplogagent --config ./config.yaml --plugin_dir ./plugins --database ./offsets.db
+observiq_logagent --config ./config.yaml --plugin_dir ./plugins
 
 # Supported flags:
 --config      The location of the agent config file
@@ -37,18 +37,18 @@ bplogagent --config ./config.yaml --plugin_dir ./plugins --database ./offsets.db
 #### Linux
 ```shell
 # systemd
-systemctl start bplogagent
+systemctl start observiq_logagent
 
 # sysv
-service bplogagent start
+service observiq_logagent start
 ```
 #### Darwin
 ```shell
-launchctl start com.observiq.bplogagent
+launchctl start com.observiq.observiq_logagent
 ```
 #### Windows
 ```pwsh
-Start-Service -Name "bplogagent"
+Start-Service -Name "observiq-logagent"
 ```
 
 ## How do I configure the agent?
@@ -73,7 +73,7 @@ pipeline:
 
 If you have [`graphviz`](https://graphviz.org/) installed, you can view the plugin graph with a command like:
 ```bash
-bplogagent graph --config './config.yaml' | dot -Tsvg -o /tmp/graph.svg && open /tmp/graph.svg
+observiq_logagent graph --config './config.yaml' | dot -Tsvg -o /tmp/graph.svg && open /tmp/graph.svg
 ```
 
 ## What is a plugin?
@@ -82,7 +82,7 @@ A plugin is a unit of log monitoring. Each plugin fulfills a specific responsibi
 For instance, a user may read lines from a file using the `file_input` plugin. From there, the results of this operation may be sent to a `regex_parser` plugin that creates fields based on a regex pattern. And then finally, these results may be sent to a `file_output` plugin that writes lines to a file.
 
 ## What plugins are available?
-For more information on what plugins are available and how to configure them, take a look at our [documentation](/docs/README.md). 
+For more information on what plugins are available and how to configure them, take a look at our [documentation](/docs/README.md).
 
 ## Can I write my own plugins?
 Yes! You can [compose builtin plugins](/docs/plugins.md).
