@@ -5,9 +5,9 @@
 set -e
 
 # Agent Constants
-SERVICE_NAME="bplogagent"
-BINARY_NAME="bplogagent"
-DOWNLOAD_BASE="https://github.com/observiq/bplogagent/releases/latest/download"
+SERVICE_NAME="observiq_logagent"
+BINARY_NAME="observiq_logagent"
+DOWNLOAD_BASE="https://github.com/observiq/observiq-logagent/releases/latest/download"
 
 # Script Constants
 PREREQS="curl hostname printf ps sed uname cut tar"
@@ -258,7 +258,7 @@ set_download_url()
   fi
 
   if [ -z "$download_url" ] ; then
-    download_url="$DOWNLOAD_BASE/bplogagent_${os}_amd64"
+    download_url="$DOWNLOAD_BASE/observiq_logagent_${os}_amd64"
   fi
 }
 

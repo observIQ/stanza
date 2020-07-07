@@ -3,8 +3,8 @@ new-module -name LogAgentInstall -scriptblock {
   # Constants
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
-  $DOWNLOAD_BASE = "https://github.com/observiq/bplogagent/releases/latest/download"
-  $SERVICE_NAME = 'bplogagent'
+  $DOWNLOAD_BASE = "https://github.com/observiq/observiq-logagent/releases/latest/download"
+  $SERVICE_NAME = 'observiq-logagent'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'
 
@@ -106,7 +106,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText '-i, --install_dir'
     Add-Indent
     Show-ColorText 'Defines the install directory of the agent.' DarkCyan
-    Show-ColorText 'If not provided, this will default to C:/bplogagent.' DarkCyan
+    Show-ColorText 'If not provided, this will default to C:/observiq.' DarkCyan
     Remove-Indent
 
     Show-ColorText ''
@@ -286,7 +286,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'Configuring download url...'
     Add-Indent
     if ( !$script:download_url ) {
-      $script:download_url = "$DOWNLOAD_BASE/bplogagent_windows_amd64"
+      $script:download_url = "$DOWNLOAD_BASE/observiq_logagent_windows_amd64"
     }
     Show-ColorText "Using download url: " '' "$script:download_url" DarkCyan
     Remove-Indent
@@ -297,7 +297,7 @@ new-module -name LogAgentInstall -scriptblock {
   function Set-HomeDir {
     Show-ColorText 'Setting home directory...'
     Add-Indent
-    $script:agent_home = "{0}bplogagent" -f $script:install_dir
+    $script:agent_home = "{0}observiq" -f $script:install_dir
 
     If (-Not (Test-Path $script:agent_home) ) {
       New-Item -ItemType directory -Path $agent_home | Out-Null
@@ -312,7 +312,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'Setting binary location...'
     Add-Indent
 
-    $script:binary_location = Get-AbsolutePath("$script:agent_home\bplogagent.exe")
+    $script:binary_location = Get-AbsolutePath("$script:agent_home\observiq_logagent.exe")
     Show-ColorText "Using binary location: " '' "$script:binary_location" DarkCyan
     Remove-Indent
   }
