@@ -10,15 +10,15 @@ go get github.com/observiq/bplogagent
 ```
 #### Linux
 ```shell
-sh -c "$(curl -fsSl https://github.com/observiq/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/observiq/observiq-logagent/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Darwin
 ```shell
-sh -c "$(curl -fsSl https://github.com/observiq/bplogagent/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/observiq/observiq-logagent/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Windows
 ```pwsh
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/bplogagent/releases/latest/download/windows-install.ps1')); Log-Agent-Install
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/observiq-logagent/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
 ## How do I run the agent?
