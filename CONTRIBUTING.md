@@ -68,13 +68,13 @@ A PR is considered to be **ready to merge** when:
 
 ## Design Choices
 
-Best practices for plugin development are documented below, but for changes to
+Best practices for developing a builtin plugin are documented below, but for changes to
 the core agent, we are happy to discuss proposals in the issue tracker.
 
-### Plugin Development
+### Builtin Plugin Development
 
-In order to build a plugin, follow these three steps:
-1. Build a unique plugin struct that satisfies the [`Plugin`](plugin/plugin.go) interface. This struct will define what your plugin does when executed in the pipeline.
+In order to write a builtin plugin, follow these three steps:
+1. Build a unique struct that satisfies the [`Plugin`](plugin/plugin.go) interface. This struct will define what your plugin does when executed in the pipeline.
 
 ```go
 type ExamplePlugin struct {

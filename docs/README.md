@@ -27,7 +27,7 @@ A plugin is the most basic unit of log monitoring. Each plugin fulfills only a s
 
 For instance, a user may read lines from a file using the `file_input` plugin. From there, the results of this operation may be sent to a `regex_parser` plugin that creates fields based on a regex pattern. And then finally, these results may be sent to a `file_output` plugin that writes lines to a file.
 
-## What plugins are available?
+## What plugins are builtin?
 
 Input plugins:
 - [File input](/docs/plugins/file_input.md)
@@ -54,4 +54,4 @@ General purpose plugins:
 - [Copy to multiple outputs](/docs/plugins/copy.md)
 - [Router](/docs/plugins/router.md)
 
-Or take a look at our [Custom Plugins](/docs/custom_plugins.md) for a technology-specific, drop-in log parsing.
+Or create your own [Plugin](/docs/plugins.md) for a technology-specific use case.
