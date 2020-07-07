@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bluemedora/bplogagent/entry"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/observiq/bplogagent/entry"
 	"go.uber.org/zap"
 	"google.golang.org/api/support/bundler"
 )

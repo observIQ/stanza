@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/bluemedora/bplogagent/pipeline"
+	"github.com/observiq/bplogagent/pipeline"
 	yaml "gopkg.in/yaml.v2"
 )
 

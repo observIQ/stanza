@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

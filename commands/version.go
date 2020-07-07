@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/bluemedora/bplogagent/internal/version"
+	"github.com/observiq/bplogagent/internal/version"
 	"github.com/spf13/cobra"
 )
 

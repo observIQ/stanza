@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	strptime "github.com/bluemedora/ctimefmt"
+	strptime "github.com/observiq/ctimefmt"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/plugin"
 )
 
 // StrptimeKey is literally "strptime", and is the default layout type

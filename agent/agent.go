@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/pipeline"
-	pg "github.com/bluemedora/bplogagent/plugin"
-	_ "github.com/bluemedora/bplogagent/plugin/builtin" // register plugins
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/pipeline"
+	pg "github.com/observiq/bplogagent/plugin"
+	_ "github.com/observiq/bplogagent/plugin/builtin" // register plugins
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )

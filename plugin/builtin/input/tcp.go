@@ -8,8 +8,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/helper"
 )
 
 func init() {

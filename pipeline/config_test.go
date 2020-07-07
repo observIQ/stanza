@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/plugin"
-	_ "github.com/bluemedora/bplogagent/plugin/builtin"
-	"github.com/bluemedora/bplogagent/plugin/builtin/transformer"
+	"github.com/observiq/bplogagent/plugin"
+	_ "github.com/observiq/bplogagent/plugin/builtin"
+	"github.com/observiq/bplogagent/plugin/builtin/transformer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -179,7 +179,8 @@ func TestInvalidParams(t *testing.T) {
 	require.Error(t, err)
 }
 
-type invalidMarshaller struct {}
+type invalidMarshaller struct{}
+
 func (i invalidMarshaller) MarshalYAML() (interface{}, error) {
 	return nil, fmt.Errorf("failed")
 }
@@ -189,7 +190,7 @@ func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
 		"id":     "noop",
 		"type":   "noop",
 		"output": "test",
-		"field": invalidMarshaller{},
+		"field":  invalidMarshaller{},
 	}
 	context := plugin.BuildContext{}
 	_, err := params.BuildConfigs(context, "test_namespace")

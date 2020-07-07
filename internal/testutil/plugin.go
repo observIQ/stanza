@@ -5,10 +5,10 @@ package testutil
 import (
 	context "context"
 
-	entry "github.com/bluemedora/bplogagent/entry"
+	entry "github.com/observiq/bplogagent/entry"
 	mock "github.com/stretchr/testify/mock"
 
-	plugin "github.com/bluemedora/bplogagent/plugin"
+	plugin "github.com/observiq/bplogagent/plugin"
 
 	zap "go.uber.org/zap"
 )

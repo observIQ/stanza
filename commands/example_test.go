@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluemedora/bplogagent/plugin/builtin/output"
+	"github.com/observiq/bplogagent/plugin/builtin/output"
 	"github.com/stretchr/testify/require"
 )
 

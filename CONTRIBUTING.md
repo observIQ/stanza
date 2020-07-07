@@ -5,7 +5,7 @@
 You can view and edit the source code by cloning this repository:
 
 ```bash
-git clone https://github.com/bluemedora/bplogagent.git
+git clone https://github.com/observiq/bplogagent.git
 ```
 ## Pull Requests
 
@@ -18,14 +18,14 @@ To create a new PR, fork the project in GitHub and clone the upstream
 repo:
 
 ```sh
-$ go get -d github.com/BlueMedora/bplogagent
+$ go get -d github.com/observiq/bplogagent
 ```
 
-This will put the project in `${GOPATH}/src/github.com/BlueMedora/bplogagent`. You
+This will put the project in `${GOPATH}/src/github.com/observiq/bplogagent`. You
 can alternatively use `git` directly with:
 
 ```sh
-$ git clone https://github.com/BlueMedora/bplogagent
+$ git clone https://github.com/observiq/bplogagent
 ```
 
 This would put the project in the `bplogagent` directory in

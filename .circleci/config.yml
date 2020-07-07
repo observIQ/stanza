@@ -140,8 +140,8 @@ jobs:
           command: go get -v -t -d ./... && go build -v -o ./bin/bplogagent ./
       - run:
           name: Build Log Bench
-          command: go get github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
-            go build -o ./bin/logbench github.com/bluemedora/amazon-log-agent-benchmark-tool/cmd/logbench/
+          command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
+            go build -o ./bin/logbench github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/
 
       - gcp-cli/install
       - gcp-cli/initialize:
