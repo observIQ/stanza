@@ -1,5 +1,5 @@
-[![<observIQ>](https://circleci.com/gh/observIQ/observiq-logagent.svg?style=shield&circle-token=b3a927f2797a62157b99f1e592edc0b14b764e8c)](https://app.circleci.com/pipelines/github/observIQ/observiq-logagent)
-[![codecov](https://codecov.io/gh/observIQ/observiq-logagent/branch/master/graph/badge.svg?token=MvU9xtiqxd)](https://codecov.io/gh/observIQ/observiq-logagent)
+[![<observIQ>](https://circleci.com/gh/observIQ/observiq-logagent.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/observiq-logagent)
+[![codecov](https://codecov.io/gh/observIQ/observiq-logagent/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/observIQ/observiq-logagent)
 
 # observIQ Log Agent
 
