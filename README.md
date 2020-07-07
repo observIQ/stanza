@@ -77,12 +77,15 @@ bplogagent graph --config './config.yaml' | dot -Tsvg -o /tmp/graph.svg && open 
 ```
 
 ## What is a plugin?
-A plugin is the most basic unit of log monitoring. Each plugin fulfills a single responsibility, such as reading lines from a file, or parsing JSON from a field. These plugins are then chained together in a pipeline to achieve a desired result.
+A plugin is a unit of log monitoring. Each plugin fulfills a specific responsibility. Builtin plugins perform a single granular responsibility such as reading lines from a file, or parsing JSON from a field. These plugins are then chained together in a pipeline to achieve a desired result.
 
 For instance, a user may read lines from a file using the `file_input` plugin. From there, the results of this operation may be sent to a `regex_parser` plugin that creates fields based on a regex pattern. And then finally, these results may be sent to a `file_output` plugin that writes lines to a file.
 
 ## What plugins are available?
-For more information on what plugins are available and how to configure them, take a look at our [documentation](/docs/README.md).
+For more information on what plugins are available and how to configure them, take a look at our [documentation](/docs/README.md). 
+
+## Can I write my own plugins?
+Yes! You can [compose builtin plugins](/docs/composing_plugins.md).
 
 ## Can I route logs through a proxy server?
 Yes. The agent will respect `http_proxy` and `https_proxy` environment variables, as defined in Golang's [net/http](https://golang.org/pkg/net/http/#ProxyFromEnvironment) package.
