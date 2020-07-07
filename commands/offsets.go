@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	agent "github.com/bluemedora/bplogagent/agent"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	agent "github.com/observiq/bplogagent/agent"
+	"github.com/observiq/bplogagent/plugin/helper"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
 )

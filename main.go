@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/bluemedora/bplogagent/commands"
+	"github.com/observiq/bplogagent/commands"
 )
 
 func main() {

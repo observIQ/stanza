@@ -3,7 +3,7 @@ new-module -name LogAgentInstall -scriptblock {
   # Constants
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
-  $DOWNLOAD_BASE = "https://github.com/BlueMedora/bplogagent/releases/latest/download"
+  $DOWNLOAD_BASE = "https://github.com/observiq/bplogagent/releases/latest/download"
   $SERVICE_NAME = 'bplogagent'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'

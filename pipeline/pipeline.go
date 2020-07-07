@@ -3,8 +3,8 @@ package pipeline
 import (
 	"strings"
 
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/plugin"
 	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"

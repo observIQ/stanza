@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/entry"
+	"github.com/observiq/bplogagent/entry"
 	"github.com/stretchr/testify/require"
 )
 

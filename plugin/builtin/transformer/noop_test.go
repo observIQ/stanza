@@ -3,8 +3,8 @@ package transformer
 import (
 	"testing"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
-	"github.com/bluemedora/bplogagent/plugin/helper"
+	"github.com/observiq/bplogagent/internal/testutil"
+	"github.com/observiq/bplogagent/plugin/helper"
 	"github.com/stretchr/testify/require"
 )
 

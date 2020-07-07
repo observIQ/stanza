@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
+	"github.com/observiq/bplogagent/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

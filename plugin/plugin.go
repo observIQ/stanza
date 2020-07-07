@@ -5,7 +5,7 @@ package plugin
 import (
 	"context"
 
-	"github.com/bluemedora/bplogagent/entry"
+	"github.com/observiq/bplogagent/entry"
 	"go.uber.org/zap"
 )
 

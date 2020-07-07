@@ -3,7 +3,7 @@ package helper
 import (
 	"sync"
 
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin"
 	"go.etcd.io/bbolt"
 )
 

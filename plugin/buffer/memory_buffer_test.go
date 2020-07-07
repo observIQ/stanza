@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/plugin"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"

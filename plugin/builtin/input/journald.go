@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bluemedora/bplogagent/entry"
-	"github.com/bluemedora/bplogagent/plugin"
-	"github.com/bluemedora/bplogagent/plugin/helper"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/bplogagent/plugin/helper"
 	"go.uber.org/zap"
 )
 

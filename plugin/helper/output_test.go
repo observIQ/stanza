@@ -3,8 +3,8 @@ package helper
 import (
 	"testing"
 
-	"github.com/bluemedora/bplogagent/internal/testutil"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/internal/testutil"
+	"github.com/observiq/bplogagent/plugin"
 	"github.com/stretchr/testify/require"
 )
 

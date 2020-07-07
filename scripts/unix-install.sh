@@ -7,7 +7,7 @@ set -e
 # Agent Constants
 SERVICE_NAME="bplogagent"
 BINARY_NAME="bplogagent"
-DOWNLOAD_BASE="https://github.com/BlueMedora/bplogagent/releases/latest/download"
+DOWNLOAD_BASE="https://github.com/observiq/bplogagent/releases/latest/download"
 
 # Script Constants
 PREREQS="curl hostname printf ps sed uname cut tar"
@@ -533,13 +533,13 @@ ubuntu_init_type()
 # This will configure the agent to run as a service with launchd.
 create_launchd_service()
 {
-  PLISTFILE="${HOME}/Library/LaunchAgents/com.bluemedora.${SERVICE_NAME}.plist"
+  PLISTFILE="${HOME}/Library/LaunchAgents/com.observiq.${SERVICE_NAME}.plist"
   replace_service="false"
 
   if [ -e "$PLISTFILE" ]; then
     request_service_replacement
     if [ $replace_service = "true" ]; then
-      launchctl stop "com.bluemedora.${SERVICE_NAME}" || warn "Failed to stop service"
+      launchctl stop "com.observiq.${SERVICE_NAME}" || warn "Failed to stop service"
       launchctl unload "${PLISTFILE}" 2>/dev/null
     else
       return 0
@@ -559,8 +559,8 @@ create_launchd_service()
   start_launchd_service
   succeeded
 
-  startup_cmd="launchctl start com.bluemedora.$SERVICE_NAME"
-  shutdown_cmd="launchctl stop com.bluemedora.$SERVICE_NAME"
+  startup_cmd="launchctl start com.observiq.$SERVICE_NAME"
+  shutdown_cmd="launchctl stop com.observiq.$SERVICE_NAME"
 }
 
 # This will create the launchd plist file.
@@ -572,7 +572,7 @@ create_launchd_file()
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.bluemedora.${SERVICE_NAME}</string>
+    <string>com.observiq.${SERVICE_NAME}</string>
     <key>Program</key>
     <string>$agent_binary</string>
     <key>ProgramArguments</key>
@@ -598,7 +598,7 @@ PLISTFILECON
 # if unsuccessful.
 start_launchd_service()
 {
-  launchctl start "com.bluemedora.${SERVICE_NAME}"
+  launchctl start "com.observiq.${SERVICE_NAME}"
 
   RET="$?"
   if [ "$RET" -eq 3 ]; then

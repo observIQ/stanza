@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"github.com/bluemedora/bplogagent/errors"
-	"github.com/bluemedora/bplogagent/plugin"
+	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/bplogagent/plugin"
 )
 
 // OutputConfig provides a basic implementation of an output plugin config.
