@@ -32,12 +32,12 @@ func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.P
 	}
 
 	if c.PodNameField == nil {
-		field := entry.NewField("pod_name")
+		field := entry.NewRecordField("pod_name")
 		c.PodNameField = &field
 	}
 
 	if c.NamespaceField == nil {
-		field := entry.NewField("namespace")
+		field := entry.NewRecordField("namespace")
 		c.NamespaceField = &field
 	}
 

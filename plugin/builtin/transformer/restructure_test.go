@@ -64,7 +64,7 @@ func TestRestructurePlugin(t *testing.T) {
 			ops: []Op{
 				{
 					&OpAdd{
-						Field: entry.NewField("new"),
+						Field: entry.NewRecordField("new"),
 						Value: "message",
 					},
 				},
@@ -81,7 +81,7 @@ func TestRestructurePlugin(t *testing.T) {
 			ops: []Op{
 				{
 					&OpAdd{
-						Field: entry.NewField("new"),
+						Field: entry.NewRecordField("new"),
 						program: func() *vm.Program {
 							vm, err := expr.Compile(`$.key + "_suffix"`)
 							require.NoError(t, err)
@@ -101,7 +101,7 @@ func TestRestructurePlugin(t *testing.T) {
 			name: "Remove",
 			ops: []Op{
 				{
-					&OpRemove{entry.NewField("nested")},
+					&OpRemove{entry.NewRecordField("nested")},
 				},
 			},
 			input: newTestEntry(),
@@ -117,7 +117,7 @@ func TestRestructurePlugin(t *testing.T) {
 			name: "Retain",
 			ops: []Op{
 				{
-					&OpRetain{[]entry.Field{entry.NewField("key")}},
+					&OpRetain{[]entry.Field{entry.NewRecordField("key")}},
 				},
 			},
 			input: newTestEntry(),
@@ -134,8 +134,8 @@ func TestRestructurePlugin(t *testing.T) {
 			ops: []Op{
 				{
 					&OpMove{
-						From: entry.NewField("key"),
-						To:   entry.NewField("newkey"),
+						From: entry.NewRecordField("key"),
+						To:   entry.NewRecordField("newkey"),
 					},
 				},
 			},
@@ -156,7 +156,9 @@ func TestRestructurePlugin(t *testing.T) {
 			ops: []Op{
 				{
 					&OpFlatten{
-						Field: entry.NewField("nested"),
+						Field: entry.RecordField{
+							Keys: []string{"nested"},
+						},
 					},
 				},
 			},
@@ -196,14 +198,14 @@ func TestRestructureSerializeRoundtrip(t *testing.T) {
 		{
 			name: "AddValue",
 			op: Op{&OpAdd{
-				Field: entry.NewField("new"),
+				Field: entry.NewRecordField("new"),
 				Value: "message",
 			}},
 		},
 		{
 			name: "AddValueExpr",
 			op: Op{&OpAdd{
-				Field: entry.NewField("new"),
+				Field: entry.NewRecordField("new"),
 				ValueExpr: func() *string {
 					s := `$.key + "_suffix"`
 					return &s
@@ -217,23 +219,25 @@ func TestRestructureSerializeRoundtrip(t *testing.T) {
 		},
 		{
 			name: "Remove",
-			op:   Op{&OpRemove{entry.NewField("nested")}},
+			op:   Op{&OpRemove{entry.NewRecordField("nested")}},
 		},
 		{
 			name: "Retain",
-			op:   Op{&OpRetain{[]entry.Field{entry.NewField("key")}}},
+			op:   Op{&OpRetain{[]entry.Field{entry.NewRecordField("key")}}},
 		},
 		{
 			name: "Move",
 			op: Op{&OpMove{
-				From: entry.NewField("key"),
-				To:   entry.NewField("newkey"),
+				From: entry.NewRecordField("key"),
+				To:   entry.NewRecordField("newkey"),
 			}},
 		},
 		{
 			name: "Flatten",
 			op: Op{&OpFlatten{
-				Field: entry.NewField("nested"),
+				Field: entry.RecordField{
+					Keys: []string{"nested"},
+				},
 			}},
 		},
 	}
@@ -326,11 +330,11 @@ ops:
 			},
 			Ops: []Op{
 				Op{&OpAdd{
-					Field: entry.NewField("message"),
+					Field: entry.NewRecordField("message"),
 					Value: "val",
 				}},
 				Op{&OpAdd{
-					Field: entry.NewField("message_suffix"),
+					Field: entry.NewRecordField("message_suffix"),
 					ValueExpr: func() *string {
 						s := `$.message + "_suffix"`
 						return &s
@@ -342,19 +346,21 @@ ops:
 					}(),
 				}},
 				Op{&OpRemove{
-					Field: entry.NewField("message"),
+					Field: entry.NewRecordField("message"),
 				}},
 				Op{&OpRetain{
 					Fields: []entry.Field{
-						entry.NewField("message_retain"),
+						entry.NewRecordField("message_retain"),
 					},
 				}},
 				Op{&OpFlatten{
-					Field: entry.NewField("message_flatten"),
+					Field: entry.RecordField{
+						Keys: []string{"message_flatten"},
+					},
 				}},
 				Op{&OpMove{
-					From: entry.NewField("message1"),
-					To:   entry.NewField("message2"),
+					From: entry.NewRecordField("message1"),
+					To:   entry.NewRecordField("message2"),
 				}},
 			},
 		},

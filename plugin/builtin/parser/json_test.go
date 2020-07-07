@@ -31,8 +31,8 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 					OutputPlugins: []plugin.Plugin{&mock},
 				},
 			},
-			ParseFrom: entry.NewField("testfield"),
-			ParseTo:   entry.NewField("testparsed"),
+			ParseFrom: entry.NewRecordField("testfield"),
+			ParseTo:   entry.NewRecordField("testparsed"),
 		},
 		json: jsoniter.ConfigFastest,
 	}, &mock
@@ -153,7 +153,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 
 			parser, mockOutput := NewFakeJSONPlugin()
 			parser.ParserPlugin.TimeParser = &helper.TimeParser{
-				ParseFrom:  entry.NewField("testparsed", "timestamp"),
+				ParseFrom:  entry.NewRecordField("testparsed", "timestamp"),
 				LayoutType: "epoch",
 				Layout:     "s",
 				Preserve:   tc.preserve,

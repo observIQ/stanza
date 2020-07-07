@@ -8,6 +8,7 @@ import (
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/plugin"
 	"github.com/observiq/carbon/plugin/helper"
 )
@@ -199,16 +200,26 @@ type OpAdd struct {
 func (op *OpAdd) Apply(e *entry.Entry) error {
 	switch {
 	case op.Value != nil:
-		e.Set(op.Field, op.Value)
+		err := e.Set(op.Field, op.Value)
+		if err != nil {
+			return err
+		}
 	case op.program != nil:
 		env := map[string]interface{}{
-			"$": e.Record,
+			"$":          e.Record,
+			"$record":    e.Record,
+			"$labels":    e.Labels,
+			"$tags":      e.Tags,
+			"$timestamp": e.Timestamp,
 		}
 		result, err := vm.Run(op.program, env)
 		if err != nil {
 			return fmt.Errorf("evaluate value_expr: %s", err)
 		}
-		e.Set(op.Field, result)
+		err = e.Set(op.Field, result)
+		if err != nil {
+			return err
+		}
 	default:
 		// Should never reach here if we went through the unmarshalling code
 		return fmt.Errorf("neither value or value_expr are are set")
@@ -322,7 +333,10 @@ func (op *OpRetain) Apply(e *entry.Entry) error {
 		if !ok {
 			continue
 		}
-		newEntry.Set(field, val)
+		err := newEntry.Set(field, val)
+		if err != nil {
+			return err
+		}
 	}
 	*e = *newEntry
 	return nil
@@ -363,8 +377,7 @@ func (op *OpMove) Apply(e *entry.Entry) error {
 		return fmt.Errorf("apply move: field %s does not exist on record", op.From)
 	}
 
-	e.Set(op.To, val)
-	return nil
+	return e.Set(op.To, val)
 }
 
 func (op *OpMove) Type() string {
@@ -376,27 +389,32 @@ func (op *OpMove) Type() string {
 **********/
 
 type OpFlatten struct {
-	Field entry.Field
+	Field entry.RecordField
 }
 
 func (op *OpFlatten) Apply(e *entry.Entry) error {
-	fs := entry.Field(op.Field)
-	parent := fs.Parent()
-	val, ok := e.Delete(fs)
+	parent := op.Field.Parent()
+	val, ok := e.Delete(op.Field)
 	if !ok {
 		// The field doesn't exist, so ignore it
-		return fmt.Errorf("apply flatten: field %s does not exist on record", fs)
+		return fmt.Errorf("apply flatten: field %s does not exist on record", op.Field)
 	}
 
 	valMap, ok := val.(map[string]interface{})
 	if !ok {
 		// The field we were asked to flatten was not a map, so put it back
-		e.Set(fs, val)
-		return fmt.Errorf("apply flatten: field %s is not a map", fs)
+		err := e.Set(op.Field, val)
+		if err != nil {
+			return errors.Wrap(err, "reset non-map field")
+		}
+		return fmt.Errorf("apply flatten: field %s is not a map", op.Field)
 	}
 
 	for k, v := range valMap {
-		e.Set(parent.Child(k), v)
+		err := e.Set(parent.Child(k), v)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

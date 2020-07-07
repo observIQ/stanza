@@ -1,18 +1,13 @@
 ## Fields
 
-_Fields_ are the primary way to tell carbon which fields of a log's record to use for the operations of its plugins.
+_Fields_ are the primary way to tell carbon which fields of an entry to use for the operations of its plugins.
 Most often, these will be things like fields to parse for a parser plugin, or the field to write a new value to.
 
-Fields are `.`-delimited strings which allow you to selected into nested records in the field. The root level is specified by `$` such as in `$.key1`, but since all fields are expected to be relative to root, the `$` is implied and be omitted. For example, in the record below, `nested_key` can be equivalently selected with `$.key2.nested_key` or `key2.nested_key`.
+Fields are `.`-delimited strings which allow you to select labels or records on the entry. Fields can currently be used to select labels or values on a record. To select a label, prefix your field with `$label.` such as with `$label.my_label`. For values on the record, use the prefix `$record.` such as `$record.my_value`.
 
-```json
-{
-  "key1": "value1",
-  "key2": {
-    "nested_key": "nested_value"
-  }
-}
-```
+Record fields can be nested arbitrarily deeply, such as `$record.my_value.my_nested_value`.
+
+If a field does not start with either `$label` or `$record`, `$record` is assumed. For example, `my_value` is equivalent to `$record.my_value`.
 
 ## Examples
 
@@ -27,20 +22,27 @@ Config:
     - add:
         field: "key3"
         value: "value3"
-    - remove: "key2.nested_key1"
+    - remove: "$record.key2.nested_key1"
+    - add:
+        field: "$labels.my_label"
+        value: "my_label_value"
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input entry </td> <td> Output entry </td></tr>
 <tr>
 <td>
 
 ```json
 {
-  "key1": "value1",
-  "key2": {
-    "nested_key1": "nested_value1",
-    "nested_key2": "nested_value2"
+  "timestamp": "",
+  "labels": {},
+  "record": {
+    "key1": "value1",
+    "key2": {
+      "nested_key1": "nested_value1",
+      "nested_key2": "nested_value2"
+    }
   }
 }
 ```
@@ -50,11 +52,17 @@ Config:
 
 ```json
 {
-  "key1": "value1",
-  "key2": {
-    "nested_key2": "nested_value2"
+  "timestamp": "",
+  "labels": {
+    "my_label": "my_label_value"
   },
-  "key3": "value3"
+  "record": {
+    "key1": "value1",
+    "key2": {
+      "nested_key2": "nested_value2"
+    },
+    "key3": "value3"
+  }
 }
 ```
 

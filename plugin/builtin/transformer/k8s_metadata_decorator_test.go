@@ -58,8 +58,8 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 			},
 			OnError: "send",
 		},
-		podNameField:   entry.NewField("pod_name"),
-		namespaceField: entry.NewField("namespace"),
+		podNameField:   entry.NewRecordField("pod_name"),
+		namespaceField: entry.NewRecordField("namespace"),
 		cache_ttl:      10 * time.Minute,
 	}
 

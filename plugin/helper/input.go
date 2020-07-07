@@ -28,6 +28,10 @@ func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
 		return InputPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
 	}
 
+	if c.WriteTo.FieldInterface == nil {
+		c.WriteTo.FieldInterface = entry.NewRecordField()
+	}
+
 	inputPlugin := InputPlugin{
 		BasicPlugin:  basicPlugin,
 		WriterPlugin: writerPlugin,

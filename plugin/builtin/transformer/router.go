@@ -81,7 +81,11 @@ func (p *RouterPlugin) CanProcess() bool {
 
 func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	env := map[string]interface{}{
-		"$": entry.Record,
+		"$":          entry.Record,
+		"$record":    entry.Record,
+		"$labels":    entry.Labels,
+		"$timestamp": entry.Timestamp,
+		"$tags":      entry.Tags,
 	}
 
 	for _, route := range p.routes {

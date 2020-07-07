@@ -21,9 +21,7 @@ func TestTCPInput(t *testing.T) {
 					PluginID:   "test_id",
 					PluginType: "tcp_input",
 				},
-				WriteTo: entry.Field{
-					Keys: []string{},
-				},
+				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
 					OutputIDs: []string{"test_output_id"},
 				},

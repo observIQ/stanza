@@ -26,6 +26,8 @@ func TestSyslogParser(t *testing.T) {
 						OutputIDs: []string{"output1"},
 					},
 				},
+				ParseFrom: entry.NewRecordField(),
+				ParseTo:   entry.NewRecordField(),
 			},
 		}
 	}

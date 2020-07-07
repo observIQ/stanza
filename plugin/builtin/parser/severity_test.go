@@ -283,8 +283,8 @@ func TestSeverityParser(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewField()
-	someField := entry.NewField("some_field")
+	rootField := entry.NewRecordField()
+	someField := entry.NewRecordField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

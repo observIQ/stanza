@@ -108,7 +108,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"LogNameField",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewField("log_name")
+				f := entry.NewRecordField("log_name")
 				c.LogNameField = &f
 				return c
 			}(),
@@ -188,8 +188,8 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"TraceAndSpanFields",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				traceField := entry.NewField("trace")
-				spanIDField := entry.NewField("span_id")
+				traceField := entry.NewRecordField("trace")
+				spanIDField := entry.NewRecordField("span_id")
 				c.TraceField = &traceField
 				c.SpanIDField = &spanIDField
 				return c
