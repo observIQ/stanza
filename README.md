@@ -85,7 +85,7 @@ For instance, a user may read lines from a file using the `file_input` plugin. F
 For more information on what plugins are available and how to configure them, take a look at our [documentation](/docs/README.md). 
 
 ## Can I write my own plugins?
-Yes! You can [compose builtin plugins](/docs/composing_plugins.md).
+Yes! You can [compose builtin plugins](/docs/plugins.md).
 
 ## Can I route logs through a proxy server?
 Yes. The agent will respect `http_proxy` and `https_proxy` environment variables, as defined in Golang's [net/http](https://golang.org/pkg/net/http/#ProxyFromEnvironment) package.
