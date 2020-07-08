@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/observiq/carbon/entry"
@@ -13,6 +14,9 @@ import (
 )
 
 func TestRouterPlugin(t *testing.T) {
+	os.Setenv("TEST_ROUTER_PLUGIN_ENV", "foo")
+	defer os.Unsetenv("TEST_ROUTER_PLUGIN_ENV")
+
 	basicConfig := func() *RouterPluginConfig {
 		return &RouterPluginConfig{
 			BasicConfig: helper.BasicConfig{
@@ -68,6 +72,25 @@ func TestRouterPlugin(t *testing.T) {
 				},
 			},
 			map[string]int{"output2": 1},
+		},
+		{
+			"MatchEnv",
+			&entry.Entry{
+				Record: map[string]interface{}{
+					"message": "test_message",
+				},
+			},
+			[]*RouterPluginRouteConfig{
+				{
+					`env("TEST_ROUTER_PLUGIN_ENV") == "foo"`,
+					[]string{"output1"},
+				},
+				{
+					`true`,
+					[]string{"output2"},
+				},
+			},
+			map[string]int{"output1": 1},
 		},
 	}
 

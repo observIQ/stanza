@@ -188,7 +188,7 @@ func (o Op) MarshalYAML() (interface{}, error) {
 
 /******
   Add
-******/
+*******/
 
 type OpAdd struct {
 	Field     entry.Field `json:"field" yaml:"field"`
@@ -205,13 +205,9 @@ func (op *OpAdd) Apply(e *entry.Entry) error {
 			return err
 		}
 	case op.program != nil:
-		env := map[string]interface{}{
-			"$":          e.Record,
-			"$record":    e.Record,
-			"$labels":    e.Labels,
-			"$tags":      e.Tags,
-			"$timestamp": e.Timestamp,
-		}
+		env := helper.GetExprEnv(e)
+		defer helper.PutExprEnv(env)
+
 		result, err := vm.Run(op.program, env)
 		if err != nil {
 			return fmt.Errorf("evaluate value_expr: %s", err)
