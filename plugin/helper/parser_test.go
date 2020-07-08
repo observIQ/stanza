@@ -75,7 +75,7 @@ func TestParserMissingField(t *testing.T) {
 			},
 			OnError: DropOnError,
 		},
-		ParseFrom: entry.NewField("test"),
+		ParseFrom: entry.NewRecordField("test"),
 	}
 	parse := func(i interface{}) (interface{}, error) {
 		return i, nil
@@ -98,6 +98,7 @@ func TestParserInvalidParse(t *testing.T) {
 			},
 			OnError: DropOnError,
 		},
+		ParseFrom: entry.NewRecordField(),
 	}
 	parse := func(i interface{}) (interface{}, error) {
 		return i, fmt.Errorf("parse failure")
@@ -120,8 +121,10 @@ func TestParserInvalidTimeParse(t *testing.T) {
 			},
 			OnError: DropOnError,
 		},
+		ParseFrom: entry.NewRecordField(),
+		ParseTo:   entry.NewRecordField(),
 		TimeParser: &TimeParser{
-			ParseFrom: entry.NewField("missing-key"),
+			ParseFrom: entry.NewRecordField("missing-key"),
 		},
 	}
 	parse := func(i interface{}) (interface{}, error) {
@@ -146,8 +149,10 @@ func TestParserInvalidSeverityParse(t *testing.T) {
 			OnError: DropOnError,
 		},
 		SeverityParser: &SeverityParser{
-			ParseFrom: entry.NewField("missing-key"),
+			ParseFrom: entry.NewRecordField("missing-key"),
 		},
+		ParseFrom: entry.NewRecordField(),
+		ParseTo:   entry.NewRecordField(),
 	}
 	parse := func(i interface{}) (interface{}, error) {
 		return i, nil
@@ -171,21 +176,23 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 			OnError: DropOnError,
 		},
 		TimeParser: &TimeParser{
-			ParseFrom: entry.NewField("missing-key"),
+			ParseFrom: entry.NewRecordField("missing-key"),
 		},
 		SeverityParser: &SeverityParser{
-			ParseFrom: entry.NewField("severity"),
+			ParseFrom: entry.NewRecordField("severity"),
 			Mapping: map[string]entry.Severity{
 				"info": entry.Info,
 			},
 		},
+		ParseFrom: entry.NewRecordField(),
+		ParseTo:   entry.NewRecordField(),
 	}
 	parse := func(i interface{}) (interface{}, error) {
 		return i, nil
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	testEntry.Set(entry.NewField("severity"), "info")
+	testEntry.Set(entry.NewRecordField("severity"), "info")
 
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
@@ -207,20 +214,22 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 			OnError: DropOnError,
 		},
 		TimeParser: &TimeParser{
-			ParseFrom:  entry.NewField("timestamp"),
+			ParseFrom:  entry.NewRecordField("timestamp"),
 			LayoutType: "gotime",
 			Layout:     time.Kitchen,
 		},
 		SeverityParser: &SeverityParser{
-			ParseFrom: entry.NewField("missing-key"),
+			ParseFrom: entry.NewRecordField("missing-key"),
 		},
+		ParseFrom: entry.NewRecordField(),
+		ParseTo:   entry.NewRecordField(),
 	}
 	parse := func(i interface{}) (interface{}, error) {
 		return i, nil
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	testEntry.Set(entry.NewField("timestamp"), "12:34PM")
+	testEntry.Set(entry.NewRecordField("timestamp"), "12:34PM")
 
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
@@ -248,6 +257,8 @@ func TestParserOutput(t *testing.T) {
 				OutputPlugins: []plugin.Plugin{output},
 			},
 		},
+		ParseFrom: entry.NewRecordField(),
+		ParseTo:   entry.NewRecordField(),
 	}
 	parse := func(i interface{}) (interface{}, error) {
 		return i, nil
@@ -276,8 +287,8 @@ func TestParserWithPreserve(t *testing.T) {
 				OutputPlugins: []plugin.Plugin{output},
 			},
 		},
-		ParseFrom: entry.NewField("parse_from"),
-		ParseTo:   entry.NewField("parse_to"),
+		ParseFrom: entry.NewRecordField("parse_from"),
+		ParseTo:   entry.NewRecordField("parse_to"),
 		Preserve:  true,
 	}
 	parse := func(i interface{}) (interface{}, error) {
@@ -315,8 +326,8 @@ func TestParserWithoutPreserve(t *testing.T) {
 				OutputPlugins: []plugin.Plugin{output},
 			},
 		},
-		ParseFrom: entry.NewField("parse_from"),
-		ParseTo:   entry.NewField("parse_to"),
+		ParseFrom: entry.NewRecordField("parse_from"),
+		ParseTo:   entry.NewRecordField("parse_to"),
 		Preserve:  false,
 	}
 	parse := func(i interface{}) (interface{}, error) {

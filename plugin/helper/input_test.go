@@ -98,7 +98,7 @@ func TestInputPluginProcess(t *testing.T) {
 
 func TestInputPluginNewEntry(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	writeTo := entry.NewField("test-field")
+	writeTo := entry.NewRecordField("test-field")
 	input := InputPlugin{
 		BasicPlugin: BasicPlugin{
 			PluginID:      "test-id",

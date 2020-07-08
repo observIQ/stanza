@@ -8,7 +8,7 @@ import (
 )
 
 func TestFindIndex(t *testing.T) {
-	indexField := entry.NewField("bar")
+	indexField := entry.NewRecordField("bar")
 	output := &ElasticOutput{
 		indexField: &indexField,
 	}
@@ -45,7 +45,7 @@ func TestFindIndex(t *testing.T) {
 }
 
 func TestFindID(t *testing.T) {
-	idField := entry.NewField("foo")
+	idField := entry.NewRecordField("foo")
 	output := &ElasticOutput{
 		idField: &idField,
 	}

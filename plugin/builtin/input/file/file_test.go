@@ -40,6 +40,7 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 			WriterPlugin: helper.WriterPlugin{
 				OutputPlugins: []plugin.Plugin{mockOutput},
 			},
+			WriteTo: entry.NewRecordField(),
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     50 * time.Millisecond,
@@ -58,7 +59,7 @@ func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
 	mockOutput := testutil.NewMockPlugin("mock")
 
-	pathField := entry.NewField("testpath")
+	pathField := entry.NewRecordField("testpath")
 
 	basicConfig := func() *FileInputConfig {
 		return &FileInputConfig{
@@ -70,6 +71,7 @@ func TestFileSource_Build(t *testing.T) {
 				WriterConfig: helper.WriterConfig{
 					OutputIDs: []string{"mock"},
 				},
+				WriteTo: entry.NewRecordField(),
 			},
 			Include: []string{"/var/log/testpath.*"},
 			Exclude: []string{"/var/log/testpath.ex*"},

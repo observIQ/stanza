@@ -28,19 +28,19 @@ func (entry *Entry) AddLabel(key, value string) {
 	entry.Labels[key] = value
 }
 
-func (entry *Entry) Get(field Field) (interface{}, bool) {
+func (entry *Entry) Get(field FieldInterface) (interface{}, bool) {
 	return field.Get(entry)
 }
 
-func (entry *Entry) Set(field Field, val interface{}) {
-	field.Set(entry, val, true)
+func (entry *Entry) Set(field FieldInterface, val interface{}) error {
+	return field.Set(entry, val)
 }
 
-func (entry *Entry) Delete(field Field) (interface{}, bool) {
+func (entry *Entry) Delete(field FieldInterface) (interface{}, bool) {
 	return field.Delete(entry)
 }
 
-func (entry *Entry) Read(field Field, dest interface{}) error {
+func (entry *Entry) Read(field FieldInterface, dest interface{}) error {
 	val, ok := entry.Get(field)
 	if !ok {
 		return fmt.Errorf("field does not exist")

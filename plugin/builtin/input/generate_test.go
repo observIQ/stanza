@@ -22,9 +22,7 @@ func TestInputGenerate(t *testing.T) {
 					PluginID:   "test_plugin_id",
 					PluginType: "generate_input",
 				},
-				WriteTo: entry.Field{
-					Keys: []string{},
-				},
+				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
 					OutputIDs: []string{"output1"},
 				},

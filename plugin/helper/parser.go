@@ -26,6 +26,14 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 		return ParserPlugin{}, err
 	}
 
+	if c.ParseFrom.FieldInterface == nil {
+		c.ParseFrom.FieldInterface = entry.NewRecordField()
+	}
+
+	if c.ParseTo.FieldInterface == nil {
+		c.ParseTo.FieldInterface = entry.NewRecordField()
+	}
+
 	parserPlugin := ParserPlugin{
 		TransformerPlugin: transformerPlugin,
 		ParseFrom:         c.ParseFrom,

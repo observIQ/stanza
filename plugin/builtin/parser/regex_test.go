@@ -28,6 +28,8 @@ func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
 					OutputPlugins: []plugin.Plugin{&mockPlugin},
 				},
 			},
+			ParseFrom: entry.NewRecordField(),
+			ParseTo:   entry.NewRecordField(),
 		},
 	}, &mockPlugin
 }

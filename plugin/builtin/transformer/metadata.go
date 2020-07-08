@@ -77,7 +77,11 @@ type labeler struct {
 
 func (l *labeler) Label(e *entry.Entry) error {
 	env := map[string]interface{}{
-		"$": e.Record,
+		"$":          e.Record,
+		"$record":    e.Record,
+		"$labels":    e.Labels,
+		"$timestamp": e.Timestamp,
+		"$tags":      e.Tags,
 	}
 
 	for k, v := range l.labels {
@@ -112,7 +116,11 @@ type tagger struct {
 
 func (t *tagger) Tag(e *entry.Entry) error {
 	env := map[string]interface{}{
-		"$": e.Record,
+		"$":          e.Record,
+		"$record":    e.Record,
+		"$labels":    e.Labels,
+		"$timestamp": e.Timestamp,
+		"$tags":      e.Tags,
 	}
 
 	for _, v := range t.tags {
