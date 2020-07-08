@@ -5,9 +5,9 @@
 set -e
 
 # Agent Constants
-SERVICE_NAME="observiq_logagent"
-BINARY_NAME="observiq_logagent"
-DOWNLOAD_BASE="https://github.com/observiq/observiq-logagent/releases/latest/download"
+SERVICE_NAME="carbon-log-agent"
+BINARY_NAME="carbon"
+DOWNLOAD_BASE="https://github.com/observiq/carbon/releases/latest/download"
 
 # Script Constants
 PREREQS="curl hostname printf ps sed uname cut tar"
@@ -258,7 +258,7 @@ set_download_url()
   fi
 
   if [ -z "$download_url" ] ; then
-    download_url="$DOWNLOAD_BASE/observiq_logagent_${os}_amd64"
+    download_url="$DOWNLOAD_BASE/${BINARY_NAME}_${os}_amd64"
   fi
 }
 
@@ -654,7 +654,7 @@ create_sysv_file()
 #!/bin/sh
 # log-agent daemon
 # chkconfig: 2345 99 05
-# description: Log agent daemon
+# description: Carbon log agent daemon
 # processname: REPLACE_AGENT_BINARY
 # pidfile: /var/run/log-agent.pid
 
@@ -720,7 +720,7 @@ pid_status() {
   fi
 }
 
-bp_status() {
+agent_status() {
    if [ $PROC ]; then
      status_of_proc -p $PIDFILE "$PROGRAM" "$PROGRAM"
      RETVAL=$?
@@ -740,7 +740,7 @@ case "$1" in
         stop
         ;;
     status)
-        bp_status
+        agent_status
         ;;
     restart)
         stop
@@ -837,7 +837,7 @@ create_systemd_file()
 {
   cat << EOF > "$1"
 [Unit]
-Description=Log Agent
+Description=Carbon Log Agent
 After=network.target
 
 [Service]

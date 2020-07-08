@@ -1,7 +1,7 @@
 package output
 
 import (
-	"github.com/observiq/bplogagent/plugin/helper"
+	"github.com/observiq/carbon/plugin/helper"
 )
 
 func newFakeNullOutput() *DropOutput {

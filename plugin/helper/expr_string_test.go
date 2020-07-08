@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/carbon/entry"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/observiq/bplogagent/internal/testutil"
+	"github.com/observiq/carbon/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

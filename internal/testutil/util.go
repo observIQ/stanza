@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/plugin"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )

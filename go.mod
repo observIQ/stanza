@@ -1,4 +1,4 @@
-module github.com/observiq/bplogagent
+module github.com/observiq/carbon
 
 go 1.14
 

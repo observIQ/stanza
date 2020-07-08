@@ -3,7 +3,7 @@ package pipeline
 import (
 	"hash/fnv"
 
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/plugin"
 )
 
 // PluginNode is a basic node that represents a plugin in a pipeline.

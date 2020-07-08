@@ -136,8 +136,8 @@ jobs:
           name: Setup Workspace
           command: mkdir {bin,out,tmp}
       - run:
-          name: Build Log Agent
-          command: go get -v -t -d ./... && go build -v -o ./bin/bplogagent ./
+          name: Build Carbon Agent
+          command: go get -v -t -d ./... && go build -v -o ./bin/carbon ./
       - run:
           name: Build Log Bench
           command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
@@ -173,7 +173,7 @@ jobs:
       - run:
           name: Setup VM Workspace
           command: gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'mkdir -p ~/benchmark/out' &&
-            gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/bplogagent << parameters.instance >>:~/benchmark/ &&
+            gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/carbon << parameters.instance >>:~/benchmark/ &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/logbench << parameters.instance >>:~/benchmark/ &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./.circleci/testdata/benchmark.yaml << parameters.instance >>:~/benchmark/config.yaml &&
             gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark'
@@ -187,7 +187,7 @@ jobs:
                   gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
                     '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
                       -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
-                      ~/benchmark/bplogagent --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
+                      ~/benchmark/carbon --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
                       --mem_profile ~/benchmark/out/mem.pprof --mem_profile_delay 10s > ~/benchmark/out/notes 2>&1'
       - unless:
           condition: << parameters.profile >>
@@ -198,7 +198,7 @@ jobs:
                   gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
                     '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
                       -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
-                      ~/benchmark/bplogagent --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
+                      ~/benchmark/carbon --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
 
       - run:
           name: Retrieve Results

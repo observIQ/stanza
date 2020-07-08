@@ -3,8 +3,8 @@ new-module -name LogAgentInstall -scriptblock {
   # Constants
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
-  $DOWNLOAD_BASE = "https://github.com/observiq/observiq-logagent/releases/latest/download"
-  $SERVICE_NAME = 'observiq-logagent'
+  $DOWNLOAD_BASE = "https://github.com/observiq/carbon/releases/latest/download"
+  $SERVICE_NAME = 'carbon_log_agent'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'
 
@@ -61,7 +61,7 @@ new-module -name LogAgentInstall -scriptblock {
   }
 
   function Set-Window-Title {
-    $host.ui.rawui.windowtitle = "Log Agent Install"
+    $host.ui.rawui.windowtitle = "Carbon Install"
   }
 
   function Restore-Window-Title {
@@ -286,7 +286,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'Configuring download url...'
     Add-Indent
     if ( !$script:download_url ) {
-      $script:download_url = "$DOWNLOAD_BASE/observiq_logagent_windows_amd64"
+      $script:download_url = "$DOWNLOAD_BASE/carbon_windows_amd64"
     }
     Show-ColorText "Using download url: " '' "$script:download_url" DarkCyan
     Remove-Indent
@@ -312,7 +312,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'Setting binary location...'
     Add-Indent
 
-    $script:binary_location = Get-AbsolutePath("$script:agent_home\observiq_logagent.exe")
+    $script:binary_location = Get-AbsolutePath("$script:agent_home\carbon.exe")
     Show-ColorText "Using binary location: " '' "$script:binary_location" DarkCyan
     Remove-Indent
   }

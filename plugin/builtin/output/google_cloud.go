@@ -12,10 +12,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	gax "github.com/googleapis/gax-go"
-	"github.com/observiq/bplogagent/entry"
-	"github.com/observiq/bplogagent/plugin"
-	"github.com/observiq/bplogagent/plugin/buffer"
-	"github.com/observiq/bplogagent/plugin/helper"
+	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/plugin/buffer"
+	"github.com/observiq/carbon/plugin/helper"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -135,7 +135,7 @@ func (p *GoogleCloudOutput) Start() error {
 
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
-	options = append(options, option.WithUserAgent("BindPlaneLogAgent/2.0.0"))
+	options = append(options, option.WithUserAgent("CarbonLogAgent/0.0.9"))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

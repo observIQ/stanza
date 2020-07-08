@@ -5,7 +5,7 @@ package plugin
 import (
 	"context"
 
-	"github.com/observiq/bplogagent/entry"
+	"github.com/observiq/carbon/entry"
 	"go.uber.org/zap"
 )
 

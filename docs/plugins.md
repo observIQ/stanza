@@ -19,7 +19,7 @@ pipeline:
     regex: '(?P<remote_host>[^\s]+) - (?P<remote_user>[^\s]+) \[(?P<timestamp>[^\]]+)\] "(?P<http_method>[A-Z]+) (?P<path>[^\s]+)[^"]+" (?P<http_status>\d+) (?P<bytes_sent>[^\s]+)'
 ```
 
-Once a plugin config has been defined, it can be used in the log agent's config file with a `type` matching the filename of the plugin.
+Once a plugin config has been defined, it can be used in the carbon config file with a `type` matching the filename of the plugin.
 
 `config.yaml`:
 ```yaml
@@ -45,5 +45,5 @@ adding variables for `path` and `output`.
 Plugins use Go's [`text/template`](https://golang.org/pkg/text/template/) package for template rendering. All fields from
 the plugin configuration are available as variables in the templates except the `type` field.
 
-For the log agent to discover a plugin, it needs to be in the log agent's `plugin` directory. This can be set with the
-`--plugin_dir` argument. For a default installation, the plugin directory is located at `$BPLOGAGENT_HOME/plugins`.
+For carbon to discover a plugin, it needs to be in the `plugins` directory. This can be set with the
+`--plugin_dir` argument. For a default installation, the plugin directory is located at `$CARBON_HOME/plugins`.

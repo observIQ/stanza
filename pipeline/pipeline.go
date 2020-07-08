@@ -3,8 +3,8 @@ package pipeline
 import (
 	"strings"
 
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/plugin"
 	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"

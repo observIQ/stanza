@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/observiq/bplogagent/pipeline"
+	"github.com/observiq/carbon/pipeline"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Config is the configuration of a log agent.
+// Config is the configuration of the carbon log agent.
 type Config struct {
 	Pipeline pipeline.Config `json:"pipeline"                yaml:"pipeline"`
 }

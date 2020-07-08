@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/observiq/bplogagent/entry"
-	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/errors"
 )
 
 // SeverityParser is a helper that parses severity onto an entry.

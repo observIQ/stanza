@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/plugin"
-	"github.com/observiq/bplogagent/plugin/helper"
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/plugin/helper"
 	yaml "gopkg.in/yaml.v2"
 )
 

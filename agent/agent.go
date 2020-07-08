@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/pipeline"
-	pg "github.com/observiq/bplogagent/plugin"
-	_ "github.com/observiq/bplogagent/plugin/builtin" // register plugins
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/pipeline"
+	pg "github.com/observiq/carbon/plugin"
+	_ "github.com/observiq/carbon/plugin/builtin" // register plugins
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
@@ -103,7 +103,7 @@ func OpenDatabase(file string) (pg.Database, error) {
 	return bbolt.Open(file, 0666, options)
 }
 
-// NewLogAgent creates a new log agent.
+// NewLogAgent creates a new carbon log agent.
 func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,

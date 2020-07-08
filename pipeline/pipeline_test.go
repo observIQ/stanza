@@ -3,8 +3,8 @@ package pipeline
 import (
 	"testing"
 
-	"github.com/observiq/bplogagent/internal/testutil"
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/internal/testutil"
+	"github.com/observiq/carbon/plugin"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gonum.org/v1/gonum/graph"

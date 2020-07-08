@@ -1,31 +1,31 @@
-[![<observIQ>](https://circleci.com/gh/observIQ/observiq-logagent.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/observiq-logagent)
-[![codecov](https://codecov.io/gh/observIQ/observiq-logagent/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/observIQ/observiq-logagent)
+[![<observIQ>](https://circleci.com/gh/observIQ/carbon.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/carbon)
+[![codecov](https://codecov.io/gh/observIQ/carbon/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/observIQ/carbon)
 
-# observIQ Log Agent
+# Carbon Log Agent
 
 ## How do I install the agent?
 #### Golang Project
 ```shell
-go get github.com/observiq/observiq-logagent
+go get github.com/observiq/carbon
 ```
 #### Linux
 ```shell
-sh -c "$(curl -fsSl https://github.com/observiq/observiq-logagent/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/observiq/carbon/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Darwin
 ```shell
-sh -c "$(curl -fsSl https://github.com/observiq/observiq-logagent/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSl https://github.com/observiq/carbon/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Windows
 ```pwsh
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/observiq-logagent/releases/latest/download/windows-install.ps1')); Log-Agent-Install
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/carbon/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
 ## How do I run the agent?
 #### Manual
 ```shell
 # Example Command
-observiq_logagent --config ./config.yaml --plugin_dir ./plugins
+carbon --config ./config.yaml --plugin_dir ./plugins
 
 # Supported flags:
 --config      The location of the agent config file
@@ -37,18 +37,18 @@ observiq_logagent --config ./config.yaml --plugin_dir ./plugins
 #### Linux
 ```shell
 # systemd
-systemctl start observiq_logagent
+systemctl start carbon_log_agent
 
 # sysv
-service observiq_logagent start
+service carbon_log_agent start
 ```
 #### Darwin
 ```shell
-launchctl start com.observiq.observiq_logagent
+launchctl start com.observiq.carbon_log_agent
 ```
 #### Windows
 ```pwsh
-Start-Service -Name "observiq-logagent"
+Start-Service -Name "carbon_log_agent"
 ```
 
 ## How do I configure the agent?
@@ -73,7 +73,7 @@ pipeline:
 
 If you have [`graphviz`](https://graphviz.org/) installed, you can view the plugin graph with a command like:
 ```bash
-observiq_logagent graph --config './config.yaml' | dot -Tsvg -o /tmp/graph.svg && open /tmp/graph.svg
+carbon graph --config './config.yaml' | dot -Tsvg -o /tmp/graph.svg && open /tmp/graph.svg
 ```
 
 ## What is a plugin?

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/observiq/bplogagent/agent"
+	agent "github.com/observiq/carbon/agent"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -36,7 +36,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlags := &RootFlags{}
 
 	root := &cobra.Command{
-		Use:   "bplogagent [-c ./config.yaml]",
+		Use:   "carbon [-c ./config.yaml]",
 		Short: "A log parser and router",
 		Long:  "A log parser and router",
 		Args:  cobra.NoArgs,
@@ -47,7 +47,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet.StringVar(&rootFlags.LogFile, "log_file", "", "write logs to configured path rather than stderr")
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{defaultConfig()}, "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
-	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the log agent offset database")
+	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the carbon offset database")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging")
 
 	// Profiling flags
