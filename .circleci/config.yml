@@ -136,7 +136,7 @@ jobs:
           name: Setup Workspace
           command: mkdir {bin,out,tmp}
       - run:
-          name: Build Log Agent
+          name: Build Carbon Agent
           command: go get -v -t -d ./... && go build -v -o ./bin/carbon ./
       - run:
           name: Build Log Bench

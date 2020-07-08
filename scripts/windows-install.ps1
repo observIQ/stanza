@@ -61,7 +61,7 @@ new-module -name LogAgentInstall -scriptblock {
   }
 
   function Set-Window-Title {
-    $host.ui.rawui.windowtitle = "Log Agent Install"
+    $host.ui.rawui.windowtitle = "Carbon Install"
   }
 
   function Restore-Window-Title {

@@ -103,7 +103,7 @@ func OpenDatabase(file string) (pg.Database, error) {
 	return bbolt.Open(file, 0666, options)
 }
 
-// NewLogAgent creates a new log agent.
+// NewLogAgent creates a new carbon log agent.
 func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,

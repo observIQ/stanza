@@ -1,7 +1,7 @@
 ## `rate_limit` plugin
 
 The `rate_limit` limits the rate of entries that can pass through it. This is useful if you want to limit
-throughput of the log agent, or in conjunction with plugins like `generate_input`, which will otherwise
+throughput of the agent, or in conjunction with plugins like `generate_input`, which will otherwise
 send as fast as possible.
 
 ### Configuration Fields

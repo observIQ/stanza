@@ -1,6 +1,6 @@
 ## `journald_input` plugin
 
-The `journald_input` plugin reads logs from the systemd journal using the `journalctl` binary, which must be in the `$PATH` of the log agent.
+The `journald_input` plugin reads logs from the systemd journal using the `journalctl` binary, which must be in the `$PATH` of the agentt.
 
 By default, `journalctl` will read from `/run/journal` or `/var/log/journal`. If either `directory` or `files` are set, `journalctl` will instead read from those.
 

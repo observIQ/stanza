@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// AgentError is an error that occurs in the a log agent.
+// AgentError is an error that occurs in the agent.
 type AgentError struct {
 	Description string
 	Suggestion  string

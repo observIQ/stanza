@@ -654,7 +654,7 @@ create_sysv_file()
 #!/bin/sh
 # log-agent daemon
 # chkconfig: 2345 99 05
-# description: Log agent daemon
+# description: Carbon log agent daemon
 # processname: REPLACE_AGENT_BINARY
 # pidfile: /var/run/log-agent.pid
 
@@ -837,7 +837,7 @@ create_systemd_file()
 {
   cat << EOF > "$1"
 [Unit]
-Description=Log Agent
+Description=Carbon Log Agent
 After=network.target
 
 [Service]

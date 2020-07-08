@@ -19,9 +19,9 @@ type AgentService struct {
 
 // Start will start the log agent.
 func (a *AgentService) Start(s service.Service) error {
-	a.agent.Info("Starting log agent")
+	a.agent.Info("Starting carbon log agent")
 	if err := a.agent.Start(); err != nil {
-		a.agent.Errorw("Failed to start log agent", zap.Any("error", err))
+		a.agent.Errorw("Failed to start carbon log agent", zap.Any("error", err))
 		a.cancel()
 	}
 	return nil
@@ -29,7 +29,7 @@ func (a *AgentService) Start(s service.Service) error {
 
 // Stop will stop the log agent.
 func (a *AgentService) Stop(s service.Service) error {
-	a.agent.Info("Stopping log agent")
+	a.agent.Info("Stopping carbon log agent")
 	a.agent.Stop()
 	a.cancel()
 	return nil
