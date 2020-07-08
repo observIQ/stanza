@@ -8,8 +8,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/observiq/bplogagent/plugin"
-	"github.com/observiq/bplogagent/plugin/helper"
+	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/plugin/helper"
 )
 
 func init() {

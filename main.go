@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/observiq/bplogagent/commands"
+	"github.com/observiq/carbon/commands"
 )
 
 func main() {

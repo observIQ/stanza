@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bplogagent/plugin/builtin/output"
+	"github.com/observiq/carbon/plugin/builtin/output"
 	"github.com/stretchr/testify/require"
 )
 

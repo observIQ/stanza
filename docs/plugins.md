@@ -46,4 +46,4 @@ Plugins use Go's [`text/template`](https://golang.org/pkg/text/template/) packag
 the plugin configuration are available as variables in the templates except the `type` field.
 
 For the log agent to discover a plugin, it needs to be in the log agent's `plugin` directory. This can be set with the
-`--plugin_dir` argument. For a default installation, the plugin directory is located at `$BPLOGAGENT_HOME/plugins`.
+`--plugin_dir` argument. For a default installation, the plugin directory is located at `$CARBON_HOME/plugins`.

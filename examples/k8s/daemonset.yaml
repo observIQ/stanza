@@ -2,14 +2,14 @@
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: bplogagent-metadata
+  name: carbon-metadata
   namespace: default
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 # kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: bplogagent-metadata
+  name: carbon-metadata
   namespace: default
 rules:
   - apiGroups: [""]
@@ -21,19 +21,19 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: bplogagent-metadata
+  name: carbon-metadata
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: bplogagent-metadata
+  name: carbon-metadata
 subjects:
   - kind: ServiceAccount
-    name: bplogagent-metadata
+    name: carbon-metadata
     namespace: default
 ---
 kind: ConfigMap
 metadata:
-  name: bplogagent-config
+  name: carbon-config
   namespace: default
 apiVersion: v1
 data:
@@ -64,21 +64,21 @@ data:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: bplogagent
+  name: carbon
   namespace: default
 spec:
   selector:
     matchLabels:
-      name: bplogagent
+      name: carbon
   template:
     metadata:
       labels:
-        name: bplogagent
+        name: carbon
     spec:
-      serviceAccountName: bplogagent-metadata
+      serviceAccountName: carbon-metadata
       containers:
-        - name: bplogagent
-          image: observiq/bplogagent:0.0.0-alpha.1
+        - name: carbon
+          image: observiq/carbon:0.0.0-alpha.1
           imagePullPolicy: Always
           resources:
             limits:
@@ -88,7 +88,7 @@ spec:
               memory: "250Mi"
               cpu: 100m
           volumeMounts:
-            - mountPath: /bplogagent_home/config.yaml
+            - mountPath: /carbon_home/config.yaml
               name: config
               subPath: config.yaml
             - mountPath: /var/log
@@ -106,4 +106,4 @@ spec:
             path: /var/lib/docker/containers
         - name: config
           configMap:
-            name: bplogagent-config
+            name: carbon-config

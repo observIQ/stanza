@@ -3,7 +3,7 @@ GOARCH=$(shell go env GOARCH)
 
 GIT_SHA=$(shell git rev-parse --short HEAD)
 
-BUILD_INFO_IMPORT_PATH=github.com/observiq/bplogagent/internal/version
+BUILD_INFO_IMPORT_PATH=github.com/observiq/carbon/internal/version
 BUILD_X1=-X $(BUILD_INFO_IMPORT_PATH).GitHash=$(GIT_SHA)
 ifdef VERSION
 BUILD_X2=-X $(BUILD_INFO_IMPORT_PATH).Version=$(VERSION)
@@ -30,7 +30,7 @@ generate:
 
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build -o ./artifacts/observiq_logagent_$(GOOS)_$(GOARCH) $(BUILD_INFO) .
+	CGO_ENABLED=0 go build -o ./artifacts/carbon_$(GOOS)_$(GOARCH) $(BUILD_INFO) .
 
 .PHONY: install
 install:

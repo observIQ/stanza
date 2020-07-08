@@ -3,7 +3,7 @@ package helper
 import (
 	"sync"
 
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/plugin"
 	"go.etcd.io/bbolt"
 )
 

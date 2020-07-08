@@ -8,9 +8,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/observiq/bplogagent/entry"
-	"github.com/observiq/bplogagent/plugin"
-	"github.com/observiq/bplogagent/plugin/helper"
+	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/plugin/helper"
 )
 
 func init() {

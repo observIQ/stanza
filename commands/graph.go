@@ -3,9 +3,9 @@ package commands
 import (
 	"os"
 
-	"github.com/observiq/bplogagent/agent"
-	"github.com/observiq/bplogagent/plugin"
-	pg "github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/agent"
+	"github.com/observiq/carbon/plugin"
+	pg "github.com/observiq/carbon/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

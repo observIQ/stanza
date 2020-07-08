@@ -1,34 +1,34 @@
-# Contributing to bplogagent
+# Contributing to Carbon
 
 ## Development
 
 You can view and edit the source code by cloning this repository:
 
 ```bash
-git clone https://github.com/observiq/bplogagent.git
+git clone https://github.com/observiq/carbon.git
 ```
 ## Pull Requests
 
 ### How to Send Pull Requests
 
-Everyone is welcome to contribute code to `bplogagent` via
+Everyone is welcome to contribute code to `carbon` via
 GitHub pull requests (PRs).
 
 To create a new PR, fork the project in GitHub and clone the upstream
 repo:
 
 ```sh
-$ go get -d github.com/observiq/bplogagent
+$ go get -d github.com/observiq/carbon
 ```
 
-This will put the project in `${GOPATH}/src/github.com/observiq/bplogagent`. You
+This will put the project in `${GOPATH}/src/github.com/observiq/carbon`. You
 can alternatively use `git` directly with:
 
 ```sh
-$ git clone https://github.com/observiq/bplogagent
+$ git clone https://github.com/observiq/carbon
 ```
 
-This would put the project in the `bplogagent` directory in
+This would put the project in the `carbon` directory in
 current working directory.
 
 Enter the newly created directory and add your fork as a new remote:
@@ -49,7 +49,7 @@ $ git commit
 $ git push <YOUR_FORK> <YOUR_BRANCH_NAME>
 ```
 
-Open a pull request against the main `bplogagent` repo.
+Open a pull request against the main `carbon` repo.
 
 ### How to Receive Comments
 

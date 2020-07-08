@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/bplogagent/plugin"
-	_ "github.com/observiq/bplogagent/plugin/builtin"
-	"github.com/observiq/bplogagent/plugin/builtin/transformer"
+	"github.com/observiq/carbon/plugin"
+	_ "github.com/observiq/carbon/plugin/builtin"
+	"github.com/observiq/carbon/plugin/builtin/transformer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

@@ -9,9 +9,9 @@ import (
 
 	strptime "github.com/observiq/ctimefmt"
 
-	"github.com/observiq/bplogagent/entry"
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/plugin"
 )
 
 // StrptimeKey is literally "strptime", and is the default layout type

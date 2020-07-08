@@ -1,6 +1,6 @@
-# Bindplane Log Agent Documentation
+# Carbon Log Agent Documentation
 
-This repo contains documentation for the Bindplane Log Agent.
+This repo contains documentation for the Carbon Log Agent.
 
 ## How do I configure the agent?
 The agent is configured using a YAML config file that is passed in using the `--config` flag. This file defines a collection of plugins beneath a top-level `plugins` key. Each plugin possesses a `type` and `id` field.

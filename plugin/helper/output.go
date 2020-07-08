@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/plugin"
 )
 
 // OutputConfig provides a basic implementation of an output plugin config.

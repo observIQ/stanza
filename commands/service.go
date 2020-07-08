@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/kardianos/service"
-	"github.com/observiq/bplogagent/agent"
+	"github.com/observiq/carbon/agent"
 	"go.uber.org/zap"
 )
 
@@ -39,8 +39,8 @@ func (a *AgentService) Stop(s service.Service) error {
 func newAgentService(agent *agent.LogAgent, ctx context.Context, cancel context.CancelFunc) (service.Service, error) {
 	agentService := &AgentService{cancel, agent}
 	config := &service.Config{
-		Name:        "bplogagent",
-		DisplayName: "bplogagent",
+		Name:        "carbon_log_agent",
+		DisplayName: "carbon_log_agent",
 		Description: "Monitors and processes log entries",
 		Option: service.KeyValue{
 			"RunWait": func() {

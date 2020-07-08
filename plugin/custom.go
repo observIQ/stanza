@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/carbon/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/observiq/bplogagent/entry"
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/plugin/helper"
+	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/plugin/helper"
 )
 
 func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {

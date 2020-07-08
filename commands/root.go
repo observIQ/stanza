@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/observiq/bplogagent/agent"
+	agent "github.com/observiq/carbon/agent"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -36,7 +36,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlags := &RootFlags{}
 
 	root := &cobra.Command{
-		Use:   "bplogagent [-c ./config.yaml]",
+		Use:   "carbon [-c ./config.yaml]",
 		Short: "A log parser and router",
 		Long:  "A log parser and router",
 		Args:  cobra.NoArgs,

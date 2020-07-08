@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/observiq/bplogagent/pipeline"
+	"github.com/observiq/carbon/pipeline"
 	yaml "gopkg.in/yaml.v2"
 )
 

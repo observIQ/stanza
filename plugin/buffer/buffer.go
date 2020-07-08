@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/bplogagent/entry"
-	"github.com/observiq/bplogagent/errors"
-	"github.com/observiq/bplogagent/plugin"
+	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/plugin"
 )
 
 type Buffer interface {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
-	"github.com/observiq/bplogagent/errors"
+	"github.com/observiq/carbon/errors"
 )
 
 type ExprStringConfig string
