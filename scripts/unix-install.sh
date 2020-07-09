@@ -5,7 +5,7 @@
 set -e
 
 # Agent Constants
-SERVICE_NAME="carbon-log-agent"
+SERVICE_NAME="carbon"
 BINARY_NAME="carbon"
 DOWNLOAD_BASE="https://github.com/observiq/carbon/releases/latest/download"
 
@@ -652,9 +652,9 @@ create_sysv_file()
 {
   cat << "EOF" > "$1"
 #!/bin/sh
-# log-agent daemon
+# carbon daemon
 # chkconfig: 2345 99 05
-# description: Carbon log agent daemon
+# description: carbon log agent
 # processname: REPLACE_AGENT_BINARY
 # pidfile: /var/run/log-agent.pid
 

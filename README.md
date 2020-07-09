@@ -10,11 +10,11 @@ go get github.com/observiq/carbon
 ```
 #### Linux
 ```shell
-sh -c "$(curl -fsSl https://github.com/observiq/carbon/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSlL https://github.com/observiq/carbon/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Darwin
 ```shell
-sh -c "$(curl -fsSl https://github.com/observiq/carbon/releases/latest/download/unix-install.sh)" unix-install.sh
+sh -c "$(curl -fsSlL https://github.com/observiq/carbon/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
 #### Windows
 ```pwsh
@@ -37,18 +37,18 @@ carbon --config ./config.yaml --plugin_dir ./plugins
 #### Linux
 ```shell
 # systemd
-systemctl start carbon_log_agent
+systemctl start carbon
 
 # sysv
-service carbon_log_agent start
+service carbon start
 ```
 #### Darwin
 ```shell
-launchctl start com.observiq.carbon_log_agent
+launchctl start com.observiq.carbon
 ```
 #### Windows
 ```pwsh
-Start-Service -Name "carbon_log_agent"
+Start-Service -Name "carbon"
 ```
 
 ## How do I configure the agent?

@@ -11,25 +11,25 @@ import (
 	"go.uber.org/zap"
 )
 
-// AgentService is a service that runs the log agent.
+// AgentService is a service that runs the carbon agent.
 type AgentService struct {
 	cancel context.CancelFunc
 	agent  *agent.LogAgent
 }
 
-// Start will start the log agent.
+// Start will start the carbon agent.
 func (a *AgentService) Start(s service.Service) error {
-	a.agent.Info("Starting carbon log agent")
+	a.agent.Info("Starting carbon agent")
 	if err := a.agent.Start(); err != nil {
-		a.agent.Errorw("Failed to start carbon log agent", zap.Any("error", err))
+		a.agent.Errorw("Failed to start carbon agent", zap.Any("error", err))
 		a.cancel()
 	}
 	return nil
 }
 
-// Stop will stop the log agent.
+// Stop will stop the carbon agent.
 func (a *AgentService) Stop(s service.Service) error {
-	a.agent.Info("Stopping carbon log agent")
+	a.agent.Info("Stopping carbon agent")
 	a.agent.Stop()
 	a.cancel()
 	return nil
@@ -39,8 +39,8 @@ func (a *AgentService) Stop(s service.Service) error {
 func newAgentService(agent *agent.LogAgent, ctx context.Context, cancel context.CancelFunc) (service.Service, error) {
 	agentService := &AgentService{cancel, agent}
 	config := &service.Config{
-		Name:        "carbon_log_agent",
-		DisplayName: "carbon_log_agent",
+		Name:        "carbon",
+		DisplayName: "Carbon Log Agent",
 		Description: "Monitors and processes log entries",
 		Option: service.KeyValue{
 			"RunWait": func() {
