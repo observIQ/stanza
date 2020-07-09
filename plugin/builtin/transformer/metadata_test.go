@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,9 @@ import (
 )
 
 func TestMetadata(t *testing.T) {
+	os.Setenv("TEST_METADATA_PLUGIN_ENV", "foo")
+	defer os.Unsetenv("TEST_METADATA_PLUGIN_ENV")
+
 	baseConfig := func() *MetadataPluginConfig {
 		return &MetadataPluginConfig{
 			TransformerConfig: helper.TransformerConfig{
@@ -95,6 +99,38 @@ func TestMetadata(t *testing.T) {
 				e.Labels = map[string]string{
 					"label1": "startend",
 				}
+				return e
+			}(),
+		},
+		{
+			"AddLabelEnv",
+			func() *MetadataPluginConfig {
+				cfg := baseConfig()
+				cfg.Labels = map[string]helper.ExprStringConfig{
+					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
+				}
+				return cfg
+			}(),
+			entry.New(),
+			func() *entry.Entry {
+				e := entry.New()
+				e.Labels = map[string]string{
+					"label1": "foo",
+				}
+				return e
+			}(),
+		},
+		{
+			"AddTagEnv",
+			func() *MetadataPluginConfig {
+				cfg := baseConfig()
+				cfg.Tags = []helper.ExprStringConfig{`EXPR(env("TEST_METADATA_PLUGIN_ENV"))`}
+				return cfg
+			}(),
+			entry.New(),
+			func() *entry.Entry {
+				e := entry.New()
+				e.Tags = []string{"foo"}
 				return e
 			}(),
 		},

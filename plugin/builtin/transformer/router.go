@@ -80,13 +80,8 @@ func (p *RouterPlugin) CanProcess() bool {
 }
 
 func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
-	env := map[string]interface{}{
-		"$":          entry.Record,
-		"$record":    entry.Record,
-		"$labels":    entry.Labels,
-		"$timestamp": entry.Timestamp,
-		"$tags":      entry.Tags,
-	}
+	env := helper.GetExprEnv(entry)
+	defer helper.PutExprEnv(env)
 
 	for _, route := range p.routes {
 		matches, err := vm.Run(route.Expression, env)

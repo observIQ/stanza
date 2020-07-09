@@ -3,6 +3,7 @@ package transformer
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -36,6 +37,9 @@ func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
 }
 
 func TestRestructurePlugin(t *testing.T) {
+	os.Setenv("TEST_RESTRUCTURE_PLUGIN_ENV", "foo")
+	defer os.Unsetenv("TEST_RESTRUCTURE_PLUGIN_ENV")
+
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
@@ -94,6 +98,27 @@ func TestRestructurePlugin(t *testing.T) {
 			output: func() *entry.Entry {
 				e := newTestEntry()
 				e.Record.(map[string]interface{})["new"] = "val_suffix"
+				return e
+			}(),
+		},
+		{
+			name: "AddValueExprEnv",
+			ops: []Op{
+				{
+					&OpAdd{
+						Field: entry.NewRecordField("new"),
+						program: func() *vm.Program {
+							vm, err := expr.Compile(`env("TEST_RESTRUCTURE_PLUGIN_ENV")`)
+							require.NoError(t, err)
+							return vm
+						}(),
+					},
+				},
+			},
+			input: newTestEntry(),
+			output: func() *entry.Entry {
+				e := newTestEntry()
+				e.Record.(map[string]interface{})["new"] = "foo"
 				return e
 			}(),
 		},

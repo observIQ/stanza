@@ -6,9 +6,24 @@ being processed.
 
 For reference documentation of the expression language, see [here](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md).
 
-In most cases, the record of the entry being processed can be accessed with the `$` variable in the expression. See the examples below for syntax.
+Available to the expressions are a few special variables:
+- `$record` contains the entry's record
+- `$labels` contains the entry's labels
+- `$tags` contains the entry's tags
+- `$timestamp` contains the entry's timestamp
+- `env()` is a function that allows you to read environment variables
 
 ## Examples
+
+### Add a label from an environment variable
+
+```yaml
+- id: add_stack_label
+  type: metadata
+  output: my_receiver
+  labels:
+    stack: 'EXPR(env("STACK"))'
+```
 
 ### Map severity values to standard values
 
@@ -19,5 +34,5 @@ In most cases, the record of the entry being processed can be accessed with the 
   ops:
     - add:
         field: severity
-        value_expr: '$.raw_severity in ["critical", "super_critical"] ? "error" : $.raw_severity'
+        value_expr: '$record.raw_severity in ["critical", "super_critical"] ? "error" : $record.raw_severity'
 ```

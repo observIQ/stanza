@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"os"
 	"strconv"
 	"testing"
 
@@ -9,6 +10,9 @@ import (
 )
 
 func TestExprString(t *testing.T) {
+	os.Setenv("TEST_EXPR_STRING_ENV", "foo")
+	defer os.Unsetenv("TEST_EXPR_STRING_ENV")
+
 	exampleEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Record = map[string]interface{}{
@@ -69,6 +73,10 @@ func TestExprString(t *testing.T) {
 			"my EXPR($.test)",
 			"my value",
 		},
+		{
+			"my EXPR(env('TEST_EXPR_STRING_ENV'))",
+			"my foo",
+		},
 	}
 
 	for i, tc := range cases {
@@ -76,9 +84,9 @@ func TestExprString(t *testing.T) {
 			exprString, err := tc.config.Build()
 			require.NoError(t, err)
 
-			env := map[string]interface{}{
-				"$": exampleEntry().Record,
-			}
+			env := GetExprEnv(exampleEntry())
+			defer PutExprEnv(env)
+
 			result, err := exprString.Render(env)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, result)
