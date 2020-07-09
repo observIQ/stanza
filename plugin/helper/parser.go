@@ -34,6 +34,14 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 		c.ParseTo.FieldInterface = entry.NewRecordField()
 	}
 
+	if c.ParseFrom.String() == c.ParseTo.String() && c.Preserve {
+		transformerPlugin.Warnw(
+			"preserve is true, but parse_to is set to the same field as parse_from, "+
+				"which will cause the original value to be overwritten",
+			"plugin_id", c.PluginID,
+		)
+	}
+
 	parserPlugin := ParserPlugin{
 		TransformerPlugin: transformerPlugin,
 		ParseFrom:         c.ParseFrom,
