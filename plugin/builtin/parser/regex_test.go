@@ -11,7 +11,6 @@ import (
 	"github.com/observiq/carbon/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 )
 
 func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
@@ -99,36 +98,43 @@ func TestBuildParserRegex(t *testing.T) {
 					},
 				},
 			},
-			Regex: ".*",
+			Regex: "(?P<all>.*)",
 		}
 	}
 
 	t.Run("BasicConfig", func(t *testing.T) {
 		c := newBasicRegexParser()
-		buildContext := plugin.BuildContext{
-			Logger: zaptest.NewLogger(t).Sugar(),
-		}
-		_, err := c.Build(buildContext)
+		_, err := c.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
 	})
 
 	t.Run("MissingRegexField", func(t *testing.T) {
 		c := newBasicRegexParser()
 		c.Regex = ""
-		buildContext := plugin.BuildContext{
-			Logger: zaptest.NewLogger(t).Sugar(),
-		}
-		_, err := c.Build(buildContext)
+		_, err := c.Build(testutil.NewBuildContext(t))
 		require.Error(t, err)
 	})
 
 	t.Run("InvalidRegexField", func(t *testing.T) {
 		c := newBasicRegexParser()
 		c.Regex = "())()"
-		buildContext := plugin.BuildContext{
-			Logger: zaptest.NewLogger(t).Sugar(),
-		}
-		_, err := c.Build(buildContext)
+		_, err := c.Build(testutil.NewBuildContext(t))
 		require.Error(t, err)
+	})
+
+	t.Run("NoNamedGroups", func(t *testing.T) {
+		c := newBasicRegexParser()
+		c.Regex = ".*"
+		_, err := c.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "no named capture groups")
+	})
+
+	t.Run("NoNamedGroups", func(t *testing.T) {
+		c := newBasicRegexParser()
+		c.Regex = "(.*)"
+		_, err := c.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "no named capture groups")
 	})
 }
