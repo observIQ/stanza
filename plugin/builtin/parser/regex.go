@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/plugin"
 	"github.com/observiq/carbon/plugin/helper"
 )
@@ -35,6 +36,19 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	r, err := regexp.Compile(c.Regex)
 	if err != nil {
 		return nil, fmt.Errorf("compiling regex: %s", err)
+	}
+
+	namedCaptureGroups := 0
+	for _, groupName := range r.SubexpNames() {
+		if groupName != "" {
+			namedCaptureGroups++
+		}
+	}
+	if namedCaptureGroups == 0 {
+		return nil, errors.NewError(
+			"no named capture groups in regex pattern",
+			"use named capture groups like '^(?P<my_key>.*)$' to specify the key name for the parsed field",
+		)
 	}
 
 	regexParser := &RegexParser{
