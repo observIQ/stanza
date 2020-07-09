@@ -111,25 +111,6 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	profilingWg.Wait()
 }
 
-func newDefaultLoggerAt(level zapcore.Level, path string) *zap.SugaredLogger {
-	logCfg := zap.NewProductionConfig()
-	logCfg.Level = zap.NewAtomicLevelAt(level)
-	logCfg.Sampling.Initial = 5
-	logCfg.Sampling.Thereafter = 100
-	logCfg.EncoderConfig.CallerKey = ""
-	logCfg.EncoderConfig.StacktraceKey = ""
-	logCfg.EncoderConfig.TimeKey = "timestamp"
-	logCfg.EncoderConfig.MessageKey = "message"
-	logCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	if path != "" {
-		logCfg.OutputPaths = []string{path}
-	}
-
-	baseLogger, _ := logCfg.Build()
-	return baseLogger.Sugar()
-}
-
 func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLogger) *sync.WaitGroup {
 	wg := &sync.WaitGroup{}
 
