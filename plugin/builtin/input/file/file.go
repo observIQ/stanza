@@ -191,6 +191,9 @@ func (f *FileInput) Start() error {
 				return
 			case <-globTicker.C:
 				matches := getMatches(f.Include, f.Exclude)
+				if firstCheck && len(matches) == 0 {
+					f.Warnw("no files match the configured include patterns", "include", f.Include)
+				}
 				for _, match := range matches {
 					f.checkFile(ctx, match, firstCheck)
 				}
