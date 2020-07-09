@@ -223,6 +223,7 @@ setup_installation()
     set_service_user
     set_agent_binary
     set_agent_log
+    set_agent_database
 
     success "Configuration complete!"
     decrease_indent
@@ -288,7 +289,7 @@ set_install_dir()
 # The install directory must be set prior to this.
 set_agent_home()
 {
-  agent_home="$install_dir/$SERVICE_NAME"
+  agent_home="$install_dir/observiq/carbon"
 }
 
 # This will set the user assigned to the agent service. If provided,
@@ -314,9 +315,16 @@ set_agent_binary()
   agent_binary="$agent_home/$BINARY_NAME"
 }
 
+# This will set the agent log location.
 set_agent_log()
 {
   agent_log="$agent_home/$SERVICE_NAME.log"
+}
+
+# This will set the agent database file.
+set_agent_database()
+{
+  agent_database="$agent_home/$SERVICE_NAME.db"
 }
 
 # This will check all prerequisites before running an installation.
@@ -580,6 +588,8 @@ create_launchd_file()
       <string>$agent_binary</string>
       <string>--log_file</string>
       <string>$agent_log</string>
+      <string>--database</string>
+      <string>$agent_database</string>
     </array>
     <key>WorkingDirectory</key>
     <string>$agent_home</string>
@@ -686,9 +696,9 @@ start() {
     else
         echo " * Starting $PROGRAM"
         if [ -n "REPLACE_SERVICE_USER" ]; then
-          su -p REPLACE_SERVICE_USER -c "nohup REPLACE_AGENT_BINARY --log_file REPLACE_AGENT_LOG" > /dev/null 2>&1 &
+          su -p REPLACE_SERVICE_USER -c "nohup REPLACE_AGENT_BINARY --log_file REPLACE_AGENT_LOG --database REPLACE_AGENT_DATABASE" > /dev/null 2>&1 &
         else
-          nohup "REPLACE_AGENT_BINARY --log_file REPLACE_AGENT_LOG" > /dev/null 2>&1 &
+          nohup "REPLACE_AGENT_BINARY --log_file REPLACE_AGENT_LOG --database REPLACE_AGENT_DATABASE" > /dev/null 2>&1 &
         fi
         echo $! > $PIDFILE
         RETVAL=$?
@@ -757,6 +767,7 @@ EOF
   sed -i "s|REPLACE_SERVICE_USER|$service_user|" "$1"
   sed -i "s|REPLACE_AGENT_BINARY|$agent_binary|" "$1"
   sed -i "s|REPLACE_AGENT_LOG|$agent_log|" "$1"
+  sed -i "s|REPLACE_AGENT_DATABASE|$agent_database|" "$1"
 }
 
 # This will load the sysv service.
@@ -847,7 +858,7 @@ User=$service_user
 Group=$service_user
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 WorkingDirectory=$agent_home
-ExecStart=$agent_binary --log_file $agent_log
+ExecStart=$agent_binary --log_file $agent_log --database $agent_database
 SuccessExitStatus=143
 TimeoutSec=0
 StandardOutput=null
