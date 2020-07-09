@@ -4,7 +4,7 @@ new-module -name LogAgentInstall -scriptblock {
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
   $DOWNLOAD_BASE = "https://github.com/observiq/carbon/releases/latest/download"
-  $SERVICE_NAME = 'carbon_log_agent'
+  $SERVICE_NAME = 'carbon'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'
 
@@ -297,7 +297,7 @@ new-module -name LogAgentInstall -scriptblock {
   function Set-HomeDir {
     Show-ColorText 'Setting home directory...'
     Add-Indent
-    $script:agent_home = "{0}observiq" -f $script:install_dir
+    $script:agent_home = "{0}observiq\carbon" -f $script:install_dir
 
     If (-Not (Test-Path $script:agent_home) ) {
       New-Item -ItemType directory -Path $agent_home | Out-Null
@@ -474,8 +474,8 @@ new-module -name LogAgentInstall -scriptblock {
 #   - id: example_input
 #     type: generate_input
 #     count: 1
-#     record:
-#       message: example log
+#     entry:
+#       record: example log
 #     output: example_stdout
 #
 #   - id: example_stdout
