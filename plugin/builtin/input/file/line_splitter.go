@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"bytes"
 	"regexp"
 )
 
@@ -25,18 +26,12 @@ func NewLineStartSplitFunc(re *regexp.Regexp) bufio.SplitFunc {
 
 		if firstMatchEnd == len(data) {
 			// the first match goes to the end of the buffer, so don't look for a second match
-			if atEOF {
-				return len(data), data[firstMatchStart:], nil // return the rest of the file and advance to end
-			}
-			return 0, nil, nil // read more data and try again
+			return 0, nil, nil
 		}
 
 		secondLocOffset := firstMatchEnd + 1
 		secondLoc := re.FindIndex(data[secondLocOffset:])
 		if secondLoc == nil {
-			if atEOF {
-				return len(data), data[firstMatchStart:], nil // return the rest of the file and advance to end
-			}
 			return 0, nil, nil // read more data and try again
 		}
 		secondMatchStart := secondLoc[0] + secondLocOffset
@@ -68,4 +63,31 @@ func NewLineEndSplitFunc(re *regexp.Regexp) bufio.SplitFunc {
 		err = nil
 		return
 	}
+}
+
+// NewNewlineSplitFunc splits log lines by newline, just as bufio.ScanLines, but
+// never returning an token using EOF as a terminator
+func NewNewlineSplitFunc() bufio.SplitFunc {
+	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+
+		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+			// We have a full newline-terminated line.
+			return i + 1, dropCR(data[0:i]), nil
+		}
+
+		// Request more data.
+		return 0, nil, nil
+	}
+}
+
+// dropCR drops a terminal \r from the data.
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+
+	return data
 }

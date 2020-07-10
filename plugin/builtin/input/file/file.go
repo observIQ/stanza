@@ -71,7 +71,7 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 	// Determine the split function for log entries
 	var splitFunc bufio.SplitFunc
 	if c.Multiline == nil {
-		splitFunc = bufio.ScanLines
+		splitFunc = NewNewlineSplitFunc()
 	} else {
 		definedLineEndPattern := c.Multiline.LineEndPattern != ""
 		definedLineStartPattern := c.Multiline.LineStartPattern != ""
@@ -253,14 +253,14 @@ func (f *FileInput) checkFile(ctx context.Context, path string, firstCheck bool)
 	f.runningFiles[path] = struct{}{}
 	f.knownFiles[path] = knownFile
 	f.readerWg.Add(1)
-	go func(ctx context.Context, path string, offset int64) {
+	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, messenger, f.SplitFunc, f.PathField, f.InputPlugin, f.MaxLogSize)
+		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.PathField, f.InputPlugin, f.MaxLogSize)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}
-	}(ctx, path, knownFile.Offset)
+	}(ctx, path, knownFile.Offset, knownFile.LastSeenFileSize)
 }
 
 func (f *FileInput) updateFile(message fileUpdateMessage) {
@@ -270,6 +270,12 @@ func (f *FileInput) updateFile(message fileUpdateMessage) {
 	}
 
 	knownFile := f.knownFiles[message.path]
+
+	// This is a last seen size message, so just set the size and return
+	if message.lastSeenFileSize != -1 {
+		knownFile.LastSeenFileSize = message.lastSeenFileSize
+		return
+	}
 
 	if message.newOffset < knownFile.Offset {
 		// The file was truncated or rotated
@@ -388,6 +394,7 @@ type knownFileInfo struct {
 	Fingerprint       []byte
 	SmallFileContents []byte
 	Offset            int64
+	LastSeenFileSize  int64
 }
 
 func newKnownFileInfo(path string, fingerprintBytes int64, startAtBeginning bool) (*knownFileInfo, error) {
@@ -474,9 +481,10 @@ func fingerprintFile(file *os.File, numBytes int64) ([]byte, error) {
 }
 
 type fileUpdateMessage struct {
-	path      string
-	newOffset int64
-	finished  bool
+	path             string
+	newOffset        int64
+	lastSeenFileSize int64
+	finished         bool
 }
 
 type fileUpdateMessenger struct {
@@ -486,15 +494,24 @@ type fileUpdateMessenger struct {
 
 func (f *fileUpdateMessenger) SetOffset(offset int64) {
 	f.c <- fileUpdateMessage{
-		path:      f.path,
-		newOffset: offset,
+		path:             f.path,
+		newOffset:        offset,
+		lastSeenFileSize: -1,
+	}
+}
+
+func (f *fileUpdateMessenger) SetLastSeenFileSize(size int64) {
+	f.c <- fileUpdateMessage{
+		path:             f.path,
+		lastSeenFileSize: size,
 	}
 }
 
 func (f *fileUpdateMessenger) FinishedReading() {
 	f.c <- fileUpdateMessage{
-		path:     f.path,
-		finished: true,
+		path:             f.path,
+		finished:         true,
+		lastSeenFileSize: -1,
 	}
 }
 

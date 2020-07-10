@@ -42,7 +42,7 @@ func TestLineStartSplitFunc(t *testing.T) {
 		{
 			Name:    "OneLogSimple",
 			Pattern: `LOGSTART \d+ `,
-			Raw:     []byte(`LOGSTART 123 log1`),
+			Raw:     []byte("LOGSTART 123 log1LOGSTART 123 a"),
 			ExpectedTokenized: []string{
 				`LOGSTART 123 log1`,
 			},
@@ -50,10 +50,10 @@ func TestLineStartSplitFunc(t *testing.T) {
 		{
 			Name:    "TwoLogsSimple",
 			Pattern: `LOGSTART \d+ `,
-			Raw:     []byte(`LOGSTART 123 log1 LOGSTART 234 log2`),
+			Raw:     []byte(`LOGSTART 123 log1 LOGSTART 234 log2 LOGSTART 345 foo`),
 			ExpectedTokenized: []string{
 				`LOGSTART 123 log1 `,
-				`LOGSTART 234 log2`,
+				`LOGSTART 234 log2 `,
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestLineStartSplitFunc(t *testing.T) {
 		{
 			Name:    "PrecedingNonMatches",
 			Pattern: `LOGSTART \d+ `,
-			Raw:     []byte(`part that doesn't match LOGSTART 123 part that matches`),
+			Raw:     []byte(`part that doesn't match LOGSTART 123 part that matchesLOGSTART 123 foo`),
 			ExpectedTokenized: []string{
 				`part that doesn't match `,
 				`LOGSTART 123 part that matches`,
@@ -82,7 +82,6 @@ func TestLineStartSplitFunc(t *testing.T) {
 			}(),
 			ExpectedTokenized: []string{
 				`LOGSTART 123 ` + string(generatedByteSliceOfLength(100)),
-				`LOGSTART 234 endlog`,
 			},
 		},
 		{
@@ -96,7 +95,6 @@ func TestLineStartSplitFunc(t *testing.T) {
 			}(),
 			ExpectedTokenized: []string{
 				`LOGSTART 123 ` + string(generatedByteSliceOfLength(10000)),
-				`LOGSTART 234 endlog`,
 			},
 		},
 		{
@@ -133,8 +131,8 @@ func TestLineStartSplitFunc(t *testing.T) {
 		t.Run("AtEOF", func(t *testing.T) {
 			advance, token, err := splitFunc(data[:], true)
 			require.NoError(t, err)
-			require.Equal(t, len(data), advance)
-			require.Equal(t, data, token)
+			require.Equal(t, 0, advance)
+			require.Nil(t, token)
 		})
 	})
 }
@@ -174,34 +172,34 @@ func TestLineEndSplitFunc(t *testing.T) {
 		},
 		{
 			Name:    "HugeLog100",
-			Pattern: `LOGEND \d+`,
+			Pattern: `LOGEND \d`,
 			Raw: func() []byte {
 				newRaw := generatedByteSliceOfLength(100)
-				newRaw = append(newRaw, []byte(`LOGEND 123`)...)
+				newRaw = append(newRaw, []byte(`LOGEND 1 `)...)
 				return newRaw
 			}(),
 			ExpectedTokenized: []string{
-				string(generatedByteSliceOfLength(100)) + `LOGEND 123`,
+				string(generatedByteSliceOfLength(100)) + `LOGEND 1`,
 			},
 		},
 		{
 			Name:    "HugeLog10000",
-			Pattern: `LOGEND \d+`,
+			Pattern: `LOGEND \d`,
 			Raw: func() []byte {
 				newRaw := generatedByteSliceOfLength(10000)
-				newRaw = append(newRaw, []byte(`LOGEND 123`)...)
+				newRaw = append(newRaw, []byte(`LOGEND 1 `)...)
 				return newRaw
 			}(),
 			ExpectedTokenized: []string{
-				string(generatedByteSliceOfLength(10000)) + `LOGEND 123`,
+				string(generatedByteSliceOfLength(10000)) + `LOGEND 1`,
 			},
 		},
 		{
 			Name:    "HugeLog1000000",
-			Pattern: `LOGEND \d+`,
+			Pattern: `LOGEND \d`,
 			Raw: func() []byte {
 				newRaw := generatedByteSliceOfLength(1000000)
-				newRaw = append(newRaw, []byte(`LOGEND 123`)...)
+				newRaw = append(newRaw, []byte(`LOGEND 1 `)...)
 				return newRaw
 			}(),
 			ExpectedTokenized: []string{},
@@ -212,6 +210,68 @@ func TestLineEndSplitFunc(t *testing.T) {
 	for _, tc := range testCases {
 		re := regexp.MustCompile(tc.Pattern)
 		splitFunc := NewLineEndSplitFunc(re)
+		t.Run(tc.Name, tc.RunFunc(splitFunc))
+	}
+}
+
+func TestNewlineSplitFunc(t *testing.T) {
+	testCases := []tokenizerTestCase{
+		{
+			Name: "OneLogSimple",
+			Raw:  []byte("my log\n"),
+			ExpectedTokenized: []string{
+				`my log`,
+			},
+		},
+		{
+			Name: "TwoLogsSimple",
+			Raw:  []byte("log1\nlog2\n"),
+			ExpectedTokenized: []string{
+				`log1`,
+				`log2`,
+			},
+		},
+		{
+			Name:              "NoTailingNewline",
+			Raw:               []byte(`foo`),
+			ExpectedTokenized: []string{},
+		},
+		{
+			Name: "HugeLog100",
+			Raw: func() []byte {
+				newRaw := generatedByteSliceOfLength(100)
+				newRaw = append(newRaw, '\n')
+				return newRaw
+			}(),
+			ExpectedTokenized: []string{
+				string(generatedByteSliceOfLength(100)),
+			},
+		},
+		{
+			Name: "HugeLog10000",
+			Raw: func() []byte {
+				newRaw := generatedByteSliceOfLength(10000)
+				newRaw = append(newRaw, '\n')
+				return newRaw
+			}(),
+			ExpectedTokenized: []string{
+				string(generatedByteSliceOfLength(10000)),
+			},
+		},
+		{
+			Name: "HugeLog1000000",
+			Raw: func() []byte {
+				newRaw := generatedByteSliceOfLength(1000000)
+				newRaw = append(newRaw, '\n')
+				return newRaw
+			}(),
+			ExpectedTokenized: []string{},
+			ExpectedError:     errors.New("bufio.Scanner: token too long"),
+		},
+	}
+
+	for _, tc := range testCases {
+		splitFunc := NewNewlineSplitFunc()
 		t.Run(tc.Name, tc.RunFunc(splitFunc))
 	}
 }
