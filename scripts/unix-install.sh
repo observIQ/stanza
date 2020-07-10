@@ -398,10 +398,10 @@ dependencies_check()
 # extracting the binaries, and then removing the archive.
 install_package()
 {
-  banner "Installing agent"
+  banner "Installing Carbon"
   increase_indent
 
-  info "Creating agent directory..."
+  info "Creating Carbon directory..."
   mkdir -p "$agent_home"
   succeeded
 
@@ -417,14 +417,14 @@ install_package()
   chmod +x "$agent_binary"
   succeeded
 
-  success "Agent installation complete!"
+  success "Carbon installation complete!"
   decrease_indent
 }
 
 # This will create the agent config as a YAML file.
 generate_config()
 {
-  banner "Generating agent config"
+  banner "Generating Config"
   increase_indent
 
   info "Creating config file..."
@@ -457,7 +457,7 @@ EOF
 # and configuring the launcher to run accordinngly
 install_service()
 {
-  banner "Installing Service"
+  banner "Creating Service"
   increase_indent
 
   service_type="$(init_type)"
@@ -909,10 +909,10 @@ request_service_replacement()
 # This will display the results of an installation
 display_results()
 {
-    banner 'Agent Information'
+    banner 'Information'
     increase_indent
-    info "Agent Home:     $(fg_cyan "$agent_home")$(reset)"
-    info "Agent Config:   $(fg_cyan "$agent_home/config.yaml")$(reset)"
+    info "Carbon Home:     $(fg_cyan "$agent_home")$(reset)"
+    info "Carbon Config:   $(fg_cyan "$agent_home/config.yaml")$(reset)"
     info "Start Command:  $(fg_cyan "$startup_cmd")$(reset)"
     info "Stop Command:   $(fg_cyan "$shutdown_cmd")$(reset)"
     decrease_indent
