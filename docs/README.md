@@ -51,7 +51,6 @@ Output plugins:
 General purpose plugins:
 - [Metadata](/docs/plugins/metadata.md)
 - [Restructure records](/docs/plugins/restructure.md)
-- [Copy to multiple outputs](/docs/plugins/copy.md)
 - [Router](/docs/plugins/router.md)
 - [Kubernetes Metadata Decorator](/docs/plugins/k8s_metadata_decorator.md)
 - [Rate limit](/docs/plugins/rate_limit.md)
