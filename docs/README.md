@@ -40,6 +40,8 @@ Parser plugins:
 - [JSON parser](/docs/plugins/json_parser.md)
 - [Regex parser](/docs/plugins/regex_parser.md)
 - [Syslog parser](/docs/plugins/syslog_parser.md)
+- [Severity parser](/docs/plugins/severity_parser.md)
+- [Time parser](/docs/plugins/time_parser.md)
 
 Output plugins:
 - [Google Cloud Logging](/docs/plugins/google_cloud_output.md)
@@ -47,11 +49,10 @@ Output plugins:
 - [Stdout](/docs/plugins/stdout.md)
 
 General purpose plugins:
-- [Time parser](/docs/plugins/time_parser.md)
-- [Severity parser](/docs/plugins/severity_parser.md)
 - [Metadata](/docs/plugins/metadata.md)
 - [Restructure records](/docs/plugins/restructure.md)
 - [Copy to multiple outputs](/docs/plugins/copy.md)
 - [Router](/docs/plugins/router.md)
+- [Kubernetes Metadata Decorator](/docs/plugins/k8s_metadata_decorator.md)
 
 Or create your own [Plugin](/docs/plugins.md) for a technology-specific use case.
