@@ -216,6 +216,7 @@ new-module -name LogAgentInstall -scriptblock {
     Set-DownloadURL
     Set-InstallDir
     Set-HomeDir
+    Set-PluginDir
     Set-BinaryLocation
     Set-ServiceUser
 
@@ -307,6 +308,21 @@ new-module -name LogAgentInstall -scriptblock {
     Remove-Indent
   }
 
+  # This will set the plugins directory of the agent based on
+  # the install directory provided.
+  function Set-PluginDir {
+    Show-ColorText 'Setting plugin directory...'
+    Add-Indent
+    $script:plugin_dir = "{0}\plugins" -f $script:agent_home
+
+    If (-Not (Test-Path $script:plugin_dir) ) {
+      New-Item -ItemType directory -Path $plugin_dir | Out-Null
+    }
+
+    Show-ColorText "Using plugin directory: " '' "$script:plugin_dir" DarkCyan
+    Remove-Indent
+  }
+
   # This will set the path for the agent binary.
   function Set-BinaryLocation {
     Show-ColorText 'Setting binary location...'
@@ -332,7 +348,7 @@ new-module -name LogAgentInstall -scriptblock {
 
   # This will set user permissions on the install directory.
   function Set-Permissions {
-    Show-Header "Permissions"
+    Show-Header "Setting Permissions"
     Add-Indent
     Show-ColorText "Setting file permissions for NetworkService user..."
 
@@ -383,8 +399,8 @@ new-module -name LogAgentInstall -scriptblock {
   }
 
   # This will download the agent binary to the binary location.
-  function Get-AgentBinary {
-    Show-Header "Downloading AgentBinary"
+  function Get-CarbonBinary {
+    Show-Header "Downloading Carbon Binary"
     Add-Indent
     Show-ColorText 'Downloading binary. Please wait...'
     Show-ColorText "$INDENT_WIDTH$script:download_url" DarkCyan ' -> ' '' "$script:binary_location" DarkCyan
@@ -452,7 +468,7 @@ new-module -name LogAgentInstall -scriptblock {
 
   # This will create the agent config.
   function New-AgentConfig {
-    Show-Header "Configuring Agent"
+    Show-Header "Generating Config"
     Add-Indent
     $config_file = "$script:agent_home\config.yaml"
     Show-ColorText 'Writing config file: ' '' "$config_file" DarkCyan
@@ -485,7 +501,7 @@ new-module -name LogAgentInstall -scriptblock {
 
   # This will create a new agent service.
   function New-AgentService {
-    Show-Header "Configuring Windows Service"
+    Show-Header "Creating Service"
     Add-Indent
     Install-AgentService
     Start-AgentService
@@ -500,7 +516,7 @@ new-module -name LogAgentInstall -scriptblock {
     $service_params = @{
       Name           = "$SERVICE_NAME"
       DisplayName    = "$SERVICE_NAME"
-      BinaryPathName = "$script:binary_location --config $script:agent_home\config.yaml --log_file $script:agent_home\$SERVICE_NAME.log --database $script:agent_home\$SERVICE_NAME.db --plugin_dir $script:agent_home\plugins"
+      BinaryPathName = "$script:binary_location --config $script:agent_home\config.yaml --log_file $script:agent_home\$SERVICE_NAME.log --database $script:agent_home\$SERVICE_NAME.db --plugin_dir $script:plugin_dir"
       Description    = "Monitors and processes logs."
       StartupType    = "Automatic"
     }
@@ -539,9 +555,10 @@ new-module -name LogAgentInstall -scriptblock {
 
   # This will display information about the agent after install.
   function Show-AgentInfo {
-    Show-Header 'Agent Information'
+    Show-Header 'Information'
     Add-Indent
-    Show-ColorText 'Install Path:  ' '' "$script:agent_home" DarkCyan
+    Show-ColorText 'Carbon Home:   ' '' "$script:agent_home" DarkCyan
+    Show-ColorText 'Carbon Config: ' '' "$script:agent_home\config.yaml"
     Show-ColorText 'Start On Boot: ' '' "$script:autostart" DarkCyan
     Show-ColorText 'Start Command: ' '' "$script:startup_cmd" DarkCyan
     Show-ColorText 'Stop Command:  ' '' "$script:shutdown_cmd" DarkCyan
@@ -599,7 +616,7 @@ new-module -name LogAgentInstall -scriptblock {
         Set-InstallVariables
         Set-Permissions
         Assert-CleanInstall
-        Get-AgentBinary
+        Get-CarbonBinary
         New-AgentConfig
         New-AgentService
         Complete-Install
