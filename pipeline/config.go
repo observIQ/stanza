@@ -240,3 +240,39 @@ func (p Params) buildAsCustom(context plugin.BuildContext, namespace string) ([]
 
 	return config.Pipeline, nil
 }
+
+func (p *Params) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var m map[interface{}]interface{}
+	err := unmarshal(&m)
+	if err != nil {
+		return err
+	}
+
+	*p = Params(cleanMap(m))
+	return nil
+}
+
+func cleanMap(m map[interface{}]interface{}) map[string]interface{} {
+	clean := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		clean[fmt.Sprintf("%v", k)] = cleanValue(v)
+	}
+	return clean
+}
+
+func cleanValue(v interface{}) interface{} {
+	switch v := v.(type) {
+	case string, bool, int, int64, int32, float32, float64, nil:
+		return v
+	case map[interface{}]interface{}:
+		return cleanMap(v)
+	case []interface{}:
+		res := make([]interface{}, 0, len(v))
+		for _, arrayVal := range v {
+			res = append(res, cleanValue(arrayVal))
+		}
+		return res
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}

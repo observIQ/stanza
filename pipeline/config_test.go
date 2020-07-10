@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/observiq/carbon/plugin/builtin/transformer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func TestParamsWithID(t *testing.T) {
@@ -420,4 +422,58 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 	_, err = pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "new pipeline")
+}
+
+func TestMultiRoundtripParams(t *testing.T) {
+	cases := []Params{
+		map[string]interface{}{"foo": "bar"},
+		map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+		},
+		map[string]interface{}{
+			"123": map[string]interface{}{
+				"234": "345",
+			},
+		},
+		map[string]interface{}{
+			"array": []string{
+				"foo",
+				"bar",
+			},
+		},
+		map[string]interface{}{
+			"array": []map[string]interface{}{
+				map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		// To YAML
+		marshalledYaml, err := yaml.Marshal(tc)
+		require.NoError(t, err)
+
+		// From YAML
+		var unmarshalledYaml Params
+		err = yaml.Unmarshal(marshalledYaml, &unmarshalledYaml)
+		require.NoError(t, err)
+
+		// To JSON
+		marshalledJson, err := json.Marshal(unmarshalledYaml)
+		require.NoError(t, err)
+
+		// From JSON
+		var unmarshalledJson Params
+		err = json.Unmarshal(marshalledJson, &unmarshalledJson)
+		require.NoError(t, err)
+
+		// Back to YAML
+		marshalledYaml2, err := yaml.Marshal(unmarshalledJson)
+		require.NoError(t, err)
+		require.Equal(t, marshalledYaml, marshalledYaml2)
+	}
 }
