@@ -11,7 +11,7 @@ import (
 	"github.com/observiq/carbon/plugin/helper"
 )
 
-func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
+func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFileSize int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
 	defer messenger.FinishedReading()
 
 	select {
@@ -30,7 +30,9 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 	if err != nil {
 		return err
 	}
+	messenger.SetLastSeenFileSize(stat.Size())
 
+	// Start at the beginning if the file has been truncated
 	if stat.Size() < startOffset {
 		startOffset = 0
 		messenger.SetOffset(0)
@@ -51,6 +53,27 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, messenger fi
 		return
 	}
 	scanner.Split(scanFunc)
+
+	// If we're not at the end of the file, and we haven't
+	// advanced since last cycle, read the rest of the file as an entry
+	defer func() {
+		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
+			_, err := file.Seek(pos, 0)
+			if err != nil {
+				inputPlugin.Errorf("failed to seek to read last log entry")
+				return
+			}
+			msgBuf := make([]byte, stat.Size()-pos)
+			n, err := file.Read(msgBuf)
+			if err != nil {
+				inputPlugin.Errorf("failed to read trailing log")
+				return
+			}
+			e := inputPlugin.NewEntry(string(msgBuf[:n]))
+			inputPlugin.Write(ctx, e)
+			messenger.SetOffset(pos + int64(n))
+		}
+	}()
 
 	for {
 		select {
