@@ -54,5 +54,6 @@ General purpose plugins:
 - [Copy to multiple outputs](/docs/plugins/copy.md)
 - [Router](/docs/plugins/router.md)
 - [Kubernetes Metadata Decorator](/docs/plugins/k8s_metadata_decorator.md)
+- [Rate limit](/docs/plugins/rate_limit.md)
 
 Or create your own [Plugin](/docs/plugins.md) for a technology-specific use case.
