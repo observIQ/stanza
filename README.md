@@ -1,5 +1,6 @@
 [![<observIQ>](https://circleci.com/gh/observIQ/carbon.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/carbon)
 [![codecov](https://codecov.io/gh/observIQ/carbon/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/observIQ/carbon)
+[![Go Report Card](https://goreportcard.com/badge/github.com/observIQ/carbon)](https://goreportcard.com/report/github.com/observIQ/carbon)
 
 # Carbon Log Agent
 
