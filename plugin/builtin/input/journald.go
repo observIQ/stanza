@@ -24,6 +24,7 @@ func init() {
 	plugin.Register("journald_input", &JournaldInputConfig{})
 }
 
+// JournaldInputConfig is the configuration of a journald input plugin
 type JournaldInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
@@ -31,6 +32,7 @@ type JournaldInputConfig struct {
 	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
 }
 
+// Build will build a journald input plugin from the supplied configuration
 func (c JournaldInputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
 	inputPlugin, err := c.InputConfig.Build(buildContext)
 	if err != nil {
@@ -71,6 +73,7 @@ func (c JournaldInputConfig) Build(buildContext plugin.BuildContext) (plugin.Plu
 	return journaldInput, nil
 }
 
+// JournaldInput is a plugin that process logs using journald
 type JournaldInput struct {
 	helper.InputPlugin
 
