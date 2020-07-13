@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -331,6 +332,9 @@ func TestFileSource_MultiFileSimple(t *testing.T) {
 }
 
 func TestFileSource_MoveFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Moving files while open is unsupported on Windows")
+	}
 	t.Parallel()
 	source, logReceived := newTestFileSource(t)
 	tempDir := testutil.NewTempDir(t)
