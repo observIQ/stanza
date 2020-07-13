@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+// NewTempDir will return a new temp directory for testing
 func NewTempDir(t *testing.T) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -24,6 +25,7 @@ func NewTempDir(t *testing.T) string {
 	return tempDir
 }
 
+// NewTestDatabase will return a new database for testing
 func NewTestDatabase(t *testing.T) *bbolt.DB {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -46,6 +48,7 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 	return db
 }
 
+// NewBuildContext will return a new build context for testing
 func NewBuildContext(t *testing.T) plugin.BuildContext {
 	return plugin.BuildContext{
 		Database: NewTestDatabase(t),

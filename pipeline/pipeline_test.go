@@ -21,7 +21,7 @@ func TestUnorderableToCycles(t *testing.T) {
 		mockPlugin2.On("Outputs").Return([]plugin.Plugin{mockPlugin3})
 		mockPlugin3.On("Outputs").Return([]plugin.Plugin{mockPlugin1})
 
-		err := topo.Unorderable([][]graph.Node{[]graph.Node{
+		err := topo.Unorderable([][]graph.Node{{
 			createPluginNode(mockPlugin1),
 			createPluginNode(mockPlugin2),
 			createPluginNode(mockPlugin3),

@@ -6,18 +6,22 @@ import (
 	"time"
 )
 
+// Duration is the representation of a length of time
 type Duration struct {
 	time.Duration
 }
 
+// Raw will return the raw duration, without modification
 func (d *Duration) Raw() time.Duration {
 	return d.Duration
 }
 
+// MarshalJSON will marshal the duration as a json string
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + d.Duration.String() + `"`), nil
 }
 
+// UnmarshalJSON will unmarshal json as a duration
 func (d *Duration) UnmarshalJSON(raw []byte) error {
 	var v interface{}
 	err := json.Unmarshal(raw, &v)
@@ -28,10 +32,12 @@ func (d *Duration) UnmarshalJSON(raw []byte) error {
 	return err
 }
 
+// MarshalYAML will marshal the duration as a yaml string
 func (d Duration) MarshalYAML() (interface{}, error) {
 	return d.Duration.String(), nil
 }
 
+// UnmarshalYAML will unmarshal yaml as a duration
 func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
 	err := unmarshal(&v)

@@ -2,10 +2,12 @@ package entry
 
 import "fmt"
 
+// LabelField is the path to an entry label
 type LabelField struct {
 	key string
 }
 
+// Get will return the label value and a boolean indicating if it exists
 func (l LabelField) Get(entry *Entry) (interface{}, bool) {
 	if entry.Labels == nil {
 		return "", false
@@ -14,6 +16,7 @@ func (l LabelField) Get(entry *Entry) (interface{}, bool) {
 	return val, ok
 }
 
+// Set will set the label value on an entry
 func (l LabelField) Set(entry *Entry, val interface{}) error {
 	if entry.Labels == nil {
 		entry.Labels = make(map[string]string, 1)
@@ -27,6 +30,7 @@ func (l LabelField) Set(entry *Entry, val interface{}) error {
 	return nil
 }
 
+// Delete will delete a label from an entry
 func (l LabelField) Delete(entry *Entry) (interface{}, bool) {
 	if entry.Labels == nil {
 		return "", false
@@ -41,6 +45,7 @@ func (l LabelField) String() string {
 	return "$labels." + l.key
 }
 
+// NewLabelField will creat a new label field from a key
 func NewLabelField(key string) Field {
 	return Field{LabelField{key}}
 }

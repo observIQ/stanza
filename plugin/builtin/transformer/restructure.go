@@ -17,12 +17,14 @@ func init() {
 	plugin.Register("restructure", &RestructurePluginConfig{})
 }
 
+// RestructurePluginConfig is the configuration of a restructure plugin
 type RestructurePluginConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
 	Ops []Op `json:"ops" yaml:"ops"`
 }
 
+// Build will build a restructure plugin from the supplied configuration
 func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
@@ -37,6 +39,7 @@ func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plug
 	return restructurePlugin, nil
 }
 
+// RestructurePlugin is a plugin that can restructure incoming entries using operations
 type RestructurePlugin struct {
 	helper.TransformerPlugin
 	ops []Op
@@ -62,15 +65,18 @@ func (p *RestructurePlugin) Transform(entry *entry.Entry) (*entry.Entry, error) 
   Op Definitions
 *****************/
 
+// Op is a designated operation on an entry
 type Op struct {
 	OpApplier
 }
 
+// OpApplier is an entity that applies an operation
 type OpApplier interface {
 	Apply(entry *entry.Entry) error
 	Type() string
 }
 
+// UnmarshalJSON will unmarshal JSON into an operation
 func (o *Op) UnmarshalJSON(raw []byte) error {
 	var typeDecoder map[string]rawMessage
 	err := json.Unmarshal(raw, &typeDecoder)
@@ -81,6 +87,7 @@ func (o *Op) UnmarshalJSON(raw []byte) error {
 	return o.unmarshalDecodedType(typeDecoder)
 }
 
+// UnmarshalYAML will unmarshal YAML into an operation
 func (o *Op) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var typeDecoder map[string]rawMessage
 	err := unmarshal(&typeDecoder)
@@ -130,56 +137,50 @@ func (o *Op) unmarshalDecodedType(typeDecoder map[string]rawMessage) error {
 		return fmt.Errorf("op fields cannot be empty")
 	}
 
-	var err error
-	switch opType {
-	case "move":
-		var move OpMove
-		err = rawMessage.Unmarshal(&move)
-		if err != nil {
-			return err
-		}
-		o.OpApplier = &move
-	case "add":
-		var add OpAdd
-		err = rawMessage.Unmarshal(&add)
-		if err != nil {
-			return err
-		}
-		o.OpApplier = &add
-	case "remove":
-		var remove OpRemove
-		err = rawMessage.Unmarshal(&remove)
-		if err != nil {
-			return err
-		}
-		o.OpApplier = &remove
-	case "retain":
-		var retain OpRetain
-		err = rawMessage.Unmarshal(&retain)
-		if err != nil {
-			return err
-		}
-		o.OpApplier = &retain
-	case "flatten":
-		var flatten OpFlatten
-		err = rawMessage.Unmarshal(&flatten)
-		if err != nil {
-			return err
-		}
-		o.OpApplier = &flatten
-	default:
-		return fmt.Errorf("unknown op type '%s'", opType)
+	opApplier, err := o.getOpApplier(opType, rawMessage)
+	if err != nil {
+		return err
 	}
 
+	o.OpApplier = opApplier
 	return nil
 }
 
+func (o *Op) getOpApplier(opType string, rawMessage rawMessage) (OpApplier, error) {
+	switch opType {
+	case "move":
+		var move OpMove
+		err := rawMessage.Unmarshal(&move)
+		return &move, err
+	case "add":
+		var add OpAdd
+		err := rawMessage.Unmarshal(&add)
+		return &add, err
+	case "remove":
+		var remove OpRemove
+		err := rawMessage.Unmarshal(&remove)
+		return &remove, err
+	case "retain":
+		var retain OpRetain
+		err := rawMessage.Unmarshal(&retain)
+		return &retain, err
+	case "flatten":
+		var flatten OpFlatten
+		err := rawMessage.Unmarshal(&flatten)
+		return &flatten, err
+	default:
+		return nil, fmt.Errorf("unknown op type '%s'", opType)
+	}
+}
+
+// MarshalJSON will marshal an operation as JSON
 func (o Op) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		o.Type(): o.OpApplier,
 	})
 }
 
+// MarshalYAML will marshal an operation as YAML
 func (o Op) MarshalYAML() (interface{}, error) {
 	return map[string]interface{}{
 		o.Type(): o.OpApplier,
@@ -190,6 +191,7 @@ func (o Op) MarshalYAML() (interface{}, error) {
   Add
 *******/
 
+// OpAdd is an operation for adding fields to an entry
 type OpAdd struct {
 	Field     entry.Field `json:"field" yaml:"field"`
 	Value     interface{} `json:"value,omitempty" yaml:"value,omitempty"`
@@ -197,6 +199,7 @@ type OpAdd struct {
 	ValueExpr *string `json:"value_expr,omitempty" yaml:"value_expr,omitempty"`
 }
 
+// Apply will perform the add operation on an entry
 func (op *OpAdd) Apply(e *entry.Entry) error {
 	switch {
 	case op.Value != nil:
@@ -224,6 +227,7 @@ func (op *OpAdd) Apply(e *entry.Entry) error {
 	return nil
 }
 
+// Type will return the type of operation
 func (op *OpAdd) Type() string {
 	return "add"
 }
@@ -234,6 +238,7 @@ type opAddRaw struct {
 	ValueExpr *string      `json:"value_expr" yaml:"value_expr"`
 }
 
+// UnmarshalJSON will unmarshal JSON into the add operation
 func (op *OpAdd) UnmarshalJSON(raw []byte) error {
 	var addRaw opAddRaw
 	err := json.Unmarshal(raw, &addRaw)
@@ -244,6 +249,7 @@ func (op *OpAdd) UnmarshalJSON(raw []byte) error {
 	return op.unmarshalFromOpAddRaw(addRaw)
 }
 
+// UnmarshalYAML will unmarshal YAML into the add operation
 func (op *OpAdd) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var addRaw opAddRaw
 	err := unmarshal(&addRaw)
@@ -284,31 +290,38 @@ func (op *OpAdd) unmarshalFromOpAddRaw(addRaw opAddRaw) error {
   Remove
 *********/
 
+// OpRemove is operation for removing fields from an entry
 type OpRemove struct {
 	Field entry.Field
 }
 
+// Apply will perform the remove operation on an entry
 func (op *OpRemove) Apply(e *entry.Entry) error {
 	e.Delete(op.Field)
 	return nil
 }
 
+// Type will return the type of operation
 func (op *OpRemove) Type() string {
 	return "remove"
 }
 
+// UnmarshalJSON will unmarshal JSON into a remove operation
 func (op *OpRemove) UnmarshalJSON(raw []byte) error {
 	return json.Unmarshal(raw, &op.Field)
 }
 
+// UnmarshalYAML will unmarshal YAML into a remove operation
 func (op *OpRemove) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return unmarshal(&op.Field)
 }
 
+// MarshalJSON will marshal a remove operation into JSON
 func (op OpRemove) MarshalJSON() ([]byte, error) {
 	return json.Marshal(op.Field)
 }
 
+// MarshalYAML will marshal a remove operation into YAML
 func (op OpRemove) MarshalYAML() (interface{}, error) {
 	return op.Field.String(), nil
 }
@@ -317,10 +330,12 @@ func (op OpRemove) MarshalYAML() (interface{}, error) {
   Retain
 *********/
 
+// OpRetain is an operation for retaining fields
 type OpRetain struct {
 	Fields []entry.Field
 }
 
+// Apply will perform the retain operation on an entry
 func (op *OpRetain) Apply(e *entry.Entry) error {
 	newEntry := entry.New()
 	newEntry.Timestamp = e.Timestamp
@@ -338,22 +353,27 @@ func (op *OpRetain) Apply(e *entry.Entry) error {
 	return nil
 }
 
+// Type will return the type of operation
 func (op *OpRetain) Type() string {
 	return "retain"
 }
 
+// UnmarshalJSON will unmarshal JSON into a retain operation
 func (op *OpRetain) UnmarshalJSON(raw []byte) error {
 	return json.Unmarshal(raw, &op.Fields)
 }
 
+// UnmarshalYAML will unmarshal YAML into a retain operation
 func (op *OpRetain) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return unmarshal(&op.Fields)
 }
 
+// MarshalJSON will marshal a retain operation into JSON
 func (op OpRetain) MarshalJSON() ([]byte, error) {
 	return json.Marshal(op.Fields)
 }
 
+// MarshalYAML will marshal a retain operation into YAML
 func (op OpRetain) MarshalYAML() (interface{}, error) {
 	return op.Fields, nil
 }
@@ -362,11 +382,13 @@ func (op OpRetain) MarshalYAML() (interface{}, error) {
   Move
 *******/
 
+// OpMove is an operation for moving entry fields
 type OpMove struct {
 	From entry.Field `json:"from" yaml:"from,flow"`
 	To   entry.Field `json:"to" yaml:"to,flow"`
 }
 
+// Apply will perform the move operation on an entry
 func (op *OpMove) Apply(e *entry.Entry) error {
 	val, ok := e.Delete(op.From)
 	if !ok {
@@ -376,6 +398,7 @@ func (op *OpMove) Apply(e *entry.Entry) error {
 	return e.Set(op.To, val)
 }
 
+// Type will return the type of operation
 func (op *OpMove) Type() string {
 	return "move"
 }
@@ -384,10 +407,12 @@ func (op *OpMove) Type() string {
   Flatten
 **********/
 
+// OpFlatten is an operation for flattening fields
 type OpFlatten struct {
 	Field entry.RecordField
 }
 
+// Apply will perform the flatten operation on an entry
 func (op *OpFlatten) Apply(e *entry.Entry) error {
 	parent := op.Field.Parent()
 	val, ok := e.Delete(op.Field)
@@ -415,22 +440,27 @@ func (op *OpFlatten) Apply(e *entry.Entry) error {
 	return nil
 }
 
+// Type will return the type of operation
 func (op *OpFlatten) Type() string {
 	return "flatten"
 }
 
+// UnmarshalJSON will unmarshal JSON into a flatten operation
 func (op *OpFlatten) UnmarshalJSON(raw []byte) error {
 	return json.Unmarshal(raw, &op.Field)
 }
 
+// UnmarshalYAML will unmarshal YAML into a flatten operation
 func (op *OpFlatten) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return unmarshal(&op.Field)
 }
 
+// MarshalJSON will marshal a flatten operation into JSON
 func (op OpFlatten) MarshalJSON() ([]byte, error) {
 	return json.Marshal(op.Field)
 }
 
+// MarshalYAML will marshal a flatten operation into YAML
 func (op OpFlatten) MarshalYAML() (interface{}, error) {
 	return op.Field.String(), nil
 }

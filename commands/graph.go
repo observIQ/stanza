@@ -11,10 +11,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// GraphFlags are the flags that can be supplied when running the graph command
 type GraphFlags struct {
 	*RootFlags
 }
 
+// NewGraphCommand creates a command for printing the pipeline as a graph
 func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "graph",

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	// This package registers its HTTP endpoints for profiling using an init hook
 	_ "net/http/pprof"
 	"os"
 	"runtime"
@@ -18,6 +20,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// RootFlags are the root level flags that be provided when invoking carbon from the command line
 type RootFlags struct {
 	DatabaseFile       string
 	ConfigFiles        []string
@@ -32,6 +35,7 @@ type RootFlags struct {
 	Debug   bool
 }
 
+// NewRootCmd will return a root level command
 func NewRootCmd() *cobra.Command {
 	rootFlags := &RootFlags{}
 
@@ -94,7 +98,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 
 	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir, flags.DatabaseFile)
 	ctx, cancel := context.WithCancel(command.Context())
-	service, err := newAgentService(agent, ctx, cancel)
+	service, err := newAgentService(ctx, agent, cancel)
 	if err != nil {
 		logger.Errorf("Failed to create agent service", zap.Any("error", err))
 		os.Exit(1)

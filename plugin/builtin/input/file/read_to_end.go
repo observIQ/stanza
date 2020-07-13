@@ -11,6 +11,7 @@ import (
 	"github.com/observiq/carbon/plugin/helper"
 )
 
+// ReadToEnd will read entries from a file and send them to the outputs of an input plugin
 func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFileSize int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
 	defer messenger.FinishedReading()
 
@@ -58,20 +59,7 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 	// advanced since last cycle, read the rest of the file as an entry
 	defer func() {
 		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
-			_, err := file.Seek(pos, 0)
-			if err != nil {
-				inputPlugin.Errorf("failed to seek to read last log entry")
-				return
-			}
-			msgBuf := make([]byte, stat.Size()-pos)
-			n, err := file.Read(msgBuf)
-			if err != nil {
-				inputPlugin.Errorf("failed to read trailing log")
-				return
-			}
-			e := inputPlugin.NewEntry(string(msgBuf[:n]))
-			inputPlugin.Write(ctx, e)
-			messenger.SetOffset(pos + int64(n))
+			readRemaining(ctx, file, pos, stat.Size(), messenger, inputPlugin)
 		}
 	}()
 
@@ -86,20 +74,33 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 		if !ok {
 			if err := scanner.Err(); err == bufio.ErrTooLong {
 				return errors.NewError("log entry too large", "increase max_log_size or ensure that multiline regex patterns terminate")
-			} else {
-				return scanner.Err()
 			}
+			return scanner.Err()
 		}
 
 		message := scanner.Text()
-
-		entry := entry.New()
-		entry.Set(inputPlugin.WriteTo, message)
-		if pathField != nil {
-			entry.Set(*pathField, path)
-		}
-
-		inputPlugin.Write(ctx, entry)
+		e := inputPlugin.NewEntry(message)
+		inputPlugin.Write(ctx, e)
 		messenger.SetOffset(pos)
 	}
+}
+
+// readRemaining will read the remaining characters in a file as a log entry.
+func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin) {
+	_, err := file.Seek(filePos, 0)
+	if err != nil {
+		inputPlugin.Errorf("failed to seek to read last log entry")
+		return
+	}
+
+	msgBuf := make([]byte, fileSize-filePos)
+	n, err := file.Read(msgBuf)
+	if err != nil {
+		inputPlugin.Errorf("failed to read trailing log")
+		return
+	}
+
+	e := inputPlugin.NewEntry(string(msgBuf[:n]))
+	inputPlugin.Write(ctx, e)
+	messenger.SetOffset(filePos + int64(n))
 }

@@ -13,6 +13,7 @@ func init() {
 	plugin.Register("metadata", &MetadataPluginConfig{})
 }
 
+// MetadataPluginConfig is the configuration of a metadata plugin
 type MetadataPluginConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
@@ -20,6 +21,7 @@ type MetadataPluginConfig struct {
 	Tags   []helper.ExprStringConfig          `json:"tags"   yaml:"tags"`
 }
 
+// Build will build a metadata plugin from the supplied configuration
 func (c MetadataPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
@@ -45,6 +47,7 @@ func (c MetadataPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin,
 	return restructurePlugin, nil
 }
 
+// MetadataPlugin is a plugin that can add metadata to incoming entries
 type MetadataPlugin struct {
 	helper.TransformerPlugin
 	labeler *labeler
@@ -75,6 +78,7 @@ type labeler struct {
 	labels map[string]*helper.ExprString
 }
 
+// Label will add a label to an entry
 func (l *labeler) Label(e *entry.Entry) error {
 	env := helper.GetExprEnv(e)
 	defer helper.PutExprEnv(env)
@@ -109,6 +113,7 @@ type tagger struct {
 	tags []*helper.ExprString
 }
 
+// Tag wil add a tag to an entry
 func (t *tagger) Tag(e *entry.Entry) error {
 	env := helper.GetExprEnv(e)
 	defer helper.PutExprEnv(env)

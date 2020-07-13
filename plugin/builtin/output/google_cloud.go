@@ -31,7 +31,7 @@ func init() {
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
 type GoogleCloudOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
-	buffer.BufferConfig `json:"buffer,omitempty" yaml:"buffer,omitempty"`
+	BufferConfig        buffer.Config `json:"buffer,omitempty" yaml:"buffer,omitempty"`
 
 	Credentials     string          `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
 	CredentialsFile string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
@@ -99,6 +99,7 @@ type GoogleCloudOutput struct {
 	timeout time.Duration
 }
 
+// CloudLoggingClient is a client that writes entries to google cloud logging
 type CloudLoggingClient interface {
 	Close() error
 	WriteLogEntries(context.Context, *logpb.WriteLogEntriesRequest, ...gax.CallOption) (*logpb.WriteLogEntriesResponse, error)
@@ -169,6 +170,7 @@ func (p *GoogleCloudOutput) Stop() error {
 	return p.client.Close()
 }
 
+// ProcessMulti will process multiple log entries and send them in batch to google cloud logging.
 func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
 	pbEntries := make([]*logpb.LogEntry, 0, len(entries))
 	for _, entry := range entries {

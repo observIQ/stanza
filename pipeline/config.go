@@ -241,6 +241,7 @@ func (p Params) buildAsCustom(context plugin.BuildContext, namespace string) ([]
 	return config.Pipeline, nil
 }
 
+// UnmarshalYAML will unmarshal yaml bytes into Params
 func (p *Params) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var m map[interface{}]interface{}
 	err := unmarshal(&m)

@@ -24,7 +24,7 @@ func init() {
 // ElasticOutputConfig is the configuration of an elasticsearch output plugin.
 type ElasticOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
-	buffer.BufferConfig `json:"buffer" yaml:"buffer"`
+	BufferConfig        buffer.Config `json:"buffer" yaml:"buffer"`
 
 	Addresses  []string     `json:"addresses"             yaml:"addresses,flow"`
 	Username   string       `json:"username"              yaml:"username"`
@@ -87,7 +87,7 @@ type ElasticOutput struct {
 	idField    *entry.Field
 }
 
-// Process will send entries to elasticsearch.
+// ProcessMulti will send entries to elasticsearch.
 func (e *ElasticOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
 	type indexDirective struct {
 		Index struct {

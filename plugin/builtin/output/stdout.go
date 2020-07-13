@@ -12,6 +12,7 @@ import (
 	"github.com/observiq/carbon/plugin/helper"
 )
 
+// Stdout is a global handle to standard output
 var Stdout io.Writer = os.Stdout
 
 func init() {

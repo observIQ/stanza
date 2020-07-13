@@ -445,7 +445,7 @@ func TestMultiRoundtripParams(t *testing.T) {
 		},
 		map[string]interface{}{
 			"array": []map[string]interface{}{
-				map[string]interface{}{
+				{
 					"foo": "bar",
 				},
 			},

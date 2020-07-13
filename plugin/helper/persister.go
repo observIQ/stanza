@@ -7,6 +7,7 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+// Persister is a helper used to persist data
 type Persister interface {
 	Get(string) []byte
 	Set(string, []byte)
@@ -14,6 +15,7 @@ type Persister interface {
 	Load() error
 }
 
+// ScopedBBoltPersister is a persister that uses a database for the backend
 type ScopedBBoltPersister struct {
 	scope    []byte
 	db       plugin.Database
@@ -21,6 +23,7 @@ type ScopedBBoltPersister struct {
 	cacheMux sync.Mutex
 }
 
+// NewScopedDBPersister returns a new ScopedBBoltPersister
 func NewScopedDBPersister(db plugin.Database, scope string) *ScopedBBoltPersister {
 	return &ScopedBBoltPersister{
 		scope: []byte(scope),
@@ -29,7 +32,7 @@ func NewScopedDBPersister(db plugin.Database, scope string) *ScopedBBoltPersiste
 	}
 }
 
-// Set retrieves a key from the cache
+// Get retrieves a key from the cache
 func (p *ScopedBBoltPersister) Get(key string) []byte {
 	p.cacheMux.Lock()
 	defer p.cacheMux.Unlock()
@@ -43,6 +46,7 @@ func (p *ScopedBBoltPersister) Set(key string, val []byte) {
 	p.cacheMux.Unlock()
 }
 
+// OffsetsBucket is the scope provided to offset persistence
 var OffsetsBucket = []byte(`offsets`)
 
 // Sync saves the cache to the backend, ensuring values are

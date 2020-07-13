@@ -21,28 +21,31 @@ import (
 )
 
 func init() {
-	plugin.Register("file_input", &FileInputConfig{})
+	plugin.Register("file_input", &InputConfig{})
 }
 
-type FileInputConfig struct {
+// InputConfig is the configuration of a file input plugin
+type InputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
 	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
 	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
 
-	PollInterval *plugin.Duration           `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
-	Multiline    *FileSourceMultilineConfig `json:"multiline,omitempty"     yaml:"multiline,omitempty"`
-	PathField    *entry.Field               `json:"path_field,omitempty"    yaml:"path_field,omitempty"`
-	StartAt      string                     `json:"start_at,omitempty"      yaml:"start_at,omitempty"`
-	MaxLogSize   int                        `json:"max_log_size,omitempty"  yaml:"max_log_size,omitempty"`
+	PollInterval *plugin.Duration `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
+	Multiline    *MultilineConfig `json:"multiline,omitempty"     yaml:"multiline,omitempty"`
+	PathField    *entry.Field     `json:"path_field,omitempty"    yaml:"path_field,omitempty"`
+	StartAt      string           `json:"start_at,omitempty"      yaml:"start_at,omitempty"`
+	MaxLogSize   int              `json:"max_log_size,omitempty"  yaml:"max_log_size,omitempty"`
 }
 
-type FileSourceMultilineConfig struct {
+// MultilineConfig is the configuration a multiline operation
+type MultilineConfig struct {
 	LineStartPattern string `json:"line_start_pattern" yaml:"line_start_pattern"`
 	LineEndPattern   string `json:"line_end_pattern"   yaml:"line_end_pattern"`
 }
 
-func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+// Build will build a file input plugin from the supplied configuration
+func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	inputPlugin, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -68,7 +71,53 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		}
 	}
 
-	// Determine the split function for log entries
+	splitFunc, err := c.getSplitFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	var pollInterval time.Duration
+	if c.PollInterval == nil {
+		pollInterval = 200 * time.Millisecond
+	} else {
+		pollInterval = c.PollInterval.Raw()
+	}
+
+	var startAtBeginning bool
+	switch c.StartAt {
+	case "beginning":
+		startAtBeginning = true
+	case "end", "":
+		startAtBeginning = false
+	default:
+		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
+	}
+
+	plugin := &InputPlugin{
+		InputPlugin:      inputPlugin,
+		Include:          c.Include,
+		Exclude:          c.Exclude,
+		SplitFunc:        splitFunc,
+		PollInterval:     pollInterval,
+		persist:          helper.NewScopedDBPersister(context.Database, c.ID()),
+		PathField:        c.PathField,
+		runningFiles:     make(map[string]struct{}),
+		fileUpdateChan:   make(chan fileUpdateMessage, 10),
+		fingerprintBytes: 1000,
+		startAtBeginning: startAtBeginning,
+	}
+
+	if c.MaxLogSize == 0 {
+		plugin.MaxLogSize = 1024 * 1024
+	} else {
+		plugin.MaxLogSize = c.MaxLogSize
+	}
+
+	return plugin, nil
+}
+
+// getSplitFunc will return the split function associated the configured mode.
+func (c InputConfig) getSplitFunc() (bufio.SplitFunc, error) {
 	var splitFunc bufio.SplitFunc
 	if c.Multiline == nil {
 		splitFunc = NewNewlineSplitFunc()
@@ -93,48 +142,11 @@ func (c FileInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 			splitFunc = NewLineStartSplitFunc(re)
 		}
 	}
-
-	var pollInterval time.Duration
-	if c.PollInterval == nil {
-		pollInterval = 200 * time.Millisecond
-	} else {
-		pollInterval = c.PollInterval.Raw()
-	}
-
-	var startAtBeginning bool
-	switch c.StartAt {
-	case "beginning":
-		startAtBeginning = true
-	case "end", "":
-		startAtBeginning = false
-	default:
-		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
-	}
-
-	plugin := &FileInput{
-		InputPlugin:      inputPlugin,
-		Include:          c.Include,
-		Exclude:          c.Exclude,
-		SplitFunc:        splitFunc,
-		PollInterval:     pollInterval,
-		persist:          helper.NewScopedDBPersister(context.Database, c.ID()),
-		PathField:        c.PathField,
-		runningFiles:     make(map[string]struct{}),
-		fileUpdateChan:   make(chan fileUpdateMessage, 10),
-		fingerprintBytes: 1000,
-		startAtBeginning: startAtBeginning,
-	}
-
-	if c.MaxLogSize == 0 {
-		plugin.MaxLogSize = 1024 * 1024
-	} else {
-		plugin.MaxLogSize = c.MaxLogSize
-	}
-
-	return plugin, nil
+	return splitFunc, nil
 }
 
-type FileInput struct {
+// InputPlugin is a plugin that monitors files for entries
+type InputPlugin struct {
 	helper.InputPlugin
 
 	Include      []string
@@ -158,7 +170,8 @@ type FileInput struct {
 	cancel   context.CancelFunc
 }
 
-func (f *FileInput) Start() error {
+// Start will start the file monitoring process
+func (f *InputPlugin) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
 	f.wg = &sync.WaitGroup{}
@@ -208,7 +221,8 @@ func (f *FileInput) Start() error {
 	return nil
 }
 
-func (f *FileInput) Stop() error {
+// Stop will stop the file monitoring process
+func (f *InputPlugin) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.syncKnownFiles()
@@ -221,7 +235,7 @@ func (f *FileInput) Stop() error {
 // firstCheck indicates whether this is the first time checkFile has been called
 // after startup. This is important for the start_at parameter because, after initial
 // startup, we don't want to start at the end of newly-created files.
-func (f *FileInput) checkFile(ctx context.Context, path string, firstCheck bool) {
+func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck bool) {
 
 	// Check if the file is currently being read
 	if _, ok := f.runningFiles[path]; ok {
@@ -263,7 +277,7 @@ func (f *FileInput) checkFile(ctx context.Context, path string, firstCheck bool)
 	}(ctx, path, knownFile.Offset, knownFile.LastSeenFileSize)
 }
 
-func (f *FileInput) updateFile(message fileUpdateMessage) {
+func (f *InputPlugin) updateFile(message fileUpdateMessage) {
 	if message.finished {
 		delete(f.runningFiles, message.path)
 		return
@@ -327,7 +341,7 @@ func (f *FileInput) updateFile(message fileUpdateMessage) {
 	knownFile.Offset = message.newOffset
 }
 
-func (f *FileInput) drainMessages() {
+func (f *InputPlugin) drainMessages() {
 	done := make(chan struct{})
 	go func() {
 		f.readerWg.Wait()
@@ -346,7 +360,7 @@ func (f *FileInput) drainMessages() {
 
 var knownFilesKey = "knownFiles"
 
-func (f *FileInput) syncKnownFiles() {
+func (f *InputPlugin) syncKnownFiles() {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(f.knownFiles)
@@ -359,7 +373,7 @@ func (f *FileInput) syncKnownFiles() {
 	f.persist.Sync()
 }
 
-func (f *FileInput) readKnownFiles() (map[string]*knownFileInfo, error) {
+func (f *InputPlugin) readKnownFiles() (map[string]*knownFileInfo, error) {
 	err := f.persist.Load()
 	if err != nil {
 		return nil, err
@@ -381,7 +395,7 @@ func (f *FileInput) readKnownFiles() (map[string]*knownFileInfo, error) {
 	return knownFiles, nil
 }
 
-func (f *FileInput) newFileUpdateMessenger(path string) fileUpdateMessenger {
+func (f *InputPlugin) newFileUpdateMessenger(path string) fileUpdateMessenger {
 	return fileUpdateMessenger{
 		path: path,
 		c:    f.fileUpdateChan,

@@ -33,7 +33,7 @@ func (b *bufferHandler) Logger() *zap.SugaredLogger {
 }
 
 func TestBuffer(t *testing.T) {
-	config := &BufferConfig{}
+	config := &Config{}
 	config.setDefaults()
 	config.DelayThreshold = plugin.Duration{
 		Duration: 100 * time.Millisecond,
@@ -71,16 +71,16 @@ func TestBuffer(t *testing.T) {
 func TestBufferSerializationRoundtrip(t *testing.T) {
 	cases := []struct {
 		name   string
-		config BufferConfig
+		config Config
 	}{
 		{
 			"zeros",
-			BufferConfig{},
+			Config{},
 		},
 		{
 			"defaults",
-			func() BufferConfig {
-				config := BufferConfig{}
+			func() Config {
+				config := Config{}
 				config.setDefaults()
 				return config
 			}(),
@@ -92,7 +92,7 @@ func TestBufferSerializationRoundtrip(t *testing.T) {
 			cfgBytes, err := yaml.Marshal(tc.config)
 			require.NoError(t, err)
 
-			var cfg BufferConfig
+			var cfg Config
 			err = yaml.UnmarshalStrict(cfgBytes, &cfg)
 			require.NoError(t, err)
 
@@ -104,7 +104,7 @@ func TestBufferSerializationRoundtrip(t *testing.T) {
 			cfgBytes, err := json.Marshal(tc.config)
 			require.NoError(t, err)
 
-			var cfg BufferConfig
+			var cfg Config
 			err = json.Unmarshal(cfgBytes, &cfg)
 			require.NoError(t, err)
 

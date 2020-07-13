@@ -21,6 +21,7 @@ func New() *Entry {
 	}
 }
 
+// AddLabel will add a key/value pair to the entry's labels.
 func (entry *Entry) AddLabel(key, value string) {
 	if entry.Labels == nil {
 		entry.Labels = make(map[string]string)
@@ -28,72 +29,115 @@ func (entry *Entry) AddLabel(key, value string) {
 	entry.Labels[key] = value
 }
 
+// Get will return the value of a field on the entry, including a boolean indicating if the field exists.
 func (entry *Entry) Get(field FieldInterface) (interface{}, bool) {
 	return field.Get(entry)
 }
 
+// Set will set the value of a field on the entry.
 func (entry *Entry) Set(field FieldInterface, val interface{}) error {
 	return field.Set(entry, val)
 }
 
+// Delete will delete a field from the entry.
 func (entry *Entry) Delete(field FieldInterface) (interface{}, bool) {
 	return field.Delete(entry)
 }
 
+// Read will read the value of a field into a designated interface.
 func (entry *Entry) Read(field FieldInterface, dest interface{}) error {
-	val, ok := entry.Get(field)
-	if !ok {
-		return fmt.Errorf("field does not exist")
-	}
-
 	switch dest := dest.(type) {
 	case *string:
-		switch typed := val.(type) {
-		case string:
-			*dest = typed
-		case []byte:
-			*dest = string(typed)
-		default:
-			return fmt.Errorf("can not cast field '%s' of type '%T' to string", field, val)
-		}
+		return entry.readToString(field, dest)
 	case *map[string]interface{}:
-		if m, ok := val.(map[string]interface{}); ok {
-			*dest = m
-		} else {
-			return fmt.Errorf("can not cast field '%s' of type '%T' to map[string]interface{}", field, val)
-		}
+		return entry.readToInterfaceMap(field, dest)
 	case *map[string]string:
-		switch m := val.(type) {
-		case map[string]interface{}:
-			newDest := make(map[string]string)
-			for k, v := range m {
-				if vStr, ok := v.(string); ok {
-					newDest[k] = vStr
-				} else {
-					return fmt.Errorf("can not cast map members '%s' of type '%s' to string", k, v)
-				}
-			}
-			*dest = newDest
-		case map[interface{}]interface{}:
-			newDest := make(map[string]string)
-			for k, v := range m {
-				kStr, ok := k.(string)
-				if !ok {
-					return fmt.Errorf("can not cast map key of type '%T' to string", k)
-				}
-				vStr, ok := v.(string)
-				if !ok {
-					return fmt.Errorf("can not cast map value of type '%T' to string", v)
-				}
-				newDest[kStr] = vStr
-			}
-			*dest = newDest
-		}
-
+		return entry.readToStringMap(field, dest)
 	case *interface{}:
-		*dest = val
+		return entry.readToInterface(field, dest)
 	default:
 		return fmt.Errorf("can not read to unsupported type '%T'", dest)
+	}
+}
+
+// readToInterface reads a field to a designated interface pointer.
+func (entry *Entry) readToInterface(field FieldInterface, dest *interface{}) error {
+	val, ok := entry.Get(field)
+	if !ok {
+		return fmt.Errorf("field '%s' is missing and can not be read as a interface{}", field)
+	}
+
+	*dest = val
+	return nil
+}
+
+// readToString reads a field to a designated string pointer.
+func (entry *Entry) readToString(field FieldInterface, dest *string) error {
+	val, ok := entry.Get(field)
+	if !ok {
+		return fmt.Errorf("field '%s' is missing and can not be read as a string", field)
+	}
+
+	switch typed := val.(type) {
+	case string:
+		*dest = typed
+	case []byte:
+		*dest = string(typed)
+	default:
+		return fmt.Errorf("field '%s' of type '%T' can not be cast to a string", field, val)
+	}
+
+	return nil
+}
+
+// readToInterfaceMap reads a field to a designated map interface pointer.
+func (entry *Entry) readToInterfaceMap(field FieldInterface, dest *map[string]interface{}) error {
+	val, ok := entry.Get(field)
+	if !ok {
+		return fmt.Errorf("field '%s' is missing and can not be read as a map[string]interface{}", field)
+	}
+
+	if m, ok := val.(map[string]interface{}); ok {
+		*dest = m
+	} else {
+		return fmt.Errorf("field '%s' of type '%T' can not be cast to a map[string]interface{}", field, val)
+	}
+
+	return nil
+}
+
+// readToStringMap reads a field to a designated map string pointer.
+func (entry *Entry) readToStringMap(field FieldInterface, dest *map[string]string) error {
+	val, ok := entry.Get(field)
+	if !ok {
+		return fmt.Errorf("field '%s' is missing and can not be read as a map[string]string{}", field)
+	}
+
+	switch m := val.(type) {
+	case map[string]interface{}:
+		newDest := make(map[string]string)
+		for k, v := range m {
+			if vStr, ok := v.(string); ok {
+				newDest[k] = vStr
+			} else {
+				return fmt.Errorf("can not cast map members '%s' of type '%s' to string", k, v)
+			}
+		}
+		*dest = newDest
+	case map[interface{}]interface{}:
+		newDest := make(map[string]string)
+		for k, v := range m {
+			kStr, ok := k.(string)
+			if !ok {
+				return fmt.Errorf("can not cast map key of type '%T' to string", k)
+			}
+			vStr, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("can not cast map value of type '%T' to string", v)
+			}
+			newDest[kStr] = vStr
+		}
+		*dest = newDest
 	}
 
 	return nil
