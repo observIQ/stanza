@@ -18,6 +18,7 @@ func init() {
 	plugin.Register("k8s_metadata_decorator", &K8sMetadataDecoratorConfig{})
 }
 
+// K8sMetadataDecoratorConfig is the configuration of k8s_metadata_decorator plugin
 type K8sMetadataDecoratorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 	PodNameField             *entry.Field    `json:"pod_name_field,omitempty"  yaml:"pod_name_field,omitempty"`
@@ -25,6 +26,7 @@ type K8sMetadataDecoratorConfig struct {
 	CacheTTL                 plugin.Duration `json:"cache_ttl,omitempty"       yaml:"cache_ttl,omitempty"`
 }
 
+// Build will build a k8s_metadata_decorator plugin from the supplied configuration
 func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	transformer, err := c.TransformerConfig.Build(context)
 	if err != nil {
@@ -49,10 +51,11 @@ func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.P
 		TransformerPlugin: transformer,
 		podNameField:      *c.PodNameField,
 		namespaceField:    *c.NamespaceField,
-		cache_ttl:         c.CacheTTL.Raw(),
+		cacheTTL:          c.CacheTTL.Raw(),
 	}, nil
 }
 
+// K8sMetadataDecorator is a plugin for decorating entries with kubernetes metadata
 type K8sMetadataDecorator struct {
 	helper.TransformerPlugin
 	podNameField   entry.Field
@@ -62,32 +65,36 @@ type K8sMetadataDecorator struct {
 
 	namespaceCache MetadataCache
 	podCache       MetadataCache
-	cache_ttl      time.Duration
+	cacheTTL       time.Duration
 }
 
+// MetadataCacheEntry is an entry in the metadata cache
 type MetadataCacheEntry struct {
 	ExpirationTime time.Time
 	Labels         map[string]string
 	Annotations    map[string]string
 }
 
+// MetadataCache is a cache of kubernetes metadata
 type MetadataCache struct {
 	m sync.Map
 }
 
+// Load will return an entry stored in the metadata cache
 func (m *MetadataCache) Load(key string) (MetadataCacheEntry, bool) {
 	entry, ok := m.m.Load(key)
 	if ok {
 		return entry.(MetadataCacheEntry), ok
-	} else {
-		return MetadataCacheEntry{}, ok
 	}
+	return MetadataCacheEntry{}, ok
 }
 
+// Store will store an entry in the metadata cache
 func (m *MetadataCache) Store(key string, entry MetadataCacheEntry) {
 	m.m.Store(key, entry)
 }
 
+// Start will start the k8s_metadata_decorator plugin
 func (k *K8sMetadataDecorator) Start() error {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -124,6 +131,7 @@ func (k *K8sMetadataDecorator) Start() error {
 	return nil
 }
 
+// Process will process an entry received by the k8s_metadata_decorator plugin
 func (k *K8sMetadataDecorator) Process(ctx context.Context, entry *entry.Entry) error {
 	var podName string
 	err := entry.Read(k.podNameField, &podName)
@@ -191,7 +199,7 @@ func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, nam
 
 	// Cache the results
 	cacheEntry := MetadataCacheEntry{
-		ExpirationTime: time.Now().Add(k.cache_ttl),
+		ExpirationTime: time.Now().Add(k.cacheTTL),
 		Labels:         namespaceResponse.Labels,
 		Annotations:    namespaceResponse.Annotations,
 	}
@@ -222,7 +230,7 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 
 	// Cache the results
 	cacheEntry := MetadataCacheEntry{
-		ExpirationTime: time.Now().Add(k.cache_ttl),
+		ExpirationTime: time.Now().Add(k.cacheTTL),
 		Labels:         podResponse.Labels,
 		Annotations:    podResponse.Annotations,
 	}

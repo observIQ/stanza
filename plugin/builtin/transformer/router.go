@@ -16,16 +16,19 @@ func init() {
 	plugin.Register("router", &RouterPluginConfig{})
 }
 
+// RouterPluginConfig is the configuration of a router plugin
 type RouterPluginConfig struct {
 	helper.BasicConfig `yaml:",inline"`
 	Routes             []*RouterPluginRouteConfig `json:"routes" yaml:"routes"`
 }
 
+// RouterPluginRouteConfig is the configuration of a route on a router plugin
 type RouterPluginRouteConfig struct {
 	Expression string           `json:"expr"   yaml:"expr"`
 	OutputIDs  helper.OutputIDs `json:"output" yaml:"output"`
 }
 
+// Build will build a router plugin from the supplied configuration
 func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	basicPlugin, err := c.BasicConfig.Build(context)
 	if err != nil {
@@ -53,6 +56,7 @@ func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	return routerPlugin, nil
 }
 
+// SetNamespace will namespace the router plugin and the outputs contained in its routes
 func (c *RouterPluginConfig) SetNamespace(namespace string, exclusions ...string) {
 	c.BasicConfig.SetNamespace(namespace, exclusions...)
 	for _, route := range c.Routes {
@@ -64,21 +68,25 @@ func (c *RouterPluginConfig) SetNamespace(namespace string, exclusions ...string
 	}
 }
 
+// RouterPlugin is a plugin that routes entries based on matching expressions
 type RouterPlugin struct {
 	helper.BasicPlugin
 	routes []*RouterPluginRoute
 }
 
+// RouterPluginRoute is a route on a router plugin
 type RouterPluginRoute struct {
 	Expression    *vm.Program
 	OutputIDs     helper.OutputIDs
 	OutputPlugins []plugin.Plugin
 }
 
+// CanProcess will always return true for a router plugin
 func (p *RouterPlugin) CanProcess() bool {
 	return true
 }
 
+// Process will route incoming entries based on matching expressions
 func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	env := helper.GetExprEnv(entry)
 	defer helper.PutExprEnv(env)
@@ -102,6 +110,7 @@ func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 	return nil
 }
 
+// CanOutput will always return true for a router plugin
 func (p *RouterPlugin) CanOutput() bool {
 	return true
 }

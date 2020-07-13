@@ -55,7 +55,7 @@ const (
 	// Warning indicates that someone should look into an issue
 	Warning Severity = 50
 
-	// Error indicates that something undesireable has actually happened
+	// Error indicates that something undesirable has actually happened
 	Error Severity = 60
 
 	// Critical indicates that a problem requires attention immediately

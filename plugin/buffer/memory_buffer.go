@@ -12,21 +12,25 @@ import (
 	"google.golang.org/api/support/bundler"
 )
 
+// MemoryBuffer is a buffer that holds entries in memory
 type MemoryBuffer struct {
 	*bundler.Bundler
-	config *BufferConfig
+	config *Config
 	cancel context.CancelFunc
 }
 
-func NewMemoryBuffer(config *BufferConfig) *MemoryBuffer {
+// NewMemoryBuffer will return a new memory buffer with the supplied configuration
+func NewMemoryBuffer(config *Config) *MemoryBuffer {
 	return &MemoryBuffer{config: config}
 }
 
+// BundleHandler is an interface that process multiple entries
 type BundleHandler interface {
 	ProcessMulti(context.Context, []*entry.Entry) error
 	Logger() *zap.SugaredLogger
 }
 
+// SetHandler will set the handler of the memory buffer
 func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
 	ctx, cancel := context.WithCancel(context.Background())
 	currentBundleID := int64(0)
@@ -68,6 +72,7 @@ func (m *MemoryBuffer) SetHandler(handler BundleHandler) {
 	m.cancel = cancel
 }
 
+// Flush will flush the memory buffer
 func (m *MemoryBuffer) Flush(ctx context.Context) error {
 	finished := make(chan struct{})
 	go func() {
@@ -83,6 +88,7 @@ func (m *MemoryBuffer) Flush(ctx context.Context) error {
 	}
 }
 
+// Process will add an entry to the current buffer
 func (m *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
 	if m.Bundler == nil {
 		panic("must call SetHandler before any calls to Process")
@@ -91,6 +97,7 @@ func (m *MemoryBuffer) Process(ctx context.Context, entry *entry.Entry) error {
 	return m.AddWait(ctx, entry, 100)
 }
 
+// NewExponentialBackOff will return a new exponential backoff for the memory buffer to use
 func (m *MemoryBuffer) NewExponentialBackOff() *backoff.ExponentialBackOff {
 	b := &backoff.ExponentialBackOff{
 		InitialInterval:     m.config.Retry.InitialInterval.Raw(),

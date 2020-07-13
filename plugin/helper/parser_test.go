@@ -339,10 +339,10 @@ func TestParserWithoutPreserve(t *testing.T) {
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.NoError(t, err)
 
-	actualValue, ok := testEntry.Get(parser.ParseFrom)
+	_, ok := testEntry.Get(parser.ParseFrom)
 	require.False(t, ok)
 
-	actualValue, ok = testEntry.Get(parser.ParseTo)
+	actualValue, ok := testEntry.Get(parser.ParseTo)
 	require.True(t, ok)
 	require.Equal(t, "test-value", actualValue)
 }

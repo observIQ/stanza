@@ -10,6 +10,7 @@ import (
 	"github.com/observiq/carbon/plugin"
 )
 
+// Buffer is an entity that buffers log entries to a plugin
 type Buffer interface {
 	Flush(context.Context) error
 	Add(interface{}, int) error
@@ -18,7 +19,8 @@ type Buffer interface {
 	Process(context.Context, *entry.Entry) error
 }
 
-type BufferConfig struct {
+// Config is the configuration of a buffer
+type Config struct {
 	BufferType           string          `json:"type,omitempty"                   yaml:"type,omitempty"`
 	DelayThreshold       plugin.Duration `json:"delay_threshold,omitempty"        yaml:"delay_threshold,omitempty"`
 	BundleCountThreshold int             `json:"bundle_count_threshold,omitempty" yaml:"buffer_count_threshold,omitempty"`
@@ -29,7 +31,8 @@ type BufferConfig struct {
 	Retry                RetryConfig     `json:"retry,omitempty" yaml:"retry,omitempty"`
 }
 
-func (config *BufferConfig) Build() (Buffer, error) {
+// Build will build a buffer from the supplied configuration
+func (config *Config) Build() (Buffer, error) {
 	config.setDefaults()
 
 	switch config.BufferType {
@@ -43,7 +46,7 @@ func (config *BufferConfig) Build() (Buffer, error) {
 	}
 }
 
-func (config *BufferConfig) setDefaults() {
+func (config *Config) setDefaults() {
 	if config.BufferType == "" {
 		config.BufferType = "memory"
 	}
@@ -77,6 +80,7 @@ func (config *BufferConfig) setDefaults() {
 	config.Retry.setDefaults()
 }
 
+// RetryConfig is the configuration of an entity that will retry processing after an error
 type RetryConfig struct {
 	InitialInterval     plugin.Duration `json:"initial_interval,omitempty"     yaml:"initial_interval,omitempty"`
 	RandomizationFactor float64         `json:"randomization_factor,omitempty" yaml:"randomization_factor,omitempty"`

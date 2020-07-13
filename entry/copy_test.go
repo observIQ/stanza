@@ -24,7 +24,6 @@ func TestCopyValueInt(t *testing.T) {
 	require.Equal(t, 5, copy)
 }
 
-
 func TestCopyValueByte(t *testing.T) {
 	value := []byte("test")[0]
 	copy := copyValue(value)
@@ -49,7 +48,6 @@ func TestCopyValueIntArray(t *testing.T) {
 	require.Equal(t, value, copy)
 }
 
-
 func TestCopyValueByteArray(t *testing.T) {
 	value := []byte("x")
 	copy := copyValue(value)
@@ -63,7 +61,7 @@ func TestCopyValueInterfaceArray(t *testing.T) {
 }
 
 func TestCopyValueStringMap(t *testing.T) {
-	value := map[string]string{"test":"value"}
+	value := map[string]string{"test": "value"}
 	copy := copyValue(value)
 	require.Equal(t, value, copy)
 }

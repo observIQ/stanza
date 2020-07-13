@@ -50,7 +50,7 @@ func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 				PluginType: "google_cloud_output",
 			},
 		},
-		BufferConfig: buffer.BufferConfig{
+		BufferConfig: buffer.Config{
 			DelayThreshold: plugin.Duration{
 				Duration: time.Millisecond,
 			},

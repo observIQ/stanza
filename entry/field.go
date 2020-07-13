@@ -6,13 +6,14 @@ import (
 	"strings"
 )
 
-// Field represents a potential field on an entry's record.
+// Field represents a potential field on an entry.
 // It is used to get, set, and delete values at this field.
 // It is deserialized from JSON dot notation.
 type Field struct {
 	FieldInterface
 }
 
+// FieldInterface is a field on an entry.
 type FieldInterface interface {
 	Get(*Entry) (interface{}, bool)
 	Set(entry *Entry, value interface{}) error
@@ -20,6 +21,7 @@ type FieldInterface interface {
 	String() string
 }
 
+// UnmarshalJSON will unmarshal a field from JSON
 func (f *Field) UnmarshalJSON(raw []byte) error {
 	var s string
 	err := json.Unmarshal(raw, &s)
@@ -30,6 +32,7 @@ func (f *Field) UnmarshalJSON(raw []byte) error {
 	return err
 }
 
+// UnmarshalYAML will unmarshal a field from YAML
 func (f *Field) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var s string
 	err := unmarshal(&s)
@@ -56,10 +59,12 @@ func fieldFromString(s string) (Field, error) {
 	}
 }
 
+// MarshalJSON will marshal a field into JSON
 func (f Field) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("\"%s\"", f.String())), nil
 }
 
+// MarshalYAML will marshal a field into YAML
 func (f Field) MarshalYAML() (interface{}, error) {
 	return f.String(), nil
 }

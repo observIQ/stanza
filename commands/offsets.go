@@ -13,6 +13,7 @@ import (
 
 var stdout io.Writer = os.Stdout
 
+// NewOffsetsCmd returns the root command for managing offsets
 func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 	offsets := &cobra.Command{
 		Use:   "offsets",
@@ -29,6 +30,7 @@ func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 	return offsets
 }
 
+// NewOffsetsClearCmd returns the command for clearing offsets
 func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 	var all bool
 
@@ -82,6 +84,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 	return offsetsClear
 }
 
+// NewOffsetsListCmd returns the command for listing offsets
 func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 	offsetsList := &cobra.Command{
 		Use:   "list",

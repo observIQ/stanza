@@ -29,6 +29,7 @@ type BuildContext struct {
 	Logger         *zap.SugaredLogger
 }
 
+// Database is a database used to save offsets
 type Database interface {
 	Close() error
 	Sync() error
@@ -41,10 +42,17 @@ type Database interface {
 // This is used when --database is unspecified.
 type StubDatabase struct{}
 
-func (d *StubDatabase) Close() error                          { return nil }
-func (d *StubDatabase) Sync() error                           { return nil }
+// Close will be ignored by the stub database
+func (d *StubDatabase) Close() error { return nil }
+
+// Sync will be ignored by the stub database
+func (d *StubDatabase) Sync() error { return nil }
+
+// Update will be ignored by the stub database
 func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
-func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error   { return nil }
+
+// View will be ignored by the stub database
+func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error { return nil }
 
 // NewStubDatabase creates a new StubDatabase
 func NewStubDatabase() *StubDatabase {

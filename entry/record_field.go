@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// RecordField is a field found on an entry record.
 type RecordField struct {
 	Keys []string
 }
@@ -212,7 +213,7 @@ func toJSONDot(field RecordField) string {
 	return strings.Join(field.Keys, ".")
 }
 
-// NewField creates a new field from an ordered array of keys.
+// NewRecordField creates a new field from an ordered array of keys.
 func NewRecordField(keys ...string) Field {
 	return Field{RecordField{
 		Keys: keys,

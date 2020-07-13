@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func newTestFileSource(t *testing.T) (*FileInput, chan string) {
+func newTestFileSource(t *testing.T) (*InputPlugin, chan string) {
 	mockOutput := testutil.NewMockPlugin("output")
 	receivedMessages := make(chan string, 1000)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
@@ -30,7 +30,7 @@ func newTestFileSource(t *testing.T) (*FileInput, chan string) {
 	logger := zaptest.NewLogger(t).Sugar()
 	db := testutil.NewTestDatabase(t)
 
-	source := &FileInput{
+	source := &InputPlugin{
 		InputPlugin: helper.InputPlugin{
 			BasicPlugin: helper.BasicPlugin{
 				PluginID:      "testfile",
@@ -61,8 +61,8 @@ func TestFileSource_Build(t *testing.T) {
 
 	pathField := entry.NewRecordField("testpath")
 
-	basicConfig := func() *FileInputConfig {
-		return &FileInputConfig{
+	basicConfig := func() *InputConfig {
+		return &InputConfig{
 			InputConfig: helper.InputConfig{
 				BasicConfig: helper.BasicConfig{
 					PluginID:   "testfile",
@@ -84,15 +84,15 @@ func TestFileSource_Build(t *testing.T) {
 
 	cases := []struct {
 		name             string
-		modifyBaseConfig func(*FileInputConfig)
+		modifyBaseConfig func(*InputConfig)
 		errorRequirement require.ErrorAssertionFunc
-		validate         func(*testing.T, *FileInput)
+		validate         func(*testing.T, *InputPlugin)
 	}{
 		{
 			"Basic",
-			func(f *FileInputConfig) { return },
+			func(f *InputConfig) { return },
 			require.NoError,
-			func(t *testing.T, f *FileInput) {
+			func(t *testing.T, f *InputPlugin) {
 				require.Equal(t, f.OutputPlugins[0], mockOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.PathField, &pathField)
@@ -101,7 +101,7 @@ func TestFileSource_Build(t *testing.T) {
 		},
 		{
 			"BadIncludeGlob",
-			func(f *FileInputConfig) {
+			func(f *InputConfig) {
 				f.Include = []string{"["}
 			},
 			require.Error,
@@ -109,7 +109,7 @@ func TestFileSource_Build(t *testing.T) {
 		},
 		{
 			"BadExcludeGlob",
-			func(f *FileInputConfig) {
+			func(f *InputConfig) {
 				f.Include = []string{"["}
 			},
 			require.Error,
@@ -117,8 +117,8 @@ func TestFileSource_Build(t *testing.T) {
 		},
 		{
 			"MultilineConfiguredStartAndEndPatterns",
-			func(f *FileInputConfig) {
-				f.Multiline = &FileSourceMultilineConfig{
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
 					LineEndPattern:   "Exists",
 					LineStartPattern: "Exists",
 				}
@@ -128,23 +128,23 @@ func TestFileSource_Build(t *testing.T) {
 		},
 		{
 			"MultilineConfiguredStartPattern",
-			func(f *FileInputConfig) {
-				f.Multiline = &FileSourceMultilineConfig{
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
 					LineStartPattern: "START.*",
 				}
 			},
 			require.NoError,
-			func(t *testing.T, f *FileInput) {},
+			func(t *testing.T, f *InputPlugin) {},
 		},
 		{
 			"MultilineConfiguredEndPattern",
-			func(f *FileInputConfig) {
-				f.Multiline = &FileSourceMultilineConfig{
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
 					LineEndPattern: "END.*",
 				}
 			},
 			require.NoError,
-			func(t *testing.T, f *FileInput) {},
+			func(t *testing.T, f *InputPlugin) {},
 		},
 	}
 
@@ -162,7 +162,7 @@ func TestFileSource_Build(t *testing.T) {
 			err = plg.SetOutputs([]plugin.Plugin{mockOutput})
 			require.NoError(t, err)
 
-			fileInput := plg.(*FileInput)
+			fileInput := plg.(*InputPlugin)
 			tc.validate(t, fileInput)
 		})
 	}

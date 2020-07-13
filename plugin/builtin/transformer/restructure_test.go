@@ -354,11 +354,11 @@ ops:
 				},
 			},
 			Ops: []Op{
-				Op{&OpAdd{
+				{&OpAdd{
 					Field: entry.NewRecordField("message"),
 					Value: "val",
 				}},
-				Op{&OpAdd{
+				{&OpAdd{
 					Field: entry.NewRecordField("message_suffix"),
 					ValueExpr: func() *string {
 						s := `$.message + "_suffix"`
@@ -370,20 +370,20 @@ ops:
 						return vm
 					}(),
 				}},
-				Op{&OpRemove{
+				{&OpRemove{
 					Field: entry.NewRecordField("message"),
 				}},
-				Op{&OpRetain{
+				{&OpRetain{
 					Fields: []entry.Field{
 						entry.NewRecordField("message_retain"),
 					},
 				}},
-				Op{&OpFlatten{
+				{&OpFlatten{
 					Field: entry.RecordField{
 						Keys: []string{"message_flatten"},
 					},
 				}},
-				Op{&OpMove{
+				{&OpMove{
 					From: entry.NewRecordField("message1"),
 					To:   entry.NewRecordField("message2"),
 				}},

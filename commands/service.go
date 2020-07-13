@@ -36,7 +36,7 @@ func (a *AgentService) Stop(s service.Service) error {
 }
 
 // newAgentService creates a new agent service with the provided agent.
-func newAgentService(agent *agent.LogAgent, ctx context.Context, cancel context.CancelFunc) (service.Service, error) {
+func newAgentService(ctx context.Context, agent *agent.LogAgent, cancel context.CancelFunc) (service.Service, error) {
 	agentService := &AgentService{cancel, agent}
 	config := &service.Config{
 		Name:        "carbon",
