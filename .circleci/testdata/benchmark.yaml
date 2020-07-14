@@ -7,6 +7,5 @@ pipeline:
 
   - id: google_cloud
     type: google_cloud_output
-    project_id: bplogagent-benchmark
     # credentials found automatically on gce instance
-    # TODO: replace project with carbon-benchmark?
+    # project_id taken from credentials by default
