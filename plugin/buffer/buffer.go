@@ -28,7 +28,7 @@ type Config struct {
 	BundleByteLimit      int             `json:"bundle_byte_limit,omitempty"      yaml:"bundle_byte_limit,omitempty"`
 	BufferedByteLimit    int             `json:"buffered_byte_limit,omitempty"    yaml:"buffered_byte_limit,omitempty"`
 	HandlerLimit         int             `json:"handler_limit,omitempty"          yaml:"handler_limit,omitempty"`
-	Retry                RetryConfig     `json:"retry,omitempty" yaml:"retry,omitempty"`
+	Retry                RetryConfig     `json:"retry,omitempty"                  yaml:"retry,omitempty"`
 }
 
 // Build will build a buffer from the supplied configuration
