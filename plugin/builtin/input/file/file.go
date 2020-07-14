@@ -18,6 +18,7 @@ import (
 	"github.com/observiq/carbon/plugin"
 	"github.com/observiq/carbon/plugin/helper"
 	"go.uber.org/zap"
+	"golang.org/x/text/encoding"
 )
 
 func init() {
@@ -33,10 +34,15 @@ type InputConfig struct {
 
 	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
 	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
+	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
+	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
+	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
+	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
 	FilePathField *entry.Field     `json:"path_field,omitempty"      yaml:"path_field,omitempty"`
 	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
 	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
 	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
+	Encoding      string           `json:"encoding,omitempty"        yaml:"encoding,omitempty"`
 }
 
 // MultilineConfig is the configuration a multiline operation
@@ -70,6 +76,11 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse exclude glob: %s", err)
 		}
+	}
+
+	encoder, err := c.getEncoder()
+	if err != nil {
+		return nil, err
 	}
 
 	splitFunc, err := c.getSplitFunc()
@@ -107,6 +118,7 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
 		fingerprintBytes: 1000,
 		startAtBeginning: startAtBeginning,
+		encoder:          encoder,
 	}
 
 	if c.MaxLogSize == 0 {
@@ -167,6 +179,8 @@ type InputPlugin struct {
 
 	fileUpdateChan   chan fileUpdateMessage
 	fingerprintBytes int64
+
+	encoder encoding.Encoder
 
 	wg       *sync.WaitGroup
 	readerWg *sync.WaitGroup
@@ -273,7 +287,7 @@ func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck boo
 	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize)
+		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize, f.encoder)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}

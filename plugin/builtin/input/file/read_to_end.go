@@ -10,10 +10,23 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/plugin/helper"
+	"golang.org/x/text/encoding"
 )
 
 // ReadToEnd will read entries from a file and send them to the outputs of an input plugin
-func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFileSize int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, filePathField, fileNameField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
+func ReadToEnd(
+	ctx context.Context,
+	path string,
+	startOffset int64,
+	lastSeenFileSize int64,
+	messenger fileUpdateMessenger,
+	splitFunc bufio.SplitFunc,
+	filePathField *entry.Field,
+	fileNameField *entry.Field,
+	inputPlugin helper.InputPlugin,
+	maxLogSize int,
+	encoder encoding.Encoder,
+) error {
 	defer messenger.FinishedReading()
 
 	select {
