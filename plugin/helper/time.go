@@ -95,19 +95,19 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 		if !ok {
 			return fmt.Errorf("native time.Time field required, but found %v of type %T", value, value)
 		}
-		entry.Timestamp = timeValue
+		entry.Timestamp = setTimestampYear(timeValue)
 	case GotimeKey:
 		timeValue, err := t.parseGotime(value)
 		if err != nil {
 			return err
 		}
-		entry.Timestamp = timeValue
+		entry.Timestamp = setTimestampYear(timeValue)
 	case EpochKey:
 		timeValue, err := t.parseEpochTime(value)
 		if err != nil {
 			return err
 		}
-		entry.Timestamp = timeValue
+		entry.Timestamp = setTimestampYear(timeValue)
 	default:
 		return fmt.Errorf("unsupported layout type: %s", t.LayoutType)
 	}
@@ -201,3 +201,22 @@ var toTime = map[string]toTimeFunc{
 	"ns": func(ns int64) time.Time { return time.Unix(0, ns) },
 }
 var subsecToNs = map[string]int64{"s.ms": 1e6, "s.us": 1e3, "s.ns": 1}
+
+// setTimestampYear sets the year of a timestamp to the current year.
+// This is needed because year is missing from some time formats, such as rfc3164.
+func setTimestampYear(t time.Time) time.Time {
+	if t.Year() > 1970 {
+		return t
+	}
+	n := now()
+	d := time.Date(n.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	// If the timestamp would be more than 7 days in the future using this year,
+	// assume it's from last year.
+	if d.After(n.AddDate(0, 0, 7)) {
+		d = d.AddDate(-1, 0, 0)
+	}
+	return d
+}
+
+// Allows tests to override with deterministic value
+var now = time.Now
