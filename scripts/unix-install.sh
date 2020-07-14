@@ -409,6 +409,10 @@ install_package()
   mkdir -p "$agent_home/plugins"
   succeeded
 
+  info "Checking that service is not running..."
+  stop_service
+  succeeded
+
   info "Downloading binary..."
   curl -L "$download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
   succeeded
@@ -543,6 +547,23 @@ ubuntu_init_type()
   fi
 }
 
+# This will detect the service type and stop it
+stop_service()
+{
+  service_type="$(init_type)"
+  case "$service_type" in
+    launchd)
+      stop_launchd_service
+      ;;
+    sysv|upstart)
+      stop_sysv_service
+      ;;
+    systemd)
+      stop_systemd_service
+      ;;
+  esac
+}
+
 # This will configure the agent to run as a service with launchd.
 create_launchd_service()
 {
@@ -621,6 +642,12 @@ start_launchd_service()
   elif [ "$RET" -ne 0 ]; then
     error_exit $LINENO "An error occurred while attempting to start the service"
   fi
+}
+
+# This will stop the launchd service
+stop_launchd_service()
+{
+  launchctl stop "com.observiq.${SERVICE_NAME}" >/dev/null 2>&1 || true
 }
 
 # This will configure the launcher to run as a service with sysv
@@ -797,6 +824,12 @@ start_sysv_service()
   fi
 }
 
+# This will stop the sysv service if it is running
+stop_sysv_service()
+{
+  service "$SERVICE_NAME" stop >/dev/null 2>&1  || true
+}
+
 # This will restart the sysv service. It will fail
 # and if unsuccessful.
 restart_sysv_service()
@@ -882,6 +915,12 @@ start_systemd_service()
     systemctl disable "$SERVICE_NAME.service"
     error_exit "$LINENO" "Failed to start service"
   fi
+}
+
+# This will stop the systemd service if it is running
+stop_systemd_service()
+{
+  systemctl stop "$SERVICE_NAME.service" >/dev/null 2>&1 || true
 }
 
 # This will restart the systemd service. It will fail
