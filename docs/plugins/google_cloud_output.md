@@ -9,7 +9,7 @@ The `google_cloud_output` plugin will send entries to Google Cloud Logging.
 | `id`               | required | A unique identifier for the plugin                                                                     |
 | `credentials`      |          | The JSON-formatted credentials for the logs writer service account                                     |
 | `credentials_file` |          | A path to a file containing the JSON-formatted credentials                                             |
-| `project_id`       | required | The Google Cloud project ID the logs should be sent to                                                 |
+| `project_id`       |          | The Google Cloud project ID the logs should be sent to. Defaults to project_id found in credentials    |
 | `log_name_field`   |          | A [field](/docs/types/field.md) for the log name on the entry. Log name defaults to `default` if unset |
 | `labels_field`     |          | A [field](/docs/types/field.md) for the labels object on the log entry                                 |
 | `severity_field`   |          | A [field](/docs/types/field.md) for the severity on the log entry                                      |

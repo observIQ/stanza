@@ -49,10 +49,6 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		return nil, err
 	}
 
-	if c.ProjectID == "" {
-		return nil, errors.New("missing required configuration option project_id")
-	}
-
 	newBuffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
@@ -132,6 +128,10 @@ func (p *GoogleCloudOutput) Start() error {
 		if err != nil {
 			return fmt.Errorf("get default credentials: %s", err)
 		}
+	}
+
+	if p.projectID == "" {
+		p.projectID = credentials.ProjectID
 	}
 
 	options := make([]option.ClientOption, 0, 2)
