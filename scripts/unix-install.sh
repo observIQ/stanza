@@ -439,6 +439,11 @@ generate_config()
 # This will the create a config file with an example pipeline.
 create_config_file()
 {
+  # Don't overwrite a config file that already exists
+  if [ -f "$1" ] ; then
+    return
+  fi
+
   cat << EOF > "$1"
 # pipeline:
 #   - id: example_input
