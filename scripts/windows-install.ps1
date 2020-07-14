@@ -417,29 +417,6 @@ new-module -name LogAgentInstall -scriptblock {
     Remove-Indent
   }
 
-  # This will ensure that any previous installations are removed.
-  function Assert-CleanInstall {
-    Show-Header 'Ensuring Clean Installation'
-    Add-Indent
-    Remove-AgentService
-
-    if ( Test-Path "$script:agent_home" ) {
-      try {
-        Show-ColorText 'Previous installation detected at ' '' "$script:agent_home" DarkCyan '. Removing...'
-        Get-ChildItem "$script:agent_home" -Recurse | Remove-Item -Recurse -Force -ErrorAction Stop
-        Show-ColorText 'Previous installation files removed.'
-      }
-      catch {
-        Exit-Error $MyInvocation.ScriptLineNumber "Could not remove $script:agent_home: $($_.Exception.Message)" 'Please ensure you have permission to remove this directory and its files.'
-      }
-    }
-    else {
-      Show-ColorText 'Clean installation path detected. (' '' "$script:agent_home" DarkCyan ')'
-    }
-    Complete
-    Remove-Indent
-  }
-
   # This will remove the agent service.
   function Remove-AgentService {
     $service = Get-Service $SERVICE_NAME -ErrorAction SilentlyContinue
@@ -485,6 +462,9 @@ new-module -name LogAgentInstall -scriptblock {
 
   # This will write the agent config.
   function Write-Config {
+    # Skip overwriting the config file if it already exists
+    if (Test-Path $args) { return }
+
     @"
 # pipeline:
 #   - id: example_input
@@ -615,7 +595,7 @@ new-module -name LogAgentInstall -scriptblock {
         Test-Prerequisites
         Set-InstallVariables
         Set-Permissions
-        Assert-CleanInstall
+        Remove-AgentService
         Get-CarbonBinary
         New-AgentConfig
         New-AgentService
