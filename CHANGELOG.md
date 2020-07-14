@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Link `carbon` into `/usr/local/bin` so it's available on most users' `PATH` ([PR28](https://github.com/observIQ/carbon/pull/28))
+- New parameter `file_name_path` to the file input plugin for cases when just the file name is needed
 
 ## [0.9.1] - 2020-07-13
 ### Added

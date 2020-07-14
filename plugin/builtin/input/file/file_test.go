@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"testing"
@@ -21,11 +22,11 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func newTestFileSource(t *testing.T) (*InputPlugin, chan string) {
+func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
 	mockOutput := testutil.NewMockPlugin("output")
-	receivedMessages := make(chan string, 1000)
+	receivedEntries := make(chan *entry.Entry, 1000)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		receivedMessages <- args.Get(1).(*entry.Entry).Record.(string)
+		receivedEntries <- args.Get(1).(*entry.Entry)
 	})
 
 	logger := zaptest.NewLogger(t).Sugar()
@@ -53,7 +54,7 @@ func newTestFileSource(t *testing.T) (*InputPlugin, chan string) {
 		startAtBeginning: true,
 	}
 
-	return source, receivedMessages
+	return source, receivedEntries
 }
 
 func TestFileSource_Build(t *testing.T) {
@@ -187,6 +188,37 @@ See this issue for details: https://github.com/census-instrumentation/opencensus
 	err = source.Start()
 	require.NoError(t, err)
 	source.Stop()
+}
+
+func TestFileSource_AddFields(t *testing.T) {
+	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	pf := entry.NewLabelField("path")
+	source.PathField = &pf
+	fnf := entry.NewLabelField("file_name")
+	source.FileNameField = &fnf
+
+	// Create a file, then start
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
+
+	_, err = temp.WriteString("testlog\n")
+	require.NoError(t, err)
+
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
+
+	select {
+	case e := <-logReceived:
+		require.Equal(t, filepath.Base(temp.Name()), e.Labels["file_name"])
+		require.Equal(t, temp.Name(), e.Labels["path"])
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for message")
+	}
 }
 
 func TestFileSource_ReadExistingLogs(t *testing.T) {
@@ -680,22 +712,22 @@ func stringWithLength(length int) string {
 	return string(b)
 }
 
-func waitForMessage(t *testing.T, c chan string, expected string) {
+func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
-	case m := <-c:
-		require.Equal(t, expected, m)
+	case e := <-c:
+		require.Equal(t, expected, e.Record.(string))
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for message")
 	}
 }
 
-func waitForMessages(t *testing.T, c chan string, expected []string) {
+func waitForMessages(t *testing.T, c chan *entry.Entry, expected []string) {
 	receivedMessages := make([]string, 0, 100)
 LOOP:
 	for {
 		select {
-		case m := <-c:
-			receivedMessages = append(receivedMessages, m)
+		case e := <-c:
+			receivedMessages = append(receivedMessages, e.Record.(string))
 			if len(receivedMessages) == len(expected) {
 				break LOOP
 			}
@@ -707,10 +739,10 @@ LOOP:
 	require.ElementsMatch(t, expected, receivedMessages)
 }
 
-func expectNoMessages(t *testing.T, c chan string) {
+func expectNoMessages(t *testing.T, c chan *entry.Entry) {
 	select {
-	case m := <-c:
-		require.FailNow(t, "Received unexpected message", "Message: %s", m)
+	case e := <-c:
+		require.FailNow(t, "Received unexpected message", "Message: %s", e.Record.(string))
 	case <-time.After(200 * time.Millisecond):
 	}
 }
