@@ -485,6 +485,9 @@ new-module -name LogAgentInstall -scriptblock {
 
   # This will write the agent config.
   function Write-Config {
+    # Skip overwriting the config file if it already exists
+    if (Test-Path $args) { return }
+
     @"
 # pipeline:
 #   - id: example_input
