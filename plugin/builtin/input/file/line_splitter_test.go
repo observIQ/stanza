@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/text/encoding/unicode"
 )
 
 type tokenizerTestCase struct {
@@ -271,7 +272,8 @@ func TestNewlineSplitFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		splitFunc := NewNewlineSplitFunc()
+		splitFunc, err := NewNewlineSplitFunc(unicode.UTF8)
+		require.NoError(t, err)
 		t.Run(tc.Name, tc.RunFunc(splitFunc))
 	}
 }
