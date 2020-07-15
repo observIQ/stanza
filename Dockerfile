@@ -3,6 +3,7 @@ FROM ubuntu:bionic
 RUN mkdir -p /carbon_home/plugins
 ENV CARBON_HOME=/carbon_home
 RUN echo "pipeline:\n" >> /carbon_home/config.yaml
+RUN apt-get update && apt-get install -y systemd
 
 COPY ./artifacts/carbon_linux_amd64 /carbon_home/carbon
 ENTRYPOINT /carbon_home/carbon \
