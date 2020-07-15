@@ -236,6 +236,7 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 	require.Contains(t, err.Error(), "severity parser: log entry does not have the expected parse_from field")
 
 	expected, _ := time.ParseInLocation(time.Kitchen, "12:34PM", time.Local)
+	expected = setTimestampYear(expected)
 	// But, this should have been set anyways
 	require.Equal(t, expected, testEntry.Timestamp)
 }

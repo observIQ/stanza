@@ -130,6 +130,10 @@ func (p *GoogleCloudOutput) Start() error {
 		}
 	}
 
+	if p.projectID == "" && credentials.ProjectID == "" {
+		return fmt.Errorf("no project id found on google creds")
+	}
+
 	if p.projectID == "" {
 		p.projectID = credentials.ProjectID
 	}
