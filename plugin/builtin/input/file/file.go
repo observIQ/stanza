@@ -18,6 +18,8 @@ import (
 	"github.com/observiq/carbon/plugin"
 	"github.com/observiq/carbon/plugin/helper"
 	"go.uber.org/zap"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/ianaindex"
 )
 
 func init() {
@@ -33,10 +35,11 @@ type InputConfig struct {
 
 	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
 	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
-	FilePathField *entry.Field     `json:"path_field,omitempty"      yaml:"path_field,omitempty"`
-	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
 	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
 	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
+	FilePathField *entry.Field     `json:"path_field,omitempty"      yaml:"path_field,omitempty"`
+	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
+	Encoding      string           `json:"encoding,omitempty"        yaml:"encoding,omitempty"`
 }
 
 // MultilineConfig is the configuration a multiline operation
@@ -72,7 +75,16 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		}
 	}
 
-	splitFunc, err := c.getSplitFunc()
+	if c.Encoding == "" {
+		c.Encoding = "utf-8"
+	}
+
+	encoding, err := ianaindex.IANA.Encoding(c.Encoding)
+	if err != nil {
+		return nil, err
+	}
+
+	splitFunc, err := c.getSplitFunc(encoding)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +119,7 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
 		fingerprintBytes: 1000,
 		startAtBeginning: startAtBeginning,
+		encoding:         encoding,
 	}
 
 	if c.MaxLogSize == 0 {
@@ -119,10 +132,14 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 }
 
 // getSplitFunc will return the split function associated the configured mode.
-func (c InputConfig) getSplitFunc() (bufio.SplitFunc, error) {
+func (c InputConfig) getSplitFunc(encoding encoding.Encoding) (bufio.SplitFunc, error) {
 	var splitFunc bufio.SplitFunc
 	if c.Multiline == nil {
-		splitFunc = NewNewlineSplitFunc()
+		var err error
+		splitFunc, err = NewNewlineSplitFunc(encoding)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		definedLineEndPattern := c.Multiline.LineEndPattern != ""
 		definedLineStartPattern := c.Multiline.LineStartPattern != ""
@@ -167,6 +184,8 @@ type InputPlugin struct {
 
 	fileUpdateChan   chan fileUpdateMessage
 	fingerprintBytes int64
+
+	encoding encoding.Encoding
 
 	wg       *sync.WaitGroup
 	readerWg *sync.WaitGroup
@@ -273,7 +292,7 @@ func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck boo
 	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize)
+		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize, f.encoding)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}

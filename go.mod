@@ -26,6 +26,7 @@ require (
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c // indirect
+	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20200513201620-d5fe73897c97 // indirect
 	gonum.org/v1/gonum v0.6.2
 	google.golang.org/api v0.20.0

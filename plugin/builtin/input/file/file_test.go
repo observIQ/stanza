@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"golang.org/x/text/encoding/unicode"
 )
 
 func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
@@ -46,6 +47,7 @@ func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     50 * time.Millisecond,
+		encoding:         unicode.UTF8,
 		persist:          helper.NewScopedDBPersister(db, "testfile"),
 		runningFiles:     make(map[string]struct{}),
 		knownFiles:       make(map[string]*knownFileInfo),

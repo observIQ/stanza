@@ -10,10 +10,24 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/plugin/helper"
+	"go.uber.org/zap"
+	"golang.org/x/text/encoding"
 )
 
 // ReadToEnd will read entries from a file and send them to the outputs of an input plugin
-func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFileSize int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, filePathField, fileNameField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
+func ReadToEnd(
+	ctx context.Context,
+	path string,
+	startOffset int64,
+	lastSeenFileSize int64,
+	messenger fileUpdateMessenger,
+	splitFunc bufio.SplitFunc,
+	filePathField *entry.Field,
+	fileNameField *entry.Field,
+	inputPlugin helper.InputPlugin,
+	maxLogSize int,
+	encoding encoding.Encoding,
+) error {
 	defer messenger.FinishedReading()
 
 	select {
@@ -56,11 +70,16 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 	}
 	scanner.Split(scanFunc)
 
+	encoder := encoding.NewEncoder()
+
+	// Make a large, reusable buffer for transforming
+	decodeBuffer := make([]byte, 16384)
+
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
 	defer func() {
 		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
-			readRemaining(ctx, file, pos, stat.Size(), messenger, inputPlugin, filePathField, fileNameField)
+			readRemaining(ctx, file, pos, stat.Size(), messenger, inputPlugin, filePathField, fileNameField, encoder, decodeBuffer)
 		}
 	}()
 
@@ -79,8 +98,13 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 			return scanner.Err()
 		}
 
-		message := scanner.Text()
-		e := inputPlugin.NewEntry(message)
+		encoder.Reset()
+		nDst, _, err := encoder.Transform(decodeBuffer, scanner.Bytes(), true)
+		if err != nil {
+			return err
+		}
+
+		e := inputPlugin.NewEntry(string(decodeBuffer[:nDst]))
 		if filePathField != nil {
 			e.Set(*filePathField, path)
 		}
@@ -93,7 +117,7 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 }
 
 // readRemaining will read the remaining characters in a file as a log entry.
-func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, filePathField, fileNameField *entry.Field) {
+func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, filePathField, fileNameField *entry.Field, encoder *encoding.Encoder, decodeBuffer []byte) {
 	_, err := file.Seek(filePos, 0)
 	if err != nil {
 		inputPlugin.Errorf("failed to seek to read last log entry")
@@ -106,8 +130,13 @@ func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize i
 		inputPlugin.Errorf("failed to read trailing log")
 		return
 	}
+	encoder.Reset()
+	nDst, _, err := encoder.Transform(decodeBuffer, msgBuf, true)
+	if err != nil {
+		inputPlugin.Errorw("failed to decode trailing log", zap.Error(err))
+	}
 
-	e := inputPlugin.NewEntry(string(msgBuf[:n]))
+	e := inputPlugin.NewEntry(string(decodeBuffer[:nDst]))
 	if filePathField != nil {
 		e.Set(*filePathField, file.Name())
 	}
