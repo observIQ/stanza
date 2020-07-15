@@ -33,7 +33,7 @@ type InputConfig struct {
 
 	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
 	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
-	PathField     *entry.Field     `json:"path_field,omitempty"      yaml:"path_field,omitempty"`
+	FilePathField *entry.Field     `json:"path_field,omitempty"      yaml:"path_field,omitempty"`
 	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
 	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
 	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
@@ -101,7 +101,7 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		SplitFunc:        splitFunc,
 		PollInterval:     pollInterval,
 		persist:          helper.NewScopedDBPersister(context.Database, c.ID()),
-		PathField:        c.PathField,
+		FilePathField:    c.FilePathField,
 		FileNameField:    c.FileNameField,
 		runningFiles:     make(map[string]struct{}),
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
@@ -153,7 +153,7 @@ type InputPlugin struct {
 
 	Include       []string
 	Exclude       []string
-	PathField     *entry.Field
+	FilePathField *entry.Field
 	FileNameField *entry.Field
 	PollInterval  time.Duration
 	SplitFunc     bufio.SplitFunc
@@ -273,7 +273,7 @@ func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck boo
 	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.PathField, f.FileNameField, f.InputPlugin, f.MaxLogSize)
+		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}

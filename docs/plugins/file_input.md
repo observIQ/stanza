@@ -13,7 +13,7 @@ The `file_input` plugin reads logs from files. It will place the lines read into
 | `poll_interval`   | 200ms    | The duration between filesystem polls                                                                               |
 | `multiline`       |          | A `multiline` configuration block. See below for details                                                            |
 | `write_to`        | $        | A [field](/docs/types/field.md) that will be set to the log message                                                 |
-| `path_field`      |          | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from                    |
+| `file_path_field` |          | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from                    |
 | `file_name_field` |          | A [field](/docs/types/field.md) that will be set to the name of the file the entry was read from                    |
 | `start_at`        | `end`    | At startup, where to start reading logs from the file. Options are `beginning` or `end`                             |
 | `max_log_size`    | 1048576  | The maximum size of a log entry to read before failing. Protects against reading large amounts of data into memory. |

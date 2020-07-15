@@ -13,7 +13,7 @@ import (
 )
 
 // ReadToEnd will read entries from a file and send them to the outputs of an input plugin
-func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFileSize int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, pathField, fileNameField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
+func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFileSize int64, messenger fileUpdateMessenger, splitFunc bufio.SplitFunc, filePathField, fileNameField *entry.Field, inputPlugin helper.InputPlugin, maxLogSize int) error {
 	defer messenger.FinishedReading()
 
 	select {
@@ -60,7 +60,7 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 	// advanced since last cycle, read the rest of the file as an entry
 	defer func() {
 		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
-			readRemaining(ctx, file, pos, stat.Size(), messenger, inputPlugin, pathField, fileNameField)
+			readRemaining(ctx, file, pos, stat.Size(), messenger, inputPlugin, filePathField, fileNameField)
 		}
 	}()
 
@@ -81,8 +81,8 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 
 		message := scanner.Text()
 		e := inputPlugin.NewEntry(message)
-		if pathField != nil {
-			e.Set(*pathField, path)
+		if filePathField != nil {
+			e.Set(*filePathField, path)
 		}
 		if fileNameField != nil {
 			e.Set(*fileNameField, filepath.Base(file.Name()))
@@ -93,7 +93,7 @@ func ReadToEnd(ctx context.Context, path string, startOffset int64, lastSeenFile
 }
 
 // readRemaining will read the remaining characters in a file as a log entry.
-func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, pathField, fileNameField *entry.Field) {
+func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, filePathField, fileNameField *entry.Field) {
 	_, err := file.Seek(filePos, 0)
 	if err != nil {
 		inputPlugin.Errorf("failed to seek to read last log entry")
@@ -108,8 +108,8 @@ func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize i
 	}
 
 	e := inputPlugin.NewEntry(string(msgBuf[:n]))
-	if pathField != nil {
-		e.Set(*pathField, file.Name())
+	if filePathField != nil {
+		e.Set(*filePathField, file.Name())
 	}
 	if fileNameField != nil {
 		e.Set(*fileNameField, filepath.Base(file.Name()))

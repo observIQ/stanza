@@ -61,7 +61,7 @@ func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
 	mockOutput := testutil.NewMockPlugin("mock")
 
-	pathField := entry.NewRecordField("testpath")
+	filePathField := entry.NewRecordField("testpath")
 
 	basicConfig := func() *InputConfig {
 		return &InputConfig{
@@ -80,7 +80,7 @@ func TestFileSource_Build(t *testing.T) {
 			PollInterval: &plugin.Duration{
 				Duration: 10 * time.Millisecond,
 			},
-			PathField: &pathField,
+			FilePathField: &filePathField,
 		}
 	}
 
@@ -97,7 +97,7 @@ func TestFileSource_Build(t *testing.T) {
 			func(t *testing.T, f *InputPlugin) {
 				require.Equal(t, f.OutputPlugins[0], mockOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
-				require.Equal(t, f.PathField, &pathField)
+				require.Equal(t, f.FilePathField, &filePathField)
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
 			},
 		},
@@ -196,7 +196,7 @@ func TestFileSource_AddFields(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
 	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 	pf := entry.NewLabelField("path")
-	source.PathField = &pf
+	source.FilePathField = &pf
 	fnf := entry.NewLabelField("file_name")
 	source.FileNameField = &fnf
 
