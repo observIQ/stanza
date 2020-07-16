@@ -44,7 +44,7 @@ data:
         include:
           - /var/log/containers/*
         write_to: message
-        path_field: path
+        file_path_field: path
         output: path_parser
 
       - id: path_parser

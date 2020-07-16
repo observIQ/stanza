@@ -33,7 +33,7 @@ type InputConfig struct {
 
 	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
 	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
-	FilePathField *entry.Field     `json:"path_field,omitempty"      yaml:"path_field,omitempty"`
+	FilePathField *entry.Field     `json:"file_path_field,omitempty"      yaml:"file_path_field,omitempty"`
 	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
 	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
 	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
