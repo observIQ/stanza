@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.2] - 2020-07-13
 ### Added
 - Link `carbon` into `/usr/local/bin` so it's available on most users' `PATH` ([PR28](https://github.com/observIQ/carbon/pull/28))
 - New parameter `file_name_path` to the file input plugin for cases when just the file name is needed
 ### Changed
 - Renamed `path_field` to `file_path_field` in the file input plugin
+### Fixed
+- Failure in Google Cloud Output to convert some data types to protocol buffers
 
 ## [0.9.1] - 2020-07-13
 ### Added
