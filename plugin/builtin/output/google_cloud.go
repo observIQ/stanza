@@ -284,12 +284,36 @@ func jsonValueToStructValue(v interface{}) *structpb.Value {
 		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: x}}
 	case float64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: x}}
+	case int:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
 	case string:
 		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: x}}
 	case nil:
 		return &structpb.Value{Kind: &structpb.Value_NullValue{}}
 	case map[string]interface{}:
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: jsonMapToProtoStruct(x)}}
+	case map[string]map[string]string:
+		fields := map[string]*structpb.Value{}
+		for k, v := range x {
+			fields[k] = jsonValueToStructValue(v)
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
+	case map[string]string:
+		fields := map[string]*structpb.Value{}
+		for k, v := range x {
+			fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
 	case []interface{}:
 		var vals []*structpb.Value
 		for _, e := range x {
