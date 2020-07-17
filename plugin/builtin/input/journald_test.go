@@ -63,7 +63,7 @@ func TestInputJournald(t *testing.T) {
 	err = journaldInput.Start()
 	require.NoError(t, err)
 
-	expected := map[string]string{
+	expected := map[string]interface{}{
 		"_BOOT_ID":                   "c4fa36de06824d21835c05ff80c54468",
 		"_CAP_EFFECTIVE":             "0",
 		"_TRANSPORT":                 "journal",

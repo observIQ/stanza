@@ -162,7 +162,7 @@ func (plugin *JournaldInput) Start() error {
 }
 
 func (plugin *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, string, error) {
-	var record map[string]string
+	var record map[string]interface{}
 	err := plugin.json.Unmarshal(line, &record)
 	if err != nil {
 		return nil, "", err
@@ -173,7 +173,12 @@ func (plugin *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, strin
 		return nil, "", errors.New("journald record missing __REALTIME_TIMESTAMP field")
 	}
 
-	timestampInt, err := strconv.ParseInt(timestamp, 10, 64)
+	timestampString, ok := timestamp.(string)
+	if !ok {
+		return nil, "", errors.New("journald field for timestamp is not a string")
+	}
+
+	timestampInt, err := strconv.ParseInt(timestampString, 10, 64)
 	if err != nil {
 		return nil, "", fmt.Errorf("parse timestamp: %s", err)
 	}
@@ -185,9 +190,14 @@ func (plugin *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, strin
 		return nil, "", errors.New("journald record missing __CURSOR field")
 	}
 
+	cursorString, ok := cursor.(string)
+	if !ok {
+		return nil, "", errors.New("journald field for cursor is not a string")
+	}
+
 	entry := plugin.NewEntry(record)
 	entry.Timestamp = time.Unix(0, timestampInt*1000) // in microseconds
-	return entry, cursor, nil
+	return entry, cursorString, nil
 }
 
 func (plugin *JournaldInput) syncOffsets() {
