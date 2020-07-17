@@ -263,6 +263,12 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 	case map[string]interface{}:
 		s := jsonMapToProtoStruct(p)
 		newEntry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: s}
+	case map[string]string:
+		fields := map[string]*structpb.Value{}
+		for k, v := range p {
+			fields[k] = jsonValueToStructValue(v)
+		}
+		newEntry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: &structpb.Struct{Fields: fields}}
 	default:
 		return nil, fmt.Errorf("cannot convert record of type %T to a protobuf representation", e.Record)
 	}
