@@ -571,6 +571,7 @@ pipeline:
   #   type: elastic_output
   #   addresses:
   #     - http://my_node_address:9200
+  #   api_key: my_api_key
 "@ > $args
   }
 
