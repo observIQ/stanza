@@ -17,12 +17,12 @@ func TestTCPInput(t *testing.T) {
 	basicTCPInputConfig := func() *TCPInputConfig {
 		return &TCPInputConfig{
 			InputConfig: helper.InputConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_id",
-					PluginType: "tcp_input",
-				},
 				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "test_id",
+						PluginType: "tcp_input",
+					},
 					OutputIDs: []string{"test_output_id"},
 				},
 			},

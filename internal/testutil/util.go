@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/observiq/carbon/plugin"
@@ -54,4 +55,17 @@ func NewBuildContext(t *testing.T) plugin.BuildContext {
 		Database: NewTestDatabase(t),
 		Logger:   zaptest.NewLogger(t).Sugar(),
 	}
+}
+
+func Trim(s string) string {
+	lines := strings.Split(s, "\n")
+	trimmed := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		trimmed = append(trimmed, strings.Trim(line, " \t\n"))
+	}
+
+	return strings.Join(trimmed, "\n")
 }

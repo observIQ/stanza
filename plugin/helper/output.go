@@ -26,8 +26,8 @@ func (c OutputConfig) Build(context plugin.BuildContext) (OutputPlugin, error) {
 
 // SetNamespace will namespace the id and output of the plugin config.
 func (c *OutputConfig) SetNamespace(namespace string, exclusions ...string) {
-	if CanNamespace(c.PluginID, exclusions) {
-		c.PluginID = AddNamespace(c.PluginID, namespace)
+	if CanNamespace(c.ID(), exclusions) {
+		c.PluginID = AddNamespace(c.ID(), namespace)
 	}
 }
 

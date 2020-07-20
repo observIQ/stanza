@@ -5,9 +5,9 @@ or running one-time batch processing jobs.
 
 ### Configuration Fields
 
-| Field         | Default  | Description                                                                                |
-| ---           | ---      | ---                                                                                        |
-| `id`          | required | A unique identifier for the plugin                                                         |
+| Field | Default  | Description                        |
+| ---   | ---      | ---                                |
+| `id`  | `stdout` | A unique identifier for the plugin |
 
 
 ### Example Configurations
@@ -16,6 +16,5 @@ or running one-time batch processing jobs.
 
 Configuration:
 ```yaml
-- id: my_stdout
-  type: stdout
+- type: stdout
 ```

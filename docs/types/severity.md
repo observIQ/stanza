@@ -53,12 +53,12 @@ The following example illustrates many of the ways in which mapping can configur
     error: oops
 
     # list of values to be parsed as "warning"
-    warning: 
+    warning:
       - hey!
       - YSK
 
     # range of values to be parsed as "info"
-    info: 
+    info:
       - min: 300
         max: 399
 
@@ -108,7 +108,7 @@ The following configurations are equivalent:
     warning:
       - warning
       - warn
-    error: 
+    error:
       - error
       - err
       - 404
@@ -130,8 +130,7 @@ All parser plugins, such as [`regex_parser`](/docs/plugins/regex_parser.md) supp
 If a severity block is specified, the parser plugin will perform the severity parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output plugin.
 
 ```yaml
-- id: my_regex_parser
-  type: regex_parser
+- type: regex_parser
   regexp: '^StatusCode=(?P<severity_field>\d{3}), Host=(?P<host>[^,]+)'
   severity:
     parse_from: severity_field
@@ -140,22 +139,19 @@ If a severity block is specified, the parser plugin will perform the severity pa
       error: 4xx
       info: 3xx
       debug: 2xx
-  output: my_next_plugin
 ```
 
 ---
 
 As a special case, the [`severity_parser`](/docs/plugins/severity_parser.md) plugin supports these fields inline. This is because severity parsing is the primary purpose of the plugin.
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
   mapping:
     critical: 5xx
     error: 4xx
     info: 3xx
     debug: 2xx
-  output: my_next_plugin
 ```
 
 ### Example Configurations
@@ -164,10 +160,8 @@ As a special case, the [`severity_parser`](/docs/plugins/severity_parser.md) plu
 
 Configuration:
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
-  output: my_next_plugin
 ```
 
 Note that the default `preset` is in place, and no additional values have been specified.
@@ -204,12 +198,10 @@ Note that the default `preset` is in place, and no additional values have been s
 
 Configuration:
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
   mapping:
     error: nooo!
-  output: my_next_plugin
 ```
 
 Note that the default `preset` is in place, and one additional values has been specified.
@@ -270,16 +262,14 @@ Note that the default `preset` is in place, and one additional values has been s
 
 Configuration:
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
   mapping:
-    error: 
+    error:
       - nooo!
       - nooooooo
     info: HEY
     debug: 1234
-  output: my_next_plugin
 ```
 
 <table>
@@ -410,8 +400,7 @@ Configuration:
 
 Configuration:
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
   mapping:
     error:
@@ -420,7 +409,6 @@ Configuration:
     alert:
       - min: 6
         max: 10
-  output: my_next_plugin
 ```
 
 <table>
@@ -512,15 +500,13 @@ Special values are provided to represent http status code ranges.
 
 Configuration:
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
   mapping:
     critical: 5xx
     error: 4xx
     info: 3xx
     debug: 2xx
-  output: my_next_plugin
 ```
 
 Equivalent Configuration:
@@ -611,7 +597,7 @@ Equivalent Configuration:
 
 ```json
 {
-  "severity": 20, 
+  "severity": 20,
   "record": {}
 }
 ```
@@ -624,13 +610,11 @@ Equivalent Configuration:
 
 Configuration:
 ```yaml
-- id: my_severity_parser
-  type: severity_parser
+- type: severity_parser
   parse_from: severity_field
   preset: none
   mapping:
     error: nooo!
-  output: my_next_plugin
 ```
 
 <table>

@@ -18,12 +18,12 @@ func TestInputGenerate(t *testing.T) {
 	basicConfig := func() *GenerateInputConfig {
 		return &GenerateInputConfig{
 			InputConfig: helper.InputConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_plugin_id",
-					PluginType: "generate_input",
-				},
 				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "test_plugin_id",
+						PluginType: "generate_input",
+					},
 					OutputIDs: []string{"output1"},
 				},
 			},
@@ -90,11 +90,11 @@ pipeline:
 			{
 				Builder: &GenerateInputConfig{
 					InputConfig: helper.InputConfig{
-						BasicConfig: helper.BasicConfig{
-							PluginID:   "my_generator",
-							PluginType: "generate_input",
-						},
 						WriterConfig: helper.WriterConfig{
+							BasicConfig: helper.BasicConfig{
+								PluginID:   "my_generator",
+								PluginType: "generate_input",
+							},
 							OutputIDs: []string{"sampleoutput"},
 						},
 					},

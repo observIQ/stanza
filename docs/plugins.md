@@ -7,14 +7,11 @@ For example, a very simple plugin for monitoring Apache Tomcat access logs could
 ```yaml
 ---
 pipeline:
-  - id: tomcat_access_reader
-    type: file_input
+  - type: file_input
     include:
       - {{ .path }}
-    output: tomcat_regex_parser
 
-  - id: tomcat_regex_parser
-    type: regex_parser
+  - type: regex_parser
     output: {{ .output }}
     regex: '(?P<remote_host>[^\s]+) - (?P<remote_user>[^\s]+) \[(?P<timestamp>[^\]]+)\] "(?P<http_method>[A-Z]+) (?P<path>[^\s]+)[^"]+" (?P<http_status>\d+) (?P<bytes_sent>[^\s]+)'
 ```
@@ -25,13 +22,10 @@ Once a plugin config has been defined, it can be used in the carbon config file 
 ```yaml
 ---
 pipeline:
-  - id: tomcat_access
-    type: tomcat
-    output: stdout
+  - type: tomcat
     path: /var/log/tomcat/access.log
 
-  - id: stdout
-    type: stdout
+  - type: stdout
 ```
 
 The `tomcat_access` plugin is replaced with the builtin plugins from the rendered config in `tomcat.yaml`.

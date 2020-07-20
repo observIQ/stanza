@@ -34,11 +34,11 @@ func (f *fakeJournaldCmd) StdoutPipe() (io.ReadCloser, error) {
 func TestInputJournald(t *testing.T) {
 	cfg := JournaldInputConfig{
 		InputConfig: helper.InputConfig{
-			BasicConfig: helper.BasicConfig{
-				PluginID:   "my_journald_input",
-				PluginType: "journald_input",
-			},
 			WriterConfig: helper.WriterConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "my_journald_input",
+					PluginType: "journald_input",
+				},
 				OutputIDs: []string{"output"},
 			},
 		},

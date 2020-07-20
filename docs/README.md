@@ -7,19 +7,14 @@ The agent is configured using a YAML config file that is passed in using the `--
 
 ```yaml
 plugins:
-  - id: plugin_one
-    type: udp_input
+  - type: udp_input
     listen_address: :5141
-    output: plugin_two
 
-  - id: plugin_two
-    type: syslog_parser
+  - type: syslog_parser
     parse_from: message
     protocol: rfc5424
-    output: plugin_three
 
-  - id: plugin_three
-    type: elastic_output
+  - type: elastic_output
 ```
 
 ## What is an operator?

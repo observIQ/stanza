@@ -13,7 +13,7 @@ func TestOutputConfigMissingBase(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required `id` field.")
+	require.Contains(t, err.Error(), "missing required `type` field.")
 }
 
 func TestOutputConfigBuildValid(t *testing.T) {

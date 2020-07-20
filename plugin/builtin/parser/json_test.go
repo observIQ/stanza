@@ -22,12 +22,12 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 	return &JSONParser{
 		ParserPlugin: helper.ParserPlugin{
 			TransformerPlugin: helper.TransformerPlugin{
-				BasicPlugin: helper.BasicPlugin{
-					PluginID:      "test",
-					PluginType:    "json_parser",
-					SugaredLogger: logger.Sugar(),
-				},
 				WriterPlugin: helper.WriterPlugin{
+					BasicPlugin: helper.BasicPlugin{
+						PluginID:      "test",
+						PluginType:    "json_parser",
+						SugaredLogger: logger.Sugar(),
+					},
 					OutputPlugins: []plugin.Plugin{&mock},
 				},
 			},

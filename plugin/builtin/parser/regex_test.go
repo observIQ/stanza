@@ -18,11 +18,11 @@ func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
 	return &RegexParser{
 		ParserPlugin: helper.ParserPlugin{
 			TransformerPlugin: helper.TransformerPlugin{
-				BasicPlugin: helper.BasicPlugin{
-					PluginID:   "regex_parser",
-					PluginType: "regex_parser",
-				},
 				WriterPlugin: helper.WriterPlugin{
+					BasicPlugin: helper.BasicPlugin{
+						PluginID:   "regex_parser",
+						PluginType: "regex_parser",
+					},
 					OutputIDs:     []string{"mock_output"},
 					OutputPlugins: []plugin.Plugin{&mockPlugin},
 				},
@@ -89,11 +89,11 @@ func TestBuildParserRegex(t *testing.T) {
 		return RegexParserConfig{
 			ParserConfig: helper.ParserConfig{
 				TransformerConfig: helper.TransformerConfig{
-					BasicConfig: helper.BasicConfig{
-						PluginID:   "test",
-						PluginType: "test",
-					},
 					WriterConfig: helper.WriterConfig{
+						BasicConfig: helper.BasicConfig{
+							PluginID:   "test",
+							PluginType: "test",
+						},
 						OutputIDs: []string{"test"},
 					},
 				},
