@@ -422,13 +422,13 @@ install_package()
   succeeded
 
   info "Downloading plugins..."
-  mkdir -p ./tmp
-  curl -L "$plugins_download_url" -o ./tmp/plugins.tar.gz --progress-bar --fail || error_exit "$LINENO" "Failed to download plugins"
+  mkdir -p "$agent_home/tmp"
+  curl -L "$plugins_download_url" -o "$agent_home/tmp/plugins.tar.gz" --progress-bar --fail || error_exit "$LINENO" "Failed to download plugins"
   succeeded
 
   info "Extracting plugins..."
-  tar -zxvf ./tmp/plugins.tar.gz -C "$agent_home"
-  rm -fr ./tmp
+  tar -zxvf "$agent_home/tmp/plugins.tar.gz" -C "$agent_home"
+  rm -fr "$agent_home/tmp"
 
   success "Carbon installation complete!"
   decrease_indent
