@@ -412,6 +412,7 @@ workflows:
       - publish-docker-release:
           requires:
             - build
+            - fetch-plugins
           filters:
             branches:
               ignore: /.*/
