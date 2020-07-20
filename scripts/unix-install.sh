@@ -419,7 +419,7 @@ install_package()
 
   info "Setting permissions..."
   chmod +x "$agent_binary"
-  ln -s "$agent_binary" "/usr/local/bin/$BINARY_NAME"
+  ln -sf "$agent_binary" "/usr/local/bin/$BINARY_NAME"
   succeeded
 
   success "Carbon installation complete!"
