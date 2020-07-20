@@ -5,9 +5,9 @@ If you are new to Go, it is recommended to work through the [How to Write Go Cod
 Clone this repo into your Go workspace:
 ```
 cd $GOPATH/src
-mkdir -p github.com/observIQ && cd github.com/observIQ
-git clone git@github.com:observIQ/carbon.git
-cd $GOPATH/src/github.com/observIQ/carbon
+mkdir -p github.com/observiq && cd github.com/observiq
+git clone git@github.com:observiq/carbon.git
+cd $GOPATH/src/github.com/observiq/carbon
 ```
 
 ## Building
