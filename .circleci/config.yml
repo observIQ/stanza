@@ -37,6 +37,8 @@ jobs:
   fetch-plugins:
     executor: golang
     steps:
+      - attach_workspace:
+          at: ./artifacts
       - run:
           name: Download Plugins Tarball
           command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.tar.gz -o ./artifacts/plugins.tar.gz
