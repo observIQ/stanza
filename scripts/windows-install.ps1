@@ -443,7 +443,7 @@ new-module -name LogAgentInstall -scriptblock {
 
     try {
       [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
-      [System.IO.Compression.ZipFile]::ExtractToDirectory("$script:agent_home\plugins.zip", $script:agent_home\tmp)
+      [System.IO.Compression.ZipFile]::ExtractToDirectory("$script:agent_home\plugins.zip", $script:agent_home)
       Complete
     }
     catch {
