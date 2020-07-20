@@ -55,4 +55,4 @@ General purpose:
 - [Kubernetes Metadata Decorator](/docs/plugins/k8s_metadata_decorator.md)
 - [Rate limit](/docs/plugins/rate_limit.md)
 
-Or create your own [Operator](/docs/plugins.md) for a technology-specific use case.
+Or create your own [plugins](/docs/plugins.md) for a technology-specific use case.

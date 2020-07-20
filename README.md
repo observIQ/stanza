@@ -138,4 +138,7 @@ To learn more about configuration, visit our [docs](./docs/README.md).
 Yes. The agent will respect `http_proxy` and `https_proxy` environment variables, as defined in Golang's [net/http](https://golang.org/pkg/net/http/#ProxyFromEnvironment) package.
 
 ## How do I contribute?
-Take a look at our contribution guidelines in [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+
+First, check out our section on [`getting started with development`](./docs/development.md)
+
+Next, take a look at our contribution guidelines in [`CONTRIBUTING.md`](./CONTRIBUTING.md)
