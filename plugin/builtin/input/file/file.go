@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,6 +19,9 @@ import (
 	"github.com/observiq/carbon/plugin"
 	"github.com/observiq/carbon/plugin/helper"
 	"go.uber.org/zap"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/ianaindex"
+	"golang.org/x/text/encoding/unicode"
 )
 
 func init() {
@@ -33,10 +37,11 @@ type InputConfig struct {
 
 	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
 	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
-	FilePathField *entry.Field     `json:"file_path_field,omitempty"      yaml:"file_path_field,omitempty"`
+	FilePathField *entry.Field     `json:"file_path_field,omitempty" yaml:"file_path_field,omitempty"`
 	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
 	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
 	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
+	Encoding      string           `json:"encoding,omitempty"        yaml:"encoding,omitempty"`
 }
 
 // MultilineConfig is the configuration a multiline operation
@@ -72,7 +77,12 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		}
 	}
 
-	splitFunc, err := c.getSplitFunc()
+	encoding, err := lookupEncoding(c.Encoding)
+	if err != nil {
+		return nil, err
+	}
+
+	splitFunc, err := c.getSplitFunc(encoding)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +117,7 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		fileUpdateChan:   make(chan fileUpdateMessage, 10),
 		fingerprintBytes: 1000,
 		startAtBeginning: startAtBeginning,
+		encoding:         encoding,
 	}
 
 	if c.MaxLogSize == 0 {
@@ -118,11 +129,39 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	return plugin, nil
 }
 
+var encodingOverrides = map[string]encoding.Encoding{
+	"utf-16":   unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
+	"utf16":    unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
+	"utf8":     unicode.UTF8,
+	"ascii":    unicode.UTF8,
+	"us-ascii": unicode.UTF8,
+	"nop":      encoding.Nop,
+	"":         encoding.Nop,
+}
+
+func lookupEncoding(enc string) (encoding.Encoding, error) {
+	if encoding, ok := encodingOverrides[strings.ToLower(enc)]; ok {
+		return encoding, nil
+	}
+	encoding, err := ianaindex.IANA.Encoding(enc)
+	if err != nil {
+		return nil, fmt.Errorf("unsupported encoding '%s'", enc)
+	}
+	if encoding == nil {
+		return nil, fmt.Errorf("no charmap defined for encoding '%s'", enc)
+	}
+	return encoding, nil
+}
+
 // getSplitFunc will return the split function associated the configured mode.
-func (c InputConfig) getSplitFunc() (bufio.SplitFunc, error) {
+func (c InputConfig) getSplitFunc(encoding encoding.Encoding) (bufio.SplitFunc, error) {
 	var splitFunc bufio.SplitFunc
 	if c.Multiline == nil {
-		splitFunc = NewNewlineSplitFunc()
+		var err error
+		splitFunc, err = NewNewlineSplitFunc(encoding)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		definedLineEndPattern := c.Multiline.LineEndPattern != ""
 		definedLineStartPattern := c.Multiline.LineStartPattern != ""
@@ -167,6 +206,8 @@ type InputPlugin struct {
 
 	fileUpdateChan   chan fileUpdateMessage
 	fingerprintBytes int64
+
+	encoding encoding.Encoding
 
 	wg       *sync.WaitGroup
 	readerWg *sync.WaitGroup
@@ -273,7 +314,7 @@ func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck boo
 	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize)
+		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize, f.encoding)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}

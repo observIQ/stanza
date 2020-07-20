@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/unicode"
 )
 
 type tokenizerTestCase struct {
@@ -271,8 +273,77 @@ func TestNewlineSplitFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		splitFunc := NewNewlineSplitFunc()
+		splitFunc, err := NewNewlineSplitFunc(unicode.UTF8)
+		require.NoError(t, err)
 		t.Run(tc.Name, tc.RunFunc(splitFunc))
+	}
+}
+
+func TestNewlineSplitFunc_Encodings(t *testing.T) {
+	cases := []struct {
+		name     string
+		encoding encoding.Encoding
+		input    []byte
+		tokens   [][]byte
+	}{
+		{
+			"Simple",
+			unicode.UTF8,
+			[]byte("testlog\n"),
+			[][]byte{[]byte("testlog")},
+		},
+		{
+			"CarriageReturn",
+			unicode.UTF8,
+			[]byte("testlog\r\n"),
+			[][]byte{[]byte("testlog")},
+		},
+		{
+			"SimpleUTF16",
+			unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM),
+			[]byte{0, 116, 0, 101, 0, 115, 0, 116, 0, 108, 0, 111, 0, 103, 0, 10}, // testlog\n
+			[][]byte{{0, 116, 0, 101, 0, 115, 0, 116, 0, 108, 0, 111, 0, 103}},
+		},
+		{
+			"MultiUTF16",
+			unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM),
+			[]byte{0, 108, 0, 111, 0, 103, 0, 49, 0, 10, 0, 108, 0, 111, 0, 103, 0, 50, 0, 10}, // log1\nlog2\n
+			[][]byte{
+				{0, 108, 0, 111, 0, 103, 0, 49}, // log1
+				{0, 108, 0, 111, 0, 103, 0, 50}, // log2
+			},
+		},
+		{
+			"MultiCarriageReturnUTF16",
+			unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM),
+			[]byte{0, 108, 0, 111, 0, 103, 0, 49, 0, 13, 0, 10, 0, 108, 0, 111, 0, 103, 0, 50, 0, 13, 0, 10}, // log1\r\nlog2\r\n
+			[][]byte{
+				{0, 108, 0, 111, 0, 103, 0, 49}, // log1
+				{0, 108, 0, 111, 0, 103, 0, 50}, // log2
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			splitFunc, err := NewNewlineSplitFunc(tc.encoding)
+			require.NoError(t, err)
+			scanner := bufio.NewScanner(bytes.NewReader(tc.input))
+			scanner.Split(splitFunc)
+
+			tokens := [][]byte{}
+			for {
+				ok := scanner.Scan()
+				if !ok {
+					require.NoError(t, scanner.Err())
+					break
+				}
+
+				tokens = append(tokens, scanner.Bytes())
+			}
+
+			require.Equal(t, tc.tokens, tokens)
+		})
 	}
 }
 

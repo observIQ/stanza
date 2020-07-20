@@ -16,6 +16,7 @@ The `file_input` plugin reads logs from files. It will place the lines read into
 | `file_path_field` |          | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from                    |
 | `file_name_field` |          | A [field](/docs/types/field.md) that will be set to the name of the file the entry was read from                    |
 | `start_at`        | `end`    | At startup, where to start reading logs from the file. Options are `beginning` or `end`                             |
+| `encoding`        | `nop`    | The encoding of the file being read. See the list of supported encodings below for available options                |
 | `max_log_size`    | 1048576  | The maximum size of a log entry to read before failing. Protects against reading large amounts of data into memory. |
 
 Note that by default, no logs will be read unless the monitored file is actively being written to because `start_at` defaults to `end`.
@@ -26,6 +27,20 @@ If set, the `multiline` configuration block instructs the `file_input` plugin to
 
 The `multiline` configuration block must contain exactly one of `line_start_pattern` or `line_end_pattern`. These are regex patterns that
 match either the beginning of a new log entry, or the end of a log entry.
+
+### Supported encodings
+
+| Key        | Description
+| ---        | ---                                                              |
+| `nop`      | No encoding validation. Treats the file as a stream of raw bytes |
+| `utf-8`    | UTF-8 encoding                                                   |
+| `utf-16le` | UTF-16 encoding with little-endian byte order                    |
+| `utf-16be` | UTF-16 encoding with little-endian byte order                    |
+| `ascii`    | ASCII encoding                                                   |
+| `big5`     | The Big5 Chinese character encoding                              |
+
+Other less common encodings are supported on a best-effort basis. See [https://www.iana.org/assignments/character-sets/character-sets.xhtml](https://www.iana.org/assignments/character-sets/character-sets.xhtml) for other encodings available.
+
 
 ### Example Configurations
 

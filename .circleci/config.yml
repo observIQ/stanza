@@ -59,6 +59,24 @@ jobs:
           command: |
             ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/
 
+  publish-docker-release:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: "Publish Release on Docker Hub"
+          command: |
+            docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
+            docker build -t observiq/carbon:${docker_tag} .
+            docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
+            docker push observiq/carbon:${docker_tag}
+            docker tag observiq/carbon:${docker_tag} observiq/carbon:latest
+            docker push observiq/carbon:latest
+
   test-linux:
     executor: golang
     resource_class: large
@@ -386,6 +404,14 @@ workflows:
           requires:
             - build
             - fetch-plugins
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
+      - publish-docker-release:
+          requires:
+            - build
           filters:
             branches:
               ignore: /.*/
