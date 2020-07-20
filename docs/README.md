@@ -23,7 +23,7 @@ plugins:
 ```
 
 ## What is an operator?
-An operator is the most basic unit of log tranformation. Each operator fulfills only a single responsibility, such as reading lines from a file, or parsing JSON from a field. These plugins are then chained together in a pipeline to achieve a desired result.
+An operator is the most basic unit of log processing. Each operator fulfills only a single responsibility, such as reading lines from a file, or parsing JSON from a field. These plugins are then chained together in a pipeline to achieve a desired result.
 
 For instance, a user may read lines from a file using the `file_input` plugin. From there, the results of this operation may be sent to a `regex_parser` plugin that creates fields based on a regex pattern. And then finally, these results may be sent to a `elastic_output` plugin that writes each line to Elasticsearch.
 
