@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 - Add support for multiple encodings in the file input plugin
+- Install scripts and docker image now include plugins from `carbon-plugins` repository
 
 ## [0.9.2] - 2020-07-13
 ### Added

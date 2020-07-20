@@ -34,6 +34,22 @@ jobs:
           paths:
             - "*"
 
+  fetch-plugins:
+    executor: golang
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: Download Plugins Tarball
+          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.tar.gz -o ./artifacts/plugins.tar.gz
+      - run:
+          name: Download Plugins Zip
+          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.zip -o ./artifacts/plugins.zip
+      - persist_to_workspace:
+          root: ./artifacts
+          paths:
+            - "*"
+
   publish-github-release:
     docker:
       - image: cibuilds/github:0.10
@@ -380,9 +396,16 @@ workflows:
             - test-linux
             - test-macos
             - test-windows
+      - fetch-plugins:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
       - publish-github-release:
           requires:
             - build
+            - fetch-plugins
           filters:
             branches:
               ignore: /.*/
@@ -391,6 +414,7 @@ workflows:
       - publish-docker-release:
           requires:
             - build
+            - fetch-plugins
           filters:
             branches:
               ignore: /.*/
