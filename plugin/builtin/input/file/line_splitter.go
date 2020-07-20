@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"regexp"
+
+	"golang.org/x/text/encoding"
 )
 
 // NewLineStartSplitFunc creates a bufio.SplitFunc that splits an incoming stream into
@@ -67,27 +69,40 @@ func NewLineEndSplitFunc(re *regexp.Regexp) bufio.SplitFunc {
 
 // NewNewlineSplitFunc splits log lines by newline, just as bufio.ScanLines, but
 // never returning an token using EOF as a terminator
-func NewNewlineSplitFunc() bufio.SplitFunc {
+func NewNewlineSplitFunc(encoding encoding.Encoding) (bufio.SplitFunc, error) {
+	newline, err := encodedNewline(encoding)
+	if err != nil {
+		return nil, err
+	}
+
+	carriageReturn, err := encodedCarriageReturn(encoding)
+	if err != nil {
+		return nil, err
+	}
+
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
 		}
 
-		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		if i := bytes.Index(data, newline); i >= 0 {
 			// We have a full newline-terminated line.
-			return i + 1, dropCR(data[0:i]), nil
+			return i + len(newline), bytes.TrimSuffix(data[:i], carriageReturn), nil
 		}
 
 		// Request more data.
 		return 0, nil, nil
-	}
+	}, nil
 }
 
-// dropCR drops a terminal \r from the data.
-func dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
-		return data[0 : len(data)-1]
-	}
+func encodedNewline(encoding encoding.Encoding) ([]byte, error) {
+	out := make([]byte, 10)
+	nDst, _, err := encoding.NewEncoder().Transform(out, []byte{'\n'}, true)
+	return out[:nDst], err
+}
 
-	return data
+func encodedCarriageReturn(encoding encoding.Encoding) ([]byte, error) {
+	out := make([]byte, 10)
+	nDst, _, err := encoding.NewEncoder().Transform(out, []byte{'\r'}, true)
+	return out[:nDst], err
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"golang.org/x/text/encoding/unicode"
 )
 
 func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
@@ -46,6 +47,7 @@ func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
 		},
 		SplitFunc:        bufio.ScanLines,
 		PollInterval:     50 * time.Millisecond,
+		encoding:         unicode.UTF8,
 		persist:          helper.NewScopedDBPersister(db, "testfile"),
 		runningFiles:     make(map[string]struct{}),
 		knownFiles:       make(map[string]*knownFileInfo),
@@ -744,5 +746,93 @@ func expectNoMessages(t *testing.T, c chan *entry.Entry) {
 	case e := <-c:
 		require.FailNow(t, "Received unexpected message", "Message: %s", e.Record.(string))
 	case <-time.After(200 * time.Millisecond):
+	}
+}
+
+func TestEncodings(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		contents []byte
+		encoding string
+		expected [][]byte
+	}{
+		{
+			"Nop",
+			[]byte{0xc5, '\n'},
+			"",
+			[][]byte{{0xc5}},
+		},
+		{
+			"InvalidUTFReplacement",
+			[]byte{0xc5, '\n'},
+			"utf8",
+			[][]byte{{0xef, 0xbf, 0xbd}},
+		},
+		{
+			"ValidUTF8",
+			[]byte("foo\n"),
+			"utf8",
+			[][]byte{[]byte("foo")},
+		},
+		{
+			"ChineseCharacter",
+			[]byte{230, 138, 152, '\n'}, // 折\n
+			"utf8",
+			[][]byte{{230, 138, 152}},
+		},
+		{
+			"SmileyFaceUTF16",
+			[]byte{216, 61, 222, 0, 0, 10}, // 😀\n
+			"utf-16be",
+			[][]byte{{240, 159, 152, 128}},
+		},
+		{
+			"SmileyFaceNewlineUTF16",
+			[]byte{216, 61, 222, 0, 0, 10, 0, 102, 0, 111, 0, 111}, // 😀\nfoo
+			"utf-16be",
+			[][]byte{{240, 159, 152, 128}, {102, 111, 111}},
+		},
+		{
+			"SmileyFaceNewlineUTF16LE",
+			[]byte{61, 216, 0, 222, 10, 0, 102, 0, 111, 0, 111, 0}, // 😀\nfoo
+			"utf-16le",
+			[][]byte{{240, 159, 152, 128}, {102, 111, 111}},
+		},
+		{
+			"ChineseCharacterBig5",
+			[]byte{167, 233, 10}, // 折\n
+			"big5",
+			[][]byte{{230, 138, 152}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir := testutil.NewTempDir(t)
+			path := filepath.Join(tempDir, "in.log")
+			err := ioutil.WriteFile(path, tc.contents, 0777)
+			require.NoError(t, err)
+
+			source, receivedEntries := newTestFileSource(t)
+			source.Include = []string{path}
+			source.encoding, err = lookupEncoding(tc.encoding)
+			require.NoError(t, err)
+			source.SplitFunc, err = NewNewlineSplitFunc(source.encoding)
+			require.NoError(t, err)
+			require.NotNil(t, source.encoding)
+
+			err = source.Start()
+			require.NoError(t, err)
+
+			for _, expected := range tc.expected {
+				select {
+				case entry := <-receivedEntries:
+					require.Equal(t, expected, []byte(entry.Record.(string)))
+				case <-time.After(time.Second):
+					require.FailNow(t, "Timed out waiting for entry to be read")
+				}
+			}
+		})
 	}
 }
