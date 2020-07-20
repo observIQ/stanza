@@ -430,9 +430,20 @@ new-module -name LogAgentInstall -scriptblock {
     Add-Indent
     Show-ColorText 'Downloading plugins. Please wait...'
     Show-ColorText "$INDENT_WIDTH$script:plugins_download_url" DarkCyan ' -> ' '' "$script:agent_home\plugins.zip" DarkCyan
+
+    try {
+      New-Item -Path "$script:agent_home\download\tmp" -ItemType "directory"
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to create tmp directory plugins: $error_message"
+    }
+
     try {
       $WebClient = New-Object System.Net.WebClient
-      $WebClient.DownloadFile($script:plugins_download_url, "$script:agent_home\plugins.zip")
+      $WebClient.DownloadFile($script:plugins_download_url, "$script:agent_home\download\plugins.zip")
       Complete
     }
     catch {
@@ -443,7 +454,7 @@ new-module -name LogAgentInstall -scriptblock {
 
     try {
       [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
-      [System.IO.Compression.ZipFile]::ExtractToDirectory("$script:agent_home\plugins.zip", $script:agent_home)
+      [System.IO.Compression.ZipFile]::ExtractToDirectory("$script:agent_home\download\plugins.zip", "$script:agent_home\download")
       Complete
     }
     catch {
@@ -453,13 +464,23 @@ new-module -name LogAgentInstall -scriptblock {
     }
 
     try {
-      Remove-Item -Path "$script:agent_home\plugins.zip"
+      Copy-Item -Path "$script:agent_home\download\plugins\*.yaml" -Destination "$script:agent_home\plugins"
       Complete
     }
     catch {
       Failed
       $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
-      Exit-Error $MyInvocation.ScriptLineNumber "Failed to clean up plugins archive: $error_message"
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to relocate plugins: $error_message"
+    }
+
+    try {
+      Remove-Item -Path "$script:agent_home\download" -Recurse
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to clean up download: $error_message"
     }
 
     Remove-Indent
