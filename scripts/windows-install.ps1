@@ -4,7 +4,6 @@ new-module -name LogAgentInstall -scriptblock {
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
   $DOWNLOAD_BASE = "https://github.com/observiq/carbon/releases"
-  $PLUGINS_ZIP="carbon-plugins.zip"
   $SERVICE_NAME = 'carbon'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'
@@ -294,7 +293,7 @@ new-module -name LogAgentInstall -scriptblock {
     }
     else {
       $script:agent_download_url = "$DOWNLOAD_BASE/download/$script:version/carbon_windows_amd64"
-      $script:plugins_download_url = "$DOWNLOAD_BASE/download/$script:version/$PLUGINS_ZIP"
+      $script:plugins_download_url = "$DOWNLOAD_BASE/download/$script:version/carbon-plugins.zip"
     }
     Show-ColorText "Using agent download url: " '' "$script:agent_download_url" DarkCyan
     Show-ColorText "Using plugins download url: " '' "$script:plugins_download_url" DarkCyan
@@ -430,10 +429,10 @@ new-module -name LogAgentInstall -scriptblock {
     Show-Header "Downloading Carbon Plugins"
     Add-Indent
     Show-ColorText 'Downloading plugins. Please wait...'
-    Show-ColorText "$INDENT_WIDTH$script:plugins_download_url" DarkCyan ' -> ' '' "$script:agent_home" DarkCyan
+    Show-ColorText "$INDENT_WIDTH$script:plugins_download_url" DarkCyan ' -> ' '' "$script:agent_home\plugins.zip" DarkCyan
     try {
       $WebClient = New-Object System.Net.WebClient
-      $WebClient.DownloadFile($script:plugins_download_url, $script:agent_home)
+      $WebClient.DownloadFile($script:plugins_download_url, "$script:agent_home\plugins.zip")
       Complete
     }
     catch {
@@ -443,7 +442,8 @@ new-module -name LogAgentInstall -scriptblock {
     }
 
     try {
-      Expand-Archive -Path $script:agent_home\$PLUGINS_ZIP -DestinationPath $script:agent_home
+      [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
+      [System.IO.Compression.ZipFile]::ExtractToDirectory("$script:agent_home\plugins.zip", $script:agent_home\tmp)
       Complete
     }
     catch {
@@ -453,7 +453,7 @@ new-module -name LogAgentInstall -scriptblock {
     }
 
     try {
-      Remove-Item -Path $script:agent_home\$PLUGINS_ZIP
+      Remove-Item -Path "$script:agent_home\plugins.zip"
       Complete
     }
     catch {
