@@ -26,6 +26,5 @@ Configuration:
   type: elastic_output
   addresses:
     - "http://localhost:9200"
-  username: user
-  password: password
+  api_key: <my_api_key>
 ```
