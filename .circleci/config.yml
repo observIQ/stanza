@@ -50,6 +50,12 @@ jobs:
           paths:
             - "*"
 
+  wait-for-validation:
+    executor: golang
+    resource_class: small
+    steps:
+      - run: echo 'Validation Jobs Complete'
+
   publish-github-release:
     docker:
       - image: cibuilds/github:0.10
@@ -392,11 +398,19 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
+      - fetch-plugins:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
+      - wait-for-validation:
           requires:
             - test-linux
             - test-macos
             - test-windows
-      - fetch-plugins:
+            - build
+            - fetch-plugins
           filters:
             branches:
               ignore: /.*/
@@ -404,8 +418,7 @@ workflows:
               only: /^v\d+\.\d+\.\d+.*/
       - publish-github-release:
           requires:
-            - build
-            - fetch-plugins
+            - wait-for-validation
           filters:
             branches:
               ignore: /.*/
@@ -413,8 +426,7 @@ workflows:
               only: /^v\d+\.\d+\.\d+.*/
       - publish-docker-release:
           requires:
-            - build
-            - fetch-plugins
+            - wait-for-validation
           filters:
             branches:
               ignore: /.*/
