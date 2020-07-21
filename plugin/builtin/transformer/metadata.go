@@ -10,7 +10,13 @@ import (
 )
 
 func init() {
-	plugin.Register("metadata", &MetadataPluginConfig{})
+	plugin.Register("metadata", func() plugin.Builder { return NewMetadataPluginConfig("") })
+}
+
+func NewMetadataPluginConfig(pluginID string) *MetadataPluginConfig {
+	return &MetadataPluginConfig{
+		TransformerConfig: helper.NewTransformerConfig(pluginID, "metadata"),
+	}
 }
 
 // MetadataPluginConfig is the configuration of a metadata plugin

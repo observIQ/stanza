@@ -16,22 +16,13 @@ import (
 func TestInputGenerate(t *testing.T) {
 	count := 5
 	basicConfig := func() *GenerateInputConfig {
-		return &GenerateInputConfig{
-			InputConfig: helper.InputConfig{
-				WriteTo: entry.NewRecordField(),
-				WriterConfig: helper.WriterConfig{
-					BasicConfig: helper.BasicConfig{
-						PluginID:   "test_plugin_id",
-						PluginType: "generate_input",
-					},
-					OutputIDs: []string{"output1"},
-				},
-			},
-			Entry: entry.Entry{
-				Record: "test message",
-			},
-			Count: count,
+		cfg := NewGenerateInputConfig("test_plugin_id")
+		cfg.OutputIDs = []string{"output1"}
+		cfg.Entry = entry.Entry{
+			Record: "test message",
 		}
+		cfg.Count = count
+		return cfg
 	}
 
 	buildContext := testutil.NewBuildContext(t)
@@ -90,6 +81,7 @@ pipeline:
 			{
 				Builder: &GenerateInputConfig{
 					InputConfig: helper.InputConfig{
+						WriteTo: entry.NewRecordField(),
 						WriterConfig: helper.WriterConfig{
 							BasicConfig: helper.BasicConfig{
 								PluginID:   "my_generator",

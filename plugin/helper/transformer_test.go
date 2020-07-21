@@ -13,105 +13,53 @@ import (
 )
 
 func TestTransformerConfigMissingBase(t *testing.T) {
-	config := TransformerConfig{
-		WriterConfig: WriterConfig{
-			OutputIDs: []string{"test-output"},
-		},
-	}
-	context := testutil.NewBuildContext(t)
-	_, err := config.Build(context)
+	cfg := NewTransformerConfig("test", "")
+	cfg.OutputIDs = []string{"test-output"}
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing required `type` field.")
 }
 
 func TestTransformerConfigMissingOutput(t *testing.T) {
-	config := TransformerConfig{
-		WriterConfig: WriterConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
-		},
-	}
-	context := testutil.NewBuildContext(t)
-	_, err := config.Build(context)
+	cfg := NewTransformerConfig("test", "test")
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 }
 
 func TestTransformerConfigValid(t *testing.T) {
-	config := TransformerConfig{
-		WriterConfig: WriterConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
-			OutputIDs: []string{"test-output"},
-		},
-	}
-	context := testutil.NewBuildContext(t)
-	_, err := config.Build(context)
+	cfg := NewTransformerConfig("test", "test")
+	cfg.OutputIDs = []string{"test-output"}
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 }
 
 func TestTransformerOnErrorDefault(t *testing.T) {
-	config := TransformerConfig{
-		WriterConfig: WriterConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
-			OutputIDs: []string{"test-output"},
-		},
-	}
-	context := testutil.NewBuildContext(t)
-	transformer, err := config.Build(context)
+	cfg := NewTransformerConfig("test-id", "test-type")
+	transformer, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 	require.Equal(t, SendOnError, transformer.OnError)
 }
 
 func TestTransformerOnErrorInvalid(t *testing.T) {
-	config := TransformerConfig{
-		WriterConfig: WriterConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
-			OutputIDs: []string{"test-output"},
-		},
-		OnError: "invalid",
-	}
-	context := testutil.NewBuildContext(t)
-	_, err := config.Build(context)
+	cfg := NewTransformerConfig("test", "test")
+	cfg.OnError = "invalid"
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "plugin config has an invalid `on_error` field.")
 }
 
 func TestTransformerConfigSetNamespace(t *testing.T) {
-	config := TransformerConfig{
-		WriterConfig: WriterConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
-			OutputIDs: []string{"test-output"},
-		},
-	}
-	config.SetNamespace("test-namespace")
-	require.Equal(t, "test-namespace.test-id", config.PluginID)
-	require.Equal(t, "test-namespace.test-output", config.OutputIDs[0])
+	cfg := NewTransformerConfig("test-id", "test-type")
+	cfg.OutputIDs = []string{"test-output"}
+	cfg.SetNamespace("test-namespace")
+	require.Equal(t, "test-namespace.test-id", cfg.PluginID)
+	require.Equal(t, "test-namespace.test-output", cfg.OutputIDs[0])
 }
 
 func TestTransformerPluginCanProcess(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
-			},
-		},
-	}
+	cfg := NewTransformerConfig("test", "test")
+	transformer, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
 	require.True(t, transformer.CanProcess())
 }
 

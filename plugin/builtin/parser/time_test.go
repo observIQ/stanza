@@ -426,20 +426,12 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 }
 
 func parseTimeTestConfig(layoutType, layout string, parseFrom entry.Field) *TimeParserConfig {
-	return &TimeParserConfig{
-		TransformerConfig: helper.TransformerConfig{
-			WriterConfig: helper.WriterConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_plugin_id",
-					PluginType: "time_parser",
-				},
-				OutputIDs: []string{"output1"},
-			},
-		},
-		TimeParser: helper.TimeParser{
-			LayoutType: layoutType,
-			Layout:     layout,
-			ParseFrom:  parseFrom,
-		},
+	cfg := NewTimeParserConfig("test_plugin_id")
+	cfg.OutputIDs = []string{"output1"}
+	cfg.TimeParser = helper.TimeParser{
+		LayoutType: layoutType,
+		Layout:     layout,
+		ParseFrom:  &parseFrom,
 	}
+	return cfg
 }

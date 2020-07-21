@@ -11,7 +11,13 @@ import (
 )
 
 func init() {
-	plugin.Register("rate_limit", &RateLimitConfig{})
+	plugin.Register("rate_limit", func() plugin.Builder { return NewRateLimitConfig("") })
+}
+
+func NewRateLimitConfig(pluginID string) *RateLimitConfig {
+	return &RateLimitConfig{
+		TransformerConfig: helper.NewTransformerConfig(pluginID, "rate_limit"),
+	}
 }
 
 // RateLimitConfig is the configuration of a rate filter plugin.

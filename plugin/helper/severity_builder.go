@@ -60,17 +60,20 @@ const (
 	HTTP5xx = "5xx"
 )
 
+func NewSeverityParserConfig() SeverityParserConfig {
+	return SeverityParserConfig{}
+}
+
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
 type SeverityParserConfig struct {
-	ParseFrom entry.Field                 `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
-	Preserve  bool                        `json:"preserve"   yaml:"preserve"`
-	Preset    string                      `json:"preset" yaml:"preset"`
-	Mapping   map[interface{}]interface{} `json:"mapping"   yaml:"mapping"`
+	ParseFrom *entry.Field                `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
+	Preserve  bool                        `json:"preserve,omitempty"   yaml:"preserve,omitempty"`
+	Preset    string                      `json:"preset,omitempty"     yaml:"preset,omitempty"`
+	Mapping   map[interface{}]interface{} `json:"mapping,omitempty"    yaml:"mapping,omitempty"`
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
 func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParser, error) {
-
 	pluginMapping := getBuiltinMapping(c.Preset)
 
 	for severity, unknown := range c.Mapping {
@@ -97,8 +100,12 @@ func (c *SeverityParserConfig) Build(context plugin.BuildContext) (SeverityParse
 		}
 	}
 
+	if c.ParseFrom == nil {
+		return SeverityParser{}, fmt.Errorf("missing required field 'parse_from'")
+	}
+
 	p := SeverityParser{
-		ParseFrom: c.ParseFrom,
+		ParseFrom: *c.ParseFrom,
 		Preserve:  c.Preserve,
 		Mapping:   pluginMapping,
 	}

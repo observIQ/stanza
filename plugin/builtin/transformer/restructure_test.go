@@ -352,6 +352,7 @@ ops:
 					},
 					OutputIDs: []string{"test_output"},
 				},
+				OnError: helper.SendOnError,
 			},
 			Ops: []Op{
 				{&OpAdd{

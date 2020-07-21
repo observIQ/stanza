@@ -13,7 +13,13 @@ import (
 )
 
 func init() {
-	plugin.Register("tcp_input", &TCPInputConfig{})
+	plugin.Register("tcp_input", func() plugin.Builder { return NewTCPInputConfig("") })
+}
+
+func NewTCPInputConfig(pluginID string) *TCPInputConfig {
+	return &TCPInputConfig{
+		InputConfig: helper.NewInputConfig(pluginID, "tcp_input"),
+	}
 }
 
 // TCPInputConfig is the configuration of a tcp input plugin.
@@ -31,7 +37,7 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	if c.ListenAddress == "" {
-		return nil, fmt.Errorf("missing field 'listen_address'")
+		return nil, fmt.Errorf("missing required parameter 'listen_address'")
 	}
 
 	address, err := net.ResolveTCPAddr("tcp", c.ListenAddress)

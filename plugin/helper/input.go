@@ -9,6 +9,13 @@ import (
 	"go.uber.org/zap"
 )
 
+func NewInputConfig(pluginID, pluginType string) InputConfig {
+	return InputConfig{
+		WriterConfig: NewWriterConfig(pluginID, pluginType),
+		WriteTo:      entry.NewRecordField(),
+	}
+}
+
 // InputConfig provides a basic implementation of an input plugin config.
 type InputConfig struct {
 	WriterConfig `yaml:",inline"`
@@ -20,10 +27,6 @@ func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
 	writerPlugin, err := c.WriterConfig.Build(context)
 	if err != nil {
 		return InputPlugin{}, errors.WithDetails(err, "plugin_id", c.ID())
-	}
-
-	if c.WriteTo.FieldInterface == nil {
-		c.WriteTo.FieldInterface = entry.NewRecordField()
 	}
 
 	inputPlugin := InputPlugin{

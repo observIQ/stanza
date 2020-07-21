@@ -12,7 +12,13 @@ import (
 )
 
 func init() {
-	plugin.Register("regex_parser", &RegexParserConfig{})
+	plugin.Register("regex_parser", func() plugin.Builder { return NewRegexParserConfig("") })
+}
+
+func NewRegexParserConfig(pluginID string) *RegexParserConfig {
+	return &RegexParserConfig{
+		ParserConfig: helper.NewParserConfig(pluginID, "regex_parser"),
+	}
 }
 
 // RegexParserConfig is the configuration of a regex parser plugin.

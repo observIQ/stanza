@@ -12,7 +12,13 @@ import (
 )
 
 func init() {
-	plugin.Register("generate_input", &GenerateInputConfig{})
+	plugin.Register("generate_input", func() plugin.Builder { return NewGenerateInputConfig("") })
+}
+
+func NewGenerateInputConfig(pluginID string) *GenerateInputConfig {
+	return &GenerateInputConfig{
+		InputConfig: helper.NewInputConfig(pluginID, "generate_input"),
+	}
 }
 
 // GenerateInputConfig is the configuration of a generate input plugin.
@@ -20,7 +26,7 @@ type GenerateInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 	Entry              entry.Entry `json:"entry"           yaml:"entry"`
 	Count              int         `json:"count,omitempty" yaml:"count,omitempty"`
-	Static             bool        `json:"static" yaml:"static"`
+	Static             bool        `json:"static"          yaml:"static,omitempty"`
 }
 
 // Build will build a generate input plugin.

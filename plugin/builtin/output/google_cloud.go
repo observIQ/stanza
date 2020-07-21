@@ -25,7 +25,15 @@ import (
 )
 
 func init() {
-	plugin.Register("google_cloud_output", &GoogleCloudOutputConfig{})
+	plugin.Register("google_cloud_output", func() plugin.Builder { return NewGoogleCloudOutputConfig("") })
+}
+
+func NewGoogleCloudOutputConfig(pluginID string) *GoogleCloudOutputConfig {
+	return &GoogleCloudOutputConfig{
+		OutputConfig: helper.NewOutputConfig(pluginID, "google_cloud_output"),
+		BufferConfig: buffer.NewConfig(),
+		Timeout:      plugin.Duration{Duration: 10 * time.Second},
+	}
 }
 
 // GoogleCloudOutputConfig is the configuration of a google cloud output plugin.
@@ -54,13 +62,6 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		return nil, err
 	}
 
-	var timeout time.Duration
-	if c.Timeout.Raw() == time.Duration(0) {
-		timeout = 10 * time.Second
-	} else {
-		timeout = c.Timeout.Raw()
-	}
-
 	googleCloudOutput := &GoogleCloudOutput{
 		OutputPlugin:    outputPlugin,
 		credentials:     c.Credentials,
@@ -70,7 +71,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 		logNameField:    c.LogNameField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
-		timeout:         timeout,
+		timeout:         c.Timeout.Raw(),
 	}
 
 	newBuffer.SetHandler(googleCloudOutput)

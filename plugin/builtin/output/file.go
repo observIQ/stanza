@@ -14,7 +14,13 @@ import (
 )
 
 func init() {
-	plugin.Register("file_output", &FileOutputConfig{})
+	plugin.Register("file_output", func() plugin.Builder { return NewFileOutputConfig("") })
+}
+
+func NewFileOutputConfig(pluginID string) *FileOutputConfig {
+	return &FileOutputConfig{
+		OutputConfig: helper.NewOutputConfig(pluginID, "file_output"),
+	}
 }
 
 // FileOutputConfig is the configuration of a file output pluginn.

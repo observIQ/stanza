@@ -22,8 +22,8 @@ func ReadToEnd(
 	lastSeenFileSize int64,
 	messenger fileUpdateMessenger,
 	splitFunc bufio.SplitFunc,
-	filePathField *entry.Field,
-	fileNameField *entry.Field,
+	filePathField entry.Field,
+	fileNameField entry.Field,
 	inputPlugin helper.InputPlugin,
 	maxLogSize int,
 	encoding encoding.Encoding,
@@ -105,19 +105,15 @@ func ReadToEnd(
 		}
 
 		e := inputPlugin.NewEntry(string(decodeBuffer[:nDst]))
-		if filePathField != nil {
-			e.Set(*filePathField, path)
-		}
-		if fileNameField != nil {
-			e.Set(*fileNameField, filepath.Base(file.Name()))
-		}
+		e.Set(filePathField, path)
+		e.Set(fileNameField, filepath.Base(file.Name()))
 		inputPlugin.Write(ctx, e)
 		messenger.SetOffset(pos)
 	}
 }
 
 // readRemaining will read the remaining characters in a file as a log entry.
-func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, filePathField, fileNameField *entry.Field, encoder *encoding.Decoder, decodeBuffer []byte) {
+func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, filePathField, fileNameField entry.Field, encoder *encoding.Decoder, decodeBuffer []byte) {
 	_, err := file.Seek(filePos, 0)
 	if err != nil {
 		inputPlugin.Errorf("failed to seek to read last log entry")
@@ -137,12 +133,8 @@ func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize i
 	}
 
 	e := inputPlugin.NewEntry(string(decodeBuffer[:nDst]))
-	if filePathField != nil {
-		e.Set(*filePathField, file.Name())
-	}
-	if fileNameField != nil {
-		e.Set(*fileNameField, filepath.Base(file.Name()))
-	}
+	e.Set(filePathField, file.Name())
+	e.Set(fileNameField, filepath.Base(file.Name()))
 	inputPlugin.Write(ctx, e)
 	messenger.SetOffset(filePos + int64(n))
 }

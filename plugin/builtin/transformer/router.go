@@ -13,7 +13,13 @@ import (
 )
 
 func init() {
-	plugin.Register("router", &RouterPluginConfig{})
+	plugin.Register("router", func() plugin.Builder { return NewRouterPluginConfig("") })
+}
+
+func NewRouterPluginConfig(pluginID string) *RouterPluginConfig {
+	return &RouterPluginConfig{
+		BasicConfig: helper.NewBasicConfig(pluginID, "router"),
+	}
 }
 
 // RouterPluginConfig is the configuration of a router plugin

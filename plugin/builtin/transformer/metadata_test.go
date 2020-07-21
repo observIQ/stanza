@@ -19,17 +19,9 @@ func TestMetadata(t *testing.T) {
 	defer os.Unsetenv("TEST_METADATA_PLUGIN_ENV")
 
 	baseConfig := func() *MetadataPluginConfig {
-		return &MetadataPluginConfig{
-			TransformerConfig: helper.TransformerConfig{
-				WriterConfig: helper.WriterConfig{
-					BasicConfig: helper.BasicConfig{
-						PluginID:   "test_plugin_id",
-						PluginType: "metadata",
-					},
-					OutputIDs: []string{"output1"},
-				},
-			},
-		}
+		cfg := NewMetadataPluginConfig("test_plugin_id")
+		cfg.OutputIDs = []string{"output1"}
+		return cfg
 	}
 
 	cases := []struct {

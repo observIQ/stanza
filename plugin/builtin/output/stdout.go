@@ -16,7 +16,13 @@ import (
 var Stdout io.Writer = os.Stdout
 
 func init() {
-	plugin.Register("stdout", &StdoutConfig{})
+	plugin.Register("stdout", func() plugin.Builder { return NewStdoutConfig("") })
+}
+
+func NewStdoutConfig(pluginID string) *StdoutConfig {
+	return &StdoutConfig{
+		OutputConfig: helper.NewOutputConfig(pluginID, "stdout"),
+	}
 }
 
 // StdoutConfig is the configuration of the Stdout plugin

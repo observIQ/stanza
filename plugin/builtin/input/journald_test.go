@@ -13,7 +13,6 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/plugin"
-	"github.com/observiq/carbon/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,17 +31,8 @@ func (f *fakeJournaldCmd) StdoutPipe() (io.ReadCloser, error) {
 }
 
 func TestInputJournald(t *testing.T) {
-	cfg := JournaldInputConfig{
-		InputConfig: helper.InputConfig{
-			WriterConfig: helper.WriterConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "my_journald_input",
-					PluginType: "journald_input",
-				},
-				OutputIDs: []string{"output"},
-			},
-		},
-	}
+	cfg := NewJournaldInputConfig("my_journald_input")
+	cfg.OutputIDs = []string{"output"}
 
 	journaldInput, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)

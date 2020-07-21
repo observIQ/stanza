@@ -93,8 +93,7 @@ func TestCustomRegistryLoad(t *testing.T) {
 
 	t.Run("AddDuplicate", func(t *testing.T) {
 		reg := CustomRegistry{}
-		var b Builder
-		Register("copy", b)
+		Register("copy", func() Builder { return nil })
 		err := reg.Add("copy", "pipeline:\n")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "already exists")
@@ -156,7 +155,7 @@ pipeline:
 			template: `version: []
 title: My Super Plugin
 description: This is the best plugin ever
-parameters: 
+parameters:
   path:
     label: Path
     description: The path to a thing
@@ -174,7 +173,7 @@ pipeline:
 			template: `version: 0.0.0
 title: []
 description: This is the best plugin ever
-parameters: 
+parameters:
   path:
     label: Path
     description: The path to a thing

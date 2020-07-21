@@ -11,7 +11,13 @@ import (
 )
 
 func init() {
-	plugin.Register("json_parser", &JSONParserConfig{})
+	plugin.Register("json_parser", func() plugin.Builder { return NewJSONParserConfig("") })
+}
+
+func NewJSONParserConfig(pluginID string) *JSONParserConfig {
+	return &JSONParserConfig{
+		ParserConfig: helper.NewParserConfig(pluginID, "json_parser"),
+	}
 }
 
 // JSONParserConfig is the configuration of a JSON parser plugin.

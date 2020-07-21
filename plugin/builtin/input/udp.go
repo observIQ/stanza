@@ -12,7 +12,13 @@ import (
 )
 
 func init() {
-	plugin.Register("udp_input", &UDPInputConfig{})
+	plugin.Register("udp_input", func() plugin.Builder { return NewUDPInputConfig("") })
+}
+
+func NewUDPInputConfig(pluginID string) *UDPInputConfig {
+	return &UDPInputConfig{
+		InputConfig: helper.NewInputConfig(pluginID, "udp_input"),
+	}
 }
 
 // UDPInputConfig is the configuration of a udp input plugin.
@@ -30,7 +36,7 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	if c.ListenAddress == "" {
-		return nil, fmt.Errorf("missing field 'listen_address'")
+		return nil, fmt.Errorf("missing required parameter 'listen_address'")
 	}
 
 	address, err := net.ResolveUDPAddr("udp", c.ListenAddress)

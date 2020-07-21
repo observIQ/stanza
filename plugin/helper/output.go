@@ -5,6 +5,12 @@ import (
 	"github.com/observiq/carbon/plugin"
 )
 
+func NewOutputConfig(pluginID, pluginType string) OutputConfig {
+	return OutputConfig{
+		BasicConfig: NewBasicConfig(pluginID, pluginType),
+	}
+}
+
 // OutputConfig provides a basic implementation of an output plugin config.
 type OutputConfig struct {
 	BasicConfig `mapstructure:",squash" yaml:",inline"`

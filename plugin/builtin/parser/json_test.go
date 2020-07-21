@@ -152,8 +152,9 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 			output.Record = tc.expectedRecord
 
 			parser, mockOutput := NewFakeJSONPlugin()
+			parseFrom := entry.NewRecordField("testparsed", "timestamp")
 			parser.ParserPlugin.TimeParser = &helper.TimeParser{
-				ParseFrom:  entry.NewRecordField("testparsed", "timestamp"),
+				ParseFrom:  &parseFrom,
 				LayoutType: "epoch",
 				Layout:     "s",
 				Preserve:   tc.preserve,

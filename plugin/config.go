@@ -3,7 +3,6 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
@@ -64,11 +63,8 @@ var registry = make(map[string]func() Builder)
 
 // Register will register a function to a plugin type.
 // This function will return a builder for the supplied type.
-func Register(pluginType string, builder Builder) {
-	registry[pluginType] = func() Builder {
-		val := reflect.New(reflect.TypeOf(builder).Elem()).Interface()
-		return val.(Builder)
-	}
+func Register(pluginType string, newBuilder func() Builder) {
+	registry[pluginType] = newBuilder
 }
 
 // IsDefined will return a boolean indicating if a plugin type is registered and defined.

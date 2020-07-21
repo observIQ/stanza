@@ -9,7 +9,13 @@ import (
 )
 
 func init() {
-	plugin.Register("noop", &NoopPluginConfig{})
+	plugin.Register("noop", func() plugin.Builder { return NewNoopPluginConfig("") })
+}
+
+func NewNoopPluginConfig(pluginID string) *NoopPluginConfig {
+	return &NoopPluginConfig{
+		TransformerConfig: helper.NewTransformerConfig(pluginID, "noop"),
+	}
 }
 
 // NoopPluginConfig is the configuration of a noop plugin.
