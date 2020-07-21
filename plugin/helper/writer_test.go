@@ -14,16 +14,22 @@ import (
 )
 
 func TestWriterConfigMissingOutput(t *testing.T) {
-	config := WriterConfig{}
+	config := WriterConfig{
+		BasicConfig: BasicConfig{
+			PluginType: "testtype",
+		},
+	}
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required `output` field")
+	require.NoError(t, err)
 }
 
 func TestWriterConfigValidBuild(t *testing.T) {
 	config := WriterConfig{
 		OutputIDs: OutputIDs{"output"},
+		BasicConfig: BasicConfig{
+			PluginType: "testtype",
+		},
 	}
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)

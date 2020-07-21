@@ -15,9 +15,7 @@ Using fields with the restructure operator.
 
 Config:
 ```yaml
-- id: my_restructure
-  type: restructure
-  output: my_restructure_receiver
+- type: restructure
   ops:
     - add:
         field: "key3"

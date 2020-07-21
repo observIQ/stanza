@@ -7,12 +7,12 @@ they are defined.
 
 ### Configuration Fields
 
-| Field      | Default  | Description                                                                                     |
-| ---        | ---      | ---                                                                                             |
-| `id`       | required | A unique identifier for the operator                                                            |
-| `output`   | required | The connected operator(s) that will receive all outbound entries                                |
-| `ops`      | required | A list of ops. The available op types are defined below                                         |
-| `on_error` | `send`   | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
+| Field      | Default          | Description                                                                                     |
+| ---        | ---              | ---                                                                                             |
+| `id`       | `restructure`    | A unique identifier for the operator                                                            |
+| `output`   | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
+| `ops`      | required         | A list of ops. The available op types are defined below                                         |
+| `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
 ### Op types
 
@@ -28,9 +28,7 @@ The `add` op adds a field to a record. It must have a `field` key and exactly on
 
 Example usage:
 ```yaml
-- id: my_restructure
-  type: restructure
-  output: restructure_receiver
+- type: restructure
   ops:
     - add:
         field: "key1"
@@ -69,9 +67,7 @@ The `remove` op removes a field from a record.
 
 Example usage:
 ```yaml
-- id: my_restructure
-  type: restructure
-  output: restructure_receiver
+- type: restructure
   ops:
     - remove: "key1"
 ```
@@ -107,9 +103,7 @@ The `retain` op keeps the specified list of fields, and removes the rest.
 
 Example usage:
 ```yaml
-- id: my_restructure
-  type: restructure
-  output: restructure_receiver
+- type: restructure
   ops:
     - retain:
       - "key1"
@@ -150,9 +144,7 @@ The `move` op moves (or renames) a field from one location to another. Both the 
 
 Example usage:
 ```yaml
-- id: my_restructure
-  type: restructure
-  output: restructure_receiver
+- type: restructure
   ops:
     - move:
         from: "key1"
@@ -191,9 +183,7 @@ The `flatten` op flattens a field by moving its children up to the same level as
 
 Example usage:
 ```yaml
-- id: my_restructure
-  type: restructure
-  output: restructure_receiver
+- type: restructure
   ops:
     - flatten: "key1"
 ```

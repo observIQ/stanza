@@ -339,11 +339,11 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 func parseSeverityTestConfig(parseFrom entry.Field, preset string, mapping map[interface{}]interface{}) *SeverityParserConfig {
 	return &SeverityParserConfig{
 		TransformerConfig: helper.TransformerConfig{
-			BasicConfig: helper.BasicConfig{
-				PluginID:   "test_plugin_id",
-				PluginType: "severity_parser",
-			},
 			WriterConfig: helper.WriterConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "test_plugin_id",
+					PluginType: "severity_parser",
+				},
 				OutputIDs: []string{"output1"},
 			},
 		},

@@ -38,7 +38,7 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 		transformerPlugin.Warnw(
 			"preserve is true, but parse_to is set to the same field as parse_from, "+
 				"which will cause the original value to be overwritten",
-			"plugin_id", c.PluginID,
+			"plugin_id", c.ID(),
 		)
 	}
 

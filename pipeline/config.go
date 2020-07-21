@@ -15,19 +15,19 @@ type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
 func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
-	pluginConfigs, err := c.buildPluginConfigs(context)
+	pluginConfigs, err := c.buildPluginConfigs(context.CustomRegistry)
 	if err != nil {
 		return nil, err
 	}
 
 	plugins, err := c.buildPlugins(pluginConfigs, context)
 	if err != nil {
-		return nil, errors.Wrap(err, "build plugins")
+		return nil, err
 	}
 
 	pipeline, err := NewPipeline(plugins)
 	if err != nil {
-		return nil, errors.Wrap(err, "new pipeline")
+		return nil, err
 	}
 
 	return pipeline, nil
@@ -39,7 +39,10 @@ func (c Config) buildPlugins(pluginConfigs []plugin.Config, context plugin.Build
 		plugin, err := pluginConfig.Build(context)
 
 		if err != nil {
-			return nil, errors.WithDetails(err, "plugin_id", pluginConfig.ID(), "plugin_type", pluginConfig.Type())
+			return nil, errors.WithDetails(err,
+				"plugin_id", pluginConfig.ID(),
+				"plugin_type", pluginConfig.Type(),
+			)
 		}
 
 		plugins = append(plugins, plugin)
@@ -48,7 +51,7 @@ func (c Config) buildPlugins(pluginConfigs []plugin.Config, context plugin.Build
 	return plugins, nil
 }
 
-func (c Config) buildPluginConfigs(context plugin.BuildContext) ([]plugin.Config, error) {
+func (c Config) buildPluginConfigs(customRegistry plugin.CustomRegistry) ([]plugin.Config, error) {
 	pluginConfigs := make([]plugin.Config, 0, len(c))
 
 	for _, params := range c {
@@ -56,7 +59,7 @@ func (c Config) buildPluginConfigs(context plugin.BuildContext) ([]plugin.Config
 			return nil, errors.Wrap(err, "validate config params")
 		}
 
-		configs, err := params.BuildConfigs(context, "$")
+		configs, err := params.BuildConfigs(customRegistry, "$")
 		if err != nil {
 			return nil, errors.Wrap(err, "build plugin configs")
 		}
@@ -71,6 +74,9 @@ type Params map[string]interface{}
 
 // ID returns the id field in the params map.
 func (p Params) ID() string {
+	if p.getString("id") == "" {
+		return p.getString("type")
+	}
 	return p.getString("id")
 }
 
@@ -120,14 +126,6 @@ func (p Params) NamespaceExclusions(namespace string) []string {
 
 // Validate will validate the basic fields required to make a plugin config.
 func (p Params) Validate() error {
-	if p.ID() == "" {
-		return errors.NewError(
-			"missing required `id` field for plugin config",
-			"ensure that all plugin configs have a defined id field",
-			"type", p.Type(),
-		)
-	}
-
 	if p.Type() == "" {
 		return errors.NewError(
 			"missing required `type` field for plugin config",
@@ -180,13 +178,13 @@ func (p Params) getStringArray(key string) []string {
 }
 
 // BuildConfigs will build plugin configs from a params map.
-func (p Params) BuildConfigs(context plugin.BuildContext, namespace string) ([]plugin.Config, error) {
+func (p Params) BuildConfigs(customRegistry plugin.CustomRegistry, namespace string) ([]plugin.Config, error) {
 	if plugin.IsDefined(p.Type()) {
 		return p.buildAsBuiltin(namespace)
 	}
 
-	if context.CustomRegistry.IsDefined(p.Type()) {
-		return p.buildAsCustom(context, namespace)
+	if customRegistry.IsDefined(p.Type()) {
+		return p.buildAsCustom(customRegistry, namespace)
 	}
 
 	return nil, errors.NewError(
@@ -218,7 +216,7 @@ func (p Params) buildAsBuiltin(namespace string) ([]plugin.Config, error) {
 }
 
 // buildAsCustom will build a custom config from a params map.
-func (p Params) buildAsCustom(context plugin.BuildContext, namespace string) ([]plugin.Config, error) {
+func (p Params) buildAsCustom(customRegistry plugin.CustomRegistry, namespace string) ([]plugin.Config, error) {
 	templateParams := map[string]interface{}{}
 	for key, value := range p {
 		templateParams[key] = value
@@ -227,7 +225,7 @@ func (p Params) buildAsCustom(context plugin.BuildContext, namespace string) ([]
 	templateParams["input"] = p.TemplateInput(namespace)
 	templateParams["output"] = p.TemplateOutput(namespace)
 
-	config, err := context.CustomRegistry.Render(p.Type(), templateParams)
+	config, err := customRegistry.Render(p.Type(), templateParams)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render custom config")
 	}

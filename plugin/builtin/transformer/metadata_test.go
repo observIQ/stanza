@@ -21,11 +21,11 @@ func TestMetadata(t *testing.T) {
 	baseConfig := func() *MetadataPluginConfig {
 		return &MetadataPluginConfig{
 			TransformerConfig: helper.TransformerConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_plugin_id",
-					PluginType: "metadata",
-				},
 				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "test_plugin_id",
+						PluginType: "metadata",
+					},
 					OutputIDs: []string{"output1"},
 				},
 			},

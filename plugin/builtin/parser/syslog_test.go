@@ -18,11 +18,11 @@ func TestSyslogParser(t *testing.T) {
 		return &SyslogParserConfig{
 			ParserConfig: helper.ParserConfig{
 				TransformerConfig: helper.TransformerConfig{
-					BasicConfig: helper.BasicConfig{
-						PluginID:   "test_plugin_id",
-						PluginType: "syslog_parser",
-					},
 					WriterConfig: helper.WriterConfig{
+						BasicConfig: helper.BasicConfig{
+							PluginID:   "test_plugin_id",
+							PluginType: "syslog_parser",
+						},
 						OutputIDs: []string{"output1"},
 					},
 				},

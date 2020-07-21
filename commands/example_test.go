@@ -82,3 +82,53 @@ func TestTomcatExample(t *testing.T) {
 		}
 	}
 }
+
+func TestSimplePluginsExample(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on windows because of service failures")
+	}
+	err := os.Chdir("../examples/simple_plugins")
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir("../../commands")
+		require.NoError(t, err)
+	}()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"--plugin_dir", "./plugins"})
+
+	buf := muxWriter{}
+	output.Stdout = &buf
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		err = cmd.ExecuteContext(ctx)
+		require.NoError(t, err)
+	}()
+	defer func() { <-done }()
+
+	expected := `{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+`
+
+	timeout := time.After(5 * time.Second)
+	for {
+		select {
+		case <-time.After(100 * time.Millisecond):
+			if len(strings.Split(buf.String(), "\n")) == len(strings.Split(expected, "\n")) {
+				defer cancel()
+				require.Equal(t, expected, buf.String())
+				return
+			}
+		case <-timeout:
+			require.FailNow(t, "Timed out waiting for logs to be written to stdout")
+		}
+	}
+}

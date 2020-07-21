@@ -4,13 +4,13 @@ The `metadata` operator adds tags and labels to the entry.
 
 ### Configuration Fields
 
-| Field      | Default  | Description                                                                                     |
-| ---        | ---      | ---                                                                                             |
-| `id`       | required | A unique identifier for the operator                                                            |
-| `output`   | required | The connected operator(s) that will receive all outbound entries                                |
-| `labels`   | {}       | An map of `key: value` labels to add to the entry                                               |
-| `tags`     | []       | An array of tags to add to the entry                                                            |
-| `on_error` | `send`   | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
+| Field      | Default          | Description                                                                                     |
+| ---        | ---              | ---                                                                                             |
+| `id`       | `metadata`       | A unique identifier for the operator                                                            |
+| `output`   | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
+| `labels`   | {}               | An map of `key: value` labels to add to the entry                                               |
+| `tags`     | []               | An array of tags to add to the entry                                                            |
+| `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
 Inside the label and tag values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
 will be replaced with the evaluated form of the expression. The entry's record can be accessed
@@ -23,9 +23,7 @@ with the `$` variable in the expression so labels and tags can be added dynamica
 
 Configuration:
 ```yaml
-- id: my_metadata
-  type: metadata
-  output: metadata_receiver
+- type: metadata
   tags:
     - "production"
   labels:
@@ -74,8 +72,7 @@ Configuration:
 
 Configuration:
 ```yaml
-- id: my_metadata
-  type: metadata
+- type: metadata
   output: metadata_receiver
   tags:
     - "production-EXPR( $.production_location )"

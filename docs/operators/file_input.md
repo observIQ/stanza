@@ -4,20 +4,20 @@ The `file_input` operator reads logs from files. It will place the lines read in
 
 ### Configuration Fields
 
-| Field             | Default  | Description                                                                                                         |
-| ---               | ---      | ---                                                                                                                 |
-| `id`              | required | A unique identifier for the operator                                                                                |
-| `output`          | required | The connected operator(s) that will receive all outbound entries                                                    |
-| `include`         | required | A list of file glob patterns that match the file paths to be read                                                   |
-| `exclude`         | []       | A list of file glob patterns to exclude from reading                                                                |
-| `poll_interval`   | 200ms    | The duration between filesystem polls                                                                               |
-| `multiline`       |          | A `multiline` configuration block. See below for details                                                            |
-| `write_to`        | $        | A [field](/docs/types/field.md) that will be set to the log message                                                 |
-| `file_path_field` |          | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from                    |
-| `file_name_field` |          | A [field](/docs/types/field.md) that will be set to the name of the file the entry was read from                    |
-| `start_at`        | `end`    | At startup, where to start reading logs from the file. Options are `beginning` or `end`                             |
-| `encoding`        | `nop`    | The encoding of the file being read. See the list of supported encodings below for available options                |
-| `max_log_size`    | 1048576  | The maximum size of a log entry to read before failing. Protects against reading large amounts of data into memory. |
+| Field             | Default          | Description                                                                                                         |
+| ---               | ---              | ---                                                                                                                 |
+| `id`              | `file_input`     | A unique identifier for the operator                                                                                |
+| `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                                                    |
+| `include`         | required         | A list of file glob patterns that match the file paths to be read                                                   |
+| `exclude`         | []               | A list of file glob patterns to exclude from reading                                                                |
+| `poll_interval`   | 200ms            | The duration between filesystem polls                                                                               |
+| `multiline`       |                  | A `multiline` configuration block. See below for details                                                            |
+| `write_to`        | $                | A [field](/docs/types/field.md) that will be set to the log message                                                 |
+| `encoding`        | `nop`            | The encoding of the file being read. See the list of supported encodings below for available options                |
+| `file_path_field` |                  | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from                    |
+| `file_name_field` |                  | A [field](/docs/types/field.md) that will be set to the name of the file the entry was read from                    |
+| `start_at`        | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`                             |
+| `max_log_size`    | 1048576          | The maximum size of a log entry to read before failing. Protects against reading large amounts of data into memory. |
 
 Note that by default, no logs will be read unless the monitored file is actively being written to because `start_at` defaults to `end`.
 
@@ -48,11 +48,9 @@ Other less common encodings are supported on a best-effort basis. See [https://w
 
 Configuration:
 ```yaml
-- id: my_file_input
-  type: file_input
+- type: file_input
   include:
     - ./test.log
-  output: file_input_receiver
 ```
 
 <table>
@@ -89,13 +87,11 @@ log3
 
 Configuration:
 ```yaml
-- id: my_file_input
-  type: file_input
+- type: file_input
   include:
     - ./test.log
   multiline:
     line_start_pattern: 'START '
-  output: file_input_receiver
 ```
 
 <table>

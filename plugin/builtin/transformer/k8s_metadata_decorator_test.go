@@ -33,11 +33,11 @@ func TestMetadataCache(t *testing.T) {
 func basicConfig() K8sMetadataDecoratorConfig {
 	return K8sMetadataDecoratorConfig{
 		TransformerConfig: helper.TransformerConfig{
-			BasicConfig: helper.BasicConfig{
-				PluginID:   "testplugin",
-				PluginType: "k8s_metadata_decorator",
-			},
 			WriterConfig: helper.WriterConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "testplugin",
+					PluginType: "k8s_metadata_decorator",
+				},
 				OutputIDs: []string{"mock"},
 			},
 		},
@@ -49,11 +49,11 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 
 	expected := &K8sMetadataDecorator{
 		TransformerPlugin: helper.TransformerPlugin{
-			BasicPlugin: helper.BasicPlugin{
-				PluginID:   "testplugin",
-				PluginType: "k8s_metadata_decorator",
-			},
 			WriterPlugin: helper.WriterPlugin{
+				BasicPlugin: helper.BasicPlugin{
+					PluginID:   "testplugin",
+					PluginType: "k8s_metadata_decorator",
+				},
 				OutputIDs: []string{"mock"},
 			},
 			OnError: "send",

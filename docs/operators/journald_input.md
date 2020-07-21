@@ -8,13 +8,13 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 
 ### Configuration Fields
 
-| Field       | Default  | Description                                                                                      |
-| ---         | ---      | ---                                                                                              |
-| `id`        | required | A unique identifier for the operator                                                             |
-| `output`    | required | The connected operator(s) that will receive all outbound entries                                 |
-| `directory` |          | A directory containing journal files to read entries from                                        |
-| `files`     |          | A list of journal files to read entries from                                                     |
-| `write_to`  | $        | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
+| Field       | Default          | Description                                                                                      |
+| ---         | ---              | ---                                                                                              |
+| `id`        | `journald_input` | A unique identifier for the operator                                                             |
+| `output`    | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
+| `directory` |                  | A directory containing journal files to read entries from                                        |
+| `files`     |                  | A list of journal files to read entries from                                                     |
+| `write_to`  | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
 
 
 
@@ -24,9 +24,7 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 
 Configuration:
 ```yaml
-- id: my_journald_input
-  type: journald_input
-  output: journald_receiver
+- type: journald_input
 ```
 
 Output entry sample:

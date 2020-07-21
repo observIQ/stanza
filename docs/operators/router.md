@@ -12,7 +12,7 @@ An entry that does not match any of the routes is dropped and not processed furt
 
 | Field    | Default  | Description                              |
 | ---      | ---      | ---                                      |
-| `id`     | required | A unique identifier for the operator       |
+| `id`     | `router` | A unique identifier for the operator     |
 | `routes` | required | A list of routes. See below for details  |
 
 #### Route configuration
@@ -28,8 +28,7 @@ An entry that does not match any of the routes is dropped and not processed furt
 #### Forward entries to different parsers based on content
 
 ```yaml
-- id: my_router
-  type: router
+- type: router
   routes:
     - output: my_json_parser
       expr: '$.format == "json"'
@@ -40,8 +39,7 @@ An entry that does not match any of the routes is dropped and not processed furt
 #### Drop entries based on content
 
 ```yaml
-- id: my_router
-  type: router
+- type: router
   routes:
     - output: my_output
       expr: '$.message matches "^LOG: .* END$"'
@@ -50,8 +48,7 @@ An entry that does not match any of the routes is dropped and not processed furt
 #### Route with a default
 
 ```yaml
-- id: my_router
-  type: router
+- type: router
   routes:
     - output: my_json_parser
       expr: '$.format == "json"'

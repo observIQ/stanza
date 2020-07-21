@@ -4,15 +4,15 @@ The `syslog_parser` operator parses the string-type field selected by `parse_fro
 
 ### Configuration Fields
 
-| Field        | Default  | Description                                                                                    |
-| ---          | ---      | ---                                                                                            |
-| `id`         | required | A unique identifier for the operator                                                           |
-| `output`     | required | The connected operator(s) that will receive all outbound entries                               |
-| `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                  |
-| `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                  |
-| `preserve`   | false    | Preserve the unparsed value on the record                                                      |
-| `on_error`   | `send`   | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)|
-| `protocol`   | required | The protocol to parse the syslog messages as. Options are `rfc3164` and `rfc5424`              |
+| Field        | Default          | Description                                                                                     |
+| ---          | ---              | ---                                                                                             |
+| `id`         | `syslog_parser`  | A unique identifier for the operator                                                            |
+| `output`     | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
+| `parse_from` | $                | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                   |
+| `parse_to`   | $                | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                   |
+| `preserve`   | false            | Preserve the unparsed value on the record                                                       |
+| `on_error`   | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
+| `protocol`   | required         | The protocol to parse the syslog messages as. Options are `rfc3164` and `rfc5424`               |
 
 ### Example Configurations
 
@@ -21,10 +21,8 @@ The `syslog_parser` operator parses the string-type field selected by `parse_fro
 
 Configuration:
 ```yaml
-- id: my_syslog_parser
-  type: syslog_parser
+- type: syslog_parser
   protocol: rfc3164
-  output: parsed_syslog_receiver
 ```
 
 <table>
@@ -53,7 +51,7 @@ Configuration:
     "msg_id": null,
     "priority": 34,
     "proc_id": null,
-    "severity": 2,
+    "severity": 2
   }
 }
 ```

@@ -168,16 +168,10 @@ func TestValidParams(t *testing.T) {
 }
 
 func TestInvalidParams(t *testing.T) {
-	paramsWithoutID := Params{
-		"type": "test_type",
-	}
-	err := paramsWithoutID.Validate()
-	require.Error(t, err)
-
 	paramsWithoutType := Params{
 		"id": "test_id",
 	}
-	err = paramsWithoutType.Validate()
+	err := paramsWithoutType.Validate()
 	require.Error(t, err)
 }
 
@@ -194,8 +188,7 @@ func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
 		"output": "test",
 		"field":  invalidMarshaller{},
 	}
-	context := plugin.BuildContext{}
-	_, err := params.BuildConfigs(context, "test_namespace")
+	_, err := params.BuildConfigs(plugin.CustomRegistry{}, "test_namespace")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to parse config map as yaml")
 }
@@ -207,8 +200,7 @@ func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
 		"unknown": true,
 		"output":  "test_output",
 	}
-	context := plugin.BuildContext{}
-	_, err := params.BuildConfigs(context, "test_namespace")
+	_, err := params.BuildConfigs(plugin.CustomRegistry{}, "test_namespace")
 	require.Error(t, err)
 }
 
@@ -218,8 +210,7 @@ func TestBuildBuiltinFromValidParams(t *testing.T) {
 		"type":   "noop",
 		"output": "test_output",
 	}
-	context := plugin.BuildContext{}
-	configs, err := params.BuildConfigs(context, "test_namespace")
+	configs, err := params.BuildConfigs(plugin.CustomRegistry{}, "test_namespace")
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
@@ -238,16 +229,13 @@ pipeline:
 	err := registry.Add("custom_plugin", customTemplate)
 	require.NoError(t, err)
 
-	context := plugin.BuildContext{
-		CustomRegistry: registry,
-	}
 	params := Params{
 		"id":     "custom_plugin",
 		"type":   "custom_plugin",
 		"output": "test_output",
 	}
 
-	configs, err := params.BuildConfigs(context, "test_namespace")
+	configs, err := params.BuildConfigs(registry, "test_namespace")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
 	require.IsType(t, &transformer.NoopPluginConfig{}, configs[0].Builder)
@@ -387,7 +375,7 @@ func TestBuildInvalidPipelineInvalidPlugin(t *testing.T) {
 
 	_, err = pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "build plugins")
+	require.Contains(t, err.Error(), "missing field 'listen_address'")
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
@@ -421,7 +409,7 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 
 	_, err = pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "new pipeline")
+	require.Contains(t, err.Error(), "does not exist")
 }
 
 func TestMultiRoundtripParams(t *testing.T) {

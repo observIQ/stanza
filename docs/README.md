@@ -6,20 +6,15 @@ This repo contains documentation for the Carbon Log Agent.
 The agent is configured using a YAML config file that is passed in using the `--config` flag. This file defines a collection of operators beneath a top-level `pipeline` key. Each operator possesses a `type` and `id` field.
 
 ```yaml
-pipeline:
-  - id: operator_one
-    type: udp_input
+plugins:
+  - type: udp_input
     listen_address: :5141
-    output: operator_two
 
-  - id: operator_two
-    type: syslog_parser
+  - type: syslog_parser
     parse_from: message
     protocol: rfc5424
-    output: operator_three
 
-  - id: operator_three
-    type: elastic_output
+  - type: elastic_output
 ```
 
 ## What is an operator?
