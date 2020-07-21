@@ -9,6 +9,12 @@ import (
 	"github.com/observiq/carbon/plugin"
 )
 
+func NewWriterConfig(pluginID, pluginType string) WriterConfig {
+	return WriterConfig{
+		BasicConfig: NewBasicConfig(pluginID, pluginType),
+	}
+}
+
 // WriterConfig is the configuration of a writer plugin.
 type WriterConfig struct {
 	BasicConfig `yaml:",inline"`

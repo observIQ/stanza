@@ -10,7 +10,14 @@ import (
 )
 
 func init() {
-	plugin.Register("severity_parser", &SeverityParserConfig{})
+	plugin.Register("severity_parser", func() plugin.Builder { return NewSeverityParserConfig("") })
+}
+
+func NewSeverityParserConfig(pluginID string) *SeverityParserConfig {
+	return &SeverityParserConfig{
+		TransformerConfig:    helper.NewTransformerConfig(pluginID, "severity_parser"),
+		SeverityParserConfig: helper.NewSeverityParserConfig(),
+	}
 }
 
 // SeverityParserConfig is the configuration of a severity parser plugin.

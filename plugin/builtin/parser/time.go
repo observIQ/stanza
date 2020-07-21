@@ -10,7 +10,14 @@ import (
 )
 
 func init() {
-	plugin.Register("time_parser", &TimeParserConfig{})
+	plugin.Register("time_parser", func() plugin.Builder { return NewTimeParserConfig("") })
+}
+
+func NewTimeParserConfig(pluginID string) *TimeParserConfig {
+	return &TimeParserConfig{
+		TransformerConfig: helper.NewTransformerConfig(pluginID, "time_parser"),
+		TimeParser:        helper.NewTimeParser(),
+	}
 }
 
 // TimeParserConfig is the configuration of a time parser plugin.

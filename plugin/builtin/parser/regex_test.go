@@ -85,21 +85,11 @@ func TestParserRegex(t *testing.T) {
 }
 
 func TestBuildParserRegex(t *testing.T) {
-	newBasicRegexParser := func() RegexParserConfig {
-		return RegexParserConfig{
-			ParserConfig: helper.ParserConfig{
-				TransformerConfig: helper.TransformerConfig{
-					WriterConfig: helper.WriterConfig{
-						BasicConfig: helper.BasicConfig{
-							PluginID:   "test",
-							PluginType: "test",
-						},
-						OutputIDs: []string{"test"},
-					},
-				},
-			},
-			Regex: "(?P<all>.*)",
-		}
+	newBasicRegexParser := func() *RegexParserConfig {
+		cfg := NewRegexParserConfig("test")
+		cfg.OutputIDs = []string{"test"}
+		cfg.Regex = "(?P<all>.*)"
+		return cfg
 	}
 
 	t.Run("BasicConfig", func(t *testing.T) {

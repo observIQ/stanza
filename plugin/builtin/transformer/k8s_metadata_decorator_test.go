@@ -30,18 +30,10 @@ func TestMetadataCache(t *testing.T) {
 	require.Equal(t, entry, loaded)
 }
 
-func basicConfig() K8sMetadataDecoratorConfig {
-	return K8sMetadataDecoratorConfig{
-		TransformerConfig: helper.TransformerConfig{
-			WriterConfig: helper.WriterConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "testplugin",
-					PluginType: "k8s_metadata_decorator",
-				},
-				OutputIDs: []string{"mock"},
-			},
-		},
-	}
+func basicConfig() *K8sMetadataDecoratorConfig {
+	cfg := NewK8smetadataDecoratorConfig("testplugin")
+	cfg.OutputIDs = []string{"mock"}
+	return cfg
 }
 
 func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {

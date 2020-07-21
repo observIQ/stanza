@@ -9,7 +9,6 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/plugin"
-	"github.com/observiq/carbon/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -17,20 +16,10 @@ import (
 func TestRateLimit(t *testing.T) {
 	t.Parallel()
 
-	cfg := RateLimitConfig{
-		TransformerConfig: helper.TransformerConfig{
-			WriterConfig: helper.WriterConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "my_rate_limit",
-					PluginType: "rate_limit",
-				},
-				OutputIDs: []string{"output1"},
-			},
-		},
-
-		Rate:  10,
-		Burst: 1,
-	}
+	cfg := NewRateLimitConfig("my_rate_limit")
+	cfg.OutputIDs = []string{"output1"}
+	cfg.Burst = 1
+	cfg.Rate = 10
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)

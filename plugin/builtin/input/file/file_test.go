@@ -1,7 +1,6 @@
 package file
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,11 +15,8 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/plugin"
-	"github.com/observiq/carbon/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
-	"golang.org/x/text/encoding/unicode"
 )
 
 func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
@@ -30,31 +26,17 @@ func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
 		receivedEntries <- args.Get(1).(*entry.Entry)
 	})
 
-	logger := zaptest.NewLogger(t).Sugar()
-	db := testutil.NewTestDatabase(t)
+	cfg := NewInputConfig("testfile")
+	cfg.PollInterval = plugin.Duration{Duration: 50 * time.Millisecond}
+	cfg.StartAt = "beginning"
+	cfg.Include = []string{"should-be-overwritten"}
 
-	source := &InputPlugin{
-		InputPlugin: helper.InputPlugin{
-			WriterPlugin: helper.WriterPlugin{
-				BasicPlugin: helper.BasicPlugin{
-					PluginID:      "testfile",
-					PluginType:    "file_input",
-					SugaredLogger: logger,
-				},
-				OutputPlugins: []plugin.Plugin{mockOutput},
-			},
-			WriteTo: entry.NewRecordField(),
-		},
-		SplitFunc:        bufio.ScanLines,
-		PollInterval:     50 * time.Millisecond,
-		encoding:         unicode.UTF8,
-		persist:          helper.NewScopedDBPersister(db, "testfile"),
-		runningFiles:     make(map[string]struct{}),
-		knownFiles:       make(map[string]*knownFileInfo),
-		fileUpdateChan:   make(chan fileUpdateMessage),
-		fingerprintBytes: 500,
-		startAtBeginning: true,
+	pg, err := cfg.Build(testutil.NewBuildContext(t))
+	if err != nil {
+		t.Fatalf("Error building plugin: %s", err)
 	}
+	source := pg.(*InputPlugin)
+	source.OutputPlugins = []plugin.Plugin{mockOutput}
 
 	return source, receivedEntries
 }
@@ -63,27 +45,14 @@ func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
 	mockOutput := testutil.NewMockPlugin("mock")
 
-	filePathField := entry.NewRecordField("testpath")
-
 	basicConfig := func() *InputConfig {
-		return &InputConfig{
-			InputConfig: helper.InputConfig{
-				WriterConfig: helper.WriterConfig{
-					BasicConfig: helper.BasicConfig{
-						PluginID:   "testfile",
-						PluginType: "file_input",
-					},
-					OutputIDs: []string{"mock"},
-				},
-				WriteTo: entry.NewRecordField(),
-			},
-			Include: []string{"/var/log/testpath.*"},
-			Exclude: []string{"/var/log/testpath.ex*"},
-			PollInterval: &plugin.Duration{
-				Duration: 10 * time.Millisecond,
-			},
-			FilePathField: &filePathField,
-		}
+		cfg := NewInputConfig("testfile")
+		cfg.OutputIDs = []string{"mock"}
+		cfg.Include = []string{"/var/log/testpath.*"}
+		cfg.Exclude = []string{"/var/log/testpath.ex*"}
+		cfg.PollInterval = plugin.Duration{Duration: 10 * time.Millisecond}
+		cfg.FilePathField = entry.NewRecordField("testpath")
+		return cfg
 	}
 
 	cases := []struct {
@@ -99,7 +68,7 @@ func TestFileSource_Build(t *testing.T) {
 			func(t *testing.T, f *InputPlugin) {
 				require.Equal(t, f.OutputPlugins[0], mockOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
-				require.Equal(t, f.FilePathField, &filePathField)
+				require.Equal(t, f.FilePathField, entry.NewRecordField("testpath"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
 			},
 		},
@@ -197,10 +166,8 @@ func TestFileSource_AddFields(t *testing.T) {
 	source, logReceived := newTestFileSource(t)
 	tempDir := testutil.NewTempDir(t)
 	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-	pf := entry.NewLabelField("path")
-	source.FilePathField = &pf
-	fnf := entry.NewLabelField("file_name")
-	source.FileNameField = &fnf
+	source.FilePathField = entry.NewLabelField("path")
+	source.FileNameField = entry.NewLabelField("file_name")
 
 	// Create a file, then start
 	temp, err := ioutil.TempFile(tempDir, "")

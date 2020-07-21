@@ -14,7 +14,13 @@ import (
 )
 
 func init() {
-	plugin.Register("syslog_parser", &SyslogParserConfig{})
+	plugin.Register("syslog_parser", func() plugin.Builder { return NewSyslogParserConfig("") })
+}
+
+func NewSyslogParserConfig(pluginID string) *SyslogParserConfig {
+	return &SyslogParserConfig{
+		ParserConfig: helper.NewParserConfig(pluginID, "syslog_parser"),
+	}
 }
 
 // SyslogParserConfig is the configuration of a syslog parser plugin.
@@ -27,9 +33,10 @@ type SyslogParserConfig struct {
 // Build will build a JSON parser plugin.
 func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 	if c.ParserConfig.TimeParser == nil {
+		parseFromField := entry.NewRecordField("timestamp")
 		c.ParserConfig.TimeParser = &helper.TimeParser{
-			ParseFrom:  entry.NewRecordField("timestamp"),
-			LayoutType: "native",
+			ParseFrom:  &parseFromField,
+			LayoutType: helper.NativeKey,
 		}
 	}
 

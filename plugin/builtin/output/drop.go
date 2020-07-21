@@ -9,7 +9,13 @@ import (
 )
 
 func init() {
-	plugin.Register("drop_output", &DropOutputConfig{})
+	plugin.Register("drop_output", func() plugin.Builder { return NewDropOutputConfig("") })
+}
+
+func NewDropOutputConfig(pluginID string) *DropOutputConfig {
+	return &DropOutputConfig{
+		OutputConfig: helper.NewOutputConfig(pluginID, "drop_output"),
+	}
 }
 
 // DropOutputConfig is the configuration of a drop output plugin.

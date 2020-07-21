@@ -8,28 +8,15 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/plugin"
-	"github.com/observiq/carbon/plugin/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSyslogParser(t *testing.T) {
 	basicConfig := func() *SyslogParserConfig {
-		return &SyslogParserConfig{
-			ParserConfig: helper.ParserConfig{
-				TransformerConfig: helper.TransformerConfig{
-					WriterConfig: helper.WriterConfig{
-						BasicConfig: helper.BasicConfig{
-							PluginID:   "test_plugin_id",
-							PluginType: "syslog_parser",
-						},
-						OutputIDs: []string{"output1"},
-					},
-				},
-				ParseFrom: entry.NewRecordField(),
-				ParseTo:   entry.NewRecordField(),
-			},
-		}
+		cfg := NewSyslogParserConfig("test_plugin_id")
+		cfg.OutputIDs = []string{"output1"}
+		return cfg
 	}
 
 	cases := []struct {

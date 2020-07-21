@@ -375,7 +375,7 @@ func TestBuildInvalidPipelineInvalidPlugin(t *testing.T) {
 
 	_, err = pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing field 'listen_address'")
+	require.Contains(t, err.Error(), "missing required parameter 'listen_address'")
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {

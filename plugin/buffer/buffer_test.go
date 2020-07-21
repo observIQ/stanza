@@ -33,13 +33,12 @@ func (b *bufferHandler) Logger() *zap.SugaredLogger {
 }
 
 func TestBuffer(t *testing.T) {
-	config := &Config{}
-	config.setDefaults()
+	config := NewConfig()
 	config.DelayThreshold = plugin.Duration{
 		Duration: 100 * time.Millisecond,
 	}
 
-	buf := NewMemoryBuffer(config)
+	buf := NewMemoryBuffer(&config)
 	numEntries := 10000
 
 	bh := bufferHandler{
@@ -79,11 +78,7 @@ func TestBufferSerializationRoundtrip(t *testing.T) {
 		},
 		{
 			"defaults",
-			func() Config {
-				config := Config{}
-				config.setDefaults()
-				return config
-			}(),
+			NewConfig(),
 		},
 	}
 

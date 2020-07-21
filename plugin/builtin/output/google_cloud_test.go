@@ -12,8 +12,6 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/plugin"
-	"github.com/observiq/carbon/plugin/buffer"
-	"github.com/observiq/carbon/plugin/helper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	sev "google.golang.org/genproto/googleapis/logging/type"
@@ -43,20 +41,10 @@ type googleCloudTestCase struct {
 }
 
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
-	return &GoogleCloudOutputConfig{
-		OutputConfig: helper.OutputConfig{
-			BasicConfig: helper.BasicConfig{
-				PluginID:   "test_id",
-				PluginType: "google_cloud_output",
-			},
-		},
-		BufferConfig: buffer.Config{
-			DelayThreshold: plugin.Duration{
-				Duration: time.Millisecond,
-			},
-		},
-		ProjectID: "test_project_id",
-	}
+	cfg := NewGoogleCloudOutputConfig("test_id")
+	cfg.ProjectID = "test_project_id"
+	cfg.BufferConfig.DelayThreshold = plugin.Duration{Duration: time.Millisecond}
+	return cfg
 }
 
 func googleCloudBasicWriteEntriesRequest() *logpb.WriteLogEntriesRequest {

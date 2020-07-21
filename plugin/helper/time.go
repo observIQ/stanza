@@ -26,12 +26,18 @@ const EpochKey = "epoch"
 // NativeKey is literally "native" and refers to Golang's native time.Time
 const NativeKey = "native" // provided for plugin development
 
+func NewTimeParser() TimeParser {
+	return TimeParser{
+		LayoutType: "strptime",
+	}
+}
+
 // TimeParser is a helper that parses time onto an entry.
 type TimeParser struct {
-	ParseFrom  entry.Field `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
-	Layout     string      `json:"layout,omitempty" yaml:"layout,omitempty"`
-	LayoutType string      `json:"layout_type,omitempty" yaml:"layout_type,omitempty"`
-	Preserve   bool        `json:"preserve"   yaml:"preserve"`
+	ParseFrom  *entry.Field `json:"parse_from,omitempty"  yaml:"parse_from,omitempty"`
+	Layout     string       `json:"layout,omitempty"      yaml:"layout,omitempty"`
+	LayoutType string       `json:"layout_type,omitempty" yaml:"layout_type,omitempty"`
+	Preserve   bool         `json:"preserve"              yaml:"preserve"`
 }
 
 // IsZero returns true if the TimeParser is not a valid config
@@ -41,6 +47,9 @@ func (t *TimeParser) IsZero() bool {
 
 // Validate validates a TimeParser, and reconfigures it if necessary
 func (t *TimeParser) Validate(context plugin.BuildContext) error {
+	if t.ParseFrom == nil {
+		return fmt.Errorf("missing required parameter 'parse_from'")
+	}
 
 	if t.Layout == "" && t.LayoutType != "native" {
 		return errors.NewError("missing required configuration parameter `layout`", "")

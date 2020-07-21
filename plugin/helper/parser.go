@@ -8,6 +8,15 @@ import (
 	"github.com/observiq/carbon/plugin"
 )
 
+func NewParserConfig(pluginID, pluginType string) ParserConfig {
+	return ParserConfig{
+		TransformerConfig: NewTransformerConfig(pluginID, pluginType),
+		ParseFrom:         entry.NewRecordField(),
+		ParseTo:           entry.NewRecordField(),
+		Preserve:          false,
+	}
+}
+
 // ParserConfig provides the basic implementation of a parser config.
 type ParserConfig struct {
 	TransformerConfig `yaml:",inline"`
@@ -24,14 +33,6 @@ func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
 	transformerPlugin, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return ParserPlugin{}, err
-	}
-
-	if c.ParseFrom.FieldInterface == nil {
-		c.ParseFrom.FieldInterface = entry.NewRecordField()
-	}
-
-	if c.ParseTo.FieldInterface == nil {
-		c.ParseTo.FieldInterface = entry.NewRecordField()
 	}
 
 	if c.ParseFrom.String() == c.ParseTo.String() && c.Preserve {

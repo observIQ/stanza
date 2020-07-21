@@ -25,7 +25,19 @@ import (
 )
 
 func init() {
-	plugin.Register("file_input", &InputConfig{})
+	plugin.Register("file_input", func() plugin.Builder { return NewInputConfig("") })
+}
+
+func NewInputConfig(pluginID string) *InputConfig {
+	return &InputConfig{
+		InputConfig:   helper.NewInputConfig(pluginID, "file_input"),
+		PollInterval:  plugin.Duration{Duration: 200 * time.Millisecond},
+		FilePathField: entry.NewNilField(),
+		FileNameField: entry.NewNilField(),
+		StartAt:       "end",
+		MaxLogSize:    1024 * 1024,
+		Encoding:      "nop",
+	}
 }
 
 // InputConfig is the configuration of a file input plugin
@@ -35,10 +47,10 @@ type InputConfig struct {
 	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
 	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
 
-	PollInterval  *plugin.Duration `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
+	PollInterval  plugin.Duration  `json:"poll_interval,omitempty"   yaml:"poll_interval,omitempty"`
 	Multiline     *MultilineConfig `json:"multiline,omitempty"       yaml:"multiline,omitempty"`
-	FilePathField *entry.Field     `json:"file_path_field,omitempty" yaml:"file_path_field,omitempty"`
-	FileNameField *entry.Field     `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
+	FilePathField entry.Field      `json:"file_path_field,omitempty" yaml:"file_path_field,omitempty"`
+	FileNameField entry.Field      `json:"file_name_field,omitempty" yaml:"file_name_field,omitempty"`
 	StartAt       string           `json:"start_at,omitempty"        yaml:"start_at,omitempty"`
 	MaxLogSize    int              `json:"max_log_size,omitempty"    yaml:"max_log_size,omitempty"`
 	Encoding      string           `json:"encoding,omitempty"        yaml:"encoding,omitempty"`
@@ -87,18 +99,11 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		return nil, err
 	}
 
-	var pollInterval time.Duration
-	if c.PollInterval == nil {
-		pollInterval = 200 * time.Millisecond
-	} else {
-		pollInterval = c.PollInterval.Raw()
-	}
-
 	var startAtBeginning bool
 	switch c.StartAt {
 	case "beginning":
 		startAtBeginning = true
-	case "end", "":
+	case "end":
 		startAtBeginning = false
 	default:
 		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
@@ -109,7 +114,7 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		Include:          c.Include,
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
-		PollInterval:     pollInterval,
+		PollInterval:     c.PollInterval.Raw(),
 		persist:          helper.NewScopedDBPersister(context.Database, c.ID()),
 		FilePathField:    c.FilePathField,
 		FileNameField:    c.FileNameField,
@@ -118,12 +123,7 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		fingerprintBytes: 1000,
 		startAtBeginning: startAtBeginning,
 		encoding:         encoding,
-	}
-
-	if c.MaxLogSize == 0 {
-		plugin.MaxLogSize = 1024 * 1024
-	} else {
-		plugin.MaxLogSize = c.MaxLogSize
+		MaxLogSize:       c.MaxLogSize,
 	}
 
 	return plugin, nil
@@ -192,8 +192,8 @@ type InputPlugin struct {
 
 	Include       []string
 	Exclude       []string
-	FilePathField *entry.Field
-	FileNameField *entry.Field
+	FilePathField entry.Field
+	FileNameField entry.Field
 	PollInterval  time.Duration
 	SplitFunc     bufio.SplitFunc
 	MaxLogSize    int

@@ -6,6 +6,13 @@ import (
 	"go.uber.org/zap"
 )
 
+func NewBasicConfig(pluginID, pluginType string) BasicConfig {
+	return BasicConfig{
+		PluginID:   pluginID,
+		PluginType: pluginType,
+	}
+}
+
 // BasicConfig provides a basic implemention for a plugin config.
 type BasicConfig struct {
 	PluginID   string `json:"id"   yaml:"id"`

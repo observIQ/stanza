@@ -62,7 +62,7 @@ func TestUnmarshalJSONErrors(t *testing.T) {
 
 	t.Run("TypeSpecificUnmarshal", func(t *testing.T) {
 		raw := `{"id":"custom","type":"custom","array":"non-array-value"}`
-		Register("custom", &FakeBuilder{})
+		Register("custom", func() Builder { return &FakeBuilder{} })
 		var cfg Config
 		err := json.Unmarshal([]byte(raw), &cfg)
 		require.Error(t, err)
@@ -119,7 +119,7 @@ func TestUnmarshalYAMLErrors(t *testing.T) {
 
 	t.Run("TypeSpecificUnmarshal", func(t *testing.T) {
 		raw := "id: custom\ntype: custom\narray: nonarray"
-		Register("custom", &FakeBuilder{})
+		Register("custom", func() Builder { return &FakeBuilder{} })
 		var cfg Config
 		err := yaml.Unmarshal([]byte(raw), &cfg)
 		require.Error(t, err)

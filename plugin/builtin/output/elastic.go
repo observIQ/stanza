@@ -18,7 +18,14 @@ import (
 )
 
 func init() {
-	plugin.Register("elastic_output", &ElasticOutputConfig{})
+	plugin.Register("elastic_output", func() plugin.Builder { return NewElasticOutputConfig("") })
+}
+
+func NewElasticOutputConfig(pluginID string) *ElasticOutputConfig {
+	return &ElasticOutputConfig{
+		OutputConfig: helper.NewOutputConfig(pluginID, "elastic_output"),
+		BufferConfig: buffer.NewConfig(),
+	}
 }
 
 // ElasticOutputConfig is the configuration of an elasticsearch output plugin.

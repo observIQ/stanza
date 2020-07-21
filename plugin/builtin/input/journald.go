@@ -21,7 +21,13 @@ import (
 )
 
 func init() {
-	plugin.Register("journald_input", &JournaldInputConfig{})
+	plugin.Register("journald_input", func() plugin.Builder { return NewJournaldInputConfig("") })
+}
+
+func NewJournaldInputConfig(pluginID string) *JournaldInputConfig {
+	return &JournaldInputConfig{
+		InputConfig: helper.NewInputConfig(pluginID, "journald_input"),
+	}
 }
 
 // JournaldInputConfig is the configuration of a journald input plugin

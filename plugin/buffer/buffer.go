@@ -19,6 +19,19 @@ type Buffer interface {
 	Process(context.Context, *entry.Entry) error
 }
 
+func NewConfig() Config {
+	return Config{
+		BufferType:           "memory",
+		DelayThreshold:       plugin.Duration{Duration: time.Second},
+		BundleCountThreshold: 10_000,
+		BundleByteThreshold:  4 * 1024 * 1024 * 1024,   // 4MB
+		BundleByteLimit:      4 * 1024 * 1024 * 1024,   // 4MB
+		BufferedByteLimit:    500 * 1024 * 1024 * 1024, // 500MB
+		HandlerLimit:         32,
+		Retry:                NewRetryConfig(),
+	}
+}
+
 // Config is the configuration of a buffer
 type Config struct {
 	BufferType           string          `json:"type,omitempty"                   yaml:"type,omitempty"`
@@ -28,13 +41,11 @@ type Config struct {
 	BundleByteLimit      int             `json:"bundle_byte_limit,omitempty"      yaml:"bundle_byte_limit,omitempty"`
 	BufferedByteLimit    int             `json:"buffered_byte_limit,omitempty"    yaml:"buffered_byte_limit,omitempty"`
 	HandlerLimit         int             `json:"handler_limit,omitempty"          yaml:"handler_limit,omitempty"`
-	Retry                RetryConfig     `json:"retry,omitempty" yaml:"retry,omitempty"`
+	Retry                RetryConfig     `json:"retry,omitempty"                  yaml:"retry,omitempty"`
 }
 
 // Build will build a buffer from the supplied configuration
 func (config *Config) Build() (Buffer, error) {
-	config.setDefaults()
-
 	switch config.BufferType {
 	case "memory", "":
 		return NewMemoryBuffer(config), nil
@@ -46,38 +57,13 @@ func (config *Config) Build() (Buffer, error) {
 	}
 }
 
-func (config *Config) setDefaults() {
-	if config.BufferType == "" {
-		config.BufferType = "memory"
+func NewRetryConfig() RetryConfig {
+	return RetryConfig{
+		InitialInterval:     plugin.Duration{Duration: 500 * time.Millisecond},
+		RandomizationFactor: 0.5,
+		Multiplier:          1.5,
+		MaxInterval:         plugin.Duration{Duration: 15 * time.Minute},
 	}
-
-	if config.DelayThreshold.Raw() == time.Duration(0) {
-		config.DelayThreshold = plugin.Duration{
-			Duration: time.Second,
-		}
-	}
-
-	if config.BundleCountThreshold == 0 {
-		config.BundleCountThreshold = 10000
-	}
-
-	if config.BundleByteThreshold == 0 {
-		config.BundleByteThreshold = 4 * 1024 * 1024 * 1024
-	}
-
-	if config.BundleByteLimit == 0 {
-		config.BundleByteLimit = 4 * 1024 * 1024 * 1024
-	}
-
-	if config.BufferedByteLimit == 0 {
-		config.BufferedByteLimit = 500 * 1024 * 1024 * 1024 // 500MB
-	}
-
-	if config.HandlerLimit == 0 {
-		config.HandlerLimit = 32
-	}
-
-	config.Retry.setDefaults()
 }
 
 // RetryConfig is the configuration of an entity that will retry processing after an error
@@ -87,26 +73,4 @@ type RetryConfig struct {
 	Multiplier          float64         `json:"multiplier,omitempty"           yaml:"multiplier,omitempty"`
 	MaxInterval         plugin.Duration `json:"max_interval,omitempty"         yaml:"max_interval,omitempty"`
 	MaxElapsedTime      plugin.Duration `json:"max_elapsed_time,omitempty"     yaml:"max_elapsed_time,omitempty"`
-}
-
-func (config *RetryConfig) setDefaults() {
-	if config.InitialInterval.Raw() == time.Duration(0) {
-		config.InitialInterval = plugin.Duration{
-			Duration: 500 * time.Millisecond,
-		}
-	}
-
-	if config.RandomizationFactor == 0 {
-		config.RandomizationFactor = 0.5
-	}
-
-	if config.Multiplier == 0 {
-		config.Multiplier = 1.5
-	}
-
-	if config.MaxInterval.Raw() == time.Duration(0) {
-		config.MaxInterval = plugin.Duration{
-			Duration: 15 * time.Minute,
-		}
-	}
 }

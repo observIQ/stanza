@@ -11,6 +11,7 @@ import (
 	"github.com/observiq/carbon/plugin"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestParserConfigMissingBase(t *testing.T) {
@@ -22,57 +23,39 @@ func TestParserConfigMissingBase(t *testing.T) {
 }
 
 func TestParserConfigInvalidTimeParser(t *testing.T) {
-	config := ParserConfig{
-		TransformerConfig: TransformerConfig{
-			WriterConfig: WriterConfig{
-				BasicConfig: BasicConfig{
-					PluginID:   "test-id",
-					PluginType: "test-type",
-				},
-				OutputIDs: []string{"test-output"},
-			},
-		},
-		TimeParser: &TimeParser{
-			Layout:     "",
-			LayoutType: "strptime",
-		},
+	cfg := NewParserConfig("test-id", "test-type")
+	f := entry.NewRecordField("timestamp")
+	cfg.TimeParser = &TimeParser{
+		ParseFrom:  &f,
+		Layout:     "",
+		LayoutType: "strptime",
 	}
-	context := testutil.NewBuildContext(t)
-	_, err := config.Build(context)
+
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing required configuration parameter `layout`")
 }
 
 func TestParserConfigBuildValid(t *testing.T) {
-	config := ParserConfig{
-		TransformerConfig: TransformerConfig{
-			WriterConfig: WriterConfig{
-				BasicConfig: BasicConfig{
-					PluginID:   "test-id",
-					PluginType: "test-type",
-				},
-				OutputIDs: []string{"test-output"},
-			},
-		},
-		TimeParser: &TimeParser{
-			Layout:     "",
-			LayoutType: "native",
-		},
+	cfg := NewParserConfig("test-id", "test-type")
+	f := entry.NewRecordField("timestamp")
+	cfg.TimeParser = &TimeParser{
+		ParseFrom:  &f,
+		Layout:     "",
+		LayoutType: "native",
 	}
-	context := testutil.NewBuildContext(t)
-	_, err := config.Build(context)
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 }
 
 func TestParserMissingField(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
 			WriterPlugin: WriterPlugin{
 				BasicPlugin: BasicPlugin{
 					PluginID:      "test-id",
 					PluginType:    "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: zaptest.NewLogger(t).Sugar(),
 				},
 			},
 			OnError: DropOnError,
@@ -130,7 +113,10 @@ func TestParserInvalidTimeParse(t *testing.T) {
 		ParseFrom: entry.NewRecordField(),
 		ParseTo:   entry.NewRecordField(),
 		TimeParser: &TimeParser{
-			ParseFrom: entry.NewRecordField("missing-key"),
+			ParseFrom: func() *entry.Field {
+				f := entry.NewRecordField("missing-key")
+				return &f
+			}(),
 		},
 	}
 	parse := func(i interface{}) (interface{}, error) {
@@ -186,7 +172,10 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 			OnError: DropOnError,
 		},
 		TimeParser: &TimeParser{
-			ParseFrom: entry.NewRecordField("missing-key"),
+			ParseFrom: func() *entry.Field {
+				f := entry.NewRecordField("missing-key")
+				return &f
+			}(),
 		},
 		SeverityParser: &SeverityParser{
 			ParseFrom: entry.NewRecordField("severity"),
@@ -226,7 +215,10 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 			OnError: DropOnError,
 		},
 		TimeParser: &TimeParser{
-			ParseFrom:  entry.NewRecordField("timestamp"),
+			ParseFrom: func() *entry.Field {
+				f := entry.NewRecordField("timestamp")
+				return &f
+			}(),
 			LayoutType: "gotime",
 			Layout:     time.Kitchen,
 		},

@@ -9,6 +9,13 @@ import (
 	"go.uber.org/zap"
 )
 
+func NewTransformerConfig(pluginID, pluginType string) TransformerConfig {
+	return TransformerConfig{
+		WriterConfig: NewWriterConfig(pluginID, pluginType),
+		OnError:      SendOnError,
+	}
+}
+
 // TransformerConfig provides a basic implementation of a transformer config.
 type TransformerConfig struct {
 	WriterConfig `yaml:",inline"`
@@ -20,10 +27,6 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 	writerPlugin, err := c.WriterConfig.Build(context)
 	if err != nil {
 		return TransformerPlugin{}, errors.WithDetails(err, "plugin_id", c.ID())
-	}
-
-	if c.OnError == "" {
-		c.OnError = SendOnError
 	}
 
 	switch c.OnError {

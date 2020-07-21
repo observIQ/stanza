@@ -14,7 +14,13 @@ import (
 )
 
 func init() {
-	plugin.Register("restructure", &RestructurePluginConfig{})
+	plugin.Register("restructure", func() plugin.Builder { return NewRestructurePluginConfig("") })
+}
+
+func NewRestructurePluginConfig(pluginID string) *RestructurePluginConfig {
+	return &RestructurePluginConfig{
+		TransformerConfig: helper.NewTransformerConfig(pluginID, "restructure"),
+	}
 }
 
 // RestructurePluginConfig is the configuration of a restructure plugin

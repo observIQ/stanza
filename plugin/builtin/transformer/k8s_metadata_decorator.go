@@ -15,14 +15,23 @@ import (
 )
 
 func init() {
-	plugin.Register("k8s_metadata_decorator", &K8sMetadataDecoratorConfig{})
+	plugin.Register("k8s_metadata_decorator", func() plugin.Builder { return NewK8smetadataDecoratorConfig("") })
+}
+
+func NewK8smetadataDecoratorConfig(pluginID string) *K8sMetadataDecoratorConfig {
+	return &K8sMetadataDecoratorConfig{
+		TransformerConfig: helper.NewTransformerConfig(pluginID, "k8s_metadata_decorator"),
+		PodNameField:      entry.NewRecordField("pod_name"),
+		NamespaceField:    entry.NewRecordField("namespace"),
+		CacheTTL:          plugin.Duration{Duration: 10 * time.Minute},
+	}
 }
 
 // K8sMetadataDecoratorConfig is the configuration of k8s_metadata_decorator plugin
 type K8sMetadataDecoratorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
-	PodNameField             *entry.Field    `json:"pod_name_field,omitempty"  yaml:"pod_name_field,omitempty"`
-	NamespaceField           *entry.Field    `json:"namespace_field,omitempty" yaml:"namespace_field,omitempty"`
+	PodNameField             entry.Field     `json:"pod_name_field,omitempty"  yaml:"pod_name_field,omitempty"`
+	NamespaceField           entry.Field     `json:"namespace_field,omitempty" yaml:"namespace_field,omitempty"`
 	CacheTTL                 plugin.Duration `json:"cache_ttl,omitempty"       yaml:"cache_ttl,omitempty"`
 }
 
@@ -33,24 +42,10 @@ func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.P
 		return nil, errors.Wrap(err, "build transformer")
 	}
 
-	if c.PodNameField == nil {
-		field := entry.NewRecordField("pod_name")
-		c.PodNameField = &field
-	}
-
-	if c.NamespaceField == nil {
-		field := entry.NewRecordField("namespace")
-		c.NamespaceField = &field
-	}
-
-	if c.CacheTTL.Duration == time.Duration(0) {
-		c.CacheTTL.Duration = 10 * time.Minute
-	}
-
 	return &K8sMetadataDecorator{
 		TransformerPlugin: transformer,
-		podNameField:      *c.PodNameField,
-		namespaceField:    *c.NamespaceField,
+		podNameField:      c.PodNameField,
+		namespaceField:    c.NamespaceField,
 		cacheTTL:          c.CacheTTL.Raw(),
 	}, nil
 }
