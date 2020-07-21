@@ -11,21 +11,15 @@ import (
 
 // InputConfig provides a basic implementation of an input plugin config.
 type InputConfig struct {
-	BasicConfig  `yaml:",inline"`
 	WriterConfig `yaml:",inline"`
 	WriteTo      entry.Field `json:"write_to" yaml:"write_to"`
 }
 
 // Build will build a base producer.
 func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
-	basicPlugin, err := c.BasicConfig.Build(context)
-	if err != nil {
-		return InputPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
-	}
-
 	writerPlugin, err := c.WriterConfig.Build(context)
 	if err != nil {
-		return InputPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
+		return InputPlugin{}, errors.WithDetails(err, "plugin_id", c.ID())
 	}
 
 	if c.WriteTo.FieldInterface == nil {
@@ -33,7 +27,6 @@ func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
 	}
 
 	inputPlugin := InputPlugin{
-		BasicPlugin:  basicPlugin,
 		WriterPlugin: writerPlugin,
 		WriteTo:      c.WriteTo,
 	}
@@ -41,15 +34,8 @@ func (c InputConfig) Build(context plugin.BuildContext) (InputPlugin, error) {
 	return inputPlugin, nil
 }
 
-// SetNamespace will namespace the id and output of the plugin config.
-func (c *InputConfig) SetNamespace(namespace string, exclusions ...string) {
-	c.BasicConfig.SetNamespace(namespace, exclusions...)
-	c.WriterConfig.SetNamespace(namespace, exclusions...)
-}
-
 // InputPlugin provides a basic implementation of an input plugin.
 type InputPlugin struct {
-	BasicPlugin
 	WriterPlugin
 	WriteTo entry.Field
 }

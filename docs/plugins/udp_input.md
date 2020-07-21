@@ -4,12 +4,12 @@ The `udp_input` plugin listens for logs from UDP packets.
 
 ### Configuration Fields
 
-| Field            | Default  | Description                                                         |
-| ---              | ---      | ---                                                                 |
-| `id`             | required | A unique identifier for the plugin                                  |
-| `output`         | required | The connected plugin(s) that will receive all outbound entries      |
-| `listen_address` | required | A listen address of the form `<ip>:<port>`                          |
-| `write_to`       | $        | A [field](/docs/types/field.md) that will be set to the log message |
+| Field            | Default          | Description                                                         |
+| ---              | ---              | ---                                                                 |
+| `id`             | `udp_input`      | A unique identifier for the plugin                                  |
+| `output`         | Next in pipeline | The connected plugin(s) that will receive all outbound entries      |
+| `listen_address` | required         | A listen address of the form `<ip>:<port>`                          |
+| `write_to`       | $                | A [field](/docs/types/field.md) that will be set to the log message |
 
 ### Example Configurations
 
@@ -17,10 +17,8 @@ The `udp_input` plugin listens for logs from UDP packets.
 
 Configuration:
 ```yaml
-- id: my_udp_input
-  type: udp_input
+- type: udp_input
   listen_adress: "0.0.0.0:54526"
-  output: udp_receiver
 ```
 
 Send a log:

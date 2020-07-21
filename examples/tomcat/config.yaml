@@ -4,12 +4,10 @@ pipeline:
   # Read lines from Apache Tomcat access logs
   # Example input line:
   # 10.66.2.46 - - [13/Mar/2019:10:43:00 -0400] "GET / HTTP/1.1" 404 -
-  - id: access_logs
-    type: file_input
+  - type: file_input
     start_at: beginning
     include:
       - ./access.log
-    output: access_regex_parser
 
   # Parse the logs into labeled fields
   # Example input:
@@ -17,9 +15,7 @@ pipeline:
   #   "timestamp": "2020-06-13T11:00:53-04:00",
   #   "record": "10.66.2.46 - - [13/Mar/2019:10:43:00 -0400] "GET / HTTP/1.1" 404 -"
   # }
-  - id: access_regex_parser
-    type: regex_parser
-    output: stdout
+  - type: regex_parser
     regex: >-
       (?P<remote_host>[^\s]+)
       -
@@ -56,5 +52,4 @@ pipeline:
   #     "url_path": "/manager/images/asf-logo.svg"
   #   }
   # }
-  - id: stdout
-    type: stdout
+  - type: stdout

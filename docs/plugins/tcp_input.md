@@ -4,12 +4,12 @@ The `tcp_input` plugin listens for logs on one or more TCP connections. The plug
 
 ### Configuration Fields
 
-| Field            | Default  | Description                                                         |
-| ---              | ---      | ---                                                                 |
-| `id`             | required | A unique identifier for the plugin                                  |
-| `output`         | required | The connected plugin(s) that will receive all outbound entries      |
-| `listen_address` | required | A listen address of the form `<ip>:<port>`                          |
-| `write_to`       | $        | A [field](/docs/types/field.md) that will be set to the log message |
+| Field            | Default          | Description                                                         |
+| ---              | ---              | ---                                                                 |
+| `id`             | `tcp_input`      | A unique identifier for the plugin                                  |
+| `output`         | Next in pipeline | The connected plugin(s) that will receive all outbound entries      |
+| `listen_address` | required         | A listen address of the form `<ip>:<port>`                          |
+| `write_to`       | $                | A [field](/docs/types/field.md) that will be set to the log message |
 
 ### Example Configurations
 
@@ -17,10 +17,8 @@ The `tcp_input` plugin listens for logs on one or more TCP connections. The plug
 
 Configuration:
 ```yaml
-- id: my_tcp_input
-  type: tcp_input
+- type: tcp_input
   listen_adress: "0.0.0.0:54525"
-  output: tcp_receiver
 ```
 
 Send a log:

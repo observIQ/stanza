@@ -14,6 +14,9 @@ type BasicConfig struct {
 
 // ID will return the plugin id.
 func (c BasicConfig) ID() string {
+	if c.PluginID == "" {
+		return c.PluginType
+	}
 	return c.PluginID
 }
 
@@ -24,18 +27,11 @@ func (c BasicConfig) Type() string {
 
 // Build will build a basic plugin.
 func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
-	if c.PluginID == "" {
-		return BasicPlugin{}, errors.NewError(
-			"missing required `id` field.",
-			"ensure that all plugins have a uniquely defined `id` field.",
-		)
-	}
-
 	if c.PluginType == "" {
 		return BasicPlugin{}, errors.NewError(
 			"missing required `type` field.",
 			"ensure that all plugins have a uniquely defined `type` field.",
-			"plugin_id", c.PluginID,
+			"plugin_id", c.ID(),
 		)
 	}
 
@@ -43,15 +39,15 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 		return BasicPlugin{}, errors.NewError(
 			"plugin build context is missing a logger.",
 			"this is an unexpected internal error",
-			"plugin_id", c.PluginID,
-			"plugin_type", c.PluginType,
+			"plugin_id", c.ID(),
+			"plugin_type", c.Type(),
 		)
 	}
 
 	plugin := BasicPlugin{
-		PluginID:      c.PluginID,
-		PluginType:    c.PluginType,
-		SugaredLogger: context.Logger.With("plugin_id", c.PluginID, "plugin_type", c.PluginType),
+		PluginID:      c.ID(),
+		PluginType:    c.Type(),
+		SugaredLogger: context.Logger.With("plugin_id", c.ID(), "plugin_type", c.Type()),
 	}
 
 	return plugin, nil
@@ -59,8 +55,8 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 
 // SetNamespace will namespace the plugin id.
 func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
-	if CanNamespace(c.PluginID, exclusions) {
-		c.PluginID = AddNamespace(c.PluginID, namespace)
+	if CanNamespace(c.ID(), exclusions) {
+		c.PluginID = AddNamespace(c.ID(), namespace)
 	}
 }
 
@@ -73,6 +69,9 @@ type BasicPlugin struct {
 
 // ID will return the plugin id.
 func (p *BasicPlugin) ID() string {
+	if p.PluginID == "" {
+		return p.PluginType
+	}
 	return p.PluginID
 }
 

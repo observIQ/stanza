@@ -70,7 +70,6 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 							return nil
 						}
 
-						println(pluginID)
 						return offsetBucket.DeleteBucket([]byte(pluginID))
 					})
 					exitOnErr("Failed to delete offsets", err)

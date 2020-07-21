@@ -24,12 +24,12 @@ func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
 	logger, _ := zap.NewProduction()
 	return &RestructurePlugin{
 		TransformerPlugin: helper.TransformerPlugin{
-			BasicPlugin: helper.BasicPlugin{
-				PluginID:      "test",
-				PluginType:    "restructure",
-				SugaredLogger: logger.Sugar(),
-			},
 			WriterPlugin: helper.WriterPlugin{
+				BasicPlugin: helper.BasicPlugin{
+					PluginID:      "test",
+					PluginType:    "restructure",
+					SugaredLogger: logger.Sugar(),
+				},
 				OutputPlugins: []plugin.Plugin{&mock},
 			},
 		},
@@ -345,11 +345,11 @@ ops:
 	expected := plugin.Config(plugin.Config{
 		Builder: &RestructurePluginConfig{
 			TransformerConfig: helper.TransformerConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "my_restructure",
-					PluginType: "restructure",
-				},
 				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "my_restructure",
+						PluginType: "restructure",
+					},
 					OutputIDs: []string{"test_output"},
 				},
 			},

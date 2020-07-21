@@ -19,11 +19,11 @@ func TestRateLimit(t *testing.T) {
 
 	cfg := RateLimitConfig{
 		TransformerConfig: helper.TransformerConfig{
-			BasicConfig: helper.BasicConfig{
-				PluginID:   "my_rate_limit",
-				PluginType: "rate_limit",
-			},
 			WriterConfig: helper.WriterConfig{
+				BasicConfig: helper.BasicConfig{
+					PluginID:   "my_rate_limit",
+					PluginType: "rate_limit",
+				},
 				OutputIDs: []string{"output1"},
 			},
 		},

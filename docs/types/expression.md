@@ -18,21 +18,7 @@ Available to the expressions are a few special variables:
 ### Add a label from an environment variable
 
 ```yaml
-- id: add_stack_label
-  type: metadata
-  output: my_receiver
+- type: metadata
   labels:
     stack: 'EXPR(env("STACK"))'
-```
-
-### Map severity values to standard values
-
-```yaml
-- id: map_severity
-  type: restructure
-  output: my_receiver
-  ops:
-    - add:
-        field: severity
-        value_expr: '$record.raw_severity in ["critical", "super_critical"] ? "error" : $record.raw_severity'
 ```

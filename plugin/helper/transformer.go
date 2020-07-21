@@ -11,21 +11,15 @@ import (
 
 // TransformerConfig provides a basic implementation of a transformer config.
 type TransformerConfig struct {
-	BasicConfig  `yaml:",inline"`
 	WriterConfig `yaml:",inline"`
 	OnError      string `json:"on_error" yaml:"on_error"`
 }
 
 // Build will build a transformer plugin.
 func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin, error) {
-	basicPlugin, err := c.BasicConfig.Build(context)
-	if err != nil {
-		return TransformerPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
-	}
-
 	writerPlugin, err := c.WriterConfig.Build(context)
 	if err != nil {
-		return TransformerPlugin{}, errors.WithDetails(err, "plugin_id", c.PluginID)
+		return TransformerPlugin{}, errors.WithDetails(err, "plugin_id", c.ID())
 	}
 
 	if c.OnError == "" {
@@ -43,7 +37,6 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 	}
 
 	transformerPlugin := TransformerPlugin{
-		BasicPlugin:  basicPlugin,
 		WriterPlugin: writerPlugin,
 		OnError:      c.OnError,
 	}
@@ -51,15 +44,8 @@ func (c TransformerConfig) Build(context plugin.BuildContext) (TransformerPlugin
 	return transformerPlugin, nil
 }
 
-// SetNamespace will namespace the id and output of the plugin config.
-func (c *TransformerConfig) SetNamespace(namespace string, exclusions ...string) {
-	c.BasicConfig.SetNamespace(namespace, exclusions...)
-	c.WriterConfig.SetNamespace(namespace, exclusions...)
-}
-
 // TransformerPlugin provides a basic implementation of a transformer plugin.
 type TransformerPlugin struct {
-	BasicPlugin
 	WriterPlugin
 	OnError string
 }

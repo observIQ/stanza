@@ -19,31 +19,32 @@ func TestInputConfigMissingBase(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required `id` field.")
+	require.Contains(t, err.Error(), "missing required `type` field.")
 }
 
 func TestInputConfigMissingOutput(t *testing.T) {
 	config := InputConfig{
-		BasicConfig: BasicConfig{
-			PluginID:   "test-id",
-			PluginType: "test-type",
+		WriterConfig: WriterConfig{
+			BasicConfig: BasicConfig{
+				PluginID:   "test-id",
+				PluginType: "test-type",
+			},
 		},
 		WriteTo: entry.Field{},
 	}
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required `output` field")
+	require.NoError(t, err)
 }
 
 func TestInputConfigValid(t *testing.T) {
 	config := InputConfig{
-		BasicConfig: BasicConfig{
-			PluginID:   "test-id",
-			PluginType: "test-type",
-		},
 		WriteTo: entry.Field{},
 		WriterConfig: WriterConfig{
+			BasicConfig: BasicConfig{
+				PluginID:   "test-id",
+				PluginType: "test-type",
+			},
 			OutputIDs: []string{"test-output"},
 		},
 	}
@@ -54,12 +55,12 @@ func TestInputConfigValid(t *testing.T) {
 
 func TestInputConfigSetNamespace(t *testing.T) {
 	config := InputConfig{
-		BasicConfig: BasicConfig{
-			PluginID:   "test-id",
-			PluginType: "test-type",
-		},
 		WriteTo: entry.Field{},
 		WriterConfig: WriterConfig{
+			BasicConfig: BasicConfig{
+				PluginID:   "test-id",
+				PluginType: "test-type",
+			},
 			OutputIDs: []string{"test-output"},
 		},
 	}
@@ -71,10 +72,12 @@ func TestInputConfigSetNamespace(t *testing.T) {
 func TestInputPluginCanProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
+		WriterPlugin: WriterPlugin{
+			BasicPlugin: BasicPlugin{
+				PluginID:      "test-id",
+				PluginType:    "test-type",
+				SugaredLogger: buildContext.Logger,
+			},
 		},
 	}
 	require.False(t, input.CanProcess())
@@ -83,10 +86,12 @@ func TestInputPluginCanProcess(t *testing.T) {
 func TestInputPluginProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	input := InputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
+		WriterPlugin: WriterPlugin{
+			BasicPlugin: BasicPlugin{
+				PluginID:      "test-id",
+				PluginType:    "test-type",
+				SugaredLogger: buildContext.Logger,
+			},
 		},
 	}
 	entry := entry.New()
@@ -100,10 +105,12 @@ func TestInputPluginNewEntry(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	writeTo := entry.NewRecordField("test-field")
 	input := InputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
-			SugaredLogger: buildContext.Logger,
+		WriterPlugin: WriterPlugin{
+			BasicPlugin: BasicPlugin{
+				PluginID:      "test-id",
+				PluginType:    "test-type",
+				SugaredLogger: buildContext.Logger,
+			},
 		},
 		WriteTo: writeTo,
 	}

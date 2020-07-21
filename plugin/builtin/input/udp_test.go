@@ -17,12 +17,12 @@ func TestUDPInput(t *testing.T) {
 	basicUDPInputConfig := func() *UDPInputConfig {
 		return &UDPInputConfig{
 			InputConfig: helper.InputConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "test_id",
-					PluginType: "udp_input",
-				},
 				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "test_id",
+						PluginType: "udp_input",
+					},
 					OutputIDs: []string{"test_output_id"},
 				},
 			},

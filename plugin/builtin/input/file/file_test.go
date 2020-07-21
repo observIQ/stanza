@@ -35,12 +35,12 @@ func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
 
 	source := &InputPlugin{
 		InputPlugin: helper.InputPlugin{
-			BasicPlugin: helper.BasicPlugin{
-				PluginID:      "testfile",
-				PluginType:    "file_input",
-				SugaredLogger: logger,
-			},
 			WriterPlugin: helper.WriterPlugin{
+				BasicPlugin: helper.BasicPlugin{
+					PluginID:      "testfile",
+					PluginType:    "file_input",
+					SugaredLogger: logger,
+				},
 				OutputPlugins: []plugin.Plugin{mockOutput},
 			},
 			WriteTo: entry.NewRecordField(),
@@ -68,11 +68,11 @@ func TestFileSource_Build(t *testing.T) {
 	basicConfig := func() *InputConfig {
 		return &InputConfig{
 			InputConfig: helper.InputConfig{
-				BasicConfig: helper.BasicConfig{
-					PluginID:   "testfile",
-					PluginType: "file_input",
-				},
 				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						PluginID:   "testfile",
+						PluginType: "file_input",
+					},
 					OutputIDs: []string{"mock"},
 				},
 				WriteTo: entry.NewRecordField(),

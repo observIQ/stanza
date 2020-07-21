@@ -18,17 +18,17 @@ func TestParserConfigMissingBase(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required `id` field.")
+	require.Contains(t, err.Error(), "missing required `type` field.")
 }
 
 func TestParserConfigInvalidTimeParser(t *testing.T) {
 	config := ParserConfig{
 		TransformerConfig: TransformerConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
 			WriterConfig: WriterConfig{
+				BasicConfig: BasicConfig{
+					PluginID:   "test-id",
+					PluginType: "test-type",
+				},
 				OutputIDs: []string{"test-output"},
 			},
 		},
@@ -46,11 +46,11 @@ func TestParserConfigInvalidTimeParser(t *testing.T) {
 func TestParserConfigBuildValid(t *testing.T) {
 	config := ParserConfig{
 		TransformerConfig: TransformerConfig{
-			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
-			},
 			WriterConfig: WriterConfig{
+				BasicConfig: BasicConfig{
+					PluginID:   "test-id",
+					PluginType: "test-type",
+				},
 				OutputIDs: []string{"test-output"},
 			},
 		},
@@ -68,10 +68,12 @@ func TestParserMissingField(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
+			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 			},
 			OnError: DropOnError,
 		},
@@ -91,10 +93,12 @@ func TestParserInvalidParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
+			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 			},
 			OnError: DropOnError,
 		},
@@ -114,10 +118,12 @@ func TestParserInvalidTimeParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
+			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 			},
 			OnError: DropOnError,
 		},
@@ -141,10 +147,12 @@ func TestParserInvalidSeverityParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
+			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 			},
 			OnError: DropOnError,
 		},
@@ -168,10 +176,12 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
+			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 			},
 			OnError: DropOnError,
 		},
@@ -206,10 +216,12 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
+			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 			},
 			OnError: DropOnError,
 		},
@@ -248,13 +260,13 @@ func TestParserOutput(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
-			},
 			OnError: DropOnError,
 			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 				OutputPlugins: []plugin.Plugin{output},
 			},
 		},
@@ -278,13 +290,13 @@ func TestParserWithPreserve(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
-			},
 			OnError: DropOnError,
 			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 				OutputPlugins: []plugin.Plugin{output},
 			},
 		},
@@ -317,13 +329,13 @@ func TestParserWithoutPreserve(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserPlugin{
 		TransformerPlugin: TransformerPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
-				SugaredLogger: buildContext.Logger,
-			},
 			OnError: DropOnError,
 			WriterPlugin: WriterPlugin{
+				BasicPlugin: BasicPlugin{
+					PluginID:      "test-id",
+					PluginType:    "test-type",
+					SugaredLogger: buildContext.Logger,
+				},
 				OutputPlugins: []plugin.Plugin{output},
 			},
 		},
