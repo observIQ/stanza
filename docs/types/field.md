@@ -1,7 +1,7 @@
 ## Fields
 
-_Fields_ are the primary way to tell carbon which fields of an entry to use for the operations of its plugins.
-Most often, these will be things like fields to parse for a parser plugin, or the field to write a new value to.
+_Fields_ are the primary way to tell carbon which values of an entry to use in its operators.
+Most often, these will be things like fields to parse for a parser operator, or the field to write a new value to.
 
 Fields are `.`-delimited strings which allow you to select labels or records on the entry. Fields can currently be used to select labels or values on a record. To select a label, prefix your field with `$label.` such as with `$label.my_label`. For values on the record, use the prefix `$record.` such as `$record.my_value`.
 
@@ -11,7 +11,7 @@ If a field does not start with either `$label` or `$record`, `$record` is assume
 
 ## Examples
 
-Using fields with the restructure plugin.
+Using fields with the restructure operator.
 
 Config:
 ```yaml

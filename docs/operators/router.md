@@ -1,9 +1,9 @@
-## `router` plugin
+## `router` operator
 
-The `router` plugin allows logs to be routed dynamically based on their content.
+The `router` operator allows logs to be routed dynamically based on their content.
 
-The plugin is configured with a list of routes, where each route has an associated expression.
-An entry sent to the router plugin is forwarded to the first route in the list whose associated
+The operator is configured with a list of routes, where each route has an associated expression.
+An entry sent to the router operator is forwarded to the first route in the list whose associated
 expression returns `true`.
 
 An entry that does not match any of the routes is dropped and not processed further.
@@ -12,14 +12,14 @@ An entry that does not match any of the routes is dropped and not processed furt
 
 | Field    | Default  | Description                              |
 | ---      | ---      | ---                                      |
-| `id`     | required | A unique identifier for the plugin       |
+| `id`     | required | A unique identifier for the operator       |
 | `routes` | required | A list of routes. See below for details  |
 
 #### Route configuration
 
 | Field    | Default  | Description                                                                                                           |
 | ---      | ---      | ---                                                                                                                   |
-| `output` | required | The connected plugin(s) that will receive all outbound entries for this route                                         |
+| `output` | required | The connected operator(s) that will receive all outbound entries for this route                                       |
 | `expr`   | required | An [expression](/docs/types/expression.md) that returns a boolean. The record of the routed entry is available as `$` |
 
 

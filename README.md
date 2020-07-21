@@ -96,7 +96,7 @@ pipeline:
     output: example_output
   
   # An example output that sends captured logs to elasticsearch.
-  # For more info: https://github.com/observIQ/carbon/blob/master/docs/plugins/elastic_output.md
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/elastic_output.md
   - id: example_output
     type: elastic_output
     addresses:
@@ -111,7 +111,7 @@ Once you've confirmed you're able to send a log entry, you'll want to connect ca
 pipeline:
 ...
   # An example input that monitors the contents of a file.
-  # For more info: https://github.com/observIQ/carbon/blob/master/docs/plugins/file_input.md
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/file_input.md
   - id: example_input
    type: file_input
    include:
@@ -121,7 +121,7 @@ pipeline:
   ...
   
   # An example output that sends captured logs to elasticsearch.
-  # For more info: https://github.com/observIQ/carbon/blob/master/docs/plugins/elastic_output.md
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/elastic_output.md
   - id: example_output
     type: elastic_output
     addresses:

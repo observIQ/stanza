@@ -1,15 +1,15 @@
-## `k8s_metadata_decorator` plugin
+## `k8s_metadata_decorator` operator
 
-The `k8s_metadata_decorator` plugin adds labels and annotations to the entry using data from the Kubernetes metadata API.
+The `k8s_metadata_decorator` operator adds labels and annotations to the entry using data from the Kubernetes metadata API.
 
 ### Configuration Fields
 
 | Field             | Default     | Description                                                                                     |
 | ---               | ---         | ---                                                                                             |
-| `id`              | required    | A unique identifier for the plugin                                                              |
-| `output`          | required    | The connected plugin(s) that will receive all outbound entries                                  |
+| `id`              | required    | A unique identifier for the operator                                                            |
+| `output`          | required    | The connected operator(s) that will receive all outbound entries                                |
 | `namespace_field` | `namespace` | A [field](/docs/types/field.md) that contains the k8s namespace associated with the log entry   |
-| `pod_name_field`        | `pod_name`  | A [field](/docs/types/field.md) that contains the k8s pod name associated with the log entry    |
+| `pod_name_field`  | `pod_name`  | A [field](/docs/types/field.md) that contains the k8s pod name associated with the log entry    |
 | `cache_ttl`       | 10m         | A [duration](/docs/types/duration.md) indicating the time it takes for a cached entry to expire |
 
 ### Example Configurations

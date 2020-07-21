@@ -1,12 +1,12 @@
-## `elastic_output` plugin
+## `elastic_output` operator
 
-The `elastic_output` plugin will send entries to an Elasticsearch instance
+The `elastic_output` operator will send entries to an Elasticsearch instance
 
 ### Configuration Fields
 
 | Field         | Default  | Description                                                                                           |
 | ---           | ---      | ---                                                                                                   |
-| `id`          | required | A unique identifier for the plugin                                                                    |
+| `id`          | required | A unique identifier for the operator                                                                  |
 | `addresses`   | required | A list of addresses to send entries to                                                                |
 | `username`    |          | Username for HTTP basic authentication                                                                |
 | `password`    |          | Password for HTTP basic authentication                                                                |

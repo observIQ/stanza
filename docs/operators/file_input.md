@@ -1,13 +1,13 @@
-## `file_input` plugin
+## `file_input` operator
 
-The `file_input` plugin reads logs from files. It will place the lines read into the `message` field of the new entry.
+The `file_input` operator reads logs from files. It will place the lines read into the `message` field of the new entry.
 
 ### Configuration Fields
 
 | Field             | Default  | Description                                                                                                         |
 | ---               | ---      | ---                                                                                                                 |
-| `id`              | required | A unique identifier for the plugin                                                                                  |
-| `output`          | required | The connected plugin(s) that will receive all outbound entries                                                      |
+| `id`              | required | A unique identifier for the operator                                                                                |
+| `output`          | required | The connected operator(s) that will receive all outbound entries                                                    |
 | `include`         | required | A list of file glob patterns that match the file paths to be read                                                   |
 | `exclude`         | []       | A list of file glob patterns to exclude from reading                                                                |
 | `poll_interval`   | 200ms    | The duration between filesystem polls                                                                               |
@@ -23,7 +23,7 @@ Note that by default, no logs will be read unless the monitored file is actively
 
 #### `multiline` configuration
 
-If set, the `multiline` configuration block instructs the `file_input` plugin to split log entries on a pattern other than newlines.
+If set, the `multiline` configuration block instructs the `file_input` operator to split log entries on a pattern other than newlines.
 
 The `multiline` configuration block must contain exactly one of `line_start_pattern` or `line_end_pattern`. These are regex patterns that
 match either the beginning of a new log entry, or the end of a log entry.

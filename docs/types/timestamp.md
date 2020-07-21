@@ -1,6 +1,6 @@
 ## `timestamp` parsing parameters
 
-Parser plugins can parse a timestamp and attach the resulting time value to a log entry.
+Parser operators can parse a timestamp and attach the resulting time value to a log entry.
 
 | Field         | Default    | Description                                                                   |
 | ---           | ---        | ---                                                                           |
@@ -12,9 +12,9 @@ Parser plugins can parse a timestamp and attach the resulting time value to a lo
 
 ### How to specify timestamp parsing parameters
 
-Most parser plugins, such as [`regex_parser`](/docs/plugins/regex_parser.md) support these fields inside of a `timestamp` block.
+Most parser operators, such as [`regex_parser`](/docs/operators/regex_parser.md) support these fields inside of a `timestamp` block.
 
-If a timestamp block is specified, the parser plugin will perform the timestamp parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output plugin.
+If a timestamp block is specified, the parser operator will perform the timestamp parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output operator.
 
 ```yaml
 - id: my_regex_parser
@@ -24,19 +24,19 @@ If a timestamp block is specified, the parser plugin will perform the timestamp 
     parse_from: timestamp_field
     layout_type: strptime
     layout: '%Y-%m-%d'
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 ---
 
-As a special case, the [`time_parser`](/docs/plugins/time_parser.md) plugin supports these fields inline. This is because time parsing is the primary purpose of the plugin.
+As a special case, the [`time_parser`](/docs/operators/time_parser.md) operator supports these fields inline. This is because time parsing is the primary purpose of the operator.
 ```yaml
 - id: my_time_parser
   type: time_parser
   parse_from: timestamp_field
   layout_type: strptime
   layout: '%Y-%m-%d'
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 ### Example Configurations
@@ -52,7 +52,7 @@ Configuration:
   parse_from: timestamp_field
   layout_type: strptime
   layout: '%a %b %e %H:%M:%S %Z %Y'
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 <table>
@@ -94,7 +94,7 @@ Configuration:
   parse_from: timestamp_field
   layout_type: gotime
   layout: Jan 2 15:04:05 MST 2006
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 <table>
@@ -152,7 +152,7 @@ Configuration:
   layout_type: epoch
   layout: s
   preserve: true
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 <table>

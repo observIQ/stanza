@@ -1,19 +1,19 @@
-## `regex_parser` plugin
+## `regex_parser` operator
 
-The `regex` plugin parses the string-type field selected by `parse_from` with the given regular expression pattern.
+The `regex` operator parses the string-type field selected by `parse_from` with the given regular expression pattern.
 
 ### Configuration Fields
 
 | Field        | Default  | Description                                                                                                                                     |
 | ---          | ---      | ---                                                                                                                                             |
-| `id`         | required | A unique identifier for the plugin                                                                                                              |
-| `output`     | required | The connected plugin(s) that will receive all outbound entries                                                                               |
+| `id`         | required | A unique identifier for the operator                                                                                                            |
+| `output`     | required | The connected operator(s) that will receive all outbound entries                                                                                |
 | `regex`      | required | A [Go regular expression](https://github.com/google/re2/wiki/Syntax). The named capture groups will be extracted as fields in the parsed object |
 | `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
 | `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                           |
 | `preserve`   | false    | Preserve the unparsed value on the record                                                                                                       |
-| `on_error`   | `send` | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                     |
-| `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin        |
+| `on_error`   | `send` | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                   |
+| `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator      |
 
 ### Example Configurations
 
@@ -123,7 +123,7 @@ Configuration:
     parse_from: timestamp_field
     layout_type: strptime
     layout: '%Y-%m-%d'
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 <table>

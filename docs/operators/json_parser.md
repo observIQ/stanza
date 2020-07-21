@@ -1,18 +1,18 @@
-## `json_parser` plugin
+## `json_parser` operator
 
-The `json_parser` plugin parses the string-type field selected by `parse_from` as JSON.
+The `json_parser` operator parses the string-type field selected by `parse_from` as JSON.
 
 ### Configuration Fields
 
-| Field        | Default  | Description                                                                                                                                     |
-| ---          | ---      | ---                                                                                                                                             |
-| `id`         | required | A unique identifier for the plugin                                                                                                              |
-| `output`     | required | The connected plugin(s) that will receive all outbound entries                                                                                                |
-| `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                                   |
-| `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                                   |
-| `preserve`   | false    | Preserve the unparsed value on the record                                                                                                       |
-| `on_error`   | `send`   | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                     |
-| `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output plugin        |
+| Field        | Default  | Description                                                                                                                                |
+| ---          | ---      | ---                                                                                                                                        |
+| `id`         | required | A unique identifier for the operator                                                                                                       |
+| `output`     | required | The connected operator(s) that will receive all outbound entries                                                                           |
+| `parse_from` | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                              |
+| `parse_to`   | $        | A [field](/docs/types/field.md) that indicates the field to be parsed as JSON                                                              |
+| `preserve`   | false    | Preserve the unparsed value on the record                                                                                                  |
+| `on_error`   | `send`   | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                            |
+| `timestamp`  | `nil`    | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator |
 
 
 ### Example Configurations

@@ -11,25 +11,25 @@ If a string is specified, it will be interpreted according to Golang's [`time.Pa
 ### Various ways to specify a duration of 1 minute
 
 ```yaml
-- id: my_plugin
-  type: some_plugin
+- id: my_operator
+  type: some_operator
   duration: 1m
 ```
 
 ```yaml
-- id: my_plugin
-  type: some_plugin
+- id: my_operator
+  type: some_operator
   duration: 60s
 ```
 
 ```yaml
-- id: my_plugin
-  type: some_plugin
+- id: my_operator
+  type: some_operator
   duration: 60
 ```
 
 ```yaml
-- id: my_plugin
-  type: some_plugin
+- id: my_operator
+  type: some_operator
   duration: 60.0
 ```

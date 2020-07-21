@@ -1,13 +1,13 @@
-## `udp_input` plugin
+## `udp_input` operator
 
-The `udp_input` plugin listens for logs from UDP packets.
+The `udp_input` operator listens for logs from UDP packets.
 
 ### Configuration Fields
 
 | Field            | Default  | Description                                                         |
 | ---              | ---      | ---                                                                 |
-| `id`             | required | A unique identifier for the plugin                                  |
-| `output`         | required | The connected plugin(s) that will receive all outbound entries      |
+| `id`             | required | A unique identifier for the operator                                |
+| `output`         | required | The connected operator(s) that will receive all outbound entries    |
 | `listen_address` | required | A listen address of the form `<ip>:<port>`                          |
 | `write_to`       | $        | A [field](/docs/types/field.md) that will be set to the log message |
 
