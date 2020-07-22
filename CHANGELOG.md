@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Configurable `timeout` parameter for the `k8s_metadata_decorator`
-
+- New parameter `start_at` for journald input
 
 ## [0.9.4] - 2020-07-21
 - Allow omitting `id`, defaulting to plugin type if unique within namespace
