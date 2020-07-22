@@ -116,9 +116,7 @@ jobs:
           command: make test
 
   test-windows:
-    executor:
-      name: win/default
-      size: large
+    executor: win/default
 
     steps:
       - checkout
@@ -177,7 +175,7 @@ jobs:
           command: mkdir {bin,out,tmp}
       - run:
           name: Build Carbon Agent
-          command: go get -v -t -d ./... && go build -v -o ./bin/carbon ./
+          command: GOPROXY=direct go build -v -o ./bin/carbon ./
       - run:
           name: Build Log Bench
           command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&

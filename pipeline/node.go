@@ -3,51 +3,51 @@ package pipeline
 import (
 	"hash/fnv"
 
-	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/operator"
 )
 
-// PluginNode is a basic node that represents a plugin in a pipeline.
-type PluginNode struct {
-	plugin    plugin.Plugin
+// OperatorNode is a basic node that represents an operator in a pipeline.
+type OperatorNode struct {
+	operator  operator.Operator
 	id        int64
 	outputIDs map[string]int64
 }
 
-// Plugin returns the plugin of the node.
-func (b PluginNode) Plugin() plugin.Plugin {
-	return b.plugin
+// Operator returns the operator of the node.
+func (b OperatorNode) Operator() operator.Operator {
+	return b.operator
 }
 
 // ID returns the node id.
-func (b PluginNode) ID() int64 {
+func (b OperatorNode) ID() int64 {
 	return b.id
 }
 
 // DOTID returns the id used to represent this node in a dot graph.
-func (b PluginNode) DOTID() string {
-	return b.plugin.ID()
+func (b OperatorNode) DOTID() string {
+	return b.operator.ID()
 }
 
-// OutputIDs returns a map of output plugin ids to node ids.
-func (b PluginNode) OutputIDs() map[string]int64 {
+// OutputIDs returns a map of output operator ids to node ids.
+func (b OperatorNode) OutputIDs() map[string]int64 {
 	return b.outputIDs
 }
 
-// createPluginNode will create a plugin node.
-func createPluginNode(plugin plugin.Plugin) PluginNode {
-	id := createNodeID(plugin.ID())
+// createOperatorNode will create an operator node.
+func createOperatorNode(operator operator.Operator) OperatorNode {
+	id := createNodeID(operator.ID())
 	outputIDs := make(map[string]int64)
-	if plugin.CanOutput() {
-		for _, output := range plugin.Outputs() {
+	if operator.CanOutput() {
+		for _, output := range operator.Outputs() {
 			outputIDs[output.ID()] = createNodeID(output.ID())
 		}
 	}
-	return PluginNode{plugin, id, outputIDs}
+	return OperatorNode{operator, id, outputIDs}
 }
 
-// createNodeID generates a node id from a plugin id.
-func createNodeID(pluginID string) int64 {
+// createNodeID generates a node id from an operator id.
+func createNodeID(operatorID string) int64 {
 	hash := fnv.New64a()
-	_, _ = hash.Write([]byte(pluginID))
+	_, _ = hash.Write([]byte(operatorID))
 	return int64(hash.Sum64())
 }

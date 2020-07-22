@@ -57,7 +57,7 @@ carbon
 
 # Supported flags:
 --config      The location of the agent config file (default: ./config.yaml)
---plugin_dir  The location of the custom plugins directory (default: ./plugins)
+--plugin_dir  The location of the plugins directory (default: ./plugins)
 --database    The location of the offsets database file. If this is not specified, offsets will not be maintained across agent restarts
 --log_file    The location of the agent log file. If not specified, carbon will log to `stderr`
 --debug       Enables debug logging

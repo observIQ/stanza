@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/operator"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )
@@ -50,8 +50,8 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 }
 
 // NewBuildContext will return a new build context for testing
-func NewBuildContext(t *testing.T) plugin.BuildContext {
-	return plugin.BuildContext{
+func NewBuildContext(t *testing.T) operator.BuildContext {
+	return operator.BuildContext{
 		Database: NewTestDatabase(t),
 		Logger:   zaptest.NewLogger(t).Sugar(),
 	}
