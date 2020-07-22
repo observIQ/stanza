@@ -31,27 +31,27 @@ type StdoutConfig struct {
 }
 
 // Build will build a stdout plugin.
-func (c StdoutConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+func (c StdoutConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StdoutPlugin{
-		OutputPlugin: outputPlugin,
-		encoder:      json.NewEncoder(Stdout),
+	return &StdoutOperator{
+		OutputOperator: outputOperator,
+		encoder:        json.NewEncoder(Stdout),
 	}, nil
 }
 
-// StdoutPlugin is a plugin that logs entries using stdout.
-type StdoutPlugin struct {
-	helper.OutputPlugin
+// StdoutOperator is a plugin that logs entries using stdout.
+type StdoutOperator struct {
+	helper.OutputOperator
 	encoder *json.Encoder
 	mux     sync.Mutex
 }
 
 // Process will log entries received.
-func (o *StdoutPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (o *StdoutOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	o.mux.Lock()
 	err := o.encoder.Encode(entry)
 	if err != nil {

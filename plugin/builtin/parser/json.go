@@ -26,15 +26,15 @@ type JSONParserConfig struct {
 }
 
 // Build will build a JSON parser plugin.
-func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	parserPlugin, err := c.ParserConfig.Build(context)
+func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	parserOperator, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	jsonParser := &JSONParser{
-		ParserPlugin: parserPlugin,
-		json:         jsoniter.ConfigFastest,
+		ParserOperator: parserOperator,
+		json:           jsoniter.ConfigFastest,
 	}
 
 	return jsonParser, nil
@@ -42,13 +42,13 @@ func (c JSONParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // JSONParser is a plugin that parses JSON.
 type JSONParser struct {
-	helper.ParserPlugin
+	helper.ParserOperator
 	json jsoniter.API
 }
 
 // Process will parse an entry for JSON.
 func (j *JSONParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return j.ParserPlugin.ProcessWith(ctx, entry, j.parse)
+	return j.ParserOperator.ProcessWith(ctx, entry, j.parse)
 }
 
 // parse will parse a value as JSON.

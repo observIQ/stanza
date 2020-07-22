@@ -31,7 +31,7 @@ type SyslogParserConfig struct {
 }
 
 // Build will build a JSON parser plugin.
-func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
 	if c.ParserConfig.TimeParser == nil {
 		parseFromField := entry.NewRecordField("timestamp")
 		c.ParserConfig.TimeParser = &helper.TimeParser{
@@ -40,7 +40,7 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 		}
 	}
 
-	parserPlugin, err := c.ParserConfig.Build(context)
+	parserOperator, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +55,8 @@ func (c SyslogParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, e
 	}
 
 	syslogParser := &SyslogParser{
-		ParserPlugin: parserPlugin,
-		machine:      machine,
+		ParserOperator: parserOperator,
+		machine:        machine,
 	}
 
 	return syslogParser, nil
@@ -75,13 +75,13 @@ func buildMachine(protocol string) (syslog.Machine, error) {
 
 // SyslogParser is a plugin that parses syslog.
 type SyslogParser struct {
-	helper.ParserPlugin
+	helper.ParserOperator
 	machine syslog.Machine
 }
 
 // Process will parse an entry field as syslog.
 func (s *SyslogParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return s.ParserPlugin.ProcessWith(ctx, entry, s.parse)
+	return s.ParserOperator.ProcessWith(ctx, entry, s.parse)
 }
 
 // parse will parse a value as syslog.

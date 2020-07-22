@@ -8,20 +8,20 @@ import (
 	"go.uber.org/zap"
 )
 
-// Config is the configuration of a plugin
+// Config is the configuration of a operator
 type Config struct {
 	Builder
 }
 
-// Builder is an entity that can build plugins
+// Builder is an entity that can build operators
 type Builder interface {
 	ID() string
 	Type() string
-	Build(BuildContext) (Plugin, error)
+	Build(BuildContext) (Operator, error)
 	SetNamespace(namespace string, exclude ...string)
 }
 
-// BuildContext supplies contextual resources when building a plugin.
+// BuildContext supplies contextual resources when building an operator.
 type BuildContext struct {
 	CustomRegistry CustomRegistry
 	Database       Database
@@ -58,18 +58,18 @@ func NewStubDatabase() *StubDatabase {
 	return &StubDatabase{}
 }
 
-// registry is a global registry of plugin types to plugin builders.
+// registry is a global registry of operator types to operator builders.
 var registry = make(map[string]func() Builder)
 
-// Register will register a function to a plugin type.
+// Register will register a function to a operator type.
 // This function will return a builder for the supplied type.
-func Register(pluginType string, newBuilder func() Builder) {
-	registry[pluginType] = newBuilder
+func Register(operatorType string, newBuilder func() Builder) {
+	registry[operatorType] = newBuilder
 }
 
-// IsDefined will return a boolean indicating if a plugin type is registered and defined.
-func IsDefined(pluginType string) bool {
-	_, ok := registry[pluginType]
+// IsDefined will return a boolean indicating if a operator type is registered and defined.
+func IsDefined(operatorType string) bool {
+	_, ok := registry[operatorType]
 	return ok
 }
 

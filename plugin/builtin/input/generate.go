@@ -30,8 +30,8 @@ type GenerateInputConfig struct {
 }
 
 // Build will build a generate input plugin.
-func (c *GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+func (c *GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -39,17 +39,17 @@ func (c *GenerateInputConfig) Build(context plugin.BuildContext) (plugin.Plugin,
 	c.Entry.Record = recursiveMapInterfaceToMapString(c.Entry.Record)
 
 	generateInput := &GenerateInput{
-		InputPlugin: inputPlugin,
-		entry:       c.Entry,
-		count:       c.Count,
-		static:      c.Static,
+		InputOperator: inputOperator,
+		entry:         c.Entry,
+		count:         c.Count,
+		static:        c.Static,
 	}
 	return generateInput, nil
 }
 
 // GenerateInput is a plugin that generates log entries.
 type GenerateInput struct {
-	helper.InputPlugin
+	helper.InputOperator
 	entry  entry.Entry
 	count  int
 	static bool

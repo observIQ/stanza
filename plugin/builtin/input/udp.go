@@ -29,8 +29,8 @@ type UDPInputConfig struct {
 }
 
 // Build will build a udp input plugin.
-func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -45,15 +45,15 @@ func (c UDPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	udpInput := &UDPInput{
-		InputPlugin: inputPlugin,
-		address:     address,
+		InputOperator: inputOperator,
+		address:       address,
 	}
 	return udpInput, nil
 }
 
 // UDPInput is a plugin that listens to a socket for log entries.
 type UDPInput struct {
-	helper.InputPlugin
+	helper.InputOperator
 	address *net.UDPAddr
 
 	connection net.PacketConn

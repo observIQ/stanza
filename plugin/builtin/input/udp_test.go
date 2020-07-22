@@ -20,8 +20,8 @@ func TestUDPInput(t *testing.T) {
 				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
 					BasicConfig: helper.BasicConfig{
-						PluginID:   "test_id",
-						PluginType: "udp_input",
+						OperatorID:   "test_id",
+						OperatorType: "udp_input",
 					},
 					OutputIDs: []string{"test_output_id"},
 				},
@@ -34,14 +34,14 @@ func TestUDPInput(t *testing.T) {
 		cfg.ListenAddress = "127.0.0.1:63001"
 
 		buildContext := testutil.NewBuildContext(t)
-		newPlugin, err := cfg.Build(buildContext)
+		newOperator, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 
-		mockOutput := testutil.Plugin{}
-		udpInput, ok := newPlugin.(*UDPInput)
+		mockOutput := testutil.Operator{}
+		udpInput, ok := newOperator.(*UDPInput)
 		require.True(t, ok)
 
-		udpInput.InputPlugin.OutputPlugins = []plugin.Plugin{&mockOutput}
+		udpInput.InputOperator.OutputOperators = []plugin.Operator{&mockOutput}
 
 		entryChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

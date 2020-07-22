@@ -49,12 +49,12 @@ func TestParserConfigBuildValid(t *testing.T) {
 }
 
 func TestParserMissingField(t *testing.T) {
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: zaptest.NewLogger(t).Sugar(),
 				},
 			},
@@ -74,12 +74,12 @@ func TestParserMissingField(t *testing.T) {
 
 func TestParserInvalidParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
 			},
@@ -99,12 +99,12 @@ func TestParserInvalidParse(t *testing.T) {
 
 func TestParserInvalidTimeParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
 			},
@@ -131,12 +131,12 @@ func TestParserInvalidTimeParse(t *testing.T) {
 
 func TestParserInvalidSeverityParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
 			},
@@ -160,12 +160,12 @@ func TestParserInvalidSeverityParse(t *testing.T) {
 
 func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
 			},
@@ -203,12 +203,12 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 
 func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
 			},
@@ -246,20 +246,20 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 }
 
 func TestParserOutput(t *testing.T) {
-	output := &testutil.Plugin{}
+	output := &testutil.Operator{}
 	output.On("ID").Return("test-output")
 	output.On("Process", mock.Anything, mock.Anything).Return(nil)
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
 			OnError: DropOnError,
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
-				OutputPlugins: []plugin.Plugin{output},
+				OutputOperators: []plugin.Operator{output},
 			},
 		},
 		ParseFrom: entry.NewRecordField(),
@@ -276,20 +276,20 @@ func TestParserOutput(t *testing.T) {
 }
 
 func TestParserWithPreserve(t *testing.T) {
-	output := &testutil.Plugin{}
+	output := &testutil.Operator{}
 	output.On("ID").Return("test-output")
 	output.On("Process", mock.Anything, mock.Anything).Return(nil)
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
 			OnError: DropOnError,
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
-				OutputPlugins: []plugin.Plugin{output},
+				OutputOperators: []plugin.Operator{output},
 			},
 		},
 		ParseFrom: entry.NewRecordField("parse_from"),
@@ -315,20 +315,20 @@ func TestParserWithPreserve(t *testing.T) {
 }
 
 func TestParserWithoutPreserve(t *testing.T) {
-	output := &testutil.Plugin{}
+	output := &testutil.Operator{}
 	output.On("ID").Return("test-output")
 	output.On("Process", mock.Anything, mock.Anything).Return(nil)
 	buildContext := testutil.NewBuildContext(t)
-	parser := ParserPlugin{
-		TransformerPlugin: TransformerPlugin{
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
 			OnError: DropOnError,
-			WriterPlugin: WriterPlugin{
-				BasicPlugin: BasicPlugin{
-					PluginID:      "test-id",
-					PluginType:    "test-type",
+			WriterOperator: WriterOperator{
+				BasicOperator: BasicOperator{
+					OperatorID:    "test-id",
+					OperatorType:  "test-type",
 					SugaredLogger: buildContext.Logger,
 				},
-				OutputPlugins: []plugin.Plugin{output},
+				OutputOperators: []plugin.Operator{output},
 			},
 		},
 		ParseFrom: entry.NewRecordField("parse_from"),

@@ -11,23 +11,23 @@ import (
 
 func TestBasicConfigID(t *testing.T) {
 	config := BasicConfig{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	require.Equal(t, "test-id", config.ID())
 }
 
 func TestBasicConfigType(t *testing.T) {
 	config := BasicConfig{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	require.Equal(t, "test-type", config.Type())
 }
 
 func TestBasicConfigBuildWithoutID(t *testing.T) {
 	config := BasicConfig{
-		PluginType: "test-type",
+		OperatorType: "test-type",
 	}
 	context := testutil.NewBuildContext(t)
 	_, err := config.Build(context)
@@ -36,7 +36,7 @@ func TestBasicConfigBuildWithoutID(t *testing.T) {
 
 func TestBasicConfigBuildWithoutType(t *testing.T) {
 	config := BasicConfig{
-		PluginID: "test-id",
+		OperatorID: "test-id",
 	}
 	context := plugin.BuildContext{}
 	_, err := config.Build(context)
@@ -46,8 +46,8 @@ func TestBasicConfigBuildWithoutType(t *testing.T) {
 
 func TestBasicConfigBuildMissingLogger(t *testing.T) {
 	config := BasicConfig{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	context := plugin.BuildContext{}
 	_, err := config.Build(context)
@@ -57,55 +57,55 @@ func TestBasicConfigBuildMissingLogger(t *testing.T) {
 
 func TestBasicConfigBuildValid(t *testing.T) {
 	config := BasicConfig{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	context := testutil.NewBuildContext(t)
 	plugin, err := config.Build(context)
 	require.NoError(t, err)
-	require.Equal(t, "test-id", plugin.PluginID)
-	require.Equal(t, "test-type", plugin.PluginType)
+	require.Equal(t, "test-id", plugin.OperatorID)
+	require.Equal(t, "test-type", plugin.OperatorType)
 }
 
-func TestBasicPluginID(t *testing.T) {
-	plugin := BasicPlugin{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+func TestBasicOperatorID(t *testing.T) {
+	plugin := BasicOperator{
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	require.Equal(t, "test-id", plugin.ID())
 }
 
-func TestBasicPluginType(t *testing.T) {
-	plugin := BasicPlugin{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+func TestBasicOperatorType(t *testing.T) {
+	plugin := BasicOperator{
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	require.Equal(t, "test-type", plugin.Type())
 }
 
-func TestBasicPluginLogger(t *testing.T) {
+func TestBasicOperatorLogger(t *testing.T) {
 	logger := &zap.SugaredLogger{}
-	plugin := BasicPlugin{
-		PluginID:      "test-id",
-		PluginType:    "test-type",
+	plugin := BasicOperator{
+		OperatorID:    "test-id",
+		OperatorType:  "test-type",
 		SugaredLogger: logger,
 	}
 	require.Equal(t, logger, plugin.Logger())
 }
 
-func TestBasicPluginStart(t *testing.T) {
-	plugin := BasicPlugin{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+func TestBasicOperatorStart(t *testing.T) {
+	plugin := BasicOperator{
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	err := plugin.Start()
 	require.NoError(t, err)
 }
 
-func TestBasicPluginStop(t *testing.T) {
-	plugin := BasicPlugin{
-		PluginID:   "test-id",
-		PluginType: "test-type",
+func TestBasicOperatorStop(t *testing.T) {
+	plugin := BasicOperator{
+		OperatorID:   "test-id",
+		OperatorType: "test-type",
 	}
 	err := plugin.Stop()
 	require.NoError(t, err)

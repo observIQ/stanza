@@ -27,8 +27,8 @@ type TimeParserConfig struct {
 }
 
 // Build will build a time parser plugin.
-func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -37,27 +37,27 @@ func (c TimeParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 		return nil, err
 	}
 
-	timeParser := &TimeParserPlugin{
-		TransformerPlugin: transformerPlugin,
-		TimeParser:        c.TimeParser,
+	timeParser := &TimeParserOperator{
+		TransformerOperator: transformerOperator,
+		TimeParser:          c.TimeParser,
 	}
 
 	return timeParser, nil
 }
 
-// TimeParserPlugin is a plugin that parses time from a field to an entry.
-type TimeParserPlugin struct {
-	helper.TransformerPlugin
+// TimeParserOperator is a plugin that parses time from a field to an entry.
+type TimeParserOperator struct {
+	helper.TransformerOperator
 	helper.TimeParser
 }
 
 // CanOutput will always return true for a parser plugin.
-func (t *TimeParserPlugin) CanOutput() bool {
+func (t *TimeParserOperator) CanOutput() bool {
 	return true
 }
 
 // Process will parse time from an entry.
-func (t *TimeParserPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (t *TimeParserOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	if err := t.Parse(ctx, entry); err != nil {
 		return errors.Wrap(err, "parse timestamp")
 	}

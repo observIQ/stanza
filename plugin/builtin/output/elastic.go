@@ -43,8 +43,8 @@ type ElasticOutputConfig struct {
 }
 
 // Build will build an elasticsearch output plugin.
-func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -72,11 +72,11 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 	}
 
 	elasticOutput := &ElasticOutput{
-		OutputPlugin: outputPlugin,
-		Buffer:       buffer,
-		client:       client,
-		indexField:   c.IndexField,
-		idField:      c.IDField,
+		OutputOperator: outputOperator,
+		Buffer:         buffer,
+		client:         client,
+		indexField:     c.IndexField,
+		idField:        c.IDField,
 	}
 
 	buffer.SetHandler(elasticOutput)
@@ -86,7 +86,7 @@ func (c ElasticOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, 
 
 // ElasticOutput is a plugin that sends entries to elasticsearch.
 type ElasticOutput struct {
-	helper.OutputPlugin
+	helper.OutputOperator
 	buffer.Buffer
 
 	client     *elasticsearch.Client

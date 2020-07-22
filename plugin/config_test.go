@@ -25,15 +25,15 @@ func TestStubDatabase(t *testing.T) {
 }
 
 type FakeBuilder struct {
-	PluginID   string   `json:"id" yaml:"id"`
-	PluginType string   `json:"type" yaml:"type"`
-	Array      []string `json:"array" yaml:"array"`
+	OperatorID   string   `json:"id" yaml:"id"`
+	OperatorType string   `json:"type" yaml:"type"`
+	Array        []string `json:"array" yaml:"array"`
 }
 
-func (f *FakeBuilder) SetNamespace(s string, e ...string)         {}
-func (f *FakeBuilder) Build(context BuildContext) (Plugin, error) { return nil, nil }
-func (f *FakeBuilder) ID() string                                 { return "custom" }
-func (f *FakeBuilder) Type() string                               { return "custom" }
+func (f *FakeBuilder) SetNamespace(s string, e ...string)           {}
+func (f *FakeBuilder) Build(context BuildContext) (Operator, error) { return nil, nil }
+func (f *FakeBuilder) ID() string                                   { return "custom" }
+func (f *FakeBuilder) Type() string                                 { return "custom" }
 
 func TestUnmarshalJSONErrors(t *testing.T) {
 	t.Run("InvalidJSON", func(t *testing.T) {
@@ -73,9 +73,9 @@ func TestUnmarshalJSONErrors(t *testing.T) {
 func TestMarshalJSON(t *testing.T) {
 	cfg := Config{
 		Builder: &FakeBuilder{
-			PluginID:   "custom",
-			PluginType: "custom",
-			Array:      []string{"test"},
+			OperatorID:   "custom",
+			OperatorType: "custom",
+			Array:        []string{"test"},
 		},
 	}
 	out, err := json.Marshal(cfg)
@@ -130,9 +130,9 @@ func TestUnmarshalYAMLErrors(t *testing.T) {
 func TestMarshalYAML(t *testing.T) {
 	cfg := Config{
 		Builder: &FakeBuilder{
-			PluginID:   "custom",
-			PluginType: "custom",
-			Array:      []string{"test"},
+			OperatorID:   "custom",
+			OperatorType: "custom",
+			Array:        []string{"test"},
 		},
 	}
 	out, err := yaml.Marshal(cfg)

@@ -6,35 +6,35 @@ import (
 	"github.com/observiq/carbon/plugin"
 )
 
-// PluginNode is a basic node that represents a plugin in a pipeline.
-type PluginNode struct {
-	plugin    plugin.Plugin
+// OperatorNode is a basic node that represents a plugin in a pipeline.
+type OperatorNode struct {
+	plugin    plugin.Operator
 	id        int64
 	outputIDs map[string]int64
 }
 
-// Plugin returns the plugin of the node.
-func (b PluginNode) Plugin() plugin.Plugin {
+// Operator returns the plugin of the node.
+func (b OperatorNode) Operator() plugin.Operator {
 	return b.plugin
 }
 
 // ID returns the node id.
-func (b PluginNode) ID() int64 {
+func (b OperatorNode) ID() int64 {
 	return b.id
 }
 
 // DOTID returns the id used to represent this node in a dot graph.
-func (b PluginNode) DOTID() string {
+func (b OperatorNode) DOTID() string {
 	return b.plugin.ID()
 }
 
 // OutputIDs returns a map of output plugin ids to node ids.
-func (b PluginNode) OutputIDs() map[string]int64 {
+func (b OperatorNode) OutputIDs() map[string]int64 {
 	return b.outputIDs
 }
 
-// createPluginNode will create a plugin node.
-func createPluginNode(plugin plugin.Plugin) PluginNode {
+// createOperatorNode will create a plugin node.
+func createOperatorNode(plugin plugin.Operator) OperatorNode {
 	id := createNodeID(plugin.ID())
 	outputIDs := make(map[string]int64)
 	if plugin.CanOutput() {
@@ -42,7 +42,7 @@ func createPluginNode(plugin plugin.Plugin) PluginNode {
 			outputIDs[output.ID()] = createNodeID(output.ID())
 		}
 	}
-	return PluginNode{plugin, id, outputIDs}
+	return OperatorNode{plugin, id, outputIDs}
 }
 
 // createNodeID generates a node id from a plugin id.

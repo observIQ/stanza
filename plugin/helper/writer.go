@@ -22,15 +22,15 @@ type WriterConfig struct {
 }
 
 // Build will build a writer plugin from the config.
-func (c WriterConfig) Build(context plugin.BuildContext) (WriterPlugin, error) {
-	basicPlugin, err := c.BasicConfig.Build(context)
+func (c WriterConfig) Build(context plugin.BuildContext) (WriterOperator, error) {
+	basicOperator, err := c.BasicConfig.Build(context)
 	if err != nil {
-		return WriterPlugin{}, err
+		return WriterOperator{}, err
 	}
 
-	writer := WriterPlugin{
-		OutputIDs:   c.OutputIDs,
-		BasicPlugin: basicPlugin,
+	writer := WriterOperator{
+		OutputIDs:     c.OutputIDs,
+		BasicOperator: basicOperator,
 	}
 	return writer, nil
 }
@@ -45,17 +45,17 @@ func (c *WriterConfig) SetNamespace(namespace string, exclusions ...string) {
 	}
 }
 
-// WriterPlugin is a plugin that can write to other plugins.
-type WriterPlugin struct {
-	BasicPlugin
-	OutputIDs     OutputIDs
-	OutputPlugins []plugin.Plugin
+// WriterOperator is a plugin that can write to other plugins.
+type WriterOperator struct {
+	BasicOperator
+	OutputIDs       OutputIDs
+	OutputOperators []plugin.Operator
 }
 
 // Write will write an entry to the outputs of the plugin.
-func (w *WriterPlugin) Write(ctx context.Context, e *entry.Entry) {
-	for i, plugin := range w.OutputPlugins {
-		if i == len(w.OutputPlugins)-1 {
+func (w *WriterOperator) Write(ctx context.Context, e *entry.Entry) {
+	for i, plugin := range w.OutputOperators {
+		if i == len(w.OutputOperators)-1 {
 			_ = plugin.Process(ctx, e)
 			return
 		}
@@ -64,21 +64,21 @@ func (w *WriterPlugin) Write(ctx context.Context, e *entry.Entry) {
 }
 
 // CanOutput always returns true for a writer plugin.
-func (w *WriterPlugin) CanOutput() bool {
+func (w *WriterOperator) CanOutput() bool {
 	return true
 }
 
 // Outputs returns the outputs of the writer plugin.
-func (w *WriterPlugin) Outputs() []plugin.Plugin {
-	return w.OutputPlugins
+func (w *WriterOperator) Outputs() []plugin.Operator {
+	return w.OutputOperators
 }
 
 // SetOutputs will set the outputs of the plugin.
-func (w *WriterPlugin) SetOutputs(plugins []plugin.Plugin) error {
-	outputPlugins := make([]plugin.Plugin, 0)
+func (w *WriterOperator) SetOutputs(plugins []plugin.Operator) error {
+	outputOperators := make([]plugin.Operator, 0)
 
 	for _, pluginID := range w.OutputIDs {
-		plugin, ok := w.findPlugin(plugins, pluginID)
+		plugin, ok := w.findOperator(plugins, pluginID)
 		if !ok {
 			return fmt.Errorf("plugin '%s' does not exist", pluginID)
 		}
@@ -87,38 +87,38 @@ func (w *WriterPlugin) SetOutputs(plugins []plugin.Plugin) error {
 			return fmt.Errorf("plugin '%s' can not process entries", pluginID)
 		}
 
-		outputPlugins = append(outputPlugins, plugin)
+		outputOperators = append(outputOperators, plugin)
 	}
 
 	// No outputs have been set, so use the next configured plugin
 	if len(w.OutputIDs) == 0 {
-		currentPluginIndex := -1
+		currentOperatorIndex := -1
 		for i, plugin := range plugins {
 			if plugin.ID() == w.ID() {
-				currentPluginIndex = i
+				currentOperatorIndex = i
 				break
 			}
 		}
-		if currentPluginIndex == -1 {
+		if currentOperatorIndex == -1 {
 			return fmt.Errorf("unexpectedly could not find self in array of plugins")
 		}
-		nextPluginIndex := currentPluginIndex + 1
-		if nextPluginIndex == len(plugins) {
+		nextOperatorIndex := currentOperatorIndex + 1
+		if nextOperatorIndex == len(plugins) {
 			return fmt.Errorf("cannot omit output for the last plugin in the pipeline")
 		}
-		nextPlugin := plugins[nextPluginIndex]
-		if !nextPlugin.CanProcess() {
-			return fmt.Errorf("plugin '%s' cannot process entries, but it was selected as a receiver because 'output' was omitted", nextPlugin.ID())
+		nextOperator := plugins[nextOperatorIndex]
+		if !nextOperator.CanProcess() {
+			return fmt.Errorf("plugin '%s' cannot process entries, but it was selected as a receiver because 'output' was omitted", nextOperator.ID())
 		}
-		outputPlugins = append(outputPlugins, nextPlugin)
+		outputOperators = append(outputOperators, nextOperator)
 	}
 
-	w.OutputPlugins = outputPlugins
+	w.OutputOperators = outputOperators
 	return nil
 }
 
-// FindPlugin will find a plugin matching the supplied id.
-func (w *WriterPlugin) findPlugin(plugins []plugin.Plugin, pluginID string) (plugin.Plugin, bool) {
+// FindOperator will find a plugin matching the supplied id.
+func (w *WriterOperator) findOperator(plugins []plugin.Operator, pluginID string) (plugin.Operator, bool) {
 	for _, plugin := range plugins {
 		if plugin.ID() == pluginID {
 			return plugin, true

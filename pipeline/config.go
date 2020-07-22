@@ -15,12 +15,12 @@ type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
 func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
-	pluginConfigs, err := c.buildPluginConfigs(context.CustomRegistry)
+	pluginConfigs, err := c.buildOperatorConfigs(context.CustomRegistry)
 	if err != nil {
 		return nil, err
 	}
 
-	plugins, err := c.buildPlugins(pluginConfigs, context)
+	plugins, err := c.buildOperators(pluginConfigs, context)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +33,8 @@ func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
 	return pipeline, nil
 }
 
-func (c Config) buildPlugins(pluginConfigs []plugin.Config, context plugin.BuildContext) ([]plugin.Plugin, error) {
-	plugins := make([]plugin.Plugin, 0, len(pluginConfigs))
+func (c Config) buildOperators(pluginConfigs []plugin.Config, context plugin.BuildContext) ([]plugin.Operator, error) {
+	plugins := make([]plugin.Operator, 0, len(pluginConfigs))
 	for _, pluginConfig := range pluginConfigs {
 		plugin, err := pluginConfig.Build(context)
 
@@ -51,7 +51,7 @@ func (c Config) buildPlugins(pluginConfigs []plugin.Config, context plugin.Build
 	return plugins, nil
 }
 
-func (c Config) buildPluginConfigs(customRegistry plugin.CustomRegistry) ([]plugin.Config, error) {
+func (c Config) buildOperatorConfigs(customRegistry plugin.CustomRegistry) ([]plugin.Config, error) {
 	pluginConfigs := make([]plugin.Config, 0, len(c))
 
 	for _, params := range c {

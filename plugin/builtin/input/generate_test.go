@@ -26,17 +26,17 @@ func TestInputGenerate(t *testing.T) {
 	}
 
 	buildContext := testutil.NewBuildContext(t)
-	newPlugin, err := basicConfig().Build(buildContext)
+	newOperator, err := basicConfig().Build(buildContext)
 	require.NoError(t, err)
 
 	receivedEntries := make(chan *entry.Entry)
-	mockOutput := testutil.NewMockPlugin("output1")
+	mockOutput := testutil.NewMockOperator("output1")
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedEntries <- args.Get(1).(*entry.Entry)
 	})
 
-	generateInput := newPlugin.(*GenerateInput)
-	err = generateInput.SetOutputs([]plugin.Plugin{mockOutput})
+	generateInput := newOperator.(*GenerateInput)
+	err = generateInput.SetOutputs([]plugin.Operator{mockOutput})
 	require.NoError(t, err)
 
 	err = generateInput.Start()
@@ -84,8 +84,8 @@ pipeline:
 						WriteTo: entry.NewRecordField(),
 						WriterConfig: helper.WriterConfig{
 							BasicConfig: helper.BasicConfig{
-								PluginID:   "my_generator",
-								PluginType: "generate_input",
+								OperatorID:   "my_generator",
+								OperatorType: "generate_input",
 							},
 							OutputIDs: []string{"sampleoutput"},
 						},

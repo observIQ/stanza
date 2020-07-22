@@ -8,34 +8,34 @@ import (
 
 func NewBasicConfig(pluginID, pluginType string) BasicConfig {
 	return BasicConfig{
-		PluginID:   pluginID,
-		PluginType: pluginType,
+		OperatorID:   pluginID,
+		OperatorType: pluginType,
 	}
 }
 
 // BasicConfig provides a basic implemention for a plugin config.
 type BasicConfig struct {
-	PluginID   string `json:"id"   yaml:"id"`
-	PluginType string `json:"type" yaml:"type"`
+	OperatorID   string `json:"id"   yaml:"id"`
+	OperatorType string `json:"type" yaml:"type"`
 }
 
 // ID will return the plugin id.
 func (c BasicConfig) ID() string {
-	if c.PluginID == "" {
-		return c.PluginType
+	if c.OperatorID == "" {
+		return c.OperatorType
 	}
-	return c.PluginID
+	return c.OperatorID
 }
 
 // Type will return the plugin type.
 func (c BasicConfig) Type() string {
-	return c.PluginType
+	return c.OperatorType
 }
 
 // Build will build a basic plugin.
-func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
-	if c.PluginType == "" {
-		return BasicPlugin{}, errors.NewError(
+func (c BasicConfig) Build(context plugin.BuildContext) (BasicOperator, error) {
+	if c.OperatorType == "" {
+		return BasicOperator{}, errors.NewError(
 			"missing required `type` field.",
 			"ensure that all plugins have a uniquely defined `type` field.",
 			"plugin_id", c.ID(),
@@ -43,7 +43,7 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 	}
 
 	if context.Logger == nil {
-		return BasicPlugin{}, errors.NewError(
+		return BasicOperator{}, errors.NewError(
 			"plugin build context is missing a logger.",
 			"this is an unexpected internal error",
 			"plugin_id", c.ID(),
@@ -51,9 +51,9 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 		)
 	}
 
-	plugin := BasicPlugin{
-		PluginID:      c.ID(),
-		PluginType:    c.Type(),
+	plugin := BasicOperator{
+		OperatorID:    c.ID(),
+		OperatorType:  c.Type(),
 		SugaredLogger: context.Logger.With("plugin_id", c.ID(), "plugin_type", c.Type()),
 	}
 
@@ -63,41 +63,41 @@ func (c BasicConfig) Build(context plugin.BuildContext) (BasicPlugin, error) {
 // SetNamespace will namespace the plugin id.
 func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
 	if CanNamespace(c.ID(), exclusions) {
-		c.PluginID = AddNamespace(c.ID(), namespace)
+		c.OperatorID = AddNamespace(c.ID(), namespace)
 	}
 }
 
-// BasicPlugin provides a basic implementation of a plugin.
-type BasicPlugin struct {
-	PluginID   string
-	PluginType string
+// BasicOperator provides a basic implementation of a plugin.
+type BasicOperator struct {
+	OperatorID   string
+	OperatorType string
 	*zap.SugaredLogger
 }
 
 // ID will return the plugin id.
-func (p *BasicPlugin) ID() string {
-	if p.PluginID == "" {
-		return p.PluginType
+func (p *BasicOperator) ID() string {
+	if p.OperatorID == "" {
+		return p.OperatorType
 	}
-	return p.PluginID
+	return p.OperatorID
 }
 
 // Type will return the plugin type.
-func (p *BasicPlugin) Type() string {
-	return p.PluginType
+func (p *BasicOperator) Type() string {
+	return p.OperatorType
 }
 
 // Logger returns the plugin's scoped logger.
-func (p *BasicPlugin) Logger() *zap.SugaredLogger {
+func (p *BasicOperator) Logger() *zap.SugaredLogger {
 	return p.SugaredLogger
 }
 
 // Start will start the plugin.
-func (p *BasicPlugin) Start() error {
+func (p *BasicOperator) Start() error {
 	return nil
 }
 
 // Stop will stop the plugin.
-func (p *BasicPlugin) Stop() error {
+func (p *BasicOperator) Stop() error {
 	return nil
 }

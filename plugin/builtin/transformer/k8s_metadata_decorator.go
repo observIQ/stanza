@@ -36,23 +36,23 @@ type K8sMetadataDecoratorConfig struct {
 }
 
 // Build will build a k8s_metadata_decorator plugin from the supplied configuration
-func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
+func (c K8sMetadataDecoratorConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
 	transformer, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, errors.Wrap(err, "build transformer")
 	}
 
 	return &K8sMetadataDecorator{
-		TransformerPlugin: transformer,
-		podNameField:      c.PodNameField,
-		namespaceField:    c.NamespaceField,
-		cacheTTL:          c.CacheTTL.Raw(),
+		TransformerOperator: transformer,
+		podNameField:        c.PodNameField,
+		namespaceField:      c.NamespaceField,
+		cacheTTL:            c.CacheTTL.Raw(),
 	}, nil
 }
 
 // K8sMetadataDecorator is a plugin for decorating entries with kubernetes metadata
 type K8sMetadataDecorator struct {
-	helper.TransformerPlugin
+	helper.TransformerOperator
 	podNameField   entry.Field
 	namespaceField entry.Field
 

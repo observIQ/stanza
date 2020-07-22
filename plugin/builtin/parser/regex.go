@@ -29,8 +29,8 @@ type RegexParserConfig struct {
 }
 
 // Build will build a regex parser plugin.
-func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	parserPlugin, err := c.ParserConfig.Build(context)
+func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	parserOperator, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 	}
 
 	regexParser := &RegexParser{
-		ParserPlugin: parserPlugin,
-		regexp:       r,
+		ParserOperator: parserOperator,
+		regexp:         r,
 	}
 
 	return regexParser, nil
@@ -67,13 +67,13 @@ func (c RegexParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, er
 
 // RegexParser is a plugin that parses regex in an entry.
 type RegexParser struct {
-	helper.ParserPlugin
+	helper.ParserOperator
 	regexp *regexp.Regexp
 }
 
 // Process will parse an entry for regex.
 func (r *RegexParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return r.ParserPlugin.ProcessWith(ctx, entry, r.parse)
+	return r.ParserOperator.ProcessWith(ctx, entry, r.parse)
 }
 
 // parse will parse a value using the supplied regex.

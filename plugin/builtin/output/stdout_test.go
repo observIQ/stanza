@@ -13,12 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStdoutPlugin(t *testing.T) {
+func TestStdoutOperator(t *testing.T) {
 	cfg := StdoutConfig{
 		OutputConfig: helper.OutputConfig{
 			BasicConfig: helper.BasicConfig{
-				PluginID:   "test_plugin_id",
-				PluginType: "stdout",
+				OperatorID:   "test_plugin_id",
+				OperatorType: "stdout",
 			},
 		},
 	}
@@ -27,7 +27,7 @@ func TestStdoutPlugin(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	plugin.(*StdoutPlugin).encoder = json.NewEncoder(&buf)
+	plugin.(*StdoutOperator).encoder = json.NewEncoder(&buf)
 
 	ts := time.Unix(1591042864, 0)
 	e := &entry.Entry{

@@ -19,8 +19,8 @@ func TestOutputConfigMissingBase(t *testing.T) {
 func TestOutputConfigBuildValid(t *testing.T) {
 	config := OutputConfig{
 		BasicConfig: BasicConfig{
-			PluginID:   "test-id",
-			PluginType: "test-type",
+			OperatorID:   "test-id",
+			OperatorType: "test-type",
 		},
 	}
 	context := testutil.NewBuildContext(t)
@@ -31,61 +31,61 @@ func TestOutputConfigBuildValid(t *testing.T) {
 func TestOutputConfigNamespace(t *testing.T) {
 	config := OutputConfig{
 		BasicConfig: BasicConfig{
-			PluginID:   "test-id",
-			PluginType: "test-type",
+			OperatorID:   "test-id",
+			OperatorType: "test-type",
 		},
 	}
 	config.SetNamespace("test-namespace")
 	require.Equal(t, "test-namespace.test-id", config.ID())
 }
 
-func TestOutputPluginCanProcess(t *testing.T) {
+func TestOutputOperatorCanProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	output := OutputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
+	output := OutputOperator{
+		BasicOperator: BasicOperator{
+			OperatorID:    "test-id",
+			OperatorType:  "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
 	}
 	require.True(t, output.CanProcess())
 }
 
-func TestOutputPluginCanOutput(t *testing.T) {
+func TestOutputOperatorCanOutput(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	output := OutputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
+	output := OutputOperator{
+		BasicOperator: BasicOperator{
+			OperatorID:    "test-id",
+			OperatorType:  "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
 	}
 	require.False(t, output.CanOutput())
 }
 
-func TestOutputPluginOutputs(t *testing.T) {
+func TestOutputOperatorOutputs(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	output := OutputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
+	output := OutputOperator{
+		BasicOperator: BasicOperator{
+			OperatorID:    "test-id",
+			OperatorType:  "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
 	}
-	require.Equal(t, []plugin.Plugin{}, output.Outputs())
+	require.Equal(t, []plugin.Operator{}, output.Outputs())
 }
 
-func TestOutputPluginSetOutputs(t *testing.T) {
+func TestOutputOperatorSetOutputs(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	output := OutputPlugin{
-		BasicPlugin: BasicPlugin{
-			PluginID:      "test-id",
-			PluginType:    "test-type",
+	output := OutputOperator{
+		BasicOperator: BasicOperator{
+			OperatorID:    "test-id",
+			OperatorType:  "test-type",
 			SugaredLogger: buildContext.Logger,
 		},
 	}
 
-	err := output.SetOutputs([]plugin.Plugin{})
+	err := output.SetOutputs([]plugin.Operator{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Plugin can not output")
+	require.Contains(t, err.Error(), "Operator can not output")
 }

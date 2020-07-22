@@ -1,4 +1,4 @@
-//go:generate mockery -name=^(Plugin)$ -output=../internal/testutil -outpkg=testutil -case=snake
+//go:generate mockery -name=^(Operator)$ -output=../internal/testutil -outpkg=testutil -case=snake
 
 package plugin
 
@@ -9,29 +9,29 @@ import (
 	"go.uber.org/zap"
 )
 
-// Plugin is a log monitoring component.
-type Plugin interface {
-	// ID returns the id of the plugin.
+// Operator is a log monitoring component.
+type Operator interface {
+	// ID returns the id of the operator.
 	ID() string
-	// Type returns the type of the plugin.
+	// Type returns the type of the operator.
 	Type() string
 
-	// Start will start the plugin.
+	// Start will start the operator.
 	Start() error
-	// Stop will stop the plugin.
+	// Stop will stop the operator.
 	Stop() error
 
-	// CanOutput indicates if the plugin will output entries to other plugins.
+	// CanOutput indicates if the operator will output entries to other operators.
 	CanOutput() bool
 	// Outputs returns the list of connected outputs.
-	Outputs() []Plugin
+	Outputs() []Operator
 	// SetOutputs will set the connected outputs.
-	SetOutputs([]Plugin) error
+	SetOutputs([]Operator) error
 
-	// CanProcess indicates if the plugin will process entries from other plugins.
+	// CanProcess indicates if the operator will process entries from other operators.
 	CanProcess() bool
-	// Process will process an entry from a plugin.
+	// Process will process an entry from a operator.
 	Process(context.Context, *entry.Entry) error
-	// Logger returns the plugin's logger
+	// Logger returns the operator's logger
 	Logger() *zap.SugaredLogger
 }

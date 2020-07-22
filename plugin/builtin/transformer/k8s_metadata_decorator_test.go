@@ -40,11 +40,11 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 	cfg := basicConfig()
 
 	expected := &K8sMetadataDecorator{
-		TransformerPlugin: helper.TransformerPlugin{
-			WriterPlugin: helper.WriterPlugin{
-				BasicPlugin: helper.BasicPlugin{
-					PluginID:   "testplugin",
-					PluginType: "k8s_metadata_decorator",
+		TransformerOperator: helper.TransformerOperator{
+			WriterOperator: helper.WriterOperator{
+				BasicOperator: helper.BasicOperator{
+					OperatorID:   "testplugin",
+					OperatorType: "k8s_metadata_decorator",
 				},
 				OutputIDs: []string{"mock"},
 			},
@@ -68,8 +68,8 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 	pg, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 
-	mockOutput := testutil.NewMockPlugin("mock")
-	pg.SetOutputs([]plugin.Plugin{mockOutput})
+	mockOutput := testutil.NewMockOperator("mock")
+	pg.SetOutputs([]plugin.Operator{mockOutput})
 
 	// Preload cache so we don't hit the network
 	k8s := pg.(*K8sMetadataDecorator)

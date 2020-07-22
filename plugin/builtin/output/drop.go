@@ -24,14 +24,14 @@ type DropOutputConfig struct {
 }
 
 // Build will build a drop output plugin.
-func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
 	dropOutput := &DropOutput{
-		OutputPlugin: outputPlugin,
+		OutputOperator: outputOperator,
 	}
 
 	return dropOutput, nil
@@ -39,7 +39,7 @@ func (c DropOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // DropOutput is a plugin that consumes and ignores incoming entries.
 type DropOutput struct {
-	helper.OutputPlugin
+	helper.OutputOperator
 }
 
 // Process will drop the incoming entry.

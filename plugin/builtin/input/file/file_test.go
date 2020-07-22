@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
-	mockOutput := testutil.NewMockPlugin("output")
+func newTestFileSource(t *testing.T) (*InputOperator, chan *entry.Entry) {
+	mockOutput := testutil.NewMockOperator("output")
 	receivedEntries := make(chan *entry.Entry, 1000)
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedEntries <- args.Get(1).(*entry.Entry)
@@ -35,15 +35,15 @@ func newTestFileSource(t *testing.T) (*InputPlugin, chan *entry.Entry) {
 	if err != nil {
 		t.Fatalf("Error building plugin: %s", err)
 	}
-	source := pg.(*InputPlugin)
-	source.OutputPlugins = []plugin.Plugin{mockOutput}
+	source := pg.(*InputOperator)
+	source.OutputOperators = []plugin.Operator{mockOutput}
 
 	return source, receivedEntries
 }
 
 func TestFileSource_Build(t *testing.T) {
 	t.Parallel()
-	mockOutput := testutil.NewMockPlugin("mock")
+	mockOutput := testutil.NewMockOperator("mock")
 
 	basicConfig := func() *InputConfig {
 		cfg := NewInputConfig("testfile")
@@ -59,14 +59,14 @@ func TestFileSource_Build(t *testing.T) {
 		name             string
 		modifyBaseConfig func(*InputConfig)
 		errorRequirement require.ErrorAssertionFunc
-		validate         func(*testing.T, *InputPlugin)
+		validate         func(*testing.T, *InputOperator)
 	}{
 		{
 			"Basic",
 			func(f *InputConfig) { return },
 			require.NoError,
-			func(t *testing.T, f *InputPlugin) {
-				require.Equal(t, f.OutputPlugins[0], mockOutput)
+			func(t *testing.T, f *InputOperator) {
+				require.Equal(t, f.OutputOperators[0], mockOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.FilePathField, entry.NewRecordField("testpath"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
@@ -107,7 +107,7 @@ func TestFileSource_Build(t *testing.T) {
 				}
 			},
 			require.NoError,
-			func(t *testing.T, f *InputPlugin) {},
+			func(t *testing.T, f *InputOperator) {},
 		},
 		{
 			"MultilineConfiguredEndPattern",
@@ -117,7 +117,7 @@ func TestFileSource_Build(t *testing.T) {
 				}
 			},
 			require.NoError,
-			func(t *testing.T, f *InputPlugin) {},
+			func(t *testing.T, f *InputOperator) {},
 		},
 	}
 
@@ -132,10 +132,10 @@ func TestFileSource_Build(t *testing.T) {
 				return
 			}
 
-			err = plg.SetOutputs([]plugin.Plugin{mockOutput})
+			err = plg.SetOutputs([]plugin.Operator{mockOutput})
 			require.NoError(t, err)
 
-			fileInput := plg.(*InputPlugin)
+			fileInput := plg.(*InputOperator)
 			tc.validate(t, fileInput)
 		})
 	}

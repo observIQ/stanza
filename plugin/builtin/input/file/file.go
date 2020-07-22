@@ -63,8 +63,8 @@ type MultilineConfig struct {
 }
 
 // Build will build a file input plugin from the supplied configuration
-func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+func (c InputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +109,8 @@ func (c InputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
 		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
 	}
 
-	plugin := &InputPlugin{
-		InputPlugin:      inputPlugin,
+	plugin := &InputOperator{
+		InputOperator:    inputOperator,
 		Include:          c.Include,
 		Exclude:          c.Exclude,
 		SplitFunc:        splitFunc,
@@ -186,9 +186,9 @@ func (c InputConfig) getSplitFunc(encoding encoding.Encoding) (bufio.SplitFunc, 
 	return splitFunc, nil
 }
 
-// InputPlugin is a plugin that monitors files for entries
-type InputPlugin struct {
-	helper.InputPlugin
+// InputOperator is a plugin that monitors files for entries
+type InputOperator struct {
+	helper.InputOperator
 
 	Include       []string
 	Exclude       []string
@@ -215,7 +215,7 @@ type InputPlugin struct {
 }
 
 // Start will start the file monitoring process
-func (f *InputPlugin) Start() error {
+func (f *InputOperator) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
 	f.wg = &sync.WaitGroup{}
@@ -266,7 +266,7 @@ func (f *InputPlugin) Start() error {
 }
 
 // Stop will stop the file monitoring process
-func (f *InputPlugin) Stop() error {
+func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.syncKnownFiles()
@@ -279,7 +279,7 @@ func (f *InputPlugin) Stop() error {
 // firstCheck indicates whether this is the first time checkFile has been called
 // after startup. This is important for the start_at parameter because, after initial
 // startup, we don't want to start at the end of newly-created files.
-func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck bool) {
+func (f *InputOperator) checkFile(ctx context.Context, path string, firstCheck bool) {
 
 	// Check if the file is currently being read
 	if _, ok := f.runningFiles[path]; ok {
@@ -314,14 +314,14 @@ func (f *InputPlugin) checkFile(ctx context.Context, path string, firstCheck boo
 	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
-		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputPlugin, f.MaxLogSize, f.encoding)
+		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputOperator, f.MaxLogSize, f.encoding)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
 		}
 	}(ctx, path, knownFile.Offset, knownFile.LastSeenFileSize)
 }
 
-func (f *InputPlugin) updateFile(message fileUpdateMessage) {
+func (f *InputOperator) updateFile(message fileUpdateMessage) {
 	if message.finished {
 		delete(f.runningFiles, message.path)
 		return
@@ -385,7 +385,7 @@ func (f *InputPlugin) updateFile(message fileUpdateMessage) {
 	knownFile.Offset = message.newOffset
 }
 
-func (f *InputPlugin) drainMessages() {
+func (f *InputOperator) drainMessages() {
 	done := make(chan struct{})
 	go func() {
 		f.readerWg.Wait()
@@ -404,7 +404,7 @@ func (f *InputPlugin) drainMessages() {
 
 var knownFilesKey = "knownFiles"
 
-func (f *InputPlugin) syncKnownFiles() {
+func (f *InputOperator) syncKnownFiles() {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(f.knownFiles)
@@ -417,7 +417,7 @@ func (f *InputPlugin) syncKnownFiles() {
 	f.persist.Sync()
 }
 
-func (f *InputPlugin) readKnownFiles() (map[string]*knownFileInfo, error) {
+func (f *InputOperator) readKnownFiles() (map[string]*knownFileInfo, error) {
 	err := f.persist.Load()
 	if err != nil {
 		return nil, err
@@ -439,7 +439,7 @@ func (f *InputPlugin) readKnownFiles() (map[string]*knownFileInfo, error) {
 	return knownFiles, nil
 }
 
-func (f *InputPlugin) newFileUpdateMessenger(path string) fileUpdateMessenger {
+func (f *InputOperator) newFileUpdateMessenger(path string) fileUpdateMessenger {
 	return fileUpdateMessenger{
 		path: path,
 		c:    f.fileUpdateChan,

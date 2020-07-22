@@ -30,8 +30,8 @@ type TCPInputConfig struct {
 }
 
 // Build will build a tcp input plugin.
-func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(context)
+func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -46,15 +46,15 @@ func (c TCPInputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error
 	}
 
 	tcpInput := &TCPInput{
-		InputPlugin: inputPlugin,
-		address:     address,
+		InputOperator: inputOperator,
+		address:       address,
 	}
 	return tcpInput, nil
 }
 
 // TCPInput is a plugin that listens for log entries over tcp.
 type TCPInput struct {
-	helper.InputPlugin
+	helper.InputOperator
 	address *net.TCPAddr
 
 	listener  *net.TCPListener

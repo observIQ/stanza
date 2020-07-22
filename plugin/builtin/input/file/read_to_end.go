@@ -24,7 +24,7 @@ func ReadToEnd(
 	splitFunc bufio.SplitFunc,
 	filePathField entry.Field,
 	fileNameField entry.Field,
-	inputPlugin helper.InputPlugin,
+	inputOperator helper.InputOperator,
 	maxLogSize int,
 	encoding encoding.Encoding,
 ) error {
@@ -79,7 +79,7 @@ func ReadToEnd(
 	// advanced since last cycle, read the rest of the file as an entry
 	defer func() {
 		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
-			readRemaining(ctx, file, pos, stat.Size(), messenger, inputPlugin, filePathField, fileNameField, decoder, decodeBuffer)
+			readRemaining(ctx, file, pos, stat.Size(), messenger, inputOperator, filePathField, fileNameField, decoder, decodeBuffer)
 		}
 	}()
 
@@ -104,37 +104,37 @@ func ReadToEnd(
 			return err
 		}
 
-		e := inputPlugin.NewEntry(string(decodeBuffer[:nDst]))
+		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
 		e.Set(filePathField, path)
 		e.Set(fileNameField, filepath.Base(file.Name()))
-		inputPlugin.Write(ctx, e)
+		inputOperator.Write(ctx, e)
 		messenger.SetOffset(pos)
 	}
 }
 
 // readRemaining will read the remaining characters in a file as a log entry.
-func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputPlugin helper.InputPlugin, filePathField, fileNameField entry.Field, encoder *encoding.Decoder, decodeBuffer []byte) {
+func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputOperator helper.InputOperator, filePathField, fileNameField entry.Field, encoder *encoding.Decoder, decodeBuffer []byte) {
 	_, err := file.Seek(filePos, 0)
 	if err != nil {
-		inputPlugin.Errorf("failed to seek to read last log entry")
+		inputOperator.Errorf("failed to seek to read last log entry")
 		return
 	}
 
 	msgBuf := make([]byte, fileSize-filePos)
 	n, err := file.Read(msgBuf)
 	if err != nil {
-		inputPlugin.Errorf("failed to read trailing log")
+		inputOperator.Errorf("failed to read trailing log")
 		return
 	}
 	encoder.Reset()
 	nDst, _, err := encoder.Transform(decodeBuffer, msgBuf, true)
 	if err != nil {
-		inputPlugin.Errorw("failed to decode trailing log", zap.Error(err))
+		inputOperator.Errorw("failed to decode trailing log", zap.Error(err))
 	}
 
-	e := inputPlugin.NewEntry(string(decodeBuffer[:nDst]))
+	e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
 	e.Set(filePathField, file.Name())
 	e.Set(fileNameField, filepath.Base(file.Name()))
-	inputPlugin.Write(ctx, e)
+	inputOperator.Write(ctx, e)
 	messenger.SetOffset(filePos + int64(n))
 }

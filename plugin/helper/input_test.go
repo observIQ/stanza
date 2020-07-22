@@ -26,8 +26,8 @@ func TestInputConfigMissingOutput(t *testing.T) {
 	config := InputConfig{
 		WriterConfig: WriterConfig{
 			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
+				OperatorID:   "test-id",
+				OperatorType: "test-type",
 			},
 		},
 		WriteTo: entry.Field{},
@@ -42,8 +42,8 @@ func TestInputConfigValid(t *testing.T) {
 		WriteTo: entry.Field{},
 		WriterConfig: WriterConfig{
 			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
+				OperatorID:   "test-id",
+				OperatorType: "test-type",
 			},
 			OutputIDs: []string{"test-output"},
 		},
@@ -58,24 +58,24 @@ func TestInputConfigSetNamespace(t *testing.T) {
 		WriteTo: entry.Field{},
 		WriterConfig: WriterConfig{
 			BasicConfig: BasicConfig{
-				PluginID:   "test-id",
-				PluginType: "test-type",
+				OperatorID:   "test-id",
+				OperatorType: "test-type",
 			},
 			OutputIDs: []string{"test-output"},
 		},
 	}
 	config.SetNamespace("test-namespace")
-	require.Equal(t, "test-namespace.test-id", config.PluginID)
+	require.Equal(t, "test-namespace.test-id", config.OperatorID)
 	require.Equal(t, "test-namespace.test-output", config.OutputIDs[0])
 }
 
-func TestInputPluginCanProcess(t *testing.T) {
+func TestInputOperatorCanProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	input := InputPlugin{
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
+	input := InputOperator{
+		WriterOperator: WriterOperator{
+			BasicOperator: BasicOperator{
+				OperatorID:    "test-id",
+				OperatorType:  "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
 		},
@@ -83,13 +83,13 @@ func TestInputPluginCanProcess(t *testing.T) {
 	require.False(t, input.CanProcess())
 }
 
-func TestInputPluginProcess(t *testing.T) {
+func TestInputOperatorProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
-	input := InputPlugin{
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
+	input := InputOperator{
+		WriterOperator: WriterOperator{
+			BasicOperator: BasicOperator{
+				OperatorID:    "test-id",
+				OperatorType:  "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
 		},
@@ -98,17 +98,17 @@ func TestInputPluginProcess(t *testing.T) {
 	ctx := context.Background()
 	err := input.Process(ctx, entry)
 	require.Error(t, err)
-	require.Equal(t, err.Error(), "Plugin can not process logs.")
+	require.Equal(t, err.Error(), "Operator can not process logs.")
 }
 
-func TestInputPluginNewEntry(t *testing.T) {
+func TestInputOperatorNewEntry(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	writeTo := entry.NewRecordField("test-field")
-	input := InputPlugin{
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
+	input := InputOperator{
+		WriterOperator: WriterOperator{
+			BasicOperator: BasicOperator{
+				OperatorID:    "test-id",
+				OperatorType:  "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
 		},

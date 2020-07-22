@@ -32,8 +32,8 @@ type FileOutputConfig struct {
 }
 
 // Build will build a file output plugin.
-func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(context)
+func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +51,9 @@ func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 	}
 
 	fileOutput := &FileOutput{
-		OutputPlugin: outputPlugin,
-		path:         c.Path,
-		tmpl:         tmpl,
+		OutputOperator: outputOperator,
+		path:           c.Path,
+		tmpl:           tmpl,
 	}
 
 	return fileOutput, nil
@@ -61,7 +61,7 @@ func (c FileOutputConfig) Build(context plugin.BuildContext) (plugin.Plugin, err
 
 // FileOutput is a plugin that writes logs to a file.
 type FileOutput struct {
-	helper.OutputPlugin
+	helper.OutputOperator
 
 	path    string
 	tmpl    *template.Template

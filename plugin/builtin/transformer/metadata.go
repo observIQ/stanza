@@ -10,17 +10,17 @@ import (
 )
 
 func init() {
-	plugin.Register("metadata", func() plugin.Builder { return NewMetadataPluginConfig("") })
+	plugin.Register("metadata", func() plugin.Builder { return NewMetadataOperatorConfig("") })
 }
 
-func NewMetadataPluginConfig(pluginID string) *MetadataPluginConfig {
-	return &MetadataPluginConfig{
+func NewMetadataOperatorConfig(pluginID string) *MetadataOperatorConfig {
+	return &MetadataOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(pluginID, "metadata"),
 	}
 }
 
-// MetadataPluginConfig is the configuration of a metadata plugin
-type MetadataPluginConfig struct {
+// MetadataOperatorConfig is the configuration of a metadata plugin
+type MetadataOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
 	Labels map[string]helper.ExprStringConfig `json:"labels" yaml:"labels"`
@@ -28,8 +28,8 @@ type MetadataPluginConfig struct {
 }
 
 // Build will build a metadata plugin from the supplied configuration
-func (c MetadataPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c MetadataOperatorConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -44,29 +44,29 @@ func (c MetadataPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin,
 		return nil, errors.Wrap(err, "validate labels")
 	}
 
-	restructurePlugin := &MetadataPlugin{
-		TransformerPlugin: transformerPlugin,
-		labeler:           labeler,
-		tagger:            tagger,
+	restructureOperator := &MetadataOperator{
+		TransformerOperator: transformerOperator,
+		labeler:             labeler,
+		tagger:              tagger,
 	}
 
-	return restructurePlugin, nil
+	return restructureOperator, nil
 }
 
-// MetadataPlugin is a plugin that can add metadata to incoming entries
-type MetadataPlugin struct {
-	helper.TransformerPlugin
+// MetadataOperator is a plugin that can add metadata to incoming entries
+type MetadataOperator struct {
+	helper.TransformerOperator
 	labeler *labeler
 	tagger  *tagger
 }
 
 // Process will process an incoming entry using the metadata transform.
-func (p *MetadataPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *MetadataOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	return p.ProcessWith(ctx, entry, p.Transform)
 }
 
 // Transform will transform an entry using the labeler and tagger.
-func (p *MetadataPlugin) Transform(entry *entry.Entry) (*entry.Entry, error) {
+func (p *MetadataOperator) Transform(entry *entry.Entry) (*entry.Entry, error) {
 	err := p.labeler.Label(entry)
 	if err != nil {
 		return entry, err

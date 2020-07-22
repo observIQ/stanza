@@ -14,50 +14,50 @@ import (
 )
 
 func init() {
-	plugin.Register("restructure", func() plugin.Builder { return NewRestructurePluginConfig("") })
+	plugin.Register("restructure", func() plugin.Builder { return NewRestructureOperatorConfig("") })
 }
 
-func NewRestructurePluginConfig(pluginID string) *RestructurePluginConfig {
-	return &RestructurePluginConfig{
+func NewRestructureOperatorConfig(pluginID string) *RestructureOperatorConfig {
+	return &RestructureOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(pluginID, "restructure"),
 	}
 }
 
-// RestructurePluginConfig is the configuration of a restructure plugin
-type RestructurePluginConfig struct {
+// RestructureOperatorConfig is the configuration of a restructure plugin
+type RestructureOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
 	Ops []Op `json:"ops" yaml:"ops"`
 }
 
 // Build will build a restructure plugin from the supplied configuration
-func (c RestructurePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c RestructureOperatorConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	restructurePlugin := &RestructurePlugin{
-		TransformerPlugin: transformerPlugin,
-		ops:               c.Ops,
+	restructureOperator := &RestructureOperator{
+		TransformerOperator: transformerOperator,
+		ops:                 c.Ops,
 	}
 
-	return restructurePlugin, nil
+	return restructureOperator, nil
 }
 
-// RestructurePlugin is a plugin that can restructure incoming entries using operations
-type RestructurePlugin struct {
-	helper.TransformerPlugin
+// RestructureOperator is a plugin that can restructure incoming entries using operations
+type RestructureOperator struct {
+	helper.TransformerOperator
 	ops []Op
 }
 
 // Process will process an entry with a restructure transformation.
-func (p *RestructurePlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *RestructureOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	return p.ProcessWith(ctx, entry, p.Transform)
 }
 
 // Transform will apply the restructure operations to an entry
-func (p *RestructurePlugin) Transform(entry *entry.Entry) (*entry.Entry, error) {
+func (p *RestructureOperator) Transform(entry *entry.Entry) (*entry.Entry, error) {
 	for _, op := range p.ops {
 		err := op.Apply(entry)
 		if err != nil {

@@ -19,24 +19,24 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func NewFakeRestructurePlugin() (*RestructurePlugin, *testutil.Plugin) {
-	mock := testutil.Plugin{}
+func NewFakeRestructureOperator() (*RestructureOperator, *testutil.Operator) {
+	mock := testutil.Operator{}
 	logger, _ := zap.NewProduction()
-	return &RestructurePlugin{
-		TransformerPlugin: helper.TransformerPlugin{
-			WriterPlugin: helper.WriterPlugin{
-				BasicPlugin: helper.BasicPlugin{
-					PluginID:      "test",
-					PluginType:    "restructure",
+	return &RestructureOperator{
+		TransformerOperator: helper.TransformerOperator{
+			WriterOperator: helper.WriterOperator{
+				BasicOperator: helper.BasicOperator{
+					OperatorID:    "test",
+					OperatorType:  "restructure",
 					SugaredLogger: logger.Sugar(),
 				},
-				OutputPlugins: []plugin.Plugin{&mock},
+				OutputOperators: []plugin.Operator{&mock},
 			},
 		},
 	}, &mock
 }
 
-func TestRestructurePlugin(t *testing.T) {
+func TestRestructureOperator(t *testing.T) {
 	os.Setenv("TEST_RESTRUCTURE_PLUGIN_ENV", "foo")
 	defer os.Unsetenv("TEST_RESTRUCTURE_PLUGIN_ENV")
 
@@ -202,7 +202,7 @@ func TestRestructurePlugin(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 
-			plugin, mockOutput := NewFakeRestructurePlugin()
+			plugin, mockOutput := NewFakeRestructureOperator()
 			plugin.ops = tc.ops
 
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -343,12 +343,12 @@ ops:
 }`
 
 	expected := plugin.Config(plugin.Config{
-		Builder: &RestructurePluginConfig{
+		Builder: &RestructureOperatorConfig{
 			TransformerConfig: helper.TransformerConfig{
 				WriterConfig: helper.WriterConfig{
 					BasicConfig: helper.BasicConfig{
-						PluginID:   "my_restructure",
-						PluginType: "restructure",
+						OperatorID:   "my_restructure",
+						OperatorType: "restructure",
 					},
 					OutputIDs: []string{"test_output"},
 				},

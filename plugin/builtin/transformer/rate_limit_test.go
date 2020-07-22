@@ -25,12 +25,12 @@ func TestRateLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	receivedLog := make(chan struct{}, 100)
-	mockOutput := testutil.NewMockPlugin("output1")
+	mockOutput := testutil.NewMockOperator("output1")
 	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		receivedLog <- struct{}{}
 	})
 
-	err = rateLimit.SetOutputs([]plugin.Plugin{mockOutput})
+	err = rateLimit.SetOutputs([]plugin.Operator{mockOutput})
 	require.NoError(t, err)
 
 	err = rateLimit.Start()

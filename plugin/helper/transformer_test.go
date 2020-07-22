@@ -52,11 +52,11 @@ func TestTransformerConfigSetNamespace(t *testing.T) {
 	cfg := NewTransformerConfig("test-id", "test-type")
 	cfg.OutputIDs = []string{"test-output"}
 	cfg.SetNamespace("test-namespace")
-	require.Equal(t, "test-namespace.test-id", cfg.PluginID)
+	require.Equal(t, "test-namespace.test-id", cfg.OperatorID)
 	require.Equal(t, "test-namespace.test-output", cfg.OutputIDs[0])
 }
 
-func TestTransformerPluginCanProcess(t *testing.T) {
+func TestTransformerOperatorCanProcess(t *testing.T) {
 	cfg := NewTransformerConfig("test", "test")
 	transformer, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
@@ -64,20 +64,20 @@ func TestTransformerPluginCanProcess(t *testing.T) {
 }
 
 func TestTransformerDropOnError(t *testing.T) {
-	output := &testutil.Plugin{}
+	output := &testutil.Operator{}
 	output.On("ID").Return("test-output")
 	output.On("Process", mock.Anything, mock.Anything).Return(nil)
 	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
+	transformer := TransformerOperator{
 		OnError: DropOnError,
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
+		WriterOperator: WriterOperator{
+			BasicOperator: BasicOperator{
+				OperatorID:    "test-id",
+				OperatorType:  "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OutputPlugins: []plugin.Plugin{output},
-			OutputIDs:     []string{"test-output"},
+			OutputOperators: []plugin.Operator{output},
+			OutputIDs:       []string{"test-output"},
 		},
 	}
 	ctx := context.Background()
@@ -92,20 +92,20 @@ func TestTransformerDropOnError(t *testing.T) {
 }
 
 func TestTransformerSendOnError(t *testing.T) {
-	output := &testutil.Plugin{}
+	output := &testutil.Operator{}
 	output.On("ID").Return("test-output")
 	output.On("Process", mock.Anything, mock.Anything).Return(nil)
 	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
+	transformer := TransformerOperator{
 		OnError: SendOnError,
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
+		WriterOperator: WriterOperator{
+			BasicOperator: BasicOperator{
+				OperatorID:    "test-id",
+				OperatorType:  "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OutputPlugins: []plugin.Plugin{output},
-			OutputIDs:     []string{"test-output"},
+			OutputOperators: []plugin.Operator{output},
+			OutputIDs:       []string{"test-output"},
 		},
 	}
 	ctx := context.Background()
@@ -120,20 +120,20 @@ func TestTransformerSendOnError(t *testing.T) {
 }
 
 func TestTransformerProcessWithValid(t *testing.T) {
-	output := &testutil.Plugin{}
+	output := &testutil.Operator{}
 	output.On("ID").Return("test-output")
 	output.On("Process", mock.Anything, mock.Anything).Return(nil)
 	buildContext := testutil.NewBuildContext(t)
-	transformer := TransformerPlugin{
+	transformer := TransformerOperator{
 		OnError: SendOnError,
-		WriterPlugin: WriterPlugin{
-			BasicPlugin: BasicPlugin{
-				PluginID:      "test-id",
-				PluginType:    "test-type",
+		WriterOperator: WriterOperator{
+			BasicOperator: BasicOperator{
+				OperatorID:    "test-id",
+				OperatorType:  "test-type",
 				SugaredLogger: buildContext.Logger,
 			},
-			OutputPlugins: []plugin.Plugin{output},
-			OutputIDs:     []string{"test-output"},
+			OutputOperators: []plugin.Operator{output},
+			OutputIDs:       []string{"test-output"},
 		},
 	}
 	ctx := context.Background()

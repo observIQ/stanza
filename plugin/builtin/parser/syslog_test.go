@@ -96,17 +96,17 @@ func TestSyslogParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			buildContext := testutil.NewBuildContext(t)
-			newPlugin, err := tc.config.Build(buildContext)
+			newOperator, err := tc.config.Build(buildContext)
 			require.NoError(t, err)
-			syslogParser := newPlugin.(*SyslogParser)
+			syslogParser := newOperator.(*SyslogParser)
 
-			mockOutput := testutil.NewMockPlugin("output1")
+			mockOutput := testutil.NewMockOperator("output1")
 			entryChan := make(chan *entry.Entry, 1)
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				entryChan <- args.Get(1).(*entry.Entry)
 			}).Return(nil)
 
-			err = syslogParser.SetOutputs([]plugin.Plugin{mockOutput})
+			err = syslogParser.SetOutputs([]plugin.Operator{mockOutput})
 			require.NoError(t, err)
 
 			newEntry := entry.New()

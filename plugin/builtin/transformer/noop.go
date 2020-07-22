@@ -9,41 +9,41 @@ import (
 )
 
 func init() {
-	plugin.Register("noop", func() plugin.Builder { return NewNoopPluginConfig("") })
+	plugin.Register("noop", func() plugin.Builder { return NewNoopOperatorConfig("") })
 }
 
-func NewNoopPluginConfig(pluginID string) *NoopPluginConfig {
-	return &NoopPluginConfig{
+func NewNoopOperatorConfig(pluginID string) *NoopOperatorConfig {
+	return &NoopOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(pluginID, "noop"),
 	}
 }
 
-// NoopPluginConfig is the configuration of a noop plugin.
-type NoopPluginConfig struct {
+// NoopOperatorConfig is the configuration of a noop plugin.
+type NoopOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 }
 
 // Build will build a noop plugin.
-func (c NoopPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c NoopOperatorConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	noopPlugin := &NoopPlugin{
-		TransformerPlugin: transformerPlugin,
+	noopOperator := &NoopOperator{
+		TransformerOperator: transformerOperator,
 	}
 
-	return noopPlugin, nil
+	return noopOperator, nil
 }
 
-// NoopPlugin is a plugin that performs no operations on an entry.
-type NoopPlugin struct {
-	helper.TransformerPlugin
+// NoopOperator is a plugin that performs no operations on an entry.
+type NoopOperator struct {
+	helper.TransformerOperator
 }
 
 // Process will forward the entry to the next output without any alterations.
-func (p *NoopPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *NoopOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	p.Write(ctx, entry)
 	return nil
 }

@@ -18,21 +18,21 @@ func TestMetadata(t *testing.T) {
 	os.Setenv("TEST_METADATA_PLUGIN_ENV", "foo")
 	defer os.Unsetenv("TEST_METADATA_PLUGIN_ENV")
 
-	baseConfig := func() *MetadataPluginConfig {
-		cfg := NewMetadataPluginConfig("test_plugin_id")
+	baseConfig := func() *MetadataOperatorConfig {
+		cfg := NewMetadataOperatorConfig("test_plugin_id")
 		cfg.OutputIDs = []string{"output1"}
 		return cfg
 	}
 
 	cases := []struct {
 		name     string
-		config   *MetadataPluginConfig
+		config   *MetadataOperatorConfig
 		input    *entry.Entry
 		expected *entry.Entry
 	}{
 		{
 			"AddTagLiteral",
-			func() *MetadataPluginConfig {
+			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
 				cfg.Tags = []helper.ExprStringConfig{"tag1"}
 				return cfg
@@ -46,7 +46,7 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddTagExpr",
-			func() *MetadataPluginConfig {
+			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
 				cfg.Tags = []helper.ExprStringConfig{`prefix-EXPR( 'test1' )`}
 				return cfg
@@ -60,7 +60,7 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddLabelLiteral",
-			func() *MetadataPluginConfig {
+			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
 				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": "value1",
@@ -78,7 +78,7 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddLabelExpr",
-			func() *MetadataPluginConfig {
+			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
 				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": `EXPR("start" + "end")`,
@@ -96,7 +96,7 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddLabelEnv",
-			func() *MetadataPluginConfig {
+			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
 				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
@@ -114,7 +114,7 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddTagEnv",
-			func() *MetadataPluginConfig {
+			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
 				cfg.Tags = []helper.ExprStringConfig{`EXPR(env("TEST_METADATA_PLUGIN_ENV"))`}
 				return cfg
@@ -130,19 +130,19 @@ func TestMetadata(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			metadataPlugin, err := tc.config.Build(testutil.NewBuildContext(t))
+			metadataOperator, err := tc.config.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
 
-			mockOutput := testutil.NewMockPlugin("output1")
+			mockOutput := testutil.NewMockOperator("output1")
 			entryChan := make(chan *entry.Entry, 1)
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				entryChan <- args.Get(1).(*entry.Entry)
 			}).Return(nil)
 
-			err = metadataPlugin.SetOutputs([]plugin.Plugin{mockOutput})
+			err = metadataOperator.SetOutputs([]plugin.Operator{mockOutput})
 			require.NoError(t, err)
 
-			err = metadataPlugin.Process(context.Background(), tc.input)
+			err = metadataOperator.Process(context.Background(), tc.input)
 			require.NoError(t, err)
 
 			select {

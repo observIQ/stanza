@@ -304,21 +304,21 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)
 
-		severityPlugin, err := cfg.Build(buildContext)
+		severityOperator, err := cfg.Build(buildContext)
 		if buildErr {
 			require.Error(t, err, "expected error when configuring plugin")
 			return
 		}
 		require.NoError(t, err, "unexpected error when configuring plugin")
 
-		mockOutput := &testutil.Plugin{}
+		mockOutput := &testutil.Operator{}
 		resultChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			resultChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		severityParser := severityPlugin.(*SeverityParserPlugin)
-		severityParser.OutputPlugins = []plugin.Plugin{mockOutput}
+		severityParser := severityOperator.(*SeverityParserOperator)
+		severityParser.OutputOperators = []plugin.Operator{mockOutput}
 
 		err = severityParser.Process(context.Background(), ent)
 		if parseErr {

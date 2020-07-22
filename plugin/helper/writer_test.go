@@ -16,7 +16,7 @@ import (
 func TestWriterConfigMissingOutput(t *testing.T) {
 	config := WriterConfig{
 		BasicConfig: BasicConfig{
-			PluginType: "testtype",
+			OperatorType: "testtype",
 		},
 	}
 	context := testutil.NewBuildContext(t)
@@ -28,7 +28,7 @@ func TestWriterConfigValidBuild(t *testing.T) {
 	config := WriterConfig{
 		OutputIDs: OutputIDs{"output"},
 		BasicConfig: BasicConfig{
-			PluginType: "testtype",
+			OperatorType: "testtype",
 		},
 	}
 	context := testutil.NewBuildContext(t)
@@ -44,13 +44,13 @@ func TestWriterConfigSetNamespace(t *testing.T) {
 	require.Equal(t, OutputIDs{"namespace.output1", "namespace.output2"}, config.OutputIDs)
 }
 
-func TestWriterPluginWrite(t *testing.T) {
-	output1 := &testutil.Plugin{}
+func TestWriterOperatorWrite(t *testing.T) {
+	output1 := &testutil.Operator{}
 	output1.On("Process", mock.Anything, mock.Anything).Return(nil)
-	output2 := &testutil.Plugin{}
+	output2 := &testutil.Operator{}
 	output2.On("Process", mock.Anything, mock.Anything).Return(nil)
-	writer := WriterPlugin{
-		OutputPlugins: []plugin.Plugin{output1, output2},
+	writer := WriterOperator{
+		OutputOperators: []plugin.Operator{output1, output2},
 	}
 
 	ctx := context.Background()
@@ -61,18 +61,18 @@ func TestWriterPluginWrite(t *testing.T) {
 	output2.AssertCalled(t, "Process", ctx, mock.Anything)
 }
 
-func TestWriterPluginCanOutput(t *testing.T) {
-	writer := WriterPlugin{}
+func TestWriterOperatorCanOutput(t *testing.T) {
+	writer := WriterOperator{}
 	require.True(t, writer.CanOutput())
 }
 
-func TestWriterPluginOutputs(t *testing.T) {
-	output1 := &testutil.Plugin{}
+func TestWriterOperatorOutputs(t *testing.T) {
+	output1 := &testutil.Operator{}
 	output1.On("Process", mock.Anything, mock.Anything).Return(nil)
-	output2 := &testutil.Plugin{}
+	output2 := &testutil.Operator{}
 	output2.On("Process", mock.Anything, mock.Anything).Return(nil)
-	writer := WriterPlugin{
-		OutputPlugins: []plugin.Plugin{output1, output2},
+	writer := WriterOperator{
+		OutputOperators: []plugin.Operator{output1, output2},
 	}
 
 	ctx := context.Background()
@@ -84,44 +84,44 @@ func TestWriterPluginOutputs(t *testing.T) {
 }
 
 func TestWriterSetOutputsMissing(t *testing.T) {
-	output1 := &testutil.Plugin{}
+	output1 := &testutil.Operator{}
 	output1.On("ID").Return("output1")
-	writer := WriterPlugin{
+	writer := WriterOperator{
 		OutputIDs: OutputIDs{"output2"},
 	}
 
-	err := writer.SetOutputs([]plugin.Plugin{output1})
+	err := writer.SetOutputs([]plugin.Operator{output1})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not exist")
 }
 
 func TestWriterSetOutputsInvalid(t *testing.T) {
-	output1 := &testutil.Plugin{}
+	output1 := &testutil.Operator{}
 	output1.On("ID").Return("output1")
 	output1.On("CanProcess").Return(false)
-	writer := WriterPlugin{
+	writer := WriterOperator{
 		OutputIDs: OutputIDs{"output1"},
 	}
 
-	err := writer.SetOutputs([]plugin.Plugin{output1})
+	err := writer.SetOutputs([]plugin.Operator{output1})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "can not process entries")
 }
 
 func TestWriterSetOutputsValid(t *testing.T) {
-	output1 := &testutil.Plugin{}
+	output1 := &testutil.Operator{}
 	output1.On("ID").Return("output1")
 	output1.On("CanProcess").Return(true)
-	output2 := &testutil.Plugin{}
+	output2 := &testutil.Operator{}
 	output2.On("ID").Return("output2")
 	output2.On("CanProcess").Return(true)
-	writer := WriterPlugin{
+	writer := WriterOperator{
 		OutputIDs: OutputIDs{"output1", "output2"},
 	}
 
-	err := writer.SetOutputs([]plugin.Plugin{output1, output2})
+	err := writer.SetOutputs([]plugin.Operator{output1, output2})
 	require.NoError(t, err)
-	require.Equal(t, []plugin.Plugin{output1, output2}, writer.Outputs())
+	require.Equal(t, []plugin.Operator{output1, output2}, writer.Outputs())
 }
 
 func TestUnmarshalJSONString(t *testing.T) {

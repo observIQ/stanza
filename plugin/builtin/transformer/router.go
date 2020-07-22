@@ -13,57 +13,57 @@ import (
 )
 
 func init() {
-	plugin.Register("router", func() plugin.Builder { return NewRouterPluginConfig("") })
+	plugin.Register("router", func() plugin.Builder { return NewRouterOperatorConfig("") })
 }
 
-func NewRouterPluginConfig(pluginID string) *RouterPluginConfig {
-	return &RouterPluginConfig{
+func NewRouterOperatorConfig(pluginID string) *RouterOperatorConfig {
+	return &RouterOperatorConfig{
 		BasicConfig: helper.NewBasicConfig(pluginID, "router"),
 	}
 }
 
-// RouterPluginConfig is the configuration of a router plugin
-type RouterPluginConfig struct {
+// RouterOperatorConfig is the configuration of a router plugin
+type RouterOperatorConfig struct {
 	helper.BasicConfig `yaml:",inline"`
-	Routes             []*RouterPluginRouteConfig `json:"routes" yaml:"routes"`
+	Routes             []*RouterOperatorRouteConfig `json:"routes" yaml:"routes"`
 }
 
-// RouterPluginRouteConfig is the configuration of a route on a router plugin
-type RouterPluginRouteConfig struct {
+// RouterOperatorRouteConfig is the configuration of a route on a router plugin
+type RouterOperatorRouteConfig struct {
 	Expression string           `json:"expr"   yaml:"expr"`
 	OutputIDs  helper.OutputIDs `json:"output" yaml:"output"`
 }
 
 // Build will build a router plugin from the supplied configuration
-func (c RouterPluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	basicPlugin, err := c.BasicConfig.Build(context)
+func (c RouterOperatorConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	basicOperator, err := c.BasicConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	routes := make([]*RouterPluginRoute, 0, len(c.Routes))
+	routes := make([]*RouterOperatorRoute, 0, len(c.Routes))
 	for _, routeConfig := range c.Routes {
 		compiled, err := expr.Compile(routeConfig.Expression, expr.AsBool(), expr.AllowUndefinedVariables())
 		if err != nil {
 			return nil, fmt.Errorf("failed to compile expression '%s': %w", routeConfig.Expression, err)
 		}
-		route := RouterPluginRoute{
+		route := RouterOperatorRoute{
 			Expression: compiled,
 			OutputIDs:  routeConfig.OutputIDs,
 		}
 		routes = append(routes, &route)
 	}
 
-	routerPlugin := &RouterPlugin{
-		BasicPlugin: basicPlugin,
-		routes:      routes,
+	routerOperator := &RouterOperator{
+		BasicOperator: basicOperator,
+		routes:        routes,
 	}
 
-	return routerPlugin, nil
+	return routerOperator, nil
 }
 
 // SetNamespace will namespace the router plugin and the outputs contained in its routes
-func (c *RouterPluginConfig) SetNamespace(namespace string, exclusions ...string) {
+func (c *RouterOperatorConfig) SetNamespace(namespace string, exclusions ...string) {
 	c.BasicConfig.SetNamespace(namespace, exclusions...)
 	for _, route := range c.Routes {
 		for i, outputID := range route.OutputIDs {
@@ -74,26 +74,26 @@ func (c *RouterPluginConfig) SetNamespace(namespace string, exclusions ...string
 	}
 }
 
-// RouterPlugin is a plugin that routes entries based on matching expressions
-type RouterPlugin struct {
-	helper.BasicPlugin
-	routes []*RouterPluginRoute
+// RouterOperator is a plugin that routes entries based on matching expressions
+type RouterOperator struct {
+	helper.BasicOperator
+	routes []*RouterOperatorRoute
 }
 
-// RouterPluginRoute is a route on a router plugin
-type RouterPluginRoute struct {
-	Expression    *vm.Program
-	OutputIDs     helper.OutputIDs
-	OutputPlugins []plugin.Plugin
+// RouterOperatorRoute is a route on a router plugin
+type RouterOperatorRoute struct {
+	Expression      *vm.Program
+	OutputIDs       helper.OutputIDs
+	OutputOperators []plugin.Operator
 }
 
 // CanProcess will always return true for a router plugin
-func (p *RouterPlugin) CanProcess() bool {
+func (p *RouterOperator) CanProcess() bool {
 	return true
 }
 
 // Process will route incoming entries based on matching expressions
-func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *RouterOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	env := helper.GetExprEnv(entry)
 	defer helper.PutExprEnv(env)
 
@@ -106,7 +106,7 @@ func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 
 		// we compile the expression with "AsBool", so this should be safe
 		if matches.(bool) {
-			for _, output := range route.OutputPlugins {
+			for _, output := range route.OutputOperators {
 				_ = output.Process(ctx, entry)
 			}
 			break
@@ -117,36 +117,36 @@ func (p *RouterPlugin) Process(ctx context.Context, entry *entry.Entry) error {
 }
 
 // CanOutput will always return true for a router plugin
-func (p *RouterPlugin) CanOutput() bool {
+func (p *RouterOperator) CanOutput() bool {
 	return true
 }
 
 // Outputs will return all connected plugins.
-func (p *RouterPlugin) Outputs() []plugin.Plugin {
-	outputs := make([]plugin.Plugin, 0, len(p.routes))
+func (p *RouterOperator) Outputs() []plugin.Operator {
+	outputs := make([]plugin.Operator, 0, len(p.routes))
 	for _, route := range p.routes {
-		outputs = append(outputs, route.OutputPlugins...)
+		outputs = append(outputs, route.OutputOperators...)
 	}
 	return outputs
 }
 
 // SetOutputs will set the outputs of the router plugin.
-func (p *RouterPlugin) SetOutputs(plugins []plugin.Plugin) error {
+func (p *RouterOperator) SetOutputs(plugins []plugin.Operator) error {
 	for _, route := range p.routes {
-		outputPlugins, err := p.findPlugins(plugins, route.OutputIDs)
+		outputOperators, err := p.findOperators(plugins, route.OutputIDs)
 		if err != nil {
 			return fmt.Errorf("failed to set outputs on route: %s", err)
 		}
-		route.OutputPlugins = outputPlugins
+		route.OutputOperators = outputOperators
 	}
 	return nil
 }
 
-// findPlugins will find a subset of plugins from a collection.
-func (p *RouterPlugin) findPlugins(plugins []plugin.Plugin, pluginIDs []string) ([]plugin.Plugin, error) {
-	result := make([]plugin.Plugin, 0)
+// findOperators will find a subset of plugins from a collection.
+func (p *RouterOperator) findOperators(plugins []plugin.Operator, pluginIDs []string) ([]plugin.Operator, error) {
+	result := make([]plugin.Operator, 0)
 	for _, pluginID := range pluginIDs {
-		plugin, err := p.findPlugin(plugins, pluginID)
+		plugin, err := p.findOperator(plugins, pluginID)
 		if err != nil {
 			return nil, err
 		}
@@ -155,8 +155,8 @@ func (p *RouterPlugin) findPlugins(plugins []plugin.Plugin, pluginIDs []string) 
 	return result, nil
 }
 
-// findPlugin will find a plugin from a collection.
-func (p *RouterPlugin) findPlugin(plugins []plugin.Plugin, pluginID string) (plugin.Plugin, error) {
+// findOperator will find a plugin from a collection.
+func (p *RouterOperator) findOperator(plugins []plugin.Operator, pluginID string) (plugin.Operator, error) {
 	for _, plugin := range plugins {
 		if plugin.ID() == pluginID {
 			return plugin, nil

@@ -16,19 +16,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
-	mock := testutil.Plugin{}
+func NewFakeJSONOperator() (*JSONParser, *testutil.Operator) {
+	mock := testutil.Operator{}
 	logger, _ := zap.NewProduction()
 	return &JSONParser{
-		ParserPlugin: helper.ParserPlugin{
-			TransformerPlugin: helper.TransformerPlugin{
-				WriterPlugin: helper.WriterPlugin{
-					BasicPlugin: helper.BasicPlugin{
-						PluginID:      "test",
-						PluginType:    "json_parser",
+		ParserOperator: helper.ParserOperator{
+			TransformerOperator: helper.TransformerOperator{
+				WriterOperator: helper.WriterOperator{
+					BasicOperator: helper.BasicOperator{
+						OperatorID:    "test",
+						OperatorType:  "json_parser",
 						SugaredLogger: logger.Sugar(),
 					},
-					OutputPlugins: []plugin.Plugin{&mock},
+					OutputOperators: []plugin.Operator{&mock},
 				},
 			},
 			ParseFrom: entry.NewRecordField("testfield"),
@@ -39,7 +39,7 @@ func NewFakeJSONPlugin() (*JSONParser, *testutil.Plugin) {
 }
 
 func TestJSONImplementations(t *testing.T) {
-	require.Implements(t, (*plugin.Plugin)(nil), new(JSONParser))
+	require.Implements(t, (*plugin.Operator)(nil), new(JSONParser))
 }
 
 func TestJSONParser(t *testing.T) {
@@ -81,7 +81,7 @@ func TestJSONParser(t *testing.T) {
 			output := entry.New()
 			output.Record = tc.expectedRecord
 
-			parser, mockOutput := NewFakeJSONPlugin()
+			parser, mockOutput := NewFakeJSONOperator()
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)
 				require.Equal(t, tc.expectedRecord, e.Record)
@@ -151,9 +151,9 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 			output := entry.New()
 			output.Record = tc.expectedRecord
 
-			parser, mockOutput := NewFakeJSONPlugin()
+			parser, mockOutput := NewFakeJSONOperator()
 			parseFrom := entry.NewRecordField("testparsed", "timestamp")
-			parser.ParserPlugin.TimeParser = &helper.TimeParser{
+			parser.ParserOperator.TimeParser = &helper.TimeParser{
 				ParseFrom:  &parseFrom,
 				LayoutType: "epoch",
 				Layout:     "s",

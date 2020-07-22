@@ -214,7 +214,7 @@ func TestBuildBuiltinFromValidParams(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
-	require.IsType(t, &transformer.NoopPluginConfig{}, configs[0].Builder)
+	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
 	require.Equal(t, "test_namespace.noop", configs[0].ID())
 }
 
@@ -238,7 +238,7 @@ pipeline:
 	configs, err := params.BuildConfigs(registry, "test_namespace")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
-	require.IsType(t, &transformer.NoopPluginConfig{}, configs[0].Builder)
+	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
 	require.Equal(t, "test_namespace.custom_plugin.custom_noop", configs[0].ID())
 }
 
@@ -350,7 +350,7 @@ pipeline:
 	require.Contains(t, err.Error(), "build plugin configs")
 }
 
-func TestBuildInvalidPipelineInvalidPlugin(t *testing.T) {
+func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	registry := plugin.CustomRegistry{}
 	logCfg := zap.NewProductionConfig()
 	logger, err := logCfg.Build()

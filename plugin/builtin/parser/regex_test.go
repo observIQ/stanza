@@ -13,24 +13,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newFakeRegexParser() (*RegexParser, *testutil.Plugin) {
-	mockPlugin := testutil.Plugin{}
+func newFakeRegexParser() (*RegexParser, *testutil.Operator) {
+	mockOperator := testutil.Operator{}
 	return &RegexParser{
-		ParserPlugin: helper.ParserPlugin{
-			TransformerPlugin: helper.TransformerPlugin{
-				WriterPlugin: helper.WriterPlugin{
-					BasicPlugin: helper.BasicPlugin{
-						PluginID:   "regex_parser",
-						PluginType: "regex_parser",
+		ParserOperator: helper.ParserOperator{
+			TransformerOperator: helper.TransformerOperator{
+				WriterOperator: helper.WriterOperator{
+					BasicOperator: helper.BasicOperator{
+						OperatorID:   "regex_parser",
+						OperatorType: "regex_parser",
 					},
-					OutputIDs:     []string{"mock_output"},
-					OutputPlugins: []plugin.Plugin{&mockPlugin},
+					OutputIDs:       []string{"mock_output"},
+					OutputOperators: []plugin.Operator{&mockOperator},
 				},
 			},
 			ParseFrom: entry.NewRecordField(),
 			ParseTo:   entry.NewRecordField(),
 		},
-	}, &mockPlugin
+	}, &mockOperator
 }
 
 func TestParserRegex(t *testing.T) {

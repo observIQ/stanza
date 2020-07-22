@@ -27,8 +27,8 @@ type SeverityParserConfig struct {
 }
 
 // Build will build a time parser plugin.
-func (c SeverityParserConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c SeverityParserConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -38,22 +38,22 @@ func (c SeverityParserConfig) Build(context plugin.BuildContext) (plugin.Plugin,
 		return nil, err
 	}
 
-	severityPlugin := &SeverityParserPlugin{
-		TransformerPlugin: transformerPlugin,
-		SeverityParser:    severityParser,
+	severityOperator := &SeverityParserOperator{
+		TransformerOperator: transformerOperator,
+		SeverityParser:      severityParser,
 	}
 
-	return severityPlugin, nil
+	return severityOperator, nil
 }
 
-// SeverityParserPlugin is a plugin that parses time from a field to an entry.
-type SeverityParserPlugin struct {
-	helper.TransformerPlugin
+// SeverityParserOperator is a plugin that parses time from a field to an entry.
+type SeverityParserOperator struct {
+	helper.TransformerOperator
 	helper.SeverityParser
 }
 
 // Process will parse time from an entry.
-func (p *SeverityParserPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *SeverityParserOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	if err := p.Parse(ctx, entry); err != nil {
 		return errors.Wrap(err, "parse severity")
 	}

@@ -30,8 +30,8 @@ type RateLimitConfig struct {
 }
 
 // Build will build a rate limit plugin.
-func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Operator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
@@ -48,18 +48,18 @@ func (c RateLimitConfig) Build(context plugin.BuildContext) (plugin.Plugin, erro
 		interval = c.Interval.Raw()
 	}
 
-	rateLimitPlugin := &RateLimitPlugin{
-		TransformerPlugin: transformerPlugin,
-		interval:          interval,
-		burst:             c.Burst,
+	rateLimitOperator := &RateLimitOperator{
+		TransformerOperator: transformerOperator,
+		interval:            interval,
+		burst:               c.Burst,
 	}
 
-	return rateLimitPlugin, nil
+	return rateLimitOperator, nil
 }
 
-// RateLimitPlugin is a plugin that limits the rate of log consumption between plugins.
-type RateLimitPlugin struct {
-	helper.TransformerPlugin
+// RateLimitOperator is a plugin that limits the rate of log consumption between plugins.
+type RateLimitOperator struct {
+	helper.TransformerOperator
 
 	interval time.Duration
 	burst    uint
@@ -68,14 +68,14 @@ type RateLimitPlugin struct {
 }
 
 // Process will wait until a rate is met before sending an entry to the output.
-func (p *RateLimitPlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *RateLimitOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	<-p.isReady
 	p.Write(ctx, entry)
 	return nil
 }
 
 // Start will start the rate limit plugin.
-func (p *RateLimitPlugin) Start() error {
+func (p *RateLimitOperator) Start() error {
 	p.isReady = make(chan struct{}, p.burst)
 	ticker := time.NewTicker(p.interval)
 
@@ -100,7 +100,7 @@ func (p *RateLimitPlugin) Start() error {
 }
 
 // Stop will stop the rate limit plugin.
-func (p *RateLimitPlugin) Stop() error {
+func (p *RateLimitOperator) Stop() error {
 	p.cancel()
 	return nil
 }

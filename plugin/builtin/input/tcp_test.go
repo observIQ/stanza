@@ -20,8 +20,8 @@ func TestTCPInput(t *testing.T) {
 				WriteTo: entry.NewRecordField(),
 				WriterConfig: helper.WriterConfig{
 					BasicConfig: helper.BasicConfig{
-						PluginID:   "test_id",
-						PluginType: "tcp_input",
+						OperatorID:   "test_id",
+						OperatorType: "tcp_input",
 					},
 					OutputIDs: []string{"test_output_id"},
 				},
@@ -34,12 +34,12 @@ func TestTCPInput(t *testing.T) {
 		cfg.ListenAddress = "127.0.0.1:64001"
 
 		buildContext := testutil.NewBuildContext(t)
-		newPlugin, err := cfg.Build(buildContext)
+		newOperator, err := cfg.Build(buildContext)
 		require.NoError(t, err)
 
-		mockOutput := testutil.Plugin{}
-		tcpInput := newPlugin.(*TCPInput)
-		tcpInput.InputPlugin.OutputPlugins = []plugin.Plugin{&mockOutput}
+		mockOutput := testutil.Operator{}
+		tcpInput := newOperator.(*TCPInput)
+		tcpInput.InputOperator.OutputOperators = []plugin.Operator{&mockOutput}
 
 		entryChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

@@ -51,8 +51,8 @@ type GoogleCloudOutputConfig struct {
 }
 
 // Build will build a google cloud output plugin.
-func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Plugin, error) {
-	outputPlugin, err := c.OutputConfig.Build(buildContext)
+func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 	}
 
 	googleCloudOutput := &GoogleCloudOutput{
-		OutputPlugin:    outputPlugin,
+		OutputOperator:  outputOperator,
 		credentials:     c.Credentials,
 		credentialsFile: c.CredentialsFile,
 		projectID:       c.ProjectID,
@@ -81,7 +81,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext plugin.BuildContext) (plugin
 
 // GoogleCloudOutput is a plugin that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
-	helper.OutputPlugin
+	helper.OutputOperator
 	buffer.Buffer
 
 	credentials     string

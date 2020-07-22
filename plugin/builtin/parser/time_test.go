@@ -392,21 +392,21 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)
 
-		gotimePlugin, err := cfg.Build(buildContext)
+		gotimeOperator, err := cfg.Build(buildContext)
 		if buildErr {
 			require.Error(t, err, "expected error when configuring plugin")
 			return
 		}
 		require.NoError(t, err)
 
-		mockOutput := &testutil.Plugin{}
+		mockOutput := &testutil.Operator{}
 		resultChan := make(chan *entry.Entry, 1)
 		mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			resultChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		timeParser := gotimePlugin.(*TimeParserPlugin)
-		timeParser.OutputPlugins = []plugin.Plugin{mockOutput}
+		timeParser := gotimeOperator.(*TimeParserOperator)
+		timeParser.OutputOperators = []plugin.Operator{mockOutput}
 
 		err = timeParser.Process(context.Background(), ent)
 		if parseErr {

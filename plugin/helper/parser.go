@@ -29,48 +29,48 @@ type ParserConfig struct {
 }
 
 // Build will build a parser plugin.
-func (c ParserConfig) Build(context plugin.BuildContext) (ParserPlugin, error) {
-	transformerPlugin, err := c.TransformerConfig.Build(context)
+func (c ParserConfig) Build(context plugin.BuildContext) (ParserOperator, error) {
+	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
-		return ParserPlugin{}, err
+		return ParserOperator{}, err
 	}
 
 	if c.ParseFrom.String() == c.ParseTo.String() && c.Preserve {
-		transformerPlugin.Warnw(
+		transformerOperator.Warnw(
 			"preserve is true, but parse_to is set to the same field as parse_from, "+
 				"which will cause the original value to be overwritten",
 			"plugin_id", c.ID(),
 		)
 	}
 
-	parserPlugin := ParserPlugin{
-		TransformerPlugin: transformerPlugin,
-		ParseFrom:         c.ParseFrom,
-		ParseTo:           c.ParseTo,
-		Preserve:          c.Preserve,
+	parserOperator := ParserOperator{
+		TransformerOperator: transformerOperator,
+		ParseFrom:           c.ParseFrom,
+		ParseTo:             c.ParseTo,
+		Preserve:            c.Preserve,
 	}
 
 	if c.TimeParser != nil {
 		if err := c.TimeParser.Validate(context); err != nil {
-			return ParserPlugin{}, err
+			return ParserOperator{}, err
 		}
-		parserPlugin.TimeParser = c.TimeParser
+		parserOperator.TimeParser = c.TimeParser
 	}
 
 	if c.SeverityParserConfig != nil {
 		severityParser, err := c.SeverityParserConfig.Build(context)
 		if err != nil {
-			return ParserPlugin{}, err
+			return ParserOperator{}, err
 		}
-		parserPlugin.SeverityParser = &severityParser
+		parserOperator.SeverityParser = &severityParser
 	}
 
-	return parserPlugin, nil
+	return parserOperator, nil
 }
 
-// ParserPlugin provides a basic implementation of a parser plugin.
-type ParserPlugin struct {
-	TransformerPlugin
+// ParserOperator provides a basic implementation of a parser plugin.
+type ParserOperator struct {
+	TransformerOperator
 	ParseFrom      entry.Field
 	ParseTo        entry.Field
 	Preserve       bool
@@ -79,7 +79,7 @@ type ParserPlugin struct {
 }
 
 // ProcessWith will process an entry with a parser function.
-func (p *ParserPlugin) ProcessWith(ctx context.Context, entry *entry.Entry, parse ParseFunction) error {
+func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, parse ParseFunction) error {
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
 		err := errors.NewError(

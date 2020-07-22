@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNoopPluginBuild(t *testing.T) {
-	cfg := NewNoopPluginConfig("test_plugin_id")
+func TestNoopOperatorBuild(t *testing.T) {
+	cfg := NewNoopOperatorConfig("test_plugin_id")
 	cfg.OutputIDs = []string{"output"}
 
 	_, err := cfg.Build(testutil.NewBuildContext(t))

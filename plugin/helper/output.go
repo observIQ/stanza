@@ -17,50 +17,50 @@ type OutputConfig struct {
 }
 
 // Build will build an output plugin.
-func (c OutputConfig) Build(context plugin.BuildContext) (OutputPlugin, error) {
-	basicPlugin, err := c.BasicConfig.Build(context)
+func (c OutputConfig) Build(context plugin.BuildContext) (OutputOperator, error) {
+	basicOperator, err := c.BasicConfig.Build(context)
 	if err != nil {
-		return OutputPlugin{}, err
+		return OutputOperator{}, err
 	}
 
-	outputPlugin := OutputPlugin{
-		BasicPlugin: basicPlugin,
+	outputOperator := OutputOperator{
+		BasicOperator: basicOperator,
 	}
 
-	return outputPlugin, nil
+	return outputOperator, nil
 }
 
 // SetNamespace will namespace the id and output of the plugin config.
 func (c *OutputConfig) SetNamespace(namespace string, exclusions ...string) {
 	if CanNamespace(c.ID(), exclusions) {
-		c.PluginID = AddNamespace(c.ID(), namespace)
+		c.OperatorID = AddNamespace(c.ID(), namespace)
 	}
 }
 
-// OutputPlugin provides a basic implementation of an output plugin.
-type OutputPlugin struct {
-	BasicPlugin
+// OutputOperator provides a basic implementation of an output plugin.
+type OutputOperator struct {
+	BasicOperator
 }
 
 // CanProcess will always return true for an output plugin.
-func (o *OutputPlugin) CanProcess() bool {
+func (o *OutputOperator) CanProcess() bool {
 	return true
 }
 
 // CanOutput will always return false for an output plugin.
-func (o *OutputPlugin) CanOutput() bool {
+func (o *OutputOperator) CanOutput() bool {
 	return false
 }
 
 // Outputs will always return an empty array for an output plugin.
-func (o *OutputPlugin) Outputs() []plugin.Plugin {
-	return []plugin.Plugin{}
+func (o *OutputOperator) Outputs() []plugin.Operator {
+	return []plugin.Operator{}
 }
 
 // SetOutputs will return an error if called.
-func (o *OutputPlugin) SetOutputs(plugins []plugin.Plugin) error {
+func (o *OutputOperator) SetOutputs(plugins []plugin.Operator) error {
 	return errors.NewError(
-		"Plugin can not output, but is attempting to set an output.",
+		"Operator can not output, but is attempting to set an output.",
 		"This is an unexpected internal error. Please submit a bug/issue.",
 	)
 }
