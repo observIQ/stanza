@@ -111,7 +111,7 @@ func init() {
 ## Any tips for building operators?
 We highly recommend that developers take advantage of [helpers](operator/helper) when building their operators. Helpers are structs that help satisfy common behavior shared across many operators. By embedding these structs, you can skip having to satisfy certain aspects of the `operator` and `config` interfaces.
 
-For example, almost all operators should embed the [BasicOperator](operator/helper/basic_operator.go) helper, as it provides simple functionality for returning a operator id and operator type.
+For example, almost all operators should embed the [BasicOperator](operator/helper/basic_operator.go) helper, as it provides simple functionality for returning an operator id and operator type.
 
 ```go
 // ExampleOperator is a basic operator, with a basic lifecycle, that consumes

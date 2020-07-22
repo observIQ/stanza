@@ -188,7 +188,7 @@ func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
 		"output": "test",
 		"field":  invalidMarshaller{},
 	}
-	_, err := params.BuildConfigs(operator.CustomRegistry{}, "test_namespace")
+	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to parse config map as yaml")
 }
@@ -200,7 +200,7 @@ func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
 		"unknown": true,
 		"output":  "test_output",
 	}
-	_, err := params.BuildConfigs(operator.CustomRegistry{}, "test_namespace")
+	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace")
 	require.Error(t, err)
 }
 
@@ -210,7 +210,7 @@ func TestBuildBuiltinFromValidParams(t *testing.T) {
 		"type":   "noop",
 		"output": "test_output",
 	}
-	configs, err := params.BuildConfigs(operator.CustomRegistry{}, "test_namespace")
+	configs, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace")
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
@@ -218,20 +218,20 @@ func TestBuildBuiltinFromValidParams(t *testing.T) {
 	require.Equal(t, "test_namespace.noop", configs[0].ID())
 }
 
-func TestBuildCustomFromValidParams(t *testing.T) {
-	registry := operator.CustomRegistry{}
-	customTemplate := `
+func TestBuildPluginFromValidParams(t *testing.T) {
+	registry := operator.PluginRegistry{}
+	pluginTemplate := `
 pipeline:
-  - id: custom_noop
+  - id: plugin_noop
     type: noop
     output: {{.output}}
 `
-	err := registry.Add("custom_operator", customTemplate)
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	params := Params{
-		"id":     "custom_operator",
-		"type":   "custom_operator",
+		"id":     "plugin",
+		"type":   "plugin",
 		"output": "test_output",
 	}
 
@@ -239,14 +239,14 @@ pipeline:
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
 	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
-	require.Equal(t, "test_namespace.custom_operator.custom_noop", configs[0].ID())
+	require.Equal(t, "test_namespace.plugin.plugin_noop", configs[0].ID())
 }
 
 func TestBuildValidPipeline(t *testing.T) {
-	registry := operator.CustomRegistry{}
-	customTemplate := `
+	registry := operator.PluginRegistry{}
+	pluginTemplate := `
 pipeline:
-  - id: custom_generate
+  - id: plugin_generate
     type: generate_input
     count: 1
     entry:
@@ -254,7 +254,7 @@ pipeline:
         message: test
     output: {{.output}}
 `
-	err := registry.Add("custom_operator", customTemplate)
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	logCfg := zap.NewProductionConfig()
@@ -262,14 +262,14 @@ pipeline:
 	require.NoError(t, err)
 
 	context := operator.BuildContext{
-		CustomRegistry: registry,
+		PluginRegistry: registry,
 		Logger:         logger.Sugar(),
 	}
 
 	pipelineConfig := Config{
 		Params{
-			"id":     "custom_operator",
-			"type":   "custom_operator",
+			"id":     "plugin",
+			"type":   "plugin",
 			"output": "drop_output",
 		},
 		Params{
@@ -283,20 +283,20 @@ pipeline:
 }
 
 func TestBuildInvalidPipelineInvalidType(t *testing.T) {
-	registry := operator.CustomRegistry{}
+	registry := operator.PluginRegistry{}
 	logCfg := zap.NewProductionConfig()
 	logger, err := logCfg.Build()
 	require.NoError(t, err)
 
 	context := operator.BuildContext{
-		CustomRegistry: registry,
+		PluginRegistry: registry,
 		Logger:         logger.Sugar(),
 	}
 
 	pipelineConfig := Config{
 		Params{
-			"id":     "custom_operator",
-			"type":   "custom_operator",
+			"id":     "plugin",
+			"type":   "plugin",
 			"output": "drop_output",
 		},
 		Params{
@@ -311,17 +311,17 @@ func TestBuildInvalidPipelineInvalidType(t *testing.T) {
 }
 
 func TestBuildInvalidPipelineInvalidParam(t *testing.T) {
-	registry := operator.CustomRegistry{}
-	customTemplate := `
+	registry := operator.PluginRegistry{}
+	pluginTemplate := `
 pipeline:
-  - id: custom_generate
+  - id: plugin_generate
     type: generate_input
     count: invalid_value
     record:
       message: test
     output: {{.output}}
 `
-	err := registry.Add("custom_operator", customTemplate)
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	logCfg := zap.NewProductionConfig()
@@ -329,14 +329,14 @@ pipeline:
 	require.NoError(t, err)
 
 	context := operator.BuildContext{
-		CustomRegistry: registry,
+		PluginRegistry: registry,
 		Logger:         logger.Sugar(),
 	}
 
 	pipelineConfig := Config{
 		Params{
-			"id":     "custom_operator",
-			"type":   "custom_operator",
+			"id":     "plugin",
+			"type":   "plugin",
 			"output": "drop_output",
 		},
 		Params{
@@ -351,13 +351,13 @@ pipeline:
 }
 
 func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
-	registry := operator.CustomRegistry{}
+	registry := operator.PluginRegistry{}
 	logCfg := zap.NewProductionConfig()
 	logger, err := logCfg.Build()
 	require.NoError(t, err)
 
 	context := operator.BuildContext{
-		CustomRegistry: registry,
+		PluginRegistry: registry,
 		Logger:         logger.Sugar(),
 	}
 
@@ -379,13 +379,13 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
-	registry := operator.CustomRegistry{}
+	registry := operator.PluginRegistry{}
 	logCfg := zap.NewProductionConfig()
 	logger, err := logCfg.Build()
 	require.NoError(t, err)
 
 	context := operator.BuildContext{
-		CustomRegistry: registry,
+		PluginRegistry: registry,
 		Logger:         logger.Sugar(),
 	}
 

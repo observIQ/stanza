@@ -73,7 +73,7 @@ func buildMachine(protocol string) (syslog.Machine, error) {
 	}
 }
 
-// SyslogParser is a operator that parses syslog.
+// SyslogParser is an operator that parses syslog.
 type SyslogParser struct {
 	helper.ParserOperator
 	machine syslog.Machine

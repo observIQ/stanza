@@ -40,7 +40,7 @@ func (c JSONParserConfig) Build(context operator.BuildContext) (operator.Operato
 	return jsonParser, nil
 }
 
-// JSONParser is a operator that parses JSON.
+// JSONParser is an operator that parses JSON.
 type JSONParser struct {
 	helper.ParserOperator
 	json jsoniter.API

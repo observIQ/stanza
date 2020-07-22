@@ -59,7 +59,7 @@ func (c FileOutputConfig) Build(context operator.BuildContext) (operator.Operato
 	return fileOutput, nil
 }
 
-// FileOutput is a operator that writes logs to a file.
+// FileOutput is an operator that writes logs to a file.
 type FileOutput struct {
 	helper.OutputOperator
 

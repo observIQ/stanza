@@ -53,7 +53,7 @@ func TestInputGenerate(t *testing.T) {
 	}
 }
 
-func TestRenderFromCustom(t *testing.T) {
+func TestRenderFromPluginTemplate(t *testing.T) {
 	templateText := `
 pipeline:
   - id: my_generator
@@ -66,7 +66,7 @@ pipeline:
 	tmpl, err := template.New("my_generator").Parse(templateText)
 	require.NoError(t, err)
 
-	registry := operator.CustomRegistry{
+	registry := operator.PluginRegistry{
 		"sample": tmpl,
 	}
 
@@ -76,7 +76,7 @@ pipeline:
 	config, err := registry.Render("sample", params)
 	require.NoError(t, err)
 
-	expectedConfig := operator.CustomConfig{
+	expectedConfig := operator.PluginConfig{
 		Pipeline: []operator.Config{
 			{
 				Builder: &GenerateInputConfig{

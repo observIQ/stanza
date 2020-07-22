@@ -74,7 +74,7 @@ func (c *RouterOperatorConfig) SetNamespace(namespace string, exclusions ...stri
 	}
 }
 
-// RouterOperator is a operator that routes entries based on matching expressions
+// RouterOperator is an operator that routes entries based on matching expressions
 type RouterOperator struct {
 	helper.BasicOperator
 	routes []*RouterOperatorRoute
@@ -155,7 +155,7 @@ func (p *RouterOperator) findOperators(operators []operator.Operator, operatorID
 	return result, nil
 }
 
-// findOperator will find a operator from a collection.
+// findOperator will find an operator from a collection.
 func (p *RouterOperator) findOperator(operators []operator.Operator, operatorID string) (operator.Operator, error) {
 	for _, operator := range operators {
 		if operator.ID() == operatorID {

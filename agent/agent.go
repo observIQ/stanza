@@ -39,13 +39,13 @@ func (a *LogAgent) Start() error {
 	}
 	a.database = database
 
-	registry, err := operator.NewCustomRegistry(a.PluginDir)
+	registry, err := operator.NewPluginRegistry(a.PluginDir)
 	if err != nil {
-		a.Errorw("Failed to load custom operator registry", zap.Any("error", err))
+		a.Errorw("Failed to load plugin registry", zap.Any("error", err))
 	}
 
 	buildContext := operator.BuildContext{
-		CustomRegistry: registry,
+		PluginRegistry: registry,
 		Logger:         a.SugaredLogger,
 		Database:       a.database,
 	}

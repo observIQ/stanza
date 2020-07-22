@@ -43,13 +43,13 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	customRegistry, err := operator.NewCustomRegistry(flags.PluginDir)
+	pluginRegistry, err := operator.NewPluginRegistry(flags.PluginDir)
 	if err != nil {
-		logger.Errorw("Failed to load custom operator registry", zap.Any("error", err))
+		logger.Errorw("Failed to load plugin registry", zap.Any("error", err))
 	}
 
 	buildContext := pg.BuildContext{
-		CustomRegistry: customRegistry,
+		PluginRegistry: pluginRegistry,
 		Logger:         logger,
 	}
 

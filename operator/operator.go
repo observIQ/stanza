@@ -30,7 +30,7 @@ type Operator interface {
 
 	// CanProcess indicates if the operator will process entries from other operators.
 	CanProcess() bool
-	// Process will process an entry from a operator.
+	// Process will process an entry from an operator.
 	Process(context.Context, *entry.Entry) error
 	// Logger returns the operator's logger
 	Logger() *zap.SugaredLogger

@@ -13,7 +13,7 @@ func NewBasicConfig(operatorID, operatorType string) BasicConfig {
 	}
 }
 
-// BasicConfig provides a basic implemention for a operator config.
+// BasicConfig provides a basic implemention for an operator config.
 type BasicConfig struct {
 	OperatorID   string `json:"id"   yaml:"id"`
 	OperatorType string `json:"type" yaml:"type"`
@@ -67,7 +67,7 @@ func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
 	}
 }
 
-// BasicOperator provides a basic implementation of a operator.
+// BasicOperator provides a basic implementation of an operator.
 type BasicOperator struct {
 	OperatorID   string
 	OperatorType string

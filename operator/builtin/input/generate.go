@@ -47,7 +47,7 @@ func (c *GenerateInputConfig) Build(context operator.BuildContext) (operator.Ope
 	return generateInput, nil
 }
 
-// GenerateInput is a operator that generates log entries.
+// GenerateInput is an operator that generates log entries.
 type GenerateInput struct {
 	helper.InputOperator
 	entry  entry.Entry

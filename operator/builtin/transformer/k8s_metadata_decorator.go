@@ -50,7 +50,7 @@ func (c K8sMetadataDecoratorConfig) Build(context operator.BuildContext) (operat
 	}, nil
 }
 
-// K8sMetadataDecorator is a operator for decorating entries with kubernetes metadata
+// K8sMetadataDecorator is an operator for decorating entries with kubernetes metadata
 type K8sMetadataDecorator struct {
 	helper.TransformerOperator
 	podNameField   entry.Field

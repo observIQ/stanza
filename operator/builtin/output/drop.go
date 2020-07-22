@@ -37,7 +37,7 @@ func (c DropOutputConfig) Build(context operator.BuildContext) (operator.Operato
 	return dropOutput, nil
 }
 
-// DropOutput is a operator that consumes and ignores incoming entries.
+// DropOutput is an operator that consumes and ignores incoming entries.
 type DropOutput struct {
 	helper.OutputOperator
 }

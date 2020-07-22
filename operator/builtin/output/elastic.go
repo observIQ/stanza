@@ -84,7 +84,7 @@ func (c ElasticOutputConfig) Build(context operator.BuildContext) (operator.Oper
 	return elasticOutput, nil
 }
 
-// ElasticOutput is a operator that sends entries to elasticsearch.
+// ElasticOutput is an operator that sends entries to elasticsearch.
 type ElasticOutput struct {
 	helper.OutputOperator
 	buffer.Buffer

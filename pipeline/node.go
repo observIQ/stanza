@@ -6,7 +6,7 @@ import (
 	"github.com/observiq/carbon/operator"
 )
 
-// OperatorNode is a basic node that represents a operator in a pipeline.
+// OperatorNode is a basic node that represents an operator in a pipeline.
 type OperatorNode struct {
 	operator  operator.Operator
 	id        int64
@@ -33,7 +33,7 @@ func (b OperatorNode) OutputIDs() map[string]int64 {
 	return b.outputIDs
 }
 
-// createOperatorNode will create a operator node.
+// createOperatorNode will create an operator node.
 func createOperatorNode(operator operator.Operator) OperatorNode {
 	id := createNodeID(operator.ID())
 	outputIDs := make(map[string]int64)
@@ -45,7 +45,7 @@ func createOperatorNode(operator operator.Operator) OperatorNode {
 	return OperatorNode{operator, id, outputIDs}
 }
 
-// createNodeID generates a node id from a operator id.
+// createNodeID generates a node id from an operator id.
 func createNodeID(operatorID string) int64 {
 	hash := fnv.New64a()
 	_, _ = hash.Write([]byte(operatorID))

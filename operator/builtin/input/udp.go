@@ -51,7 +51,7 @@ func (c UDPInputConfig) Build(context operator.BuildContext) (operator.Operator,
 	return udpInput, nil
 }
 
-// UDPInput is a operator that listens to a socket for log entries.
+// UDPInput is an operator that listens to a socket for log entries.
 type UDPInput struct {
 	helper.InputOperator
 	address *net.UDPAddr

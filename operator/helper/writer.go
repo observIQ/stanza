@@ -45,7 +45,7 @@ func (c *WriterConfig) SetNamespace(namespace string, exclusions ...string) {
 	}
 }
 
-// WriterOperator is a operator that can write to other operators.
+// WriterOperator is an operator that can write to other operators.
 type WriterOperator struct {
 	BasicOperator
 	OutputIDs       OutputIDs
@@ -117,7 +117,7 @@ func (w *WriterOperator) SetOutputs(operators []operator.Operator) error {
 	return nil
 }
 
-// FindOperator will find a operator matching the supplied id.
+// FindOperator will find an operator matching the supplied id.
 func (w *WriterOperator) findOperator(operators []operator.Operator, operatorID string) (operator.Operator, bool) {
 	for _, operator := range operators {
 		if operator.ID() == operatorID {

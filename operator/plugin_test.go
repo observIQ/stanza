@@ -23,7 +23,7 @@ func NewTempDir(t *testing.T) string {
 	return tempDir
 }
 
-func TestCustomRegistry_LoadAll(t *testing.T) {
+func TestPluginRegistry_LoadAll(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -51,48 +51,48 @@ record:
 	err = ioutil.WriteFile(filepath.Join(tempDir, "test2.yaml"), test2, 0666)
 	require.NoError(t, err)
 
-	customRegistry := CustomRegistry{}
-	err = customRegistry.LoadAll(tempDir, "*.yaml")
+	pluginRegistry := PluginRegistry{}
+	err = pluginRegistry.LoadAll(tempDir, "*.yaml")
 	require.NoError(t, err)
 
-	require.Equal(t, 2, len(customRegistry))
+	require.Equal(t, 2, len(pluginRegistry))
 }
 
-func TestCustomRegistryRender(t *testing.T) {
+func TestPluginRegistryRender(t *testing.T) {
 	t.Run("ErrorTypeDoesNotExist", func(t *testing.T) {
-		reg := CustomRegistry{}
+		reg := PluginRegistry{}
 		_, err := reg.Render("unknown", map[string]interface{}{})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "does not exist")
 	})
 
 	t.Run("ErrorExecFailure", func(t *testing.T) {
-		tmpl, err := template.New("customtype").Parse(`{{ .panicker }}`)
+		tmpl, err := template.New("plugintype").Parse(`{{ .panicker }}`)
 		require.NoError(t, err)
 
-		reg := CustomRegistry{
-			"customtype": tmpl,
+		reg := PluginRegistry{
+			"plugintype": tmpl,
 		}
 		params := map[string]interface{}{
 			"panicker": func() {
 				panic("testpanic")
 			},
 		}
-		_, err = reg.Render("customtype", params)
+		_, err = reg.Render("plugintype", params)
 		require.Contains(t, err.Error(), "failed to render")
 	})
 }
 
-func TestCustomRegistryLoad(t *testing.T) {
+func TestPluginRegistryLoad(t *testing.T) {
 	t.Run("LoadAllBadGlob", func(t *testing.T) {
-		reg := CustomRegistry{}
+		reg := PluginRegistry{}
 		err := reg.LoadAll("", `[]`)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "with glob pattern")
 	})
 
 	t.Run("AddDuplicate", func(t *testing.T) {
-		reg := CustomRegistry{}
+		reg := PluginRegistry{}
 		Register("copy", func() Builder { return nil })
 		err := reg.Add("copy", "pipeline:\n")
 		require.Error(t, err)
@@ -100,10 +100,10 @@ func TestCustomRegistryLoad(t *testing.T) {
 	})
 
 	t.Run("AddBadTemplate", func(t *testing.T) {
-		reg := CustomRegistry{}
+		reg := PluginRegistry{}
 		err := reg.Add("new", "{{ nofunc }")
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "as a custom template")
+		require.Contains(t, err.Error(), "as a plugin template")
 	})
 
 	t.Run("LoadAllWithFailures", func(t *testing.T) {
@@ -112,13 +112,13 @@ func TestCustomRegistryLoad(t *testing.T) {
 		err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
 		require.NoError(t, err)
 
-		reg := CustomRegistry{}
+		reg := PluginRegistry{}
 		err = reg.LoadAll(tempDir, "*.yaml")
 		require.Error(t, err)
 	})
 }
 
-func TestCustomPluginMetadata(t *testing.T) {
+func TestPluginMetadata(t *testing.T) {
 
 	testCases := []struct {
 		name      string
@@ -280,7 +280,7 @@ pipeline:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			reg := CustomRegistry{}
+			reg := PluginRegistry{}
 			err := reg.Add(tc.name, tc.template)
 			require.NoError(t, err)
 			_, err = reg.Render(tc.name, map[string]interface{}{})

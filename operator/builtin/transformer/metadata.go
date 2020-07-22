@@ -19,7 +19,7 @@ func NewMetadataOperatorConfig(operatorID string) *MetadataOperatorConfig {
 	}
 }
 
-// MetadataOperatorConfig is the configuration of a metadata operator
+// MetadataOperatorConfig is the configuration of a metadatan operator
 type MetadataOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
@@ -27,7 +27,7 @@ type MetadataOperatorConfig struct {
 	Tags   []helper.ExprStringConfig          `json:"tags"   yaml:"tags"`
 }
 
-// Build will build a metadata operator from the supplied configuration
+// Build will build a metadatan operator from the supplied configuration
 func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
@@ -53,7 +53,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.O
 	return restructureOperator, nil
 }
 
-// MetadataOperator is a operator that can add metadata to incoming entries
+// MetadataOperator is an operator that can add metadata to incoming entries
 type MetadataOperator struct {
 	helper.TransformerOperator
 	labeler *labeler

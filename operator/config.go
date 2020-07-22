@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Config is the configuration of a operator
+// Config is the configuration of an operator
 type Config struct {
 	Builder
 }
@@ -23,7 +23,7 @@ type Builder interface {
 
 // BuildContext supplies contextual resources when building an operator.
 type BuildContext struct {
-	CustomRegistry CustomRegistry
+	PluginRegistry PluginRegistry
 	Database       Database
 	Logger         *zap.SugaredLogger
 }
@@ -61,13 +61,13 @@ func NewStubDatabase() *StubDatabase {
 // registry is a global registry of operator types to operator builders.
 var registry = make(map[string]func() Builder)
 
-// Register will register a function to a operator type.
+// Register will register a function to an operator type.
 // This function will return a builder for the supplied type.
 func Register(operatorType string, newBuilder func() Builder) {
 	registry[operatorType] = newBuilder
 }
 
-// IsDefined will return a boolean indicating if a operator type is registered and defined.
+// IsDefined will return a boolean indicating if an operator type is registered and defined.
 func IsDefined(operatorType string) bool {
 	_, ok := registry[operatorType]
 	return ok

@@ -52,7 +52,7 @@ func (c TCPInputConfig) Build(context operator.BuildContext) (operator.Operator,
 	return tcpInput, nil
 }
 
-// TCPInput is a operator that listens for log entries over tcp.
+// TCPInput is an operator that listens for log entries over tcp.
 type TCPInput struct {
 	helper.InputOperator
 	address *net.TCPAddr

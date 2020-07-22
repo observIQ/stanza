@@ -10,7 +10,7 @@ import (
 	"github.com/observiq/carbon/operator"
 )
 
-// Buffer is an entity that buffers log entries to a operator
+// Buffer is an entity that buffers log entries to an operator
 type Buffer interface {
 	Flush(context.Context) error
 	Add(interface{}, int) error

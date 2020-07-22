@@ -186,7 +186,7 @@ func (c InputConfig) getSplitFunc(encoding encoding.Encoding) (bufio.SplitFunc, 
 	return splitFunc, nil
 }
 
-// InputOperator is a operator that monitors files for entries
+// InputOperator is an operator that monitors files for entries
 type InputOperator struct {
 	helper.InputOperator
 

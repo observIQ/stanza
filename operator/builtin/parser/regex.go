@@ -65,7 +65,7 @@ func (c RegexParserConfig) Build(context operator.BuildContext) (operator.Operat
 	return regexParser, nil
 }
 
-// RegexParser is a operator that parses regex in an entry.
+// RegexParser is an operator that parses regex in an entry.
 type RegexParser struct {
 	helper.ParserOperator
 	regexp *regexp.Regexp

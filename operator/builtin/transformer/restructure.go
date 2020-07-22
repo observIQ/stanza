@@ -45,7 +45,7 @@ func (c RestructureOperatorConfig) Build(context operator.BuildContext) (operato
 	return restructureOperator, nil
 }
 
-// RestructureOperator is a operator that can restructure incoming entries using operations
+// RestructureOperator is an operator that can restructure incoming entries using operations
 type RestructureOperator struct {
 	helper.TransformerOperator
 	ops []Op

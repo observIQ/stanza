@@ -43,7 +43,7 @@ func (c StdoutConfig) Build(context operator.BuildContext) (operator.Operator, e
 	}, nil
 }
 
-// StdoutOperator is a operator that logs entries using stdout.
+// StdoutOperator is an operator that logs entries using stdout.
 type StdoutOperator struct {
 	helper.OutputOperator
 	encoder *json.Encoder

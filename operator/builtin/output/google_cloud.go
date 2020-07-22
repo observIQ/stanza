@@ -79,7 +79,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 	return googleCloudOutput, nil
 }
 
-// GoogleCloudOutput is a operator that sends logs to google cloud logging.
+// GoogleCloudOutput is an operator that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
 	helper.OutputOperator
 	buffer.Buffer

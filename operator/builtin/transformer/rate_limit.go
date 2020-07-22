@@ -57,7 +57,7 @@ func (c RateLimitConfig) Build(context operator.BuildContext) (operator.Operator
 	return rateLimitOperator, nil
 }
 
-// RateLimitOperator is a operator that limits the rate of log consumption between operators.
+// RateLimitOperator is an operator that limits the rate of log consumption between operators.
 type RateLimitOperator struct {
 	helper.TransformerOperator
 

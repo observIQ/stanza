@@ -46,7 +46,7 @@ func (c SeverityParserConfig) Build(context operator.BuildContext) (operator.Ope
 	return severityOperator, nil
 }
 
-// SeverityParserOperator is a operator that parses time from a field to an entry.
+// SeverityParserOperator is an operator that parses time from a field to an entry.
 type SeverityParserOperator struct {
 	helper.TransformerOperator
 	helper.SeverityParser

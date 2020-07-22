@@ -37,7 +37,7 @@ func (c NoopOperatorConfig) Build(context operator.BuildContext) (operator.Opera
 	return noopOperator, nil
 }
 
-// NoopOperator is a operator that performs no operations on an entry.
+// NoopOperator is an operator that performs no operations on an entry.
 type NoopOperator struct {
 	helper.TransformerOperator
 }

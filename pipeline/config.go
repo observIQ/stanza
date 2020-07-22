@@ -15,7 +15,7 @@ type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
 func (c Config) BuildPipeline(context operator.BuildContext) (*Pipeline, error) {
-	operatorConfigs, err := c.buildOperatorConfigs(context.CustomRegistry)
+	operatorConfigs, err := c.buildOperatorConfigs(context.PluginRegistry)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c Config) buildOperators(operatorConfigs []operator.Config, context operat
 	return operators, nil
 }
 
-func (c Config) buildOperatorConfigs(customRegistry operator.CustomRegistry) ([]operator.Config, error) {
+func (c Config) buildOperatorConfigs(pluginRegistry operator.PluginRegistry) ([]operator.Config, error) {
 	operatorConfigs := make([]operator.Config, 0, len(c))
 
 	for _, params := range c {
@@ -59,7 +59,7 @@ func (c Config) buildOperatorConfigs(customRegistry operator.CustomRegistry) ([]
 			return nil, errors.Wrap(err, "validate config params")
 		}
 
-		configs, err := params.BuildConfigs(customRegistry, "$")
+		configs, err := params.BuildConfigs(pluginRegistry, "$")
 		if err != nil {
 			return nil, errors.Wrap(err, "build operator configs")
 		}
@@ -69,7 +69,7 @@ func (c Config) buildOperatorConfigs(customRegistry operator.CustomRegistry) ([]
 	return operatorConfigs, nil
 }
 
-// Params is a raw params map that can be converted into a operator config.
+// Params is a raw params map that can be converted into an operator config.
 type Params map[string]interface{}
 
 // ID returns the id field in the params map.
@@ -124,7 +124,7 @@ func (p Params) NamespaceExclusions(namespace string) []string {
 	return exclusions
 }
 
-// Validate will validate the basic fields required to make a operator config.
+// Validate will validate the basic fields required to make an operator config.
 func (p Params) Validate() error {
 	if p.Type() == "" {
 		return errors.NewError(
@@ -178,18 +178,18 @@ func (p Params) getStringArray(key string) []string {
 }
 
 // BuildConfigs will build operator configs from a params map.
-func (p Params) BuildConfigs(customRegistry operator.CustomRegistry, namespace string) ([]operator.Config, error) {
+func (p Params) BuildConfigs(pluginRegistry operator.PluginRegistry, namespace string) ([]operator.Config, error) {
 	if operator.IsDefined(p.Type()) {
 		return p.buildAsBuiltin(namespace)
 	}
 
-	if customRegistry.IsDefined(p.Type()) {
-		return p.buildAsCustom(customRegistry, namespace)
+	if pluginRegistry.IsDefined(p.Type()) {
+		return p.buildPlugin(pluginRegistry, namespace)
 	}
 
 	return nil, errors.NewError(
 		"unsupported `type` for operator config",
-		"ensure that all operators have a supported builtin or custom type",
+		"ensure that all operators have a supported builtin or plugin type",
 		"type", p.Type(),
 		"id", p.ID(),
 	)
@@ -215,8 +215,8 @@ func (p Params) buildAsBuiltin(namespace string) ([]operator.Config, error) {
 	return []operator.Config{config}, nil
 }
 
-// buildAsCustom will build a custom config from a params map.
-func (p Params) buildAsCustom(customRegistry operator.CustomRegistry, namespace string) ([]operator.Config, error) {
+// buildPlugin will build a plugin config from a params map.
+func (p Params) buildPlugin(pluginRegistry operator.PluginRegistry, namespace string) ([]operator.Config, error) {
 	templateParams := map[string]interface{}{}
 	for key, value := range p {
 		templateParams[key] = value
@@ -225,9 +225,9 @@ func (p Params) buildAsCustom(customRegistry operator.CustomRegistry, namespace 
 	templateParams["input"] = p.TemplateInput(namespace)
 	templateParams["output"] = p.TemplateOutput(namespace)
 
-	config, err := customRegistry.Render(p.Type(), templateParams)
+	config, err := pluginRegistry.Render(p.Type(), templateParams)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to render custom config")
+		return nil, errors.Wrap(err, "failed to render plugin config")
 	}
 
 	exclusions := p.NamespaceExclusions(namespace)

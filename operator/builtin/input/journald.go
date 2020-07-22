@@ -79,7 +79,7 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator
 	return journaldInput, nil
 }
 
-// JournaldInput is a operator that process logs using journald
+// JournaldInput is an operator that process logs using journald
 type JournaldInput struct {
 	helper.InputPlugin
 
