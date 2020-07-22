@@ -1,6 +1,6 @@
 # Entry
 
-Entry is the base representation of log data as it moves through a pipeline. All plugins either create, modify, or consume entries.
+Entry is the base representation of log data as it moves through a pipeline. All operators either create, modify, or consume entries.
 
 ## Structure
 | Field       | Description                                                                                                                 |

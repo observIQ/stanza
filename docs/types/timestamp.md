@@ -1,6 +1,6 @@
 ## `timestamp` parsing parameters
 
-Parser plugins can parse a timestamp and attach the resulting time value to a log entry.
+Parser operators can parse a timestamp and attach the resulting time value to a log entry.
 
 | Field         | Default    | Description                                                                   |
 | ---           | ---        | ---                                                                           |
@@ -12,9 +12,9 @@ Parser plugins can parse a timestamp and attach the resulting time value to a lo
 
 ### How to specify timestamp parsing parameters
 
-Most parser plugins, such as [`regex_parser`](/docs/plugins/regex_parser.md) support these fields inside of a `timestamp` block.
+Most parser operators, such as [`regex_parser`](/docs/operators/regex_parser.md) support these fields inside of a `timestamp` block.
 
-If a timestamp block is specified, the parser plugin will perform the timestamp parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output plugin.
+If a timestamp block is specified, the parser operator will perform the timestamp parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output operator.
 
 ```yaml
 - type: regex_parser
@@ -27,7 +27,7 @@ If a timestamp block is specified, the parser plugin will perform the timestamp 
 
 ---
 
-As a special case, the [`time_parser`](/docs/plugins/time_parser.md) plugin supports these fields inline. This is because time parsing is the primary purpose of the plugin.
+As a special case, the [`time_parser`](/docs/operators/time_parser.md) operator supports these fields inline. This is because time parsing is the primary purpose of the operator.
 ```yaml
 - type: time_parser
   parse_from: timestamp_field

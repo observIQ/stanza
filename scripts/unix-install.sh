@@ -467,7 +467,7 @@ pipeline:
     output: example_output
 
   # An example input that monitors the contents of a file.
-  # For more info: https://github.com/observIQ/carbon/blob/master/docs/plugins/file_input.md
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/file_input.md
   #
   # - type: file_input
   #   include:
@@ -479,14 +479,14 @@ pipeline:
     type: stdout
 
   # An example output that sends captured logs to google cloud logging.
-  # For more info: https://github.com/observIQ/carbon/blob/master/docs/plugins/google_cloud_output.md
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/google_cloud_output.md
   #
   # - id: example_output
   #   type: google_cloud_output
   #   credentials_file: /my/credentials/file
 
   # An example output that sends captured logs to elasticsearch.
-  # For more info: https://github.com/observIQ/carbon/blob/master/docs/plugins/elastic_output.md
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/elastic_output.md
   #
   # - id: example_output
   #   type: elastic_output

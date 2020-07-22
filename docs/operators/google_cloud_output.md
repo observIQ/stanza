@@ -1,12 +1,12 @@
-## `google_cloud_output` plugin
+## `google_cloud_output` operator
 
-The `google_cloud_output` plugin will send entries to Google Cloud Logging.
+The `google_cloud_output` operator will send entries to Google Cloud Logging.
 
 ### Configuration Fields
 
 | Field              | Default               | Description                                                                                            |
 | ---                | ---                   | ---                                                                                                    |
-| `id`               | `google_cloud_output` | A unique identifier for the plugin                                                                     |
+| `id`               | `google_cloud_output` | A unique identifier for the operator                                                                   |
 | `credentials`      |                       | The JSON-formatted credentials for the logs writer service account                                     |
 | `credentials_file` |                       | A path to a file containing the JSON-formatted credentials                                             |
 | `project_id`       |                       | The Google Cloud project ID the logs should be sent to. Defaults to project_id found in credentials    |

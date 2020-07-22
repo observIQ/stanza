@@ -1,18 +1,18 @@
-## `restructure` plugin
+## `restructure` operator
 
-The `restructure` plugin facilitates changing the structure of a record by adding, removing, moving, and flattening fields.
+The `restructure` operator facilitates changing the structure of a record by adding, removing, moving, and flattening fields.
 
-The plugin is configured with a list of ops, which are small operations that are applied to a record in the order
+The operator is configured with a list of ops, which are small operations that are applied to a record in the order
 they are defined.
 
 ### Configuration Fields
 
-| Field      | Default          | Description                                                                                   |
-| ---        | ---              | ---                                                                                           |
-| `id`       | `restructure`    | A unique identifier for the plugin                                                            |
-| `output`   | Next in pipeline | The connected plugin(s) that will receive all outbound entries                                |
-| `ops`      | required         | A list of ops. The available op types are defined below                                       |
-| `on_error` | `send`           | The behavior of the plugin if it encounters an error. See [on_error](/docs/types/on_error.md) |
+| Field      | Default          | Description                                                                                     |
+| ---        | ---              | ---                                                                                             |
+| `id`       | `restructure`    | A unique identifier for the operator                                                            |
+| `output`   | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
+| `ops`      | required         | A list of ops. The available op types are defined below                                         |
+| `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
 ### Op types
 

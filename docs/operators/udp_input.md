@@ -1,13 +1,13 @@
-## `tcp_input` plugin
+## `udp_input` operator
 
-The `tcp_input` plugin listens for logs on one or more TCP connections. The plugin assumes that logs are newline separated.
+The `udp_input` operator listens for logs from UDP packets.
 
 ### Configuration Fields
 
 | Field            | Default          | Description                                                         |
 | ---              | ---              | ---                                                                 |
-| `id`             | `tcp_input`      | A unique identifier for the plugin                                  |
-| `output`         | Next in pipeline | The connected plugin(s) that will receive all outbound entries      |
+| `id`             | `udp_input`      | A unique identifier for the operator                                |
+| `output`         | Next in pipeline | The connected operator(s) that will receive all outbound entries    |
 | `listen_address` | required         | A listen address of the form `<ip>:<port>`                          |
 | `write_to`       | $                | A [field](/docs/types/field.md) that will be set to the log message |
 
@@ -17,13 +17,13 @@ The `tcp_input` plugin listens for logs on one or more TCP connections. The plug
 
 Configuration:
 ```yaml
-- type: tcp_input
-  listen_adress: "0.0.0.0:54525"
+- type: udp_input
+  listen_adress: "0.0.0.0:54526"
 ```
 
 Send a log:
 ```bash
-$ nc localhost 54525 <<EOF
+$ nc -u localhost 54525 <<EOF
 heredoc> message1
 heredoc> message2
 heredoc> EOF
@@ -33,10 +33,6 @@ Generated entries:
 ```json
 {
   "timestamp": "2020-04-30T12:10:17.656726-04:00",
-  "record": "message1"
-},
-{
-  "timestamp": "2020-04-30T12:10:17.657143-04:00",
-  "record": "message2"
+  "record": "message1\nmessage2\n"
 }
 ```

@@ -2,7 +2,7 @@
 
 `carbon` uses a flexible severity parsing system based on the integers 0 to 100. Standard severities are provided at multiples of 10.
 
-This severity system allows each output plugin to interpret the values 0 to 100 as appropriate for the corresponding backend.
+This severity system allows each output operator to interpret the values 0 to 100 as appropriate for the corresponding backend.
 
 The following named severity levels are supported.
 
@@ -23,7 +23,7 @@ The following named severity levels are supported.
 
 ### `severity` parsing parameters
 
-Parser plugins can parse a severity and attach the resulting value to a log entry.
+Parser operators can parse a severity and attach the resulting value to a log entry.
 
 | Field          | Default   | Description                                                                        |
 | ---            | ---       | ---                                                                                |
@@ -125,9 +125,9 @@ The following configurations are equivalent:
 
 ### How to use severity parsing
 
-All parser plugins, such as [`regex_parser`](/docs/plugins/regex_parser.md) support these fields inside of a `severity` block.
+All parser operators, such as [`regex_parser`](/docs/operators/regex_parser.md) support these fields inside of a `severity` block.
 
-If a severity block is specified, the parser plugin will perform the severity parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output plugin.
+If a severity block is specified, the parser operator will perform the severity parsing _after_ performing its other parsing actions, but _before_ passing the entry to the specified output operator.
 
 ```yaml
 - type: regex_parser
@@ -143,7 +143,7 @@ If a severity block is specified, the parser plugin will perform the severity pa
 
 ---
 
-As a special case, the [`severity_parser`](/docs/plugins/severity_parser.md) plugin supports these fields inline. This is because severity parsing is the primary purpose of the plugin.
+As a special case, the [`severity_parser`](/docs/operators/severity_parser.md) operator supports these fields inline. This is because severity parsing is the primary purpose of the operator.
 ```yaml
 - type: severity_parser
   parse_from: severity_field
@@ -527,7 +527,7 @@ Equivalent Configuration:
     debug:
       - min: 200
         max: 299
-  output: my_next_plugin
+  output: my_next_operator
 ```
 
 <table>

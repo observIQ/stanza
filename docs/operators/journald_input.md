@@ -1,17 +1,17 @@
-## `journald_input` plugin
+## `journald_input` operator
 
-The `journald_input` plugin reads logs from the systemd journal using the `journalctl` binary, which must be in the `$PATH` of the agentt.
+The `journald_input` operator reads logs from the systemd journal using the `journalctl` binary, which must be in the `$PATH` of the agentt.
 
 By default, `journalctl` will read from `/run/journal` or `/var/log/journal`. If either `directory` or `files` are set, `journalctl` will instead read from those.
 
-The `journald_input` plugin will use the `__REALTIME_TIMESTAMP` field of the journald entry as the parsed entry's timestamp. All other fields are added to the entry's record as returned by `journalctl`.
+The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the journald entry as the parsed entry's timestamp. All other fields are added to the entry's record as returned by `journalctl`.
 
 ### Configuration Fields
 
 | Field       | Default          | Description                                                                                      |
 | ---         | ---              | ---                                                                                              |
-| `id`        | `journald_input` | A unique identifier for the plugin                                                               |
-| `output`    | Next in pipeline | The connected plugin(s) that will receive all outbound entries                                   |
+| `id`        | `journald_input` | A unique identifier for the operator                                                             |
+| `output`    | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
 | `directory` |                  | A directory containing journal files to read entries from                                        |
 | `files`     |                  | A list of journal files to read entries from                                                     |
 | `write_to`  | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |

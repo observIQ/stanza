@@ -1,14 +1,14 @@
-## `generate_input` plugin
+## `generate_input` operator
 
-The `generate_input` plugin generates log entries with a static record. This is useful for testing pipelines, especially when
-coupled with the [`rate_limit`](/docs/plugins/rate_limit.md) plugin.
+The `generate_input` operator generates log entries with a static record. This is useful for testing pipelines, especially when
+coupled with the [`rate_limit`](/docs/operators/rate_limit.md) operator.
 
 ### Configuration Fields
 
 | Field      | Default          | Description                                                                                      |
 | ---        | ---              | ---                                                                                              |
-| `id`       | `generate_input` | A unique identifier for the plugin                                                               |
-| `output`   | Next in pipeline | The connected plugin(s) that will receive all outbound entries                                   |
+| `id`       | `generate_input` | A unique identifier for the operator                                                             |
+| `output`   | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
 | `write_to` | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
 | `entry`    |                  | A [entry](/docs/types/entry.md) log entry to repeatedly generate                                 |
 | `count`    | 0                | The number of entries to generate before stopping. A value of 0 indicates unlimited              |
