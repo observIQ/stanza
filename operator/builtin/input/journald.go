@@ -39,8 +39,8 @@ type JournaldInputConfig struct {
 }
 
 // Build will build a journald input operator from the supplied configuration
-func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator.Plugin, error) {
-	inputPlugin, err := c.InputConfig.Build(buildContext)
+func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator.Operator, error) {
+	inputOperator, err := c.InputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +66,8 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator
 	}
 
 	journaldInput := &JournaldInput{
-		InputPlugin: inputPlugin,
-		persist:     helper.NewScopedDBPersister(buildContext.Database, c.ID()),
+		InputOperator: inputOperator,
+		persist:       helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 		newCmd: func(ctx context.Context, cursor []byte) cmd {
 			if cursor != nil {
 				args = append(args, "--after-cursor", string(cursor))
@@ -81,7 +81,7 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator
 
 // JournaldInput is an operator that process logs using journald
 type JournaldInput struct {
-	helper.InputPlugin
+	helper.InputOperator
 
 	newCmd func(ctx context.Context, cursor []byte) cmd
 
