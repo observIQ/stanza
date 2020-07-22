@@ -6,7 +6,7 @@ import (
 	"os"
 
 	agent "github.com/observiq/carbon/agent"
-	"github.com/observiq/carbon/plugin/helper"
+	"github.com/observiq/carbon/operator/helper"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
 )
@@ -17,7 +17,7 @@ var stdout io.Writer = os.Stdout
 func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 	offsets := &cobra.Command{
 		Use:   "offsets",
-		Short: "Manage input plugin offsets",
+		Short: "Manage input operator offsets",
 		Args:  cobra.NoArgs,
 		Run: func(command *cobra.Command, args []string) {
 			stdout.Write([]byte("No offsets subcommand specified. See `carbon offsets help` for details\n"))
@@ -35,7 +35,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 	var all bool
 
 	offsetsClear := &cobra.Command{
-		Use:   "clear [flags] [plugin_ids]",
+		Use:   "clear [flags] [operator_ids]",
 		Short: "Clear persisted offsets from the database",
 		Args:  cobra.ArbitraryArgs,
 		Run: func(command *cobra.Command, args []string) {
@@ -46,7 +46,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 
 			if all {
 				if len(args) != 0 {
-					stdout.Write([]byte("Providing a list of plugin IDs does nothing with the --all flag\n"))
+					stdout.Write([]byte("Providing a list of operator IDs does nothing with the --all flag\n"))
 				}
 
 				err := db.Update(func(tx *bbolt.Tx) error {
@@ -59,18 +59,18 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 				exitOnErr("Failed to delete offsets", err)
 			} else {
 				if len(args) == 0 {
-					stdout.Write([]byte("Must either specify a list of plugins or the --all flag\n"))
+					stdout.Write([]byte("Must either specify a list of operators or the --all flag\n"))
 					os.Exit(1)
 				}
 
-				for _, pluginID := range args {
+				for _, operatorID := range args {
 					err = db.Update(func(tx *bbolt.Tx) error {
 						offsetBucket := tx.Bucket(helper.OffsetsBucket)
 						if offsetBucket == nil {
 							return nil
 						}
 
-						return offsetBucket.DeleteBucket([]byte(pluginID))
+						return offsetBucket.DeleteBucket([]byte(operatorID))
 					})
 					exitOnErr("Failed to delete offsets", err)
 				}
@@ -87,7 +87,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 	offsetsList := &cobra.Command{
 		Use:   "list",
-		Short: "List plugins with persisted offsets",
+		Short: "List operators with persisted offsets",
 		Args:  cobra.NoArgs,
 		Run: func(command *cobra.Command, args []string) {
 			db, err := agent.OpenDatabase(rootFlags.DatabaseFile)

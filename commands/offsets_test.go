@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	agent "github.com/observiq/carbon/agent"
-	"github.com/observiq/carbon/plugin/helper"
+	"github.com/observiq/carbon/operator/helper"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/bbolt"
 )
@@ -33,15 +33,15 @@ func TestOffsets(t *testing.T) {
 		bucket, err := tx.CreateBucketIfNotExists(helper.OffsetsBucket)
 		require.NoError(t, err)
 
-		_, err = bucket.CreateBucket([]byte("$.testpluginid1"))
+		_, err = bucket.CreateBucket([]byte("$.testoperatorid1"))
 		require.NoError(t, err)
-		_, err = bucket.CreateBucket([]byte("$.testpluginid2"))
+		_, err = bucket.CreateBucket([]byte("$.testoperatorid2"))
 		require.NoError(t, err)
 		return nil
 	})
 	db.Close()
 
-	// check that offsets list actually lists the plugin
+	// check that offsets list actually lists the operator
 	offsetsList := NewRootCmd()
 	offsetsList.SetArgs([]string{
 		"offsets", "list",
@@ -51,7 +51,7 @@ func TestOffsets(t *testing.T) {
 
 	err = offsetsList.Execute()
 	require.NoError(t, err)
-	require.Equal(t, "$.testpluginid1\n$.testpluginid2\n", buf.String())
+	require.Equal(t, "$.testoperatorid1\n$.testoperatorid2\n", buf.String())
 
 	// clear the offsets
 	offsetsClear := NewRootCmd()
@@ -59,16 +59,16 @@ func TestOffsets(t *testing.T) {
 		"offsets", "clear",
 		"--database", databasePath,
 		"--config", configPath,
-		"$.testpluginid2",
+		"$.testoperatorid2",
 	})
 
 	err = offsetsClear.Execute()
 	require.NoError(t, err)
 
-	// Check that offsets list only shows uncleared plugin id
+	// Check that offsets list only shows uncleared operator id
 	buf.Reset()
 	err = offsetsList.Execute()
 	require.NoError(t, err)
-	require.Equal(t, "$.testpluginid1\n", buf.String())
+	require.Equal(t, "$.testoperatorid1\n", buf.String())
 
 }

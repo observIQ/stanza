@@ -8,7 +8,7 @@ import (
 	entry "github.com/observiq/carbon/entry"
 	mock "github.com/stretchr/testify/mock"
 
-	plugin "github.com/observiq/carbon/plugin"
+	operator "github.com/observiq/carbon/operator"
 
 	zap "go.uber.org/zap"
 )
@@ -77,15 +77,15 @@ func (_m *Operator) Logger() *zap.SugaredLogger {
 }
 
 // Outputs provides a mock function with given fields:
-func (_m *Operator) Outputs() []plugin.Operator {
+func (_m *Operator) Outputs() []operator.Operator {
 	ret := _m.Called()
 
-	var r0 []plugin.Operator
-	if rf, ok := ret.Get(0).(func() []plugin.Operator); ok {
+	var r0 []operator.Operator
+	if rf, ok := ret.Get(0).(func() []operator.Operator); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]plugin.Operator)
+			r0 = ret.Get(0).([]operator.Operator)
 		}
 	}
 
@@ -107,11 +107,11 @@ func (_m *Operator) Process(_a0 context.Context, _a1 *entry.Entry) error {
 }
 
 // SetOutputs provides a mock function with given fields: _a0
-func (_m *Operator) SetOutputs(_a0 []plugin.Operator) error {
+func (_m *Operator) SetOutputs(_a0 []operator.Operator) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]plugin.Operator) error); ok {
+	if rf, ok := ret.Get(0).(func([]operator.Operator) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/plugin"
-	"github.com/observiq/carbon/plugin/helper"
+	"github.com/observiq/carbon/operator"
+	"github.com/observiq/carbon/operator/helper"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -14,18 +14,18 @@ import (
 type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
-func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
-	pluginConfigs, err := c.buildOperatorConfigs(context.CustomRegistry)
+func (c Config) BuildPipeline(context operator.BuildContext) (*Pipeline, error) {
+	operatorConfigs, err := c.buildOperatorConfigs(context.CustomRegistry)
 	if err != nil {
 		return nil, err
 	}
 
-	plugins, err := c.buildOperators(pluginConfigs, context)
+	operators, err := c.buildOperators(operatorConfigs, context)
 	if err != nil {
 		return nil, err
 	}
 
-	pipeline, err := NewPipeline(plugins)
+	pipeline, err := NewPipeline(operators)
 	if err != nil {
 		return nil, err
 	}
@@ -33,26 +33,26 @@ func (c Config) BuildPipeline(context plugin.BuildContext) (*Pipeline, error) {
 	return pipeline, nil
 }
 
-func (c Config) buildOperators(pluginConfigs []plugin.Config, context plugin.BuildContext) ([]plugin.Operator, error) {
-	plugins := make([]plugin.Operator, 0, len(pluginConfigs))
-	for _, pluginConfig := range pluginConfigs {
-		plugin, err := pluginConfig.Build(context)
+func (c Config) buildOperators(operatorConfigs []operator.Config, context operator.BuildContext) ([]operator.Operator, error) {
+	operators := make([]operator.Operator, 0, len(operatorConfigs))
+	for _, operatorConfig := range operatorConfigs {
+		operator, err := operatorConfig.Build(context)
 
 		if err != nil {
 			return nil, errors.WithDetails(err,
-				"plugin_id", pluginConfig.ID(),
-				"plugin_type", pluginConfig.Type(),
+				"operator_id", operatorConfig.ID(),
+				"operator_type", operatorConfig.Type(),
 			)
 		}
 
-		plugins = append(plugins, plugin)
+		operators = append(operators, operator)
 	}
 
-	return plugins, nil
+	return operators, nil
 }
 
-func (c Config) buildOperatorConfigs(customRegistry plugin.CustomRegistry) ([]plugin.Config, error) {
-	pluginConfigs := make([]plugin.Config, 0, len(c))
+func (c Config) buildOperatorConfigs(customRegistry operator.CustomRegistry) ([]operator.Config, error) {
+	operatorConfigs := make([]operator.Config, 0, len(c))
 
 	for _, params := range c {
 		if err := params.Validate(); err != nil {
@@ -61,15 +61,15 @@ func (c Config) buildOperatorConfigs(customRegistry plugin.CustomRegistry) ([]pl
 
 		configs, err := params.BuildConfigs(customRegistry, "$")
 		if err != nil {
-			return nil, errors.Wrap(err, "build plugin configs")
+			return nil, errors.Wrap(err, "build operator configs")
 		}
-		pluginConfigs = append(pluginConfigs, configs...)
+		operatorConfigs = append(operatorConfigs, configs...)
 	}
 
-	return pluginConfigs, nil
+	return operatorConfigs, nil
 }
 
-// Params is a raw params map that can be converted into a plugin config.
+// Params is a raw params map that can be converted into a operator config.
 type Params map[string]interface{}
 
 // ID returns the id field in the params map.
@@ -124,12 +124,12 @@ func (p Params) NamespaceExclusions(namespace string) []string {
 	return exclusions
 }
 
-// Validate will validate the basic fields required to make a plugin config.
+// Validate will validate the basic fields required to make a operator config.
 func (p Params) Validate() error {
 	if p.Type() == "" {
 		return errors.NewError(
-			"missing required `type` field for plugin config",
-			"ensure that all plugin configs have a defined type field",
+			"missing required `type` field for operator config",
+			"ensure that all operator configs have a defined type field",
 			"id", p.ID(),
 		)
 	}
@@ -177,9 +177,9 @@ func (p Params) getStringArray(key string) []string {
 	}
 }
 
-// BuildConfigs will build plugin configs from a params map.
-func (p Params) BuildConfigs(customRegistry plugin.CustomRegistry, namespace string) ([]plugin.Config, error) {
-	if plugin.IsDefined(p.Type()) {
+// BuildConfigs will build operator configs from a params map.
+func (p Params) BuildConfigs(customRegistry operator.CustomRegistry, namespace string) ([]operator.Config, error) {
+	if operator.IsDefined(p.Type()) {
 		return p.buildAsBuiltin(namespace)
 	}
 
@@ -188,15 +188,15 @@ func (p Params) BuildConfigs(customRegistry plugin.CustomRegistry, namespace str
 	}
 
 	return nil, errors.NewError(
-		"unsupported `type` for plugin config",
-		"ensure that all plugins have a supported builtin or custom type",
+		"unsupported `type` for operator config",
+		"ensure that all operators have a supported builtin or custom type",
 		"type", p.Type(),
 		"id", p.ID(),
 	)
 }
 
 // buildAsBuiltin will build a builtin config from a params map.
-func (p Params) buildAsBuiltin(namespace string) ([]plugin.Config, error) {
+func (p Params) buildAsBuiltin(namespace string) ([]operator.Config, error) {
 	bytes, err := yaml.Marshal(p)
 	if err != nil {
 		return nil, errors.NewError(
@@ -206,17 +206,17 @@ func (p Params) buildAsBuiltin(namespace string) ([]plugin.Config, error) {
 		)
 	}
 
-	var config plugin.Config
+	var config operator.Config
 	if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
 		return nil, err
 	}
 
 	config.SetNamespace(namespace)
-	return []plugin.Config{config}, nil
+	return []operator.Config{config}, nil
 }
 
 // buildAsCustom will build a custom config from a params map.
-func (p Params) buildAsCustom(customRegistry plugin.CustomRegistry, namespace string) ([]plugin.Config, error) {
+func (p Params) buildAsCustom(customRegistry operator.CustomRegistry, namespace string) ([]operator.Config, error) {
 	templateParams := map[string]interface{}{}
 	for key, value := range p {
 		templateParams[key] = value
@@ -231,9 +231,9 @@ func (p Params) buildAsCustom(customRegistry plugin.CustomRegistry, namespace st
 	}
 
 	exclusions := p.NamespaceExclusions(namespace)
-	for _, pluginConfig := range config.Pipeline {
+	for _, operatorConfig := range config.Pipeline {
 		innerNamespace := p.NamespacedID(namespace)
-		pluginConfig.SetNamespace(innerNamespace, exclusions...)
+		operatorConfig.SetNamespace(innerNamespace, exclusions...)
 	}
 
 	return config.Pipeline, nil

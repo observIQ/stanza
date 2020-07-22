@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/observiq/carbon/errors"
+	"github.com/observiq/carbon/operator"
+	_ "github.com/observiq/carbon/operator/builtin" // register operators
 	"github.com/observiq/carbon/pipeline"
-	pg "github.com/observiq/carbon/plugin"
-	_ "github.com/observiq/carbon/plugin/builtin" // register plugins
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
@@ -21,7 +21,7 @@ type LogAgent struct {
 	Database  string
 	*zap.SugaredLogger
 
-	database pg.Database
+	database operator.Database
 	pipeline *pipeline.Pipeline
 	running  bool
 }
@@ -39,12 +39,12 @@ func (a *LogAgent) Start() error {
 	}
 	a.database = database
 
-	registry, err := pg.NewCustomRegistry(a.PluginDir)
+	registry, err := operator.NewCustomRegistry(a.PluginDir)
 	if err != nil {
-		a.Errorw("Failed to load custom plugin registry", zap.Any("error", err))
+		a.Errorw("Failed to load custom operator registry", zap.Any("error", err))
 	}
 
-	buildContext := pg.BuildContext{
+	buildContext := operator.BuildContext{
 		CustomRegistry: registry,
 		Logger:         a.SugaredLogger,
 		Database:       a.database,
@@ -83,9 +83,9 @@ func (a *LogAgent) Stop() {
 }
 
 // OpenDatabase will open and create a database.
-func OpenDatabase(file string) (pg.Database, error) {
+func OpenDatabase(file string) (operator.Database, error) {
 	if file == "" {
-		return pg.NewStubDatabase(), nil
+		return operator.NewStubDatabase(), nil
 	}
 
 	if _, err := os.Stat(filepath.Dir(file)); err != nil {
@@ -104,11 +104,11 @@ func OpenDatabase(file string) (pg.Database, error) {
 }
 
 // NewLogAgent creates a new carbon log agent.
-func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string) *LogAgent {
+func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, operatorDir, databaseFile string) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,
-		PluginDir:     pluginDir,
+		PluginDir:     operatorDir,
 		Database:      databaseFile,
 	}
 }
