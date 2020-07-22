@@ -116,28 +116,22 @@ jobs:
           command: make test
 
   test-windows:
-    executor:
-      name: win/default
-      size: large
+    executor: win/default
 
     steps:
       - checkout
-      - run:
-          name: Upgrade Golang
-          shell: powershell.exe
-          command: choco upgrade golang --version=1.14
-      - run:
-          name: Install GCC
-          shell: powershell.exe
-          command: choco install mingw
-      - run:
-          name: Get Dependencies
-          shell: powershell.exe
-          command: go get -v -t -d ./...
+      # - run:
+      #     name: Upgrade Golang
+      #     shell: powershell.exe
+      #     command: choco upgrade golang --version=1.14
+      # - run:
+      #     name: Get Dependencies
+      #     shell: powershell.exe
+      #     command: go get -v -t -d ./...
       - run:
           name: Unit Tests
           shell: powershell.exe
-          command: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
+          command: go test -coverprofile coverage.txt -coverpkg ./... ./...
 
   run-benchmark:
     parameters:
