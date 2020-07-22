@@ -68,7 +68,7 @@ A PR is considered to be **ready to merge** when:
 
 ## Design Choices
 
-Best practices for developing a builtin operators are documented below, but for changes to
+Best practices for developing a builtin operator are documented below, but for changes to
 the core agent, we are happy to discuss proposals in the issue tracker.
 
 ### Builtin Operator Development
