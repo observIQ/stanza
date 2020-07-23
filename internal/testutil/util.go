@@ -52,8 +52,9 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 // NewBuildContext will return a new build context for testing
 func NewBuildContext(t *testing.T) operator.BuildContext {
 	return operator.BuildContext{
-		Database: NewTestDatabase(t),
-		Logger:   zaptest.NewLogger(t).Sugar(),
+		PluginRegistry: make(operator.PluginRegistry),
+		Database:       NewTestDatabase(t),
+		Logger:         zaptest.NewLogger(t).Sugar(),
 	}
 }
 
