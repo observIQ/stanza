@@ -620,6 +620,7 @@ func TestFileSource_FileMovedWhileOff_SmallFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	waitForMessage(t, logReceived, log1)
+	time.Sleep(50 * time.Millisecond)
 
 	// Restart the source
 	err = source.Stop()

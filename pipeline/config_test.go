@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/operator"
 	_ "github.com/observiq/carbon/operator/builtin"
 	"github.com/observiq/carbon/operator/builtin/transformer"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -85,8 +85,14 @@ func TestParamsTemplateOutput(t *testing.T) {
 	params := Params{
 		"output": "test-output",
 	}
-	result := params.TemplateOutput("namespace")
+	result := params.TemplateOutput("namespace", []string{})
 	require.Equal(t, "[namespace.test-output]", result)
+}
+
+func TestParamsTemplateDefault(t *testing.T) {
+	params := Params{}
+	result := params.TemplateOutput("namespace", []string{"test-output"})
+	require.Equal(t, "[test-output]", result)
 }
 
 func TestParamsNamespaceExclusions(t *testing.T) {
@@ -188,7 +194,7 @@ func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
 		"output": "test",
 		"field":  invalidMarshaller{},
 	}
-	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace")
+	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to parse config map as yaml")
 }
@@ -200,7 +206,7 @@ func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
 		"unknown": true,
 		"output":  "test_output",
 	}
-	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace")
+	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
 	require.Error(t, err)
 }
 
@@ -210,7 +216,7 @@ func TestBuildBuiltinFromValidParams(t *testing.T) {
 		"type":   "noop",
 		"output": "test_output",
 	}
-	configs, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace")
+	configs, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
@@ -235,7 +241,7 @@ pipeline:
 		"output": "test_output",
 	}
 
-	configs, err := params.BuildConfigs(registry, "test_namespace")
+	configs, err := params.BuildConfigs(registry, "test_namespace", []string{})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(configs))
 	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
@@ -243,7 +249,7 @@ pipeline:
 }
 
 func TestBuildValidPipeline(t *testing.T) {
-	registry := operator.PluginRegistry{}
+	context := testutil.NewBuildContext(t)
 	pluginTemplate := `
 pipeline:
   - id: plugin_generate
@@ -254,17 +260,8 @@ pipeline:
         message: test
     output: {{.output}}
 `
-	err := registry.Add("plugin", pluginTemplate)
+	err := context.PluginRegistry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
-
-	logCfg := zap.NewProductionConfig()
-	logger, err := logCfg.Build()
-	require.NoError(t, err)
-
-	context := operator.BuildContext{
-		PluginRegistry: registry,
-		Logger:         logger.Sugar(),
-	}
 
 	pipelineConfig := Config{
 		Params{
@@ -283,15 +280,7 @@ pipeline:
 }
 
 func TestBuildInvalidPipelineInvalidType(t *testing.T) {
-	registry := operator.PluginRegistry{}
-	logCfg := zap.NewProductionConfig()
-	logger, err := logCfg.Build()
-	require.NoError(t, err)
-
-	context := operator.BuildContext{
-		PluginRegistry: registry,
-		Logger:         logger.Sugar(),
-	}
+	context := testutil.NewBuildContext(t)
 
 	pipelineConfig := Config{
 		Params{
@@ -305,13 +294,13 @@ func TestBuildInvalidPipelineInvalidType(t *testing.T) {
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context)
+	_, err := pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unsupported `type` for operator config")
 }
 
 func TestBuildInvalidPipelineInvalidParam(t *testing.T) {
-	registry := operator.PluginRegistry{}
+	context := testutil.NewBuildContext(t)
 	pluginTemplate := `
 pipeline:
   - id: plugin_generate
@@ -321,17 +310,8 @@ pipeline:
       message: test
     output: {{.output}}
 `
-	err := registry.Add("plugin", pluginTemplate)
+	err := context.PluginRegistry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
-
-	logCfg := zap.NewProductionConfig()
-	logger, err := logCfg.Build()
-	require.NoError(t, err)
-
-	context := operator.BuildContext{
-		PluginRegistry: registry,
-		Logger:         logger.Sugar(),
-	}
 
 	pipelineConfig := Config{
 		Params{
@@ -351,16 +331,6 @@ pipeline:
 }
 
 func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
-	registry := operator.PluginRegistry{}
-	logCfg := zap.NewProductionConfig()
-	logger, err := logCfg.Build()
-	require.NoError(t, err)
-
-	context := operator.BuildContext{
-		PluginRegistry: registry,
-		Logger:         logger.Sugar(),
-	}
-
 	pipelineConfig := Config{
 		Params{
 			"id":     "tcp_input",
@@ -373,22 +343,13 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context)
+	context := testutil.NewBuildContext(t)
+	_, err := pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing required parameter 'listen_address'")
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
-	registry := operator.PluginRegistry{}
-	logCfg := zap.NewProductionConfig()
-	logger, err := logCfg.Build()
-	require.NoError(t, err)
-
-	context := operator.BuildContext{
-		PluginRegistry: registry,
-		Logger:         logger.Sugar(),
-	}
-
 	pipelineConfig := Config{
 		Params{
 			"id":    "generate_input",
@@ -407,9 +368,62 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context)
+	context := testutil.NewBuildContext(t)
+	_, err := pipelineConfig.BuildPipeline(context)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not exist")
+}
+
+func TestBuildPipelineDefaultOutputInPlugin(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+	pluginTemplate := `
+pipeline:
+  - id: plugin_generate1
+    type: generate_input
+    entry:
+      record: test
+    output: {{.output}}
+  - id: plugin_generate2
+    type: generate_input
+    entry:
+      record: test
+    output: {{.output}}
+`
+	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	require.NoError(t, err)
+
+	config := Config{
+		{
+			"id":   "my_plugin",
+			"type": "plugin",
+		},
+		{
+			"id":   "my_drop",
+			"type": "drop_output",
+		},
+	}
+
+	configs, err := config.buildOperatorConfigs(context.PluginRegistry)
+	require.NoError(t, err)
+	require.Len(t, configs, 3)
+
+	operators, err := config.buildOperators(configs, context)
+	require.Len(t, operators, 3)
+
+	for _, operator := range operators {
+		if !operator.CanOutput() {
+			continue
+		}
+		if err := operator.SetOutputs(operators); err != nil {
+			require.NoError(t, err)
+		}
+	}
+
+	require.Len(t, operators[0].Outputs(), 1)
+	require.Equal(t, "$.my_drop", operators[0].Outputs()[0].ID())
+	require.Len(t, operators[1].Outputs(), 1)
+	require.Equal(t, "$.my_drop", operators[1].Outputs()[0].ID())
+	require.Len(t, operators[2].Outputs(), 0)
 }
 
 func TestMultiRoundtripParams(t *testing.T) {

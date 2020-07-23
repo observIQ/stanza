@@ -33,6 +33,24 @@ func (c Config) BuildPipeline(context operator.BuildContext) (*Pipeline, error) 
 	return pipeline, nil
 }
 
+func (c Config) buildOperatorConfigs(pluginRegistry operator.PluginRegistry) ([]operator.Config, error) {
+	operatorConfigs := make([]operator.Config, 0, len(c))
+
+	for i, params := range c {
+		if err := params.Validate(); err != nil {
+			return nil, errors.Wrap(err, "validate config params")
+		}
+
+		configs, err := params.BuildConfigs(pluginRegistry, "$", c.defaultOutput(i, "$"))
+		if err != nil {
+			return nil, errors.Wrap(err, "build operator configs")
+		}
+		operatorConfigs = append(operatorConfigs, configs...)
+	}
+
+	return operatorConfigs, nil
+}
+
 func (c Config) buildOperators(operatorConfigs []operator.Config, context operator.BuildContext) ([]operator.Operator, error) {
 	operators := make([]operator.Operator, 0, len(operatorConfigs))
 	for _, operatorConfig := range operatorConfigs {
@@ -51,22 +69,13 @@ func (c Config) buildOperators(operatorConfigs []operator.Config, context operat
 	return operators, nil
 }
 
-func (c Config) buildOperatorConfigs(pluginRegistry operator.PluginRegistry) ([]operator.Config, error) {
-	operatorConfigs := make([]operator.Config, 0, len(c))
-
-	for _, params := range c {
-		if err := params.Validate(); err != nil {
-			return nil, errors.Wrap(err, "validate config params")
-		}
-
-		configs, err := params.BuildConfigs(pluginRegistry, "$")
-		if err != nil {
-			return nil, errors.Wrap(err, "build operator configs")
-		}
-		operatorConfigs = append(operatorConfigs, configs...)
+// default returns an array containing the next operator in the pipeline
+// if it exists, where i is the index of the current operator
+func (c Config) defaultOutput(i int, namespace string) []string {
+	if i+1 < len(c) {
+		return []string{helper.AddNamespace(c[i+1].ID(), namespace)}
 	}
-
-	return operatorConfigs, nil
+	return []string{}
 }
 
 // Params is a raw params map that can be converted into an operator config.
@@ -110,8 +119,11 @@ func (p Params) TemplateInput(namespace string) string {
 }
 
 // TemplateOutput will return the template output.
-func (p Params) TemplateOutput(namespace string) string {
+func (p Params) TemplateOutput(namespace string, defaultOutput []string) string {
 	outputs := p.NamespacedOutputs(namespace)
+	if len(outputs) == 0 {
+		outputs = defaultOutput
+	}
 	return fmt.Sprintf("[%s]", strings.Join(outputs[:], ", "))
 }
 
@@ -178,13 +190,13 @@ func (p Params) getStringArray(key string) []string {
 }
 
 // BuildConfigs will build operator configs from a params map.
-func (p Params) BuildConfigs(pluginRegistry operator.PluginRegistry, namespace string) ([]operator.Config, error) {
+func (p Params) BuildConfigs(pluginRegistry operator.PluginRegistry, namespace string, defaultOutput []string) ([]operator.Config, error) {
 	if operator.IsDefined(p.Type()) {
 		return p.buildAsBuiltin(namespace)
 	}
 
 	if pluginRegistry.IsDefined(p.Type()) {
-		return p.buildPlugin(pluginRegistry, namespace)
+		return p.buildPlugin(pluginRegistry, namespace, defaultOutput)
 	}
 
 	return nil, errors.NewError(
@@ -216,14 +228,14 @@ func (p Params) buildAsBuiltin(namespace string) ([]operator.Config, error) {
 }
 
 // buildPlugin will build a plugin config from a params map.
-func (p Params) buildPlugin(pluginRegistry operator.PluginRegistry, namespace string) ([]operator.Config, error) {
+func (p Params) buildPlugin(pluginRegistry operator.PluginRegistry, namespace string, defaultOutput []string) ([]operator.Config, error) {
 	templateParams := map[string]interface{}{}
 	for key, value := range p {
 		templateParams[key] = value
 	}
 
 	templateParams["input"] = p.TemplateInput(namespace)
-	templateParams["output"] = p.TemplateOutput(namespace)
+	templateParams["output"] = p.TemplateOutput(namespace, defaultOutput)
 
 	config, err := pluginRegistry.Render(p.Type(), templateParams)
 	if err != nil {
@@ -233,7 +245,7 @@ func (p Params) buildPlugin(pluginRegistry operator.PluginRegistry, namespace st
 	exclusions := p.NamespaceExclusions(namespace)
 	for _, operatorConfig := range config.Pipeline {
 		innerNamespace := p.NamespacedID(namespace)
-		operatorConfig.SetNamespace(innerNamespace, exclusions...)
+		operatorConfig.SetNamespace(innerNamespace, append(exclusions, defaultOutput...)...)
 	}
 
 	return config.Pipeline, nil
