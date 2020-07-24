@@ -40,6 +40,9 @@ jobs:
       - attach_workspace:
           at: ./artifacts
       - run:
+          name: Download Version File
+          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/version.json -o ./artifacts/version.json
+      - run:
           name: Download Plugins Tarball
           command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.tar.gz -o ./artifacts/carbon-plugins.tar.gz
       - run:
