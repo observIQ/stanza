@@ -5,40 +5,24 @@ package windows
 import (
 	"fmt"
 	"syscall"
-
-	"golang.org/x/text/encoding/unicode"
 )
-
-const bookmarkBufferSize = 16384
 
 // Bookmark is a windows event bookmark.
 type Bookmark struct {
 	handle uintptr
-	xml    string
-	buffer []byte
 }
 
-// IsOpen indicates if the bookmark handle is open.
-func (b *Bookmark) IsOpen() bool {
-	return b.handle != 0
-}
-
-// IsDefined indicates if the bookmark has an XML definition.
-func (b *Bookmark) IsDefined() bool {
-	return b.xml == ""
-}
-
-// Open will open the bookmark handle using the bookmark's XML.
-func (b *Bookmark) Open() error {
-	if b.IsOpen() {
+// Open will open the bookmark handle using the supplied xml.
+func (b *Bookmark) Open(offsetXML string) error {
+	if b.handle != 0 {
 		return fmt.Errorf("bookmark handle is already open")
 	}
 
-	if !b.IsDefined() {
+	if offsetXML == "" {
 		return nil
 	}
 
-	utf16, err := syscall.UTF16PtrFromString(b.xml)
+	utf16, err := syscall.UTF16PtrFromString(offsetXML)
 	if err != nil {
 		return fmt.Errorf("failed to convert bookmark xml to utf16: %s", err)
 	}
@@ -52,32 +36,42 @@ func (b *Bookmark) Open() error {
 	return nil
 }
 
-// Update will update the bookmark based on the supplied event handle.
-func (b *Bookmark) Update(eventHandle uintptr) error {
-	if !b.IsOpen() {
+// Update will update the bookmark based on the supplied event.
+func (b *Bookmark) Update(event Event) error {
+	if b.handle == 0 {
 		handle, err := evtCreateBookmark(nil)
 		if err != nil {
-			return fmt.Errorf("failed to create new bookmark handle: %s", err)
+			return fmt.Errorf("syscall to `EvtCreateBookmark` failed: %s", err)
 		}
 		b.handle = handle
 	}
 
-	if err := evtUpdateBookmark(b.handle, eventHandle); err != nil {
-		return fmt.Errorf("failed to update bookmark: %s", err)
+	if err := evtUpdateBookmark(b.handle, event.handle); err != nil {
+		return fmt.Errorf("syscall to `EvtUpdateBookmark` failed: %s", err)
 	}
 
-	xml, err := b.render()
-	if err != nil {
-		return err
-	}
-
-	b.xml = xml
 	return nil
+}
+
+// Render will render the bookmark as xml.
+func (b *Bookmark) Render(buffer Buffer) (string, error) {
+	var bufferUsed, propertyCount uint32
+	err := evtRender(0, b.handle, EvtRenderBookmark, buffer.Size(), buffer.FirstByte(), &bufferUsed, &propertyCount)
+	if err == ErrorInsufficientBuffer {
+		buffer.UpdateSize(bufferUsed)
+		return b.Render(buffer)
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("syscall to 'EvtRender' failed: %s", err)
+	}
+
+	return buffer.ReadString(bufferUsed)
 }
 
 // Close will close the bookmark handle.
 func (b *Bookmark) Close() error {
-	if !b.IsOpen() {
+	if b.handle == 0 {
 		return nil
 	}
 
@@ -89,37 +83,9 @@ func (b *Bookmark) Close() error {
 	return nil
 }
 
-// Render will render the bookmark as XML.
-func (b *Bookmark) render() (string, error) {
-	if !b.IsOpen() {
-		return "", fmt.Errorf("bookmark handle is not open")
-	}
-
-	var bufferUsed, propertyCount uint32
-	err := evtRender(0, b.handle, 1, uint32(len(b.buffer)), &b.buffer[0], &bufferUsed, &propertyCount)
-	if err == ErrorInsufficientBuffer {
-		b.buffer = make([]byte, bufferUsed)
-		return b.render()
-	}
-
-	if err != nil {
-		return "", fmt.Errorf("syscall 'evtRender' failed: %s", err)
-	}
-
-	utf16 := b.buffer[:bufferUsed]
-	bytes, err := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder().Bytes(utf16)
-	if err != nil {
-		return "", fmt.Errorf("failed to convert bookmark to utf8 string: %s", err)
-	}
-
-	return string(bytes), nil
-}
-
-// NewBookmark will create a new bookmark.
-func NewBookmark(xml string) Bookmark {
+// NewBookmark will create a new bookmark with an empty handle.
+func NewBookmark() Bookmark {
 	return Bookmark{
 		handle: 0,
-		xml:    xml,
-		buffer: make([]byte, bookmarkBufferSize),
 	}
 }

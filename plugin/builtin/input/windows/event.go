@@ -3,66 +3,77 @@
 package windows
 
 import (
-	"time"
-
-	"github.com/observiq/carbon/entry"
+	"fmt"
 )
 
-// Event is an event rendered from the windows event log api.
+// Event is an event stored in windows event log.
 type Event struct {
-	Computer   string   `xml:"System>Computer"`
-	Channel    string   `xml:"System>Channel"`
-	RecordID   uint64   `xml:"System>EventRecordID"`
-	SystemTime string   `xml:"System>TimeCreated>SystemTime,attr"`
-	Message    string   `xml:"RenderingInfo>Message"`
-	Level      string   `xml:"RenderingInfo>Level"`
-	Task       string   `xml:"RenderingInfo>Task"`
-	Opcode     string   `xml:"RenderingInfo>Opcode"`
-	Keywords   []string `xml:"RenderingInfo>Keywords>Keyword"`
+	handle uintptr
 }
 
-// parseTimestamp will parse the timestamp of the event.
-func (e *Event) parseTimestamp() time.Time {
-	if timestamp, err := time.Parse(time.RFC3339Nano, e.SystemTime); err != nil {
-		return timestamp
+// RenderSimple will render the event as EventXML without formatted info.
+func (e *Event) RenderSimple(buffer Buffer) (EventXML, error) {
+	if e.handle == 0 {
+		return EventXML{}, fmt.Errorf("event handle does not exist")
 	}
-	return time.Now()
-}
 
-// parseSeverity will parse the severity of the event.
-func (e *Event) parseSeverity() entry.Severity {
-	switch e.Level {
-	case "Critical":
-		return entry.Critical
-	case "Error":
-		return entry.Error
-	case "Warning":
-		return entry.Warning
-	case "Informational":
-		return entry.Info
-	default:
-		return entry.Default
+	var bufferUsed, propertyCount uint32
+	err := evtRender(0, e.handle, EvtRenderEventXML, buffer.Size(), buffer.FirstByte(), &bufferUsed, &propertyCount)
+	if err == ErrorInsufficientBuffer {
+		buffer.UpdateSize(bufferUsed)
+		return e.RenderSimple(buffer)
 	}
-}
 
-// parseRecord will parse a record from the event.
-func (e *Event) parseRecord() map[string]interface{} {
-	return map[string]interface{}{
-		"computer":  e.Computer,
-		"channel":   e.Channel,
-		"record_id": e.RecordID,
-		"message":   e.Message,
-		"task":      e.Task,
-		"opcode":    e.Opcode,
-		"keywords":  e.Keywords,
+	if err != nil {
+		return EventXML{}, fmt.Errorf("syscall to 'EvtRender' failed: %s", err)
 	}
+
+	bytes, err := buffer.ReadBytes(bufferUsed)
+	if err != nil {
+		return EventXML{}, fmt.Errorf("failed to read bytes from buffer: %s", err)
+	}
+
+	return unmarshalEventXML(bytes)
 }
 
-// ToEntry will convert the event into a carbon entry.
-func (e *Event) ToEntry() *entry.Entry {
-	return &entry.Entry{
-		Timestamp: e.parseTimestamp(),
-		Severity:  e.parseSeverity(),
-		Record:    e.parseRecord(),
+// RenderFormatted will render the event as EventXML with formatted info.
+func (e *Event) RenderFormatted(buffer Buffer, publisher Publisher) (EventXML, error) {
+	var bufferUsed uint32
+	err := evtFormatMessage(publisher.handle, e.handle, 0, 0, 0, EvtFormatMessageXML, buffer.Size(), buffer.FirstByte(), &bufferUsed)
+	if err == ErrorInsufficientBuffer {
+		buffer.UpdateSize(bufferUsed)
+		return e.RenderFormatted(buffer, publisher)
+	}
+
+	if err != nil {
+		return EventXML{}, fmt.Errorf("syscall to 'EvtFormatMessage' failed: %s", err)
+	}
+
+	bytes, err := buffer.ReadBytes(bufferUsed)
+	if err != nil {
+		return EventXML{}, fmt.Errorf("failed to read bytes from buffer: %s", err)
+	}
+
+	return unmarshalEventXML(bytes)
+}
+
+// Close will close the event handle.
+func (e *Event) Close() error {
+	if e.handle == 0 {
+		return nil
+	}
+
+	if err := evtClose(e.handle); err != nil {
+		return fmt.Errorf("failed to close event: %s", err)
+	}
+
+	e.handle = 0
+	return nil
+}
+
+// NewEvent will create a new event from a handle.
+func NewEvent(handle uintptr) Event {
+	return Event{
+		handle: handle,
 	}
 }

@@ -10,17 +10,19 @@ import (
 )
 
 var (
-	api                = windows.NewLazySystemDLL("wevtapi.dll")
-	subscribeProc      = api.NewProc("EvtSubscribe")
-	nextProc           = api.NewProc("EvtNext")
-	renderProc         = api.NewProc("EvtRender")
-	closeProc          = api.NewProc("EvtClose")
-	createBookmarkProc = api.NewProc("EvtCreateBookmark")
-	updateBookmarkProc = api.NewProc("EvtUpdateBookmark")
+	api                       = windows.NewLazySystemDLL("wevtapi.dll")
+	subscribeProc             = api.NewProc("EvtSubscribe")
+	nextProc                  = api.NewProc("EvtNext")
+	renderProc                = api.NewProc("EvtRender")
+	closeProc                 = api.NewProc("EvtClose")
+	createBookmarkProc        = api.NewProc("EvtCreateBookmark")
+	updateBookmarkProc        = api.NewProc("EvtUpdateBookmark")
+	openPublisherMetadataProc = api.NewProc("EvtOpenPublisherMetadata")
+	formatMessageProc         = api.NewProc("EvtFormatMessage")
 )
 
 const (
-	// EvtSubscribeToFutureEvents is a flat that will subscribe to only future events.
+	// EvtSubscribeToFutureEvents is a flag that will subscribe to only future events.
 	EvtSubscribeToFutureEvents uint32 = 1
 	// EvtSubscribeStartAtOldestRecord is a flag that will subscribe to all existing and future events.
 	EvtSubscribeStartAtOldestRecord uint32 = 2
@@ -31,8 +33,22 @@ const (
 const (
 	// ErrorInsufficientBuffer is an error code that indicates the data area passed to a system call is too small
 	ErrorInsufficientBuffer syscall.Errno = 122
-	// ErrorNoMoreItems is an error code that indicates no more data is available.
+	// ErrorNoMoreItems is an error code that indicates no more items are available.
 	ErrorNoMoreItems syscall.Errno = 259
+	// ErrorInvalidOperation is an error code that indicates the operation identifier is not valid
+	ErrorInvalidOperation syscall.Errno = 4317
+)
+
+const (
+	// EvtFormatMessageXML is flag that formats a message as an XML string that contains all event details and message strings.
+	EvtFormatMessageXML uint32 = 9
+)
+
+const (
+	// EvtRenderEventXML is a flag to render an event as an XML string
+	EvtRenderEventXML uint32 = 1
+	// EvtRenderBookmark is a flag to render a bookmark as an XML string
+	EvtRenderBookmark uint32 = 2
 )
 
 // evtSubscribe is the direct syscall implementation of EvtSubscribe (https://docs.microsoft.com/en-us/windows/win32/api/winevt/nf-winevt-evtsubscribe)
@@ -88,6 +104,26 @@ func evtCreateBookmark(bookmarkXML *uint16) (uintptr, error) {
 // evtUpdateBookmark is the direct syscall implementation of EvtUpdateBookmark (https://docs.microsoft.com/en-us/windows/win32/api/winevt/nf-winevt-evtcreatebookmark)
 func evtUpdateBookmark(bookmark uintptr, event uintptr) error {
 	result, _, err := updateBookmarkProc.Call(bookmark, event)
+	if result == 0 {
+		return err
+	}
+
+	return nil
+}
+
+// evtOpenPublisherMetadata is the direct syscall implementation of EvtOpenPublisherMetadata (https://docs.microsoft.com/en-us/windows/win32/api/winevt/nf-winevt-evtopenpublishermetadata)
+func evtOpenPublisherMetadata(session uintptr, publisherIdentity *uint16, logFilePath *uint16, locale uint32, flags uint32) (uintptr, error) {
+	handle, _, err := openPublisherMetadataProc.Call(session, uintptr(unsafe.Pointer(publisherIdentity)), uintptr(unsafe.Pointer(logFilePath)), uintptr(locale), uintptr(flags))
+	if handle == 0 {
+		return 0, err
+	}
+
+	return handle, nil
+}
+
+// evtFormatMessage is the direct syscall implementation of EvtFormatMessage (https://docs.microsoft.com/en-us/windows/win32/api/winevt/nf-winevt-evtformatmessage)
+func evtFormatMessage(publisherMetadata uintptr, event uintptr, messageID uint32, valueCount uint32, values uintptr, flags uint32, bufferSize uint32, buffer *byte, bufferUsed *uint32) error {
+	result, _, err := formatMessageProc.Call(publisherMetadata, event, uintptr(messageID), uintptr(valueCount), values, uintptr(flags), uintptr(bufferSize), uintptr(unsafe.Pointer(buffer)), uintptr(unsafe.Pointer(bufferUsed)))
 	if result == 0 {
 		return err
 	}
