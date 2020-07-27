@@ -204,7 +204,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "bad_parameters_type",
+			name:      "bad_parameters",
 			expectErr: true,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -252,7 +252,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "bad_parameter_type",
+			name:      "bad_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -277,7 +277,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "unknown_parameter_type",
+			name:      "unknown_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -291,7 +291,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "string_parameter_type",
+			name:      "string_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -335,7 +335,53 @@ pipeline:
 `,
 		},
 		{
-			name:      "int_parameter_type",
+			name:      "strings_parameter",
+			expectErr: false,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Parameter
+    description: The thing of the thing
+    type: strings
+pipeline:
+`,
+		},
+		{
+			name:      "strings_parameter_default",
+			expectErr: false,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Parameter
+    description: The thing of the thing
+    type: strings
+    default: 
+     - hello
+pipeline:
+`,
+		},
+		{
+			name:      "strings_parameter_default_invalid",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Parameter
+    description: The thing of the thing
+    type: strings
+    default: hello
+pipeline:
+`,
+		},
+
+		{
+			name:      "int_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -379,7 +425,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "bool_parameter_type",
+			name:      "bool_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -438,7 +484,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "enum_parameter_type",
+			name:      "enum_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -447,12 +493,13 @@ parameters:
   path:
     label: Parameter
     description: The thing of the thing
-    type: ["one", "two"]
+    type: enum
+    valid_values: ["one", "two"]
 pipeline:
 `,
 		},
 		{
-			name:      "enum_parameter_type_alternate",
+			name:      "enum_parameter_alternate",
 			expectErr: false,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -461,14 +508,15 @@ parameters:
   path:
     label: Parameter
     description: The thing of the thing
-    type:
+    type: enum
+    valid_values:
      - one
      - two
 pipeline:
 `,
 		},
 		{
-			name:      "enum_parameter_type_default",
+			name:      "enum_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -477,7 +525,8 @@ parameters:
   path:
     label: Parameter
     description: The thing of the thing
-    type:
+    type: enum
+    valid_values:
      - one
      - two
     default: one
@@ -485,7 +534,7 @@ pipeline:
 `,
 		},
 		{
-			name:      "enum_parameter_type_default_invalid",
+			name:      "enum_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -494,7 +543,8 @@ parameters:
   path:
     label: Parameter
     description: The thing of the thing
-    type:
+    type: enum
+    valid_values:
      - one
      - two
     default: three
@@ -502,7 +552,21 @@ pipeline:
 `,
 		},
 		{
-			name:      "default_invalid_type",
+			name:      "enum_parameter_no_valid_values",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Parameter
+    description: The thing of the thing
+    type: enum
+pipeline:
+`,
+		},
+		{
+			name:      "default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
 title: My Super Plugin
@@ -529,6 +593,21 @@ parameters:
     required: true
     type: int
     default: 123
+pipeline:
+`,
+		},
+		{
+			name:      "non_enum_valid_values",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Parameter
+    description: The thing of the thing
+    type: int
+    valid_values: [1, 2, 3]
 pipeline:
 `,
 		},
