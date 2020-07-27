@@ -1,6 +1,8 @@
 package input
 
 import (
+	"fmt"
+	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -30,8 +32,10 @@ func TestTCPInput(t *testing.T) {
 	}
 
 	t.Run("Simple", func(t *testing.T) {
+		port := rand.Int()%16000 + 49152
+		address := fmt.Sprintf("127.0.0.1:%d", port)
 		cfg := basicTCPInputConfig()
-		cfg.ListenAddress = "127.0.0.1:64001"
+		cfg.ListenAddress = address
 
 		buildContext := testutil.NewBuildContext(t)
 		newOperator, err := cfg.Build(buildContext)
@@ -50,7 +54,7 @@ func TestTCPInput(t *testing.T) {
 		require.NoError(t, err)
 		defer tcpInput.Stop()
 
-		conn, err := net.Dial("tcp", "127.0.0.1:64001")
+		conn, err := net.Dial("tcp", address)
 		require.NoError(t, err)
 		defer conn.Close()
 
