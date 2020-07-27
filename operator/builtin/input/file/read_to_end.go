@@ -10,7 +10,9 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/operator/helper"
+	"go.uber.org/zap"
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/transform"
 )
 
 // ReadToEnd will read entries from a file and send them to the outputs of an input operator
@@ -75,9 +77,17 @@ func ReadToEnd(
 
 	emit := func(msgBuf []byte) {
 		decoder.Reset()
-		nDst, _, err := decoder.Transform(decodeBuffer, msgBuf, true)
-		if err != nil {
-			panic(err)
+		var nDst int
+		for {
+			nDst, _, err = decoder.Transform(decodeBuffer, msgBuf, true)
+			if err != nil && err == transform.ErrShortDst {
+				decodeBuffer = make([]byte, len(decodeBuffer)*2)
+				continue
+			} else if err != nil {
+				inputOperator.Errorw("failed to transform encoding", zap.Error(err))
+				return
+			}
+			break
 		}
 
 		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
