@@ -230,6 +230,8 @@ func (f *InputOperator) Start() error {
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
+		defer f.syncKnownFiles()
+		defer f.drainMessages()
 
 		globTicker := time.NewTicker(f.PollInterval)
 		defer globTicker.Stop()
@@ -242,9 +244,6 @@ func (f *InputOperator) Start() error {
 		for {
 			select {
 			case <-ctx.Done():
-				f.drainMessages()
-				f.readerWg.Wait()
-				f.syncKnownFiles()
 				return
 			case <-globTicker.C:
 				matches := getMatches(f.Include, f.Exclude)
@@ -256,8 +255,10 @@ func (f *InputOperator) Start() error {
 				}
 				f.syncKnownFiles()
 				firstCheck = false
-			case message := <-f.fileUpdateChan:
-				f.updateFile(message)
+			case message, ok := <-f.fileUpdateChan:
+				if ok {
+					f.updateFile(message)
+				}
 			}
 		}
 	}()
@@ -269,7 +270,7 @@ func (f *InputOperator) Start() error {
 func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
-	f.syncKnownFiles()
+	f.fileUpdateChan = make(chan fileUpdateMessage)
 	f.knownFiles = nil
 	return nil
 }
@@ -314,6 +315,7 @@ func (f *InputOperator) checkFile(ctx context.Context, path string, firstCheck b
 	go func(ctx context.Context, path string, offset, lastSeenSize int64) {
 		defer f.readerWg.Done()
 		messenger := f.newFileUpdateMessenger(path)
+		defer messenger.FinishedReading()
 		err := ReadToEnd(ctx, path, offset, lastSeenSize, messenger, f.SplitFunc, f.FilePathField, f.FileNameField, f.InputOperator, f.MaxLogSize, f.encoding)
 		if err != nil {
 			f.Warnw("Failed to read log file", zap.Error(err))
@@ -386,19 +388,17 @@ func (f *InputOperator) updateFile(message fileUpdateMessage) {
 }
 
 func (f *InputOperator) drainMessages() {
-	done := make(chan struct{})
 	go func() {
 		f.readerWg.Wait()
-		close(done)
+		close(f.fileUpdateChan)
 	}()
 
 	for {
-		select {
-		case <-done:
+		message, ok := <-f.fileUpdateChan
+		if !ok {
 			return
-		case message := <-f.fileUpdateChan:
-			f.updateFile(message)
 		}
+		f.updateFile(message)
 	}
 }
 

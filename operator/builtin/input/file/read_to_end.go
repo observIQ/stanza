@@ -29,8 +29,6 @@ func ReadToEnd(
 	maxLogSize int,
 	encoding encoding.Encoding,
 ) error {
-	defer messenger.FinishedReading()
-
 	select {
 	case <-ctx.Done():
 		return nil
