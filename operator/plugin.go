@@ -21,13 +21,6 @@ type PluginConfig struct {
 	Pipeline    []Config
 }
 
-// PluginParameter is a basic description of a plugin's parameter.
-type PluginParameter struct {
-	Label       string
-	Description string
-	Type        string
-}
-
 // PluginRegistry is a registry of plugin templates.
 type PluginRegistry map[string]*template.Template
 
@@ -61,6 +54,19 @@ func (r PluginRegistry) Render(pluginType string, params map[string]interface{})
 			"rendered_config", writer.String(),
 			"error_message", err.Error(),
 		)
+	}
+
+	for name, param := range config.Parameters {
+		if err := param.validate(); err != nil {
+			return PluginConfig{}, errors.NewError(
+				"invalid parameter description found in plugin config",
+				"ensure that all parameter descriptioins are valid for the plugin",
+				"plugin_type", pluginType,
+				"plugin_parameter", name,
+				"rendered_config", writer.String(),
+				"error_message", err.Error(),
+			)
+		}
 	}
 
 	return config, nil
