@@ -68,57 +68,57 @@ A PR is considered to be **ready to merge** when:
 
 ## Design Choices
 
-Best practices for developing a builtin plugin are documented below, but for changes to
+Best practices for developing a builtin operator are documented below, but for changes to
 the core agent, we are happy to discuss proposals in the issue tracker.
 
-### Builtin Plugin Development
+### Builtin Operator Development
 
-In order to write a builtin plugin, follow these three steps:
-1. Build a unique struct that satisfies the [`Plugin`](plugin/plugin.go) interface. This struct will define what your plugin does when executed in the pipeline.
+In order to write a builtin operator, follow these three steps:
+1. Build a unique struct that satisfies the [`Operator`](operator/operator.go) interface. This struct will define what your operator does when executed in the pipeline.
 
 ```go
-type ExamplePlugin struct {
+type ExampleOperator struct {
 	FilePath string
 }
 
-func (p *ExamplePlugin) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *ExampleOperator) Process(ctx context.Context, entry *entry.Entry) error {
 	// Processing logic
 }
 ```
 
-2. Build a unique config struct that satisfies the [`Config`](plugin/config.go) interface. This struct will define the parameters used to configure and build your plugin struct in step 1.
+2. Build a unique config struct that satisfies the [`Config`](operator/config.go) interface. This struct will define the parameters used to configure and build your operator struct in step 1.
 
 ```go
-type ExamplePluginConfig struct {
+type ExampleOperatorConfig struct {
 	filePath string
 }
 
-func (c ExamplePluginConfig) Build(context plugin.BuildContext) (plugin.Plugin, error) {
-	return &ExamplePlugin{
+func (c ExampleOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+	return &ExampleOperator{
 		filePath: c.FilePath,
 	}, nil
 }
 ```
 
-3. Register your config struct in the plugin registry using an `init()` hook. This will ensure that the agent knows about your plugin at runtime and can build it from a YAML config.
+3. Register your config struct in the operator registry using an `init()` hook. This will ensure that the agent knows about your operator at runtime and can build it from a YAML config.
 
 ```go
 func init() {
-	plugin.Register("example_plugin", &ExamplePluginConfig{})
+	operator.Register("example_operator", &ExampleOperatorConfig{})
 }
 ```
 
-## Any tips for building plugins?
-We highly recommend that developers take advantage of [helpers](plugin/helper) when building their plugins. Helpers are structs that help satisfy common behavior shared across many plugins. By embedding these structs, you can skip having to satisfy certain aspects of the `plugin` and `config` interfaces.
+## Any tips for building operators?
+We highly recommend that developers take advantage of [helpers](operator/helper) when building their operators. Helpers are structs that help satisfy common behavior shared across many operators. By embedding these structs, you can skip having to satisfy certain aspects of the `operator` and `config` interfaces.
 
-For example, almost all plugins should embed the [BasicPlugin](plugin/helper/basic_plugin.go) helper, as it provides simple functionality for returning a plugin id and plugin type.
+For example, almost all operators should embed the [BasicOperator](operator/helper/basic_operator.go) helper, as it provides simple functionality for returning an operator id and operator type.
 
 ```go
-// ExamplePlugin is a basic plugin, with a basic lifecycle, that consumes
-// but doesn't send log entries. Rather than implementing every part of the plugin
+// ExampleOperator is a basic operator, with a basic lifecycle, that consumes
+// but doesn't send log entries. Rather than implementing every part of the operator
 // interface, we can embed the following helpers to achieve this effect.
-type ExamplePlugin struct {
-	helper.BasicPlugin
+type ExampleOperator struct {
+	helper.BasicOperator
 	helper.BasicLifecycle
 	helper.BasicOutput
 }
