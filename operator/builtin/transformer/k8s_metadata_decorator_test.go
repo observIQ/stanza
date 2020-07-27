@@ -53,6 +53,7 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 		podNameField:   entry.NewRecordField("pod_name"),
 		namespaceField: entry.NewRecordField("namespace"),
 		cacheTTL:       10 * time.Minute,
+		timeout:        10 * time.Second,
 	}
 
 	operator, err := cfg.Build(testutil.NewBuildContext(t))

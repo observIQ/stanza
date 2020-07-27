@@ -4,13 +4,14 @@ The `k8s_metadata_decorator` operator adds labels and annotations to the entry u
 
 ### Configuration Fields
 
-| Field             | Default                  | Description                                                                                     |
-| ---               | ---                      | ---                                                                                             |
-| `id`              | `k8s_metadata_decorator` | A unique identifier for the operator                                                            |
-| `output`          | Next in pipeline         | The connected operator(s) that will receive all outbound entries                                |
-| `namespace_field` | `namespace`              | A [field](/docs/types/field.md) that contains the k8s namespace associated with the log entry   |
-| `pod_name_field`  | `pod_name`               | A [field](/docs/types/field.md) that contains the k8s pod name associated with the log entry    |
-| `cache_ttl`       | 10m                      | A [duration](/docs/types/duration.md) indicating the time it takes for a cached entry to expire |
+| Field             | Default                  | Description                                                                                                |
+| ---               | ---                      | ---                                                                                                        |
+| `id`              | `k8s_metadata_decorator` | A unique identifier for the operator                                                                       |
+| `output`          | Next in pipeline         | The connected operator(s) that will receive all outbound entries                                           |
+| `namespace_field` | `namespace`              | A [field](/docs/types/field.md) that contains the k8s namespace associated with the log entry              |
+| `pod_name_field`  | `pod_name`               | A [field](/docs/types/field.md) that contains the k8s pod name associated with the log entry               |
+| `cache_ttl`       | 10m                      | A [duration](/docs/types/duration.md) indicating the time it takes for a cached entry to expire            |
+| `timeout`         | 10s                      | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out |
 
 ### Example Configurations
 
