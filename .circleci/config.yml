@@ -34,6 +34,28 @@ jobs:
           paths:
             - "*"
 
+  fetch-plugins:
+    executor: golang
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: Download Plugins Tarball
+          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.tar.gz -o ./artifacts/carbon-plugins.tar.gz
+      - run:
+          name: Download Plugins Zip
+          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.zip -o ./artifacts/carbon-plugins.zip
+      - persist_to_workspace:
+          root: ./artifacts
+          paths:
+            - "*"
+
+  wait-for-validation:
+    executor: golang
+    resource_class: small
+    steps:
+      - run: echo 'Validation Jobs Complete'
+
   publish-github-release:
     docker:
       - image: cibuilds/github:0.10
@@ -44,6 +66,24 @@ jobs:
           name: "Publish Release on GitHub"
           command: |
             ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/
+
+  publish-docker-release:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: "Publish Release on Docker Hub"
+          command: |
+            docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
+            docker build -t observiq/carbon:${docker_tag} .
+            docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
+            docker push observiq/carbon:${docker_tag}
+            docker tag observiq/carbon:${docker_tag} observiq/carbon:latest
+            docker push observiq/carbon:latest
 
   test-linux:
     executor: golang
@@ -76,9 +116,7 @@ jobs:
           command: make test
 
   test-windows:
-    executor:
-      name: win/default
-      size: large
+    executor: win/default
 
     steps:
       - checkout
@@ -137,7 +175,7 @@ jobs:
           command: mkdir {bin,out,tmp}
       - run:
           name: Build Carbon Agent
-          command: go get -v -t -d ./... && go build -v -o ./bin/carbon ./
+          command: GOPROXY=direct go build -v -o ./bin/carbon ./
       - run:
           name: Build Log Bench
           command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
@@ -358,13 +396,35 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
+      - fetch-plugins:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
+      - wait-for-validation:
           requires:
             - test-linux
             - test-macos
             - test-windows
+            - build
+            - fetch-plugins
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
       - publish-github-release:
           requires:
-            - build
+            - wait-for-validation
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
+      - publish-docker-release:
+          requires:
+            - wait-for-validation
           filters:
             branches:
               ignore: /.*/

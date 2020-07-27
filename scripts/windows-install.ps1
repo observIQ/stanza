@@ -3,7 +3,7 @@ new-module -name LogAgentInstall -scriptblock {
   # Constants
   $DEFAULT_WINDOW_TITLE = $host.ui.rawui.WindowTitle
   $DEFAULT_INSTALL_PATH = 'C:\'
-  $DOWNLOAD_BASE = "https://github.com/observiq/carbon/releases/latest/download"
+  $DOWNLOAD_BASE = "https://github.com/observiq/carbon/releases"
   $SERVICE_NAME = 'carbon'
   $INDENT_WIDTH = '  '
   $MIN_DOT_NET_VERSION = '4.5'
@@ -96,10 +96,10 @@ new-module -name LogAgentInstall -scriptblock {
     Remove-Indent
 
     Show-ColorText ''
-    Show-ColorText '-d, --download_url'
+    Show-ColorText '-v, --version'
     Add-Indent
-    Show-ColorText 'Defines the download url of the agent.' DarkCyan
-    Show-ColorText 'If not provided, this will default to the standard location.' DarkCyan
+    Show-ColorText 'Defines the version of the agent.' DarkCyan
+    Show-ColorText 'If not provided, this will default to the latest version.' DarkCyan
     Remove-Indent
 
     Show-ColorText ''
@@ -213,7 +213,7 @@ new-module -name LogAgentInstall -scriptblock {
     Show-Header "Configuring Installation Variables"
     Add-Indent
     Set-Defaults
-    Set-DownloadURL
+    Set-DownloadURLs
     Set-InstallDir
     Set-HomeDir
     Set-PluginDir
@@ -281,15 +281,22 @@ new-module -name LogAgentInstall -scriptblock {
     Remove-Indent
   }
 
-  # This will set download url for the agent. If not provided as a flag,
-  # this will be constructed from the agent version and download base.
-  function Set-DownloadURL {
-    Show-ColorText 'Configuring download url...'
+  # This will set the urls to use when downloading the agent and its plugins.
+  # These urls are constructed based on the --version flag.
+  # If not specified, the version defaults to "latest".
+  function Set-DownloadURLs {
+    Show-ColorText 'Configuring download urls...'
     Add-Indent
-    if ( !$script:download_url ) {
-      $script:download_url = "$DOWNLOAD_BASE/carbon_windows_amd64"
+    if ( !$script:version ) {
+      $script:agent_download_url = "$DOWNLOAD_BASE/latest/download/carbon_windows_amd64"
+      $script:plugins_download_url = "$DOWNLOAD_BASE/latest/download/carbon-plugins.zip"
     }
-    Show-ColorText "Using download url: " '' "$script:download_url" DarkCyan
+    else {
+      $script:agent_download_url = "$DOWNLOAD_BASE/download/$script:version/carbon_windows_amd64"
+      $script:plugins_download_url = "$DOWNLOAD_BASE/download/$script:version/carbon-plugins.zip"
+    }
+    Show-ColorText "Using agent download url: " '' "$script:agent_download_url" DarkCyan
+    Show-ColorText "Using plugins download url: " '' "$script:plugins_download_url" DarkCyan
     Remove-Indent
   }
 
@@ -403,10 +410,10 @@ new-module -name LogAgentInstall -scriptblock {
     Show-Header "Downloading Carbon Binary"
     Add-Indent
     Show-ColorText 'Downloading binary. Please wait...'
-    Show-ColorText "$INDENT_WIDTH$script:download_url" DarkCyan ' -> ' '' "$script:binary_location" DarkCyan
+    Show-ColorText "$INDENT_WIDTH$script:agent_download_url" DarkCyan ' -> ' '' "$script:binary_location" DarkCyan
     try {
       $WebClient = New-Object System.Net.WebClient
-      $WebClient.DownloadFile($script:download_url, $script:binary_location)
+      $WebClient.DownloadFile($script:agent_download_url, $script:binary_location)
       Complete
     }
     catch {
@@ -414,6 +421,68 @@ new-module -name LogAgentInstall -scriptblock {
       $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
       Exit-Error $MyInvocation.ScriptLineNumber "Failed to download agent binary: $error_message"
     }
+    Remove-Indent
+  }
+
+  # This will download and extract plugins to the plugins directory.
+  function Get-CarbonPlugins {
+    Show-Header "Downloading Carbon Plugins"
+    Add-Indent
+    Show-ColorText 'Downloading plugins. Please wait...'
+    Show-ColorText "$INDENT_WIDTH$script:plugins_download_url" DarkCyan ' -> ' '' "$script:agent_home\plugins.zip" DarkCyan
+
+    try {
+      New-Item -Path "$script:agent_home\download\tmp" -ItemType "directory"
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to create tmp directory plugins: $error_message"
+    }
+
+    try {
+      $WebClient = New-Object System.Net.WebClient
+      $WebClient.DownloadFile($script:plugins_download_url, "$script:agent_home\download\plugins.zip")
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to download plugins: $error_message"
+    }
+
+    try {
+      [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
+      [System.IO.Compression.ZipFile]::ExtractToDirectory("$script:agent_home\download\plugins.zip", "$script:agent_home\download")
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to expand plugins archive: $error_message"
+    }
+
+    try {
+      Copy-Item -Path "$script:agent_home\download\plugins\*.yaml" -Destination "$script:agent_home\plugins"
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to relocate plugins: $error_message"
+    }
+
+    try {
+      Remove-Item -Path "$script:agent_home\download" -Recurse
+      Complete
+    }
+    catch {
+      Failed
+      $error_message = $_.Exception.Message -replace 'Exception calling.*?: ', ''
+      Exit-Error $MyInvocation.ScriptLineNumber "Failed to clean up download: $error_message"
+    }
+
     Remove-Indent
   }
 
@@ -466,16 +535,41 @@ new-module -name LogAgentInstall -scriptblock {
     if (Test-Path $args) { return }
 
     @"
-# pipeline:
-#   - id: example_input
-#     type: generate_input
-#     count: 1
-#     entry:
-#       record: example log
-#     output: example_stdout
-#
-#   - id: example_stdout
-#     type: stdout
+pipeline:
+# An example input that generates a single log entry when Carbon starts up.
+  - type: generate_input
+    count: 1
+    entry:
+      record: This is a sample log generated by Carbon
+    output: example_output
+
+  # An example input that monitors the contents of a file.
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/file_input.md
+  #
+  # - #   type: file_input
+  #   include:
+  #     - /sample/file/path
+  #   output: example_output
+
+  # An example output that sends captured logs to stdout.
+  - id: example_output
+    type: stdout
+
+  # An example output that sends captured logs to google cloud logging.
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/google_cloud_output.md
+  #
+  # - id: example_output
+  #   type: google_cloud_output
+  #   credentials_file: /my/credentials/file
+
+  # An example output that sends captured logs to elasticsearch.
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/elastic_output.md
+  #
+  # - id: example_output
+  #   type: elastic_output
+  #   addresses:
+  #     - http://my_node_address:9200
+  #   api_key: my_api_key
 "@ > $args
   }
 
@@ -566,8 +660,8 @@ new-module -name LogAgentInstall -scriptblock {
       [Alias('y', 'accept_defaults')]
       [string]$script:accept_defaults,
 
-      [Alias('d', 'download_url')]
-      [string]$script:download_url,
+      [Alias('v', 'version')]
+      [string]$script:version,
 
       [Alias('i', 'install_dir')]
       [string]$script:install_dir = '',
@@ -597,6 +691,7 @@ new-module -name LogAgentInstall -scriptblock {
         Set-Permissions
         Remove-AgentService
         Get-CarbonBinary
+        Get-CarbonPlugins
         New-AgentConfig
         New-AgentService
         Complete-Install

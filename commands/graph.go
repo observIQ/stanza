@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/observiq/carbon/agent"
-	"github.com/observiq/carbon/plugin"
-	pg "github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/operator"
+	pg "github.com/observiq/carbon/operator"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -21,7 +21,7 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "graph",
 		Args:  cobra.NoArgs,
-		Short: "Export a dot-formatted representation of the plugin graph",
+		Short: "Export a dot-formatted representation of the operator graph",
 		Run:   func(command *cobra.Command, args []string) { runGraph(command, args, rootFlags) },
 	}
 }
@@ -43,19 +43,19 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	customRegistry, err := plugin.NewCustomRegistry(flags.PluginDir)
+	pluginRegistry, err := operator.NewPluginRegistry(flags.PluginDir)
 	if err != nil {
-		logger.Errorw("Failed to load custom plugin registry", zap.Any("error", err))
+		logger.Errorw("Failed to load plugin registry", zap.Any("error", err))
 	}
 
 	buildContext := pg.BuildContext{
-		CustomRegistry: customRegistry,
+		PluginRegistry: pluginRegistry,
 		Logger:         logger,
 	}
 
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext)
 	if err != nil {
-		logger.Errorw("Failed to build plugin pipeline", zap.Any("error", err))
+		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
 		os.Exit(1)
 	}
 

@@ -1,8 +1,8 @@
 package testutil
 
-// NewMockPlugin will return a basic plugin mock
-func NewMockPlugin(id string) *Plugin {
-	mockOutput := &Plugin{}
+// NewMockOperator will return a basic operator mock
+func NewMockOperator(id string) *Operator {
+	mockOutput := &Operator{}
 	mockOutput.On("ID").Return(id)
 	mockOutput.On("CanProcess").Return(true)
 	mockOutput.On("CanOutput").Return(true)

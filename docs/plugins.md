@@ -1,20 +1,17 @@
 # Plugins
 
-Plugins can be defined by using a file that contains a templated set of builtin plugins.
+Plugins can be defined by using a file that contains a templated set of operators.
 
 For example, a very simple plugin for monitoring Apache Tomcat access logs could look like this:
 `tomcat.yaml`:
 ```yaml
 ---
 pipeline:
-  - id: tomcat_access_reader
-    type: file_input
+  - type: file_input
     include:
       - {{ .path }}
-    output: tomcat_regex_parser
 
-  - id: tomcat_regex_parser
-    type: regex_parser
+  - type: regex_parser
     output: {{ .output }}
     regex: '(?P<remote_host>[^\s]+) - (?P<remote_user>[^\s]+) \[(?P<timestamp>[^\]]+)\] "(?P<http_method>[A-Z]+) (?P<path>[^\s]+)[^"]+" (?P<http_status>\d+) (?P<bytes_sent>[^\s]+)'
 ```
@@ -25,25 +22,22 @@ Once a plugin config has been defined, it can be used in the carbon config file 
 ```yaml
 ---
 pipeline:
-  - id: tomcat_access
-    type: tomcat
-    output: stdout
+  - type: tomcat
     path: /var/log/tomcat/access.log
 
-  - id: stdout
-    type: stdout
+  - type: stdout
 ```
 
-The `tomcat_access` plugin is replaced with the builtin plugins from the rendered config in `tomcat.yaml`.
+The `tomcat_access` plugin is replaced with the operators from the rendered config in `tomcat.yaml`.
 
 ## Building a plugin
 
-Building a plugin is as easy as pulling out a set of builtin plugins in a working configuration file, then templatizing it with
+Building a plugin is as easy as pulling out a set of operators in a working configuration file, then templatizing it with
 any parts of the config that need to be treated as variable. In the example of the Tomcat access log plugin above, that just means
 adding variables for `path` and `output`.
 
 Plugins use Go's [`text/template`](https://golang.org/pkg/text/template/) package for template rendering. All fields from
 the plugin configuration are available as variables in the templates except the `type` field.
 
-For carbon to discover a plugin, it needs to be in the `plugins` directory. This can be set with the
+For carbon to discover a plugin, it needs to be in the `plugins` directory. This can be customized with the
 `--plugin_dir` argument. For a default installation, the plugin directory is located at `$CARBON_HOME/plugins`.

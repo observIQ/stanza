@@ -39,26 +39,19 @@ apiVersion: v1
 data:
   config.yaml: |2-
     pipeline:
-      - id: file_input
-        type: file_input
+      - type: file_input
         include:
           - /var/log/containers/*
         write_to: message
-        path_field: path
-        output: path_parser
+        file_path_field: path
 
-      - id: path_parser
-        type: regex_parser
+      - type: regex_parser
         parse_from: path
         regex: '^/var/log/containers/(?P<pod_name>.*)_(?P<namespace>.*)_(?P<service>.*)-[a-z0-9]+\.log'
-        output: k8s_metadata
 
-      - id: k8s_metadata
-        type: k8s_metadata_decorator
-        output: file_out
+      - type: k8s_metadata_decorator
 
-      - id: file_out
-        type: file_output
+      - type: file_output
         path: /tmp/test.out
 ---
 apiVersion: apps/v1

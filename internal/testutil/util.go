@@ -4,9 +4,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/observiq/carbon/plugin"
+	"github.com/observiq/carbon/operator"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )
@@ -49,9 +50,22 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 }
 
 // NewBuildContext will return a new build context for testing
-func NewBuildContext(t *testing.T) plugin.BuildContext {
-	return plugin.BuildContext{
+func NewBuildContext(t *testing.T) operator.BuildContext {
+	return operator.BuildContext{
 		Database: NewTestDatabase(t),
 		Logger:   zaptest.NewLogger(t).Sugar(),
 	}
+}
+
+func Trim(s string) string {
+	lines := strings.Split(s, "\n")
+	trimmed := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		trimmed = append(trimmed, strings.Trim(line, " \t\n"))
+	}
+
+	return strings.Join(trimmed, "\n")
 }

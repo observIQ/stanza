@@ -7,7 +7,8 @@ set -e
 # Agent Constants
 SERVICE_NAME="carbon"
 BINARY_NAME="carbon"
-DOWNLOAD_BASE="https://github.com/observiq/carbon/releases/latest/download"
+DOWNLOAD_BASE="https://github.com/observiq/carbon/releases"
+PLUGINS_PACKAGE="carbon-plugins.tar.gz"
 
 # Script Constants
 PREREQS="curl hostname printf ps sed uname cut tar"
@@ -131,9 +132,9 @@ usage()
   increase_indent
   USAGE=$(cat <<EOF
 Usage:
-  $(fg_yellow '-d, --download-url')
-      Defines the download url of the agent.
-      If not provided, this will default to the standard location.
+  $(fg_yellow '-v, --version')
+      Defines the version of the agent.
+      If not provided, this will default to the latest version.
 
   $(fg_yellow '-i, --install-dir')
       Defines the install directory of the agent.
@@ -215,7 +216,7 @@ setup_installation()
 
     # Installation variables
     set_os
-    set_download_url
+    set_download_urls
     set_install_dir
     set_agent_home
 
@@ -247,30 +248,33 @@ set_os()
   esac
 }
 
-# This will set the url to use when downloading the agent. If provided,
-# it is set by the download-url flag or DOWNLOAD_URL env variable.
-# Otherwise, it is constructed from the download base, agent version,
-# and package name.
-set_download_url()
+# This will set the urls to use when downloading the agent and its plugins.
+# These urls are constructed based on the --version flag or CARBON_VERSION env variable.
+# If not specified, the version defaults to "latest".
+set_download_urls()
 {
-  if [ -z "$download_url" ] ; then
+  if [ -z "$version" ] ; then
     # shellcheck disable=SC2153
-    download_url="$DOWNLOAD_URL"
+    version=$CARBON_VERSION
   fi
 
-  if [ -z "$download_url" ] ; then
-    download_url="$DOWNLOAD_BASE/${BINARY_NAME}_${os}_amd64"
+  if [ -z "$version" ] ; then
+    agent_download_url="$DOWNLOAD_BASE/latest/download/${BINARY_NAME}_${os}_amd64"
+    plugins_download_url="$DOWNLOAD_BASE/latest/download/${PLUGINS_PACKAGE}"
+  else
+    agent_download_url="$DOWNLOAD_BASE/download/$version/${BINARY_NAME}_${os}_amd64"
+    plugins_download_url="$DOWNLOAD_BASE/download/$version/${PLUGINS_PACKAGE}"
   fi
 }
 
-# This will set the install directory of the agent. If provided,
-# it is set by the install-dir flag or INSTALL_DIR env variable.
-# Otherwise, it defaults to an OS specific value.
+# This will set the install directory of the agent.
+# It is set by the --install-dir flag or CARBON_INSTALL_DIR env variable.
+# If not specified, it defaults to an OS specific value.
 set_install_dir()
 {
   if [ -z "$install_dir" ]; then
     # shellcheck disable=SC2153
-    install_dir=$INSTALL_DIR
+    install_dir=$CARBON_INSTALL_DIR
   fi
 
   if [ -z "$install_dir" ]; then
@@ -292,14 +296,14 @@ set_agent_home()
   agent_home="$install_dir/observiq/carbon"
 }
 
-# This will set the user assigned to the agent service. If provided,
-# it is set by the service-user flag or SERVICE_USER env variable.
-# Otherwise, it defaults to root.
+# This will set the user assigned to the agent service.
+# It is set by the --service-user flag or CARBON_SERVICE_USER env variable.
+# If not specified, it defaults to root.
 set_service_user()
 {
   if [ -z "$service_user" ]; then
     # shellcheck disable=SC2153
-    service_user=$SERVICE_USER
+    service_user=$CARBON_SERVICE_USER
   fi
 
   if [ -z "$service_user" ] ; then
@@ -307,9 +311,8 @@ set_service_user()
   fi
 }
 
-# This will set the location of the binary used to launch
-# the agent. This value cannot be overriden and is based
-# on the location of agent_home.
+# This will set the location of the binary used to launch the agent.
+# This value cannot be overriden and is based on the location of agent_home.
 set_agent_binary()
 {
   agent_binary="$agent_home/$BINARY_NAME"
@@ -405,22 +408,27 @@ install_package()
   mkdir -p "$agent_home"
   succeeded
 
-  info "Creating plugins directory..."
-  mkdir -p "$agent_home/plugins"
-  succeeded
-
   info "Checking that service is not running..."
   stop_service
   succeeded
 
   info "Downloading binary..."
-  curl -L "$download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+  curl -L "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
   succeeded
 
   info "Setting permissions..."
   chmod +x "$agent_binary"
-  ln -s "$agent_binary" "/usr/local/bin/$BINARY_NAME"
+  ln -sf "$agent_binary" "/usr/local/bin/$BINARY_NAME"
   succeeded
+
+  info "Downloading plugins..."
+  mkdir -p "$agent_home/tmp"
+  curl -L "$plugins_download_url" -o "$agent_home/tmp/plugins.tar.gz" --progress-bar --fail || error_exit "$LINENO" "Failed to download plugins"
+  succeeded
+
+  info "Extracting plugins..."
+  tar -zxvf "$agent_home/tmp/plugins.tar.gz" -C "$agent_home"
+  rm -fr "$agent_home/tmp"
 
   success "Carbon installation complete!"
   decrease_indent
@@ -450,16 +458,41 @@ create_config_file()
   fi
 
   cat << EOF > "$1"
-# pipeline:
-#   - id: example_input
-#     type: generate_input
-#     count: 1
-#     record:
-#       message: example log
-#     output: example_stdout
+pipeline:
+  # An example input that generates a single log entry when Carbon starts up.
+  - type: generate_input
+    count: 1
+    entry:
+      record: This is a sample log generated by Carbon
+    output: example_output
 
-#   - id: example_stdout
-#     type: stdout
+  # An example input that monitors the contents of a file.
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/file_input.md
+  #
+  # - type: file_input
+  #   include:
+  #     - /sample/file/path
+  #   output: example_output
+
+  # An example output that sends captured logs to stdout.
+  - id: example_output
+    type: stdout
+
+  # An example output that sends captured logs to google cloud logging.
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/google_cloud_output.md
+  #
+  # - id: example_output
+  #   type: google_cloud_output
+  #   credentials_file: /my/credentials/file
+
+  # An example output that sends captured logs to elasticsearch.
+  # For more info: https://github.com/observIQ/carbon/blob/master/docs/operators/elastic_output.md
+  #
+  # - id: example_output
+  #   type: elastic_output
+  #   addresses:
+  #     - http://my_node_address:9200
+  #   api_key: my_api_key
 EOF
 }
 
@@ -973,8 +1006,8 @@ main()
       case "$1" in
         -y|--accept-defaults)
           accept_defaults="yes" ; shift 1 ;;
-        -d|--download-url)
-          download_url=$2 ; shift 2 ;;
+        -v|--version)
+          version=$2 ; shift 2 ;;
         -i|--install-dir)
           install_dir=$2 ; shift 2 ;;
         -u|--service-user)
