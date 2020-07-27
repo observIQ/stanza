@@ -516,6 +516,22 @@ parameters:
 pipeline:
 `,
 		},
+		{
+			name:      "required_default",
+			expectErr: true,
+			template: `version: 0.0.0
+title: My Super Plugin
+description: This is the best plugin ever
+parameters:
+  path:
+    label: Parameter
+    description: The thing of the thing
+    required: true
+    type: int
+    default: 123
+pipeline:
+`,
+		},
 	}
 
 	for _, tc := range testCases {

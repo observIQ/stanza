@@ -12,10 +12,17 @@ type PluginParameter struct {
 	Description string
 	Required    bool
 	Type        interface{} // "string", "int", "bool" or array of strings
-	Default     interface{} // Must fit Type
+	Default     interface{} // Must be valid according to Type
 }
 
 func (param PluginParameter) validate() error {
+	if param.Required && param.Default != nil {
+		return errors.NewError(
+			"required parameter cannot have a default value",
+			"ensure that required parameters do not have default values",
+		)
+	}
+
 	switch t := param.Type.(type) {
 	case string:
 		switch t {
