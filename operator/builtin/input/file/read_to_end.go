@@ -10,7 +10,6 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/operator/helper"
-	"go.uber.org/zap"
 	"golang.org/x/text/encoding"
 )
 
@@ -70,16 +69,41 @@ func ReadToEnd(
 	}
 	scanner.Split(scanFunc)
 
-	decoder := encoding.NewDecoder()
-
 	// Make a large, reusable buffer for transforming
+	decoder := encoding.NewDecoder()
 	decodeBuffer := make([]byte, 16384)
+
+	emit := func(msgBuf []byte) {
+		decoder.Reset()
+		nDst, _, err := decoder.Transform(decodeBuffer, msgBuf, true)
+		if err != nil {
+			panic(err)
+		}
+
+		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
+		e.Set(filePathField, path)
+		e.Set(fileNameField, filepath.Base(file.Name()))
+		inputOperator.Write(ctx, e)
+	}
 
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
 	defer func() {
 		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
-			readRemaining(ctx, file, pos, stat.Size(), messenger, inputOperator, filePathField, fileNameField, decoder, decodeBuffer)
+			_, err := file.Seek(pos, 0)
+			if err != nil {
+				inputOperator.Errorf("failed to seek to read last log entry")
+				return
+			}
+
+			msgBuf := make([]byte, stat.Size()-pos)
+			n, err := file.Read(msgBuf)
+			if err != nil {
+				inputOperator.Errorf("failed to read trailing log")
+				return
+			}
+			emit(msgBuf[:n])
+			messenger.SetOffset(pos + int64(n))
 		}
 	}()
 
@@ -98,43 +122,7 @@ func ReadToEnd(
 			return scanner.Err()
 		}
 
-		decoder.Reset()
-		nDst, _, err := decoder.Transform(decodeBuffer, scanner.Bytes(), true)
-		if err != nil {
-			return err
-		}
-
-		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
-		e.Set(filePathField, path)
-		e.Set(fileNameField, filepath.Base(file.Name()))
-		inputOperator.Write(ctx, e)
+		emit(scanner.Bytes())
 		messenger.SetOffset(pos)
 	}
-}
-
-// readRemaining will read the remaining characters in a file as a log entry.
-func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputOperator helper.InputOperator, filePathField, fileNameField entry.Field, encoder *encoding.Decoder, decodeBuffer []byte) {
-	_, err := file.Seek(filePos, 0)
-	if err != nil {
-		inputOperator.Errorf("failed to seek to read last log entry")
-		return
-	}
-
-	msgBuf := make([]byte, fileSize-filePos)
-	n, err := file.Read(msgBuf)
-	if err != nil {
-		inputOperator.Errorf("failed to read trailing log")
-		return
-	}
-	encoder.Reset()
-	nDst, _, err := encoder.Transform(decodeBuffer, msgBuf, true)
-	if err != nil {
-		inputOperator.Errorw("failed to decode trailing log", zap.Error(err))
-	}
-
-	e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
-	e.Set(filePathField, file.Name())
-	e.Set(fileNameField, filepath.Base(file.Name()))
-	inputOperator.Write(ctx, e)
-	messenger.SetOffset(filePos + int64(n))
 }
