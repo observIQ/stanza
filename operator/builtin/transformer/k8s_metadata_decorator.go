@@ -24,6 +24,7 @@ func NewK8smetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfi
 		PodNameField:      entry.NewRecordField("pod_name"),
 		NamespaceField:    entry.NewRecordField("namespace"),
 		CacheTTL:          operator.Duration{Duration: 10 * time.Minute},
+		Timeout:           operator.Duration{Duration: 10 * time.Second},
 	}
 }
 
@@ -33,6 +34,7 @@ type K8sMetadataDecoratorConfig struct {
 	PodNameField             entry.Field       `json:"pod_name_field,omitempty"  yaml:"pod_name_field,omitempty"`
 	NamespaceField           entry.Field       `json:"namespace_field,omitempty" yaml:"namespace_field,omitempty"`
 	CacheTTL                 operator.Duration `json:"cache_ttl,omitempty"       yaml:"cache_ttl,omitempty"`
+	Timeout                  operator.Duration `json:"timeout,omitempty"         yaml:"timeout,omitempty"`
 }
 
 // Build will build a k8s_metadata_decorator operator from the supplied configuration
@@ -47,6 +49,7 @@ func (c K8sMetadataDecoratorConfig) Build(context operator.BuildContext) (operat
 		podNameField:        c.PodNameField,
 		namespaceField:      c.NamespaceField,
 		cacheTTL:            c.CacheTTL.Raw(),
+		timeout:             c.Timeout.Raw(),
 	}, nil
 }
 
@@ -61,6 +64,7 @@ type K8sMetadataDecorator struct {
 	namespaceCache MetadataCache
 	podCache       MetadataCache
 	cacheTTL       time.Duration
+	timeout        time.Duration
 }
 
 // MetadataCacheEntry is an entry in the metadata cache
@@ -105,7 +109,7 @@ func (k *K8sMetadataDecorator) Start() error {
 	}
 
 	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), k.timeout)
 	defer cancel()
 	namespaceList, err := k.client.Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -180,7 +184,7 @@ func (k *K8sMetadataDecorator) getPodMetadata(ctx context.Context, namespace, po
 }
 
 func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, namespace string) (MetadataCacheEntry, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, k.timeout)
 	defer cancel()
 
 	// Query the API
@@ -206,7 +210,7 @@ func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, nam
 func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace, podName string) (MetadataCacheEntry, error) {
 	key := namespace + ":" + podName
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, k.timeout)
 	defer cancel()
 
 	// Query the API
