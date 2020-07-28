@@ -59,8 +59,8 @@ func (r PluginRegistry) Render(pluginType string, params map[string]interface{})
 	for name, param := range config.Parameters {
 		if err := param.validate(); err != nil {
 			return PluginConfig{}, errors.NewError(
-				"invalid parameter description found in plugin config",
-				"ensure that all parameter descriptioins are valid for the plugin",
+				"invalid parameter found in plugin config",
+				"ensure that all parameters are valid for the plugin",
 				"plugin_type", pluginType,
 				"plugin_parameter", name,
 				"rendered_config", writer.String(),

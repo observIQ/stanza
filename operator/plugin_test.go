@@ -135,8 +135,8 @@ func TestPluginMetadata(t *testing.T) {
 			name:      "full_meta",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Path
@@ -153,8 +153,8 @@ pipeline:
 			name:      "bad_version",
 			expectErr: true,
 			template: `version: []
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Path
@@ -172,7 +172,7 @@ pipeline:
 			expectErr: true,
 			template: `version: 0.0.0
 title: []
-description: This is the best plugin ever
+description: This is a test plugin
 parameters:
   path:
     label: Path
@@ -189,7 +189,7 @@ pipeline:
 			name:      "bad_description",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
+title: Test Plugin
 description: []
 parameters:
   path:
@@ -207,8 +207,8 @@ pipeline:
 			name:      "bad_parameters",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters: hello
 `,
 		},
@@ -216,8 +216,8 @@ parameters: hello
 			name:      "bad_parameter_structure",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path: this used to be supported
 pipeline:
@@ -227,8 +227,8 @@ pipeline:
 			name:      "bad_parameter_label",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: []
@@ -241,8 +241,8 @@ pipeline:
 			name:      "bad_parameter_description",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Path
@@ -255,8 +255,8 @@ pipeline:
 			name:      "bad_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Path
@@ -269,8 +269,8 @@ pipeline:
 			name:      "empty_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
 pipeline:
@@ -280,8 +280,8 @@ pipeline:
 			name:      "unknown_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -294,8 +294,8 @@ pipeline:
 			name:      "string_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -308,8 +308,8 @@ pipeline:
 			name:      "string_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -323,8 +323,8 @@ pipeline:
 			name:      "string_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -338,8 +338,8 @@ pipeline:
 			name:      "strings_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -352,8 +352,8 @@ pipeline:
 			name:      "strings_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -368,8 +368,8 @@ pipeline:
 			name:      "strings_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -384,8 +384,8 @@ pipeline:
 			name:      "int_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -398,8 +398,8 @@ pipeline:
 			name:      "int_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -413,8 +413,8 @@ pipeline:
 			name:      "int_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -428,8 +428,8 @@ pipeline:
 			name:      "bool_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -442,8 +442,8 @@ pipeline:
 			name:      "bool_parameter_default_true",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -457,8 +457,8 @@ pipeline:
 			name:      "bool_parameter_default_false",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -472,8 +472,8 @@ pipeline:
 			name:      "bool_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -487,8 +487,8 @@ pipeline:
 			name:      "enum_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -502,8 +502,8 @@ pipeline:
 			name:      "enum_parameter_alternate",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -519,8 +519,8 @@ pipeline:
 			name:      "enum_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -537,8 +537,8 @@ pipeline:
 			name:      "enum_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -555,8 +555,8 @@ pipeline:
 			name:      "enum_parameter_no_valid_values",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -569,8 +569,8 @@ pipeline:
 			name:      "default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -584,8 +584,8 @@ pipeline:
 			name:      "required_default",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
@@ -600,8 +600,8 @@ pipeline:
 			name:      "non_enum_valid_values",
 			expectErr: true,
 			template: `version: 0.0.0
-title: My Super Plugin
-description: This is the best plugin ever
+title: Test Plugin
+description: This is a test plugin
 parameters:
   path:
     label: Parameter
