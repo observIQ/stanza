@@ -1,6 +1,8 @@
 package input
 
 import (
+	"fmt"
+	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -30,8 +32,10 @@ func TestUDPInput(t *testing.T) {
 	}
 
 	t.Run("Simple", func(t *testing.T) {
+		port := rand.Int()%16000 + 49152
+    address := fmt.Sprintf("127.0.0.1:%d", port)
 		cfg := basicUDPInputConfig()
-		cfg.ListenAddress = "127.0.0.1:63001"
+		cfg.ListenAddress = address
 
 		buildContext := testutil.NewBuildContext(t)
 		newOperator, err := cfg.Build(buildContext)
@@ -52,7 +56,7 @@ func TestUDPInput(t *testing.T) {
 		require.NoError(t, err)
 		defer udpInput.Stop()
 
-		conn, err := net.Dial("udp", "127.0.0.1:63001")
+		conn, err := net.Dial("udp", address)
 		require.NoError(t, err)
 		defer conn.Close()
 
