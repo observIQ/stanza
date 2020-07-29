@@ -15,7 +15,7 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 | `directory` |                  | A directory containing journal files to read entries from                                        |
 | `files`     |                  | A list of journal files to read entries from                                                     |
 | `write_to`  | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
-
+| `start_at`  | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`          |
 
 
 ### Example Configurations
