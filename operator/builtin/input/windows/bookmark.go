@@ -18,10 +18,6 @@ func (b *Bookmark) Open(offsetXML string) error {
 		return fmt.Errorf("bookmark handle is already open")
 	}
 
-	if offsetXML == "" {
-		return nil
-	}
-
 	utf16, err := syscall.UTF16PtrFromString(offsetXML)
 	if err != nil {
 		return fmt.Errorf("failed to convert bookmark xml to utf16: %s", err)

@@ -64,7 +64,7 @@ func NewDefaultConfig() operator.Builder {
 		MaxReads: 100,
 		StartAt:  "end",
 		PollInterval: operator.Duration{
-			Duration: 5 * time.Second,
+			Duration: 1 * time.Second,
 		},
 	}
 }
@@ -96,8 +96,10 @@ func (e *EventLogInput) Start() error {
 		return fmt.Errorf("failed to retrieve bookmark offset: %s", err)
 	}
 
-	if err := e.bookmark.Open(offsetXML); err != nil {
-		return fmt.Errorf("failed to open bookmark: %s", err)
+	if offsetXML != "" {
+		if err := e.bookmark.Open(offsetXML); err != nil {
+			return fmt.Errorf("failed to open bookmark: %s", err)
+		}
 	}
 
 	e.subscription = NewSubscription()
@@ -138,17 +140,31 @@ func (e *EventLogInput) readOnInterval(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			e.read(ctx)
+			e.readToEnd(ctx)
 		}
 	}
 }
 
-// read will read events from the subscription and update the current offset.
-func (e *EventLogInput) read(ctx context.Context) {
+// readToEnd will read events from the subscription until it reaches the end of the channel.
+func (e *EventLogInput) readToEnd(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if count := e.read(ctx); count == 0 {
+				return
+			}
+		}
+	}
+}
+
+// read will read events from the subscription.
+func (e *EventLogInput) read(ctx context.Context) int {
 	events, err := e.subscription.Read(e.maxReads)
 	if err != nil {
 		e.Errorf("Failed to read events from subscription: %s", err)
-		return
+		return 0
 	}
 
 	for i, event := range events {
@@ -158,6 +174,8 @@ func (e *EventLogInput) read(ctx context.Context) {
 		}
 		event.Close()
 	}
+
+	return len(events)
 }
 
 // processEvent will process and send an event retrieved from windows event log.

@@ -38,6 +38,10 @@ func (e *Event) RenderSimple(buffer Buffer) (EventXML, error) {
 
 // RenderFormatted will render the event as EventXML with formatted info.
 func (e *Event) RenderFormatted(buffer Buffer, publisher Publisher) (EventXML, error) {
+	if e.handle == 0 {
+		return EventXML{}, fmt.Errorf("event handle does not exist")
+	}
+
 	var bufferUsed uint32
 	err := evtFormatMessage(publisher.handle, e.handle, 0, 0, 0, EvtFormatMessageXML, buffer.Size(), buffer.FirstByte(), &bufferUsed)
 	if err == ErrorInsufficientBuffer {
