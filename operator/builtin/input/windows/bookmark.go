@@ -51,6 +51,10 @@ func (b *Bookmark) Update(event Event) error {
 
 // Render will render the bookmark as xml.
 func (b *Bookmark) Render(buffer Buffer) (string, error) {
+	if b.handle == 0 {
+		return "", fmt.Errorf("bookmark handle is not open")
+	}
+
 	var bufferUsed, propertyCount uint32
 	err := evtRender(0, b.handle, EvtRenderBookmark, buffer.Size(), buffer.FirstByte(), &bufferUsed, &propertyCount)
 	if err == ErrorInsufficientBuffer {
