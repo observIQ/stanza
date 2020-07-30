@@ -11,7 +11,7 @@ The `windows_eventlog_input` operator reads logs from the windows event log API.
 | `channel`       | required                 | The windows event log channel to monitor                                                     |
 | `max_reads`     | 100                      | The maximum number of records read and processed at one time                                 |
 | `start_at`      | `end`                    | On first startup, where to start reading logs from the API. Options are `beginning` or `end` |
-| `poll_interval` | 5s                       | The interval at which the channel is checked for new log entries                             |
+| `poll_interval` | 1s                       | The interval at which the channel is checked for new log entries                             |
 
 ### Example Configurations
 
