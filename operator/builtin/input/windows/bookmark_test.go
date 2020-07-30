@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"golang.org/x/text/encoding/unicode"
 )
 
 func TestOpenPreexisting(t *testing.T) {
@@ -39,7 +38,7 @@ func TestOpenSuccess(t *testing.T) {
 	createBookmarkProc = SimpleMockProc(5, 0, ErrorSuccess)
 	err := bookmark.Open(xml)
 	require.NoError(t, err)
-	require.Equal(t, 5, bookmark.handle)
+	require.Equal(t, uintptr(5), bookmark.handle)
 }
 
 func TestUpdateFailureOnCreateSyscall(t *testing.T) {
@@ -68,7 +67,7 @@ func TestUpdateSuccess(t *testing.T) {
 	updateBookmarkProc = SimpleMockProc(1, 0, ErrorSuccess)
 	err := bookmark.Update(event)
 	require.NoError(t, err)
-	require.Equal(t, 5, bookmark.handle)
+	require.Equal(t, uintptr(5), bookmark.handle)
 }
 
 func TestCloseWhenAlreadyClosed(t *testing.T) {
@@ -90,7 +89,7 @@ func TestCloseSuccess(t *testing.T) {
 	closeProc = SimpleMockProc(1, 0, ErrorSuccess)
 	err := bookmark.Close()
 	require.NoError(t, err)
-	require.Equal(t, 0, bookmark.handle)
+	require.Equal(t, uintptr(0), bookmark.handle)
 }
 
 func TestRenderWhenClosed(t *testing.T) {
@@ -108,24 +107,4 @@ func TestRenderInvalidSyscall(t *testing.T) {
 	_, err := bookmark.Render(buffer)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "syscall to 'EvtRender' failed")
-}
-
-func TestRenderValidSyscall(t *testing.T) {
-	bookmark := Bookmark{handle: 5}
-	buffer := NewBuffer()
-	utf8 := []byte("<xml>")
-	utf16, _ := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
-
-	renderProc = MockProc{
-		call: func(a ...uintptr) (uintptr, uintptr, error) {
-			for i, byte := range utf16 {
-				buffer.buffer[i] = byte
-			}
-			return 1, 0, ErrorSuccess
-		},
-	}
-
-	xml, err := bookmark.Render(buffer)
-	require.NoError(t, err)
-	require.Equal(t, "<xml>", xml)
 }
