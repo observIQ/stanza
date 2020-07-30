@@ -9,7 +9,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
-func TestBufferReadBytesValid(t *testing.T) {
+func TestBufferReadBytes(t *testing.T) {
 	buffer := NewBuffer()
 	utf8 := []byte("test")
 	utf16, _ := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
@@ -22,19 +22,7 @@ func TestBufferReadBytesValid(t *testing.T) {
 	require.Equal(t, utf8, bytes)
 }
 
-func TestBufferReadBytesInvalid(t *testing.T) {
-	buffer := NewBuffer()
-	utf8 := []byte("test")
-	for i, b := range utf8 {
-		buffer.buffer[i] = b
-	}
-	offset := uint32(len(utf8))
-	_, err := buffer.ReadBytes(offset)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to convert buffer contents to utf8")
-}
-
-func TestBufferReadStringValid(t *testing.T) {
+func TestBufferReadString(t *testing.T) {
 	buffer := NewBuffer()
 	utf8 := []byte("test")
 	utf16, _ := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
@@ -45,18 +33,6 @@ func TestBufferReadStringValid(t *testing.T) {
 	result, err := buffer.ReadString(offset)
 	require.NoError(t, err)
 	require.Equal(t, "test", result)
-}
-
-func TestBufferReadStringInvalid(t *testing.T) {
-	buffer := NewBuffer()
-	utf8 := []byte("test")
-	for i, b := range utf8 {
-		buffer.buffer[i] = b
-	}
-	offset := uint32(len(utf8))
-	_, err := buffer.ReadString(offset)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to convert buffer contents to utf8")
 }
 
 func TestBufferUpdateSize(t *testing.T) {
