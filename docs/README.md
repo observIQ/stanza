@@ -26,6 +26,7 @@ For instance, a user may read lines from a file using the `file_input` operator.
 
 Inputs:
 - [File input](/docs/operators/file_input.md)
+- [Windows Event Log input](/docs/operators/windows_eventlog_input.md)
 - [TCP input](/docs/operators/tcp_input.md)
 - [UDP input](/docs/operators/udp_input.md)
 - [Journald input](/docs/operators/journald_input.md)

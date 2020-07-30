@@ -3,3 +3,4 @@ dev/*
 tmp/*
 coverage.txt
 artifacts/*
+.vscode/*
