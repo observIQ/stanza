@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOpenPreexisting(t *testing.T) {
+func TestBookmarkOpenPreexisting(t *testing.T) {
 	bookmark := Bookmark{handle: 5}
 	err := bookmark.Open("")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "bookmark handle is already open")
 }
 
-func TestOpenInvalidUTF8(t *testing.T) {
+func TestBookmarkOpenInvalidUTF8(t *testing.T) {
 	bookmark := NewBookmark()
 	invalidUTF8 := "\u0000"
 	err := bookmark.Open(invalidUTF8)
@@ -23,7 +23,7 @@ func TestOpenInvalidUTF8(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to convert bookmark xml to utf16")
 }
 
-func TestOpenSyscallFailure(t *testing.T) {
+func TestBookmarkOpenSyscallFailure(t *testing.T) {
 	bookmark := NewBookmark()
 	xml := "<bookmark><\\bookmark>"
 	createBookmarkProc = SimpleMockProc(0, 0, ErrorNotSupported)
@@ -32,7 +32,7 @@ func TestOpenSyscallFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to create bookmark handle from xml")
 }
 
-func TestOpenSuccess(t *testing.T) {
+func TestBookmarkOpenSuccess(t *testing.T) {
 	bookmark := NewBookmark()
 	xml := "<bookmark><\\bookmark>"
 	createBookmarkProc = SimpleMockProc(5, 0, ErrorSuccess)
@@ -41,7 +41,7 @@ func TestOpenSuccess(t *testing.T) {
 	require.Equal(t, uintptr(5), bookmark.handle)
 }
 
-func TestUpdateFailureOnCreateSyscall(t *testing.T) {
+func TestBookmarkUpdateFailureOnCreateSyscall(t *testing.T) {
 	event := NewEvent(1)
 	bookmark := NewBookmark()
 	createBookmarkProc = SimpleMockProc(0, 0, ErrorNotSupported)
@@ -50,7 +50,7 @@ func TestUpdateFailureOnCreateSyscall(t *testing.T) {
 	require.Contains(t, err.Error(), "syscall to `EvtCreateBookmark` failed")
 }
 
-func TestUpdateFailureOnUpdateSyscall(t *testing.T) {
+func TestBookmarkUpdateFailureOnUpdateSyscall(t *testing.T) {
 	event := NewEvent(1)
 	bookmark := NewBookmark()
 	createBookmarkProc = SimpleMockProc(1, 0, ErrorSuccess)
@@ -60,7 +60,7 @@ func TestUpdateFailureOnUpdateSyscall(t *testing.T) {
 	require.Contains(t, err.Error(), "syscall to `EvtUpdateBookmark` failed")
 }
 
-func TestUpdateSuccess(t *testing.T) {
+func TestBookmarkUpdateSuccess(t *testing.T) {
 	event := NewEvent(1)
 	bookmark := NewBookmark()
 	createBookmarkProc = SimpleMockProc(5, 0, ErrorSuccess)
@@ -70,13 +70,13 @@ func TestUpdateSuccess(t *testing.T) {
 	require.Equal(t, uintptr(5), bookmark.handle)
 }
 
-func TestCloseWhenAlreadyClosed(t *testing.T) {
+func TestBookmarkCloseWhenAlreadyClosed(t *testing.T) {
 	bookmark := NewBookmark()
 	err := bookmark.Close()
 	require.NoError(t, err)
 }
 
-func TestCloseSyscallFailure(t *testing.T) {
+func TestBookmarkCloseSyscallFailure(t *testing.T) {
 	bookmark := Bookmark{handle: 5}
 	closeProc = SimpleMockProc(0, 0, ErrorNotSupported)
 	err := bookmark.Close()
@@ -84,7 +84,7 @@ func TestCloseSyscallFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to close bookmark handle")
 }
 
-func TestCloseSuccess(t *testing.T) {
+func TestBookmarkCloseSuccess(t *testing.T) {
 	bookmark := Bookmark{handle: 5}
 	closeProc = SimpleMockProc(1, 0, ErrorSuccess)
 	err := bookmark.Close()
@@ -92,7 +92,7 @@ func TestCloseSuccess(t *testing.T) {
 	require.Equal(t, uintptr(0), bookmark.handle)
 }
 
-func TestRenderWhenClosed(t *testing.T) {
+func TestBookmarkRenderWhenClosed(t *testing.T) {
 	bookmark := NewBookmark()
 	buffer := NewBuffer()
 	_, err := bookmark.Render(buffer)
@@ -100,7 +100,7 @@ func TestRenderWhenClosed(t *testing.T) {
 	require.Contains(t, err.Error(), "bookmark handle is not open")
 }
 
-func TestRenderInvalidSyscall(t *testing.T) {
+func TestBookmarkRenderInvalidSyscall(t *testing.T) {
 	bookmark := Bookmark{handle: 5}
 	buffer := NewBuffer()
 	renderProc = SimpleMockProc(0, 0, ErrorNotSupported)

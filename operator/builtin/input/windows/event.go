@@ -68,7 +68,7 @@ func (e *Event) Close() error {
 	}
 
 	if err := evtClose(e.handle); err != nil {
-		return fmt.Errorf("failed to close event: %s", err)
+		return fmt.Errorf("failed to close event handle: %s", err)
 	}
 
 	e.handle = 0
