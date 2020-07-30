@@ -13,8 +13,8 @@ func TestBufferReadBytesValid(t *testing.T) {
 	buffer := NewBuffer()
 	utf8 := []byte("test")
 	utf16, _ := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
-	for i, byte := range utf16 {
-		buffer.buffer[i] = byte
+	for i, b := range utf16 {
+		buffer.buffer[i] = b
 	}
 	offset := uint32(len(utf16))
 	bytes, err := buffer.ReadBytes(offset)
@@ -25,11 +25,10 @@ func TestBufferReadBytesValid(t *testing.T) {
 func TestBufferReadBytesInvalid(t *testing.T) {
 	buffer := NewBuffer()
 	utf8 := []byte("test")
-	utf16, _ := unicode.UTF16(unicode.BigEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
-	for i, byte := range utf16 {
-		buffer.buffer[i] = byte
+	for i, b := range utf8 {
+		buffer.buffer[i] = b
 	}
-	offset := uint32(len(utf16))
+	offset := uint32(len(utf8))
 	_, err := buffer.ReadBytes(offset)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to convert buffer contents to utf8")
@@ -39,8 +38,8 @@ func TestBufferReadStringValid(t *testing.T) {
 	buffer := NewBuffer()
 	utf8 := []byte("test")
 	utf16, _ := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
-	for i, byte := range utf16 {
-		buffer.buffer[i] = byte
+	for i, b := range utf16 {
+		buffer.buffer[i] = b
 	}
 	offset := uint32(len(utf16))
 	result, err := buffer.ReadString(offset)
@@ -51,11 +50,10 @@ func TestBufferReadStringValid(t *testing.T) {
 func TestBufferReadStringInvalid(t *testing.T) {
 	buffer := NewBuffer()
 	utf8 := []byte("test")
-	utf16, _ := unicode.UTF16(unicode.BigEndian, unicode.UseBOM).NewEncoder().Bytes(utf8)
-	for i, byte := range utf16 {
-		buffer.buffer[i] = byte
+	for i, b := range utf8 {
+		buffer.buffer[i] = b
 	}
-	offset := uint32(len(utf16))
+	offset := uint32(len(utf8))
 	_, err := buffer.ReadString(offset)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to convert buffer contents to utf8")
