@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Changed
+- Fork go-syslog to support long sdnames that are not rfc5424-compliant
+
 ## [0.9.5] - 2020-07-28
 ### Added
 - Configurable `timeout` parameter for the `k8s_metadata_decorator` ([PR54](https://github.com/observIQ/carbon/pull/54))

@@ -37,3 +37,5 @@ require (
 	k8s.io/apimachinery v0.18.4
 	k8s.io/client-go v0.18.4
 )
+
+replace github.com/influxdata/go-syslog/v3 => github.com/observiq/go-syslog/v3 v3.0.1
