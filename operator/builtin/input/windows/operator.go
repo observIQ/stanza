@@ -61,8 +61,9 @@ func (c *EventLogConfig) Build(context operator.BuildContext) (operator.Operator
 // NewDefaultConfig will return an event log config with default values.
 func NewDefaultConfig() operator.Builder {
 	return &EventLogConfig{
-		MaxReads: 100,
-		StartAt:  "end",
+		InputConfig: helper.NewInputConfig("", "windows_eventlog_input"),
+		MaxReads:    100,
+		StartAt:     "end",
 		PollInterval: operator.Duration{
 			Duration: 1 * time.Second,
 		},
@@ -206,7 +207,10 @@ func (e *EventLogInput) processEvent(ctx context.Context, event Event) {
 
 // sendEvent will send EventXML as an entry to the operator's output.
 func (e *EventLogInput) sendEvent(ctx context.Context, eventXML EventXML) {
-	entry := eventXML.ToEntry()
+	record := eventXML.parseRecord()
+	entry := e.NewEntry(record)
+	entry.Timestamp = eventXML.parseTimestamp()
+	entry.Severity = eventXML.parseSeverity()
 	e.Write(ctx, entry)
 }
 

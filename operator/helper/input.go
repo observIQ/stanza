@@ -9,10 +9,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewInputConfig creates a new input config with default values.
 func NewInputConfig(operatorID, operatorType string) InputConfig {
 	return InputConfig{
 		WriterConfig: NewWriterConfig(operatorID, operatorType),
 		WriteTo:      entry.NewRecordField(),
+		LogType:      operatorType,
 	}
 }
 
@@ -20,6 +22,7 @@ func NewInputConfig(operatorID, operatorType string) InputConfig {
 type InputConfig struct {
 	WriterConfig `yaml:",inline"`
 	WriteTo      entry.Field `json:"write_to" yaml:"write_to"`
+	LogType      string      `json:"log_type,omitempty" yaml:"log_type,omitempty"`
 }
 
 // Build will build a base producer.
@@ -32,6 +35,7 @@ func (c InputConfig) Build(context operator.BuildContext) (InputOperator, error)
 	inputOperator := InputOperator{
 		WriterOperator: writerOperator,
 		WriteTo:        c.WriteTo,
+		LogType:        c.LogType,
 	}
 
 	return inputOperator, nil
@@ -41,12 +45,14 @@ func (c InputConfig) Build(context operator.BuildContext) (InputOperator, error)
 type InputOperator struct {
 	WriterOperator
 	WriteTo entry.Field
+	LogType string
 }
 
 // NewEntry will create a new entry using the write_to field.
 func (i *InputOperator) NewEntry(value interface{}) *entry.Entry {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
+	entry.AddLabel("log_type", i.LogType)
 	return entry
 }
 

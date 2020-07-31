@@ -37,6 +37,7 @@ func (c *GenerateInputConfig) Build(context operator.BuildContext) (operator.Ope
 	}
 
 	c.Entry.Record = recursiveMapInterfaceToMapString(c.Entry.Record)
+	c.Entry.AddLabel("log_type", inputOperator.LogType)
 
 	generateInput := &GenerateInput{
 		InputOperator: inputOperator,
