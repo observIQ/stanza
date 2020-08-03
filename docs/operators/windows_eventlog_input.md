@@ -4,14 +4,16 @@ The `windows_eventlog_input` operator reads logs from the windows event log API.
 
 ### Configuration Fields
 
-| Field           | Default                  | Description                                                                                  |
-| ---             | ---                      | ---                                                                                          |
-| `id`            | `windows_eventlog_input` | A unique identifier for the operator                                                         |
-| `output`        | Next in pipeline         | The connected operator(s) that will receive all outbound entries                             |
-| `channel`       | required                 | The windows event log channel to monitor                                                     |
-| `max_reads`     | 100                      | The maximum number of records read and processed at one time                                 |
-| `start_at`      | `end`                    | On first startup, where to start reading logs from the API. Options are `beginning` or `end` |
-| `poll_interval` | 1s                       | The interval at which the channel is checked for new log entries                             |
+| Field             | Default                  | Description                                                                                  |
+| ---               | ---                      | ---                                                                                          |
+| `id`              | `windows_eventlog_input` | A unique identifier for the operator                                                         |
+| `output`          | Next in pipeline         | The connected operator(s) that will receive all outbound entries                             |
+| `channel`         | required                 | The windows event log channel to monitor                                                     |
+| `max_reads`       | 100                      | The maximum number of records read and processed at one time                                 |
+| `start_at`        | `end`                    | On first startup, where to start reading logs from the API. Options are `beginning` or `end` |
+| `poll_interval`   | 1s                       | The interval at which the channel is checked for new log entries                             |
+| `log_type`        | `windows_eventlog_input` | The log_type label appended to all discovered entries                                        |
+| `append_log_type` | `true`                   | If true, appends the log_type label to all entries                                           |
 
 ### Example Configurations
 
