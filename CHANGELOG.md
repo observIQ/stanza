@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 - Fork go-syslog to support long sdnames that are not rfc5424-compliant
+- Reduce noise in debug messages for TCP and UDP inputs
+### Fixed
+- Trim carriage returns from TCP input
 
 ## [0.9.5] - 2020-07-28
 ### Added

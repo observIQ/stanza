@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 
 	"github.com/observiq/carbon/operator"
 	"github.com/observiq/carbon/operator/helper"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -47,12 +47,14 @@ func (c UDPInputConfig) Build(context operator.BuildContext) (operator.Operator,
 	udpInput := &UDPInput{
 		InputOperator: inputOperator,
 		address:       address,
+		buffer:        make([]byte, 8192),
 	}
 	return udpInput, nil
 }
 
 // UDPInput is an operator that listens to a socket for log entries.
 type UDPInput struct {
+	buffer []byte
 	helper.InputOperator
 	address *net.UDPAddr
 
@@ -86,8 +88,13 @@ func (u *UDPInput) goHandleMessages(ctx context.Context) {
 
 		for {
 			message, err := u.readMessage()
-			if err != nil && u.isExpectedClose(err) {
-				u.Debugf("Exiting message handler: %s", err)
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					u.Errorw("Failed reading messages", zap.Error(err))
+				}
 				break
 			}
 
@@ -99,22 +106,16 @@ func (u *UDPInput) goHandleMessages(ctx context.Context) {
 
 // readMessage will read log messages from the connection.
 func (u *UDPInput) readMessage() (string, error) {
-	buffer := make([]byte, 1024)
-	n, _, err := u.connection.ReadFrom(buffer)
+	n, _, err := u.connection.ReadFrom(u.buffer)
 	if err != nil {
 		return "", err
 	}
 
 	// Remove trailing characters and NULs
-	for ; (n > 0) && (buffer[n-1] < 32); n-- {
+	for ; (n > 0) && (u.buffer[n-1] < 32); n-- {
 	}
 
-	return string(buffer[:n]), nil
-}
-
-// isExpectedClose will determine if an error was the result of a closed connection.
-func (u *UDPInput) isExpectedClose(err error) bool {
-	return strings.Contains(err.Error(), "closed network connection")
+	return string(u.buffer[:n]), nil
 }
 
 // Stop will stop listening for udp messages.
