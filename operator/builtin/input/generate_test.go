@@ -89,6 +89,8 @@ pipeline:
 							},
 							OutputIDs: []string{"sampleoutput"},
 						},
+						LogType:       "generate_input",
+						AppendLogType: true,
 					},
 					Entry: entry.Entry{
 						Record: map[interface{}]interface{}{

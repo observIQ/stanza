@@ -66,15 +66,6 @@ func (e *EventXML) parseRecord() map[string]interface{} {
 	}
 }
 
-// ToEntry will convert the event xml into an entry.
-func (e *EventXML) ToEntry() *entry.Entry {
-	return &entry.Entry{
-		Timestamp: e.parseTimestamp(),
-		Severity:  e.parseSeverity(),
-		Record:    e.parseRecord(),
-	}
-}
-
 // unmarshalEventXML will unmarshal EventXML from xml bytes.
 func unmarshalEventXML(bytes []byte) (EventXML, error) {
 	var eventXML EventXML

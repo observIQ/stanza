@@ -18,6 +18,8 @@ The `file_input` operator reads logs from files. It will place the lines read in
 | `file_name_field` |                  | A [field](/docs/types/field.md) that will be set to the name of the file the entry was read from                    |
 | `start_at`        | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`                             |
 | `max_log_size`    | 1048576          | The maximum size of a log entry to read before failing. Protects against reading large amounts of data into memory. |
+| `log_type`        | `file_input`     | The log_type label appended to all discovered entries                                                               |
+| `append_log_type` | `true`           | If true, appends the log_type label to all entries                                                                  |
 
 Note that by default, no logs will be read unless the monitored file is actively being written to because `start_at` defaults to `end`.
 
