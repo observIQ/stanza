@@ -804,3 +804,53 @@ func TestEncodings(t *testing.T) {
 		})
 	}
 }
+
+type fileInputBenchmark struct {
+	name   string
+	config *InputConfig
+}
+
+func BenchmarkFileInput(b *testing.B) {
+	cases := []fileInputBenchmark{
+		{
+			"Default",
+			NewInputConfig("test_id"),
+		},
+	}
+
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			tempDir := testutil.NewTempDir(b)
+			path := filepath.Join(tempDir, "in.log")
+
+			cfg := tc.config
+			cfg.OutputIDs = []string{"fake"}
+			cfg.Include = []string{path}
+			cfg.StartAt = "beginning"
+
+			fileOperator, err := cfg.Build(testutil.NewBuildContext(b))
+			require.NoError(b, err)
+
+			fakeOutput := testutil.NewFakeOutput(b)
+			err = fileOperator.SetOutputs([]operator.Operator{fakeOutput})
+			require.NoError(b, err)
+
+			err = fileOperator.Start()
+			require.NoError(b, err)
+
+			b.ResetTimer()
+			go func() {
+				file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+				require.NoError(b, err)
+
+				for i := 0; i < b.N; i++ {
+					file.WriteString("testlog\n")
+				}
+			}()
+
+			for i := 0; i < b.N; i++ {
+				<-fakeOutput.Received
+			}
+		})
+	}
+}

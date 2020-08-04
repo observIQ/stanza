@@ -39,7 +39,7 @@ func (f *FakeOutput) CanProcess() bool {
 }
 
 func (f *FakeOutput) ID() string {
-	return "benchmark"
+	return "fake"
 }
 
 // Logger provides a mock function with given fields:
