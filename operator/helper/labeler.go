@@ -41,6 +41,10 @@ type Labeler struct {
 
 // Label will add labels to an entry
 func (l *Labeler) Label(e *entry.Entry) error {
+	if len(l.labels) == 0 {
+		return nil
+	}
+
 	env := GetExprEnv(e)
 	defer PutExprEnv(env)
 
