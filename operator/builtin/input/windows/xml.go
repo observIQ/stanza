@@ -12,6 +12,7 @@ import (
 
 // EventXML is the rendered xml of an event.
 type EventXML struct {
+	EventID     EventID     `xml:"System>EventID"`
 	Provider    Provider    `xml:"System>Provider"`
 	Computer    string      `xml:"System>Computer"`
 	Channel     string      `xml:"System>Channel"`
@@ -51,18 +52,24 @@ func (e *EventXML) parseSeverity() entry.Severity {
 // parseRecord will parse a record from the event.
 func (e *EventXML) parseRecord() map[string]interface{} {
 	return map[string]interface{}{
-		"provider_name": e.Provider.Name,
-		"provider_id":   e.Provider.GUID,
-		"event_source":  e.Provider.EventSourceName,
-		"system_time":   e.TimeCreated.SystemTime,
-		"computer":      e.Computer,
-		"channel":       e.Channel,
-		"record_id":     e.RecordID,
-		"level":         e.Level,
-		"message":       e.Message,
-		"task":          e.Task,
-		"opcode":        e.Opcode,
-		"keywords":      e.Keywords,
+		"event_id": map[string]interface{}{
+			"qualifiers": e.EventID.Qualifiers,
+			"id":         e.EventID.ID,
+		},
+		"provider": map[string]interface{}{
+			"name":         e.Provider.Name,
+			"guid":         e.Provider.GUID,
+			"event_source": e.Provider.EventSourceName,
+		},
+		"system_time": e.TimeCreated.SystemTime,
+		"computer":    e.Computer,
+		"channel":     e.Channel,
+		"record_id":   e.RecordID,
+		"level":       e.Level,
+		"message":     e.Message,
+		"task":        e.Task,
+		"opcode":      e.Opcode,
+		"keywords":    e.Keywords,
 	}
 }
 
@@ -73,6 +80,12 @@ func unmarshalEventXML(bytes []byte) (EventXML, error) {
 		return EventXML{}, fmt.Errorf("failed to unmarshal xml bytes into event: %s", err)
 	}
 	return eventXML, nil
+}
+
+// EventID is the identifier of the event.
+type EventID struct {
+	Qualifiers uint16 `xml:"Qualifiers,attr"`
+	ID         uint32 `xml:",chardata"`
 }
 
 // TimeCreated is the creation time of the event.

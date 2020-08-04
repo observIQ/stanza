@@ -12,8 +12,7 @@ The `windows_eventlog_input` operator reads logs from the windows event log API.
 | `max_reads`       | 100                      | The maximum number of records read and processed at one time                                 |
 | `start_at`        | `end`                    | On first startup, where to start reading logs from the API. Options are `beginning` or `end` |
 | `poll_interval`   | 1s                       | The interval at which the channel is checked for new log entries                             |
-| `log_type`        | `windows_eventlog_input` | The log_type label appended to all discovered entries                                        |
-| `append_log_type` | `true`                   | If true, appends the log_type label to all entries                                           |
+| `labels`          | {}                       | A map of `key: value` labels to add to the entry                                             |
 
 ### Example Configurations
 
@@ -32,9 +31,15 @@ Output entry sample:
   "timestamp": "2020-04-30T12:10:17.656726-04:00",
   "severity": 30,
   "record": {
-		"provider_name": "example provider",
-		"provider_id": "provider guid",
-		"event_source": "example source",
+		"event_id": {
+			"qualifiers": 0,
+			"id": 1000,
+		},
+		"provider": {
+			"name": "provider name",
+			"guid": "provider guid",
+			"event_source": "event source",
+		},
 		"system_time": "2020-04-30T12:10:17.656726789Z",
 		"computer": "example computer",
 		"channel": "application",

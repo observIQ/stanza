@@ -16,8 +16,7 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 | `files`           |                  | A list of journal files to read entries from                                                     |
 | `write_to`        | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
 | `start_at`        | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`          |
-| `log_type`        | `journald_input` | The log_type label appended to all discovered entries                                            |
-| `append_log_type` | `true`           | If true, appends the log_type label to all entries                                               |
+| `labels`          | {}               | A map of `key: value` labels to add to the entry                                                 |
 
 
 ### Example Configurations

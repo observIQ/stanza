@@ -13,51 +13,44 @@ func init() {
 	operator.Register("metadata", func() operator.Builder { return NewMetadataOperatorConfig("") })
 }
 
+// NewMetadataOperatorConfig creates a new metadata config with default values
 func NewMetadataOperatorConfig(operatorID string) *MetadataOperatorConfig {
 	return &MetadataOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "metadata"),
+		LabelerConfig:     helper.NewLabelerConfig(),
 	}
 }
 
-// MetadataOperatorConfig is the configuration of a metadatan operator
+// MetadataOperatorConfig is the configuration of a metadata operator
 type MetadataOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
-
-	Labels map[string]helper.ExprStringConfig `json:"labels" yaml:"labels"`
-	Tags   []helper.ExprStringConfig          `json:"tags"   yaml:"tags"`
+	helper.LabelerConfig     `yaml:",inline"`
 }
 
-// Build will build a metadatan operator from the supplied configuration
+// Build will build a metadata operator from the supplied configuration
 func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to build transformer")
 	}
 
-	labeler, err := buildLabeler(c.Labels)
+	labeler, err := c.LabelerConfig.Build()
 	if err != nil {
-		return nil, errors.Wrap(err, "validate labels")
+		return nil, errors.Wrap(err, "failed to build labeler")
 	}
 
-	tagger, err := buildTagger(c.Tags)
-	if err != nil {
-		return nil, errors.Wrap(err, "validate labels")
-	}
-
-	restructureOperator := &MetadataOperator{
+	metadataOperator := &MetadataOperator{
 		TransformerOperator: transformerOperator,
-		labeler:             labeler,
-		tagger:              tagger,
+		Labeler:             labeler,
 	}
 
-	return restructureOperator, nil
+	return metadataOperator, nil
 }
 
 // MetadataOperator is an operator that can add metadata to incoming entries
 type MetadataOperator struct {
 	helper.TransformerOperator
-	labeler *labeler
-	tagger  *tagger
+	helper.Labeler
 }
 
 // Process will process an incoming entry using the metadata transform.
@@ -67,85 +60,10 @@ func (p *MetadataOperator) Process(ctx context.Context, entry *entry.Entry) erro
 
 // Transform will transform an entry using the labeler and tagger.
 func (p *MetadataOperator) Transform(entry *entry.Entry) (*entry.Entry, error) {
-	err := p.labeler.Label(entry)
-	if err != nil {
-		return entry, err
-	}
-
-	err = p.tagger.Tag(entry)
+	err := p.Label(entry)
 	if err != nil {
 		return entry, err
 	}
 
 	return entry, nil
-}
-
-type labeler struct {
-	labels map[string]*helper.ExprString
-}
-
-// Label will add a label to an entry
-func (l *labeler) Label(e *entry.Entry) error {
-	env := helper.GetExprEnv(e)
-	defer helper.PutExprEnv(env)
-
-	for k, v := range l.labels {
-		rendered, err := v.Render(env)
-		if err != nil {
-			return err
-		}
-		e.AddLabel(k, rendered)
-	}
-
-	return nil
-}
-
-func buildLabeler(config map[string]helper.ExprStringConfig) (*labeler, error) {
-	labels := make(map[string]*helper.ExprString)
-
-	for k, v := range config {
-		exprString, err := v.Build()
-		if err != nil {
-			return nil, err
-		}
-
-		labels[k] = exprString
-	}
-
-	return &labeler{labels}, nil
-}
-
-type tagger struct {
-	tags []*helper.ExprString
-}
-
-// Tag wil add a tag to an entry
-func (t *tagger) Tag(e *entry.Entry) error {
-	env := helper.GetExprEnv(e)
-	defer helper.PutExprEnv(env)
-
-	for _, v := range t.tags {
-		rendered, err := v.Render(env)
-		if err != nil {
-			return err
-		}
-		e.Tags = append(e.Tags, rendered)
-	}
-
-	return nil
-}
-
-func buildTagger(config []helper.ExprStringConfig) (*tagger, error) {
-	tags := make([]*helper.ExprString, 0, len(config))
-
-	for _, v := range config {
-		exprString, err := v.Build()
-		if err != nil {
-			return nil, err
-		}
-
-		tags = append(tags, exprString)
-	}
-
-	return &tagger{tags}, nil
 }

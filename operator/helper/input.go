@@ -12,19 +12,17 @@ import (
 // NewInputConfig creates a new input config with default values.
 func NewInputConfig(operatorID, operatorType string) InputConfig {
 	return InputConfig{
+		LabelerConfig: NewLabelerConfig(),
 		WriterConfig:  NewWriterConfig(operatorID, operatorType),
 		WriteTo:       entry.NewRecordField(),
-		LogType:       operatorType,
-		AppendLogType: true,
 	}
 }
 
 // InputConfig provides a basic implementation of an input operator config.
 type InputConfig struct {
+	LabelerConfig `yaml:",inline"`
 	WriterConfig  `yaml:",inline"`
 	WriteTo       entry.Field `json:"write_to" yaml:"write_to"`
-	LogType       string      `json:"log_type,omitempty" yaml:"log_type,omitempty"`
-	AppendLogType bool        `json:"append_log_type,omitempty" yaml:"append_log_type,omitempty"`
 }
 
 // Build will build a base producer.
@@ -34,11 +32,15 @@ func (c InputConfig) Build(context operator.BuildContext) (InputOperator, error)
 		return InputOperator{}, errors.WithDetails(err, "operator_id", c.ID())
 	}
 
+	labeler, err := c.LabelerConfig.Build()
+	if err != nil {
+		return InputOperator{}, errors.WithDetails(err, "operator_id", c.ID())
+	}
+
 	inputOperator := InputOperator{
+		Labeler:        labeler,
 		WriterOperator: writerOperator,
 		WriteTo:        c.WriteTo,
-		LogType:        c.LogType,
-		AppendLogType:  c.AppendLogType,
 	}
 
 	return inputOperator, nil
@@ -46,22 +48,21 @@ func (c InputConfig) Build(context operator.BuildContext) (InputOperator, error)
 
 // InputOperator provides a basic implementation of an input operator.
 type InputOperator struct {
+	Labeler
 	WriterOperator
-	WriteTo       entry.Field
-	LogType       string
-	AppendLogType bool
+	WriteTo entry.Field
 }
 
-// NewEntry will create a new entry using the write_to field.
-func (i *InputOperator) NewEntry(value interface{}) *entry.Entry {
+// NewEntry will create a new entry using the write_to field and applying labels.
+func (i *InputOperator) NewEntry(value interface{}) (*entry.Entry, error) {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
 
-	if i.AppendLogType {
-		entry.AddLabel("log_type", i.LogType)
+	if err := i.Label(entry); err != nil {
+		return nil, err
 	}
 
-	return entry
+	return entry, nil
 }
 
 // CanProcess will always return false for an input operator.

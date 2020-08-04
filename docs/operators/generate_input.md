@@ -13,8 +13,6 @@ coupled with the [`rate_limit`](/docs/operators/rate_limit.md) operator.
 | `entry`           |                  | A [entry](/docs/types/entry.md) log entry to repeatedly generate                                 |
 | `count`           | 0                | The number of entries to generate before stopping. A value of 0 indicates unlimited              |
 | `static`          | `false`          | If true, the timestamp of the entry will remain static after each invocation                     |
-| `log_type`        | `generate_input` | The log_type label appended to all discovered entries                                            |
-| `append_log_type` | `true`           | If true, appends the log_type label to all entries                                               |
 
 ### Example Configurations
 

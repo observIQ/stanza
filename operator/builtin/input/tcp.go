@@ -127,7 +127,11 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 
 		scanner := bufio.NewScanner(conn)
 		for scanner.Scan() {
-			entry := t.NewEntry(scanner.Text())
+			entry, err := t.NewEntry(scanner.Text())
+			if err != nil {
+				t.Errorw("Failed to create entry", zap.Error(err))
+				continue
+			}
 			t.Write(ctx, entry)
 		}
 		if err := scanner.Err(); err != nil {

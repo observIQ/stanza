@@ -79,7 +79,12 @@ func ReadToEnd(
 			break
 		}
 
-		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
+		e, err := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
+		if err != nil {
+			inputOperator.Errorw("Failed to create entry", zap.Error(err))
+			return
+		}
+
 		e.Set(filePathField, path)
 		e.Set(fileNameField, filepath.Base(file.Name()))
 		inputOperator.Write(ctx, e)
