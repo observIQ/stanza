@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	"github.com/observiq/carbon/operator"
 	"go.etcd.io/bbolt"
@@ -13,10 +12,11 @@ import (
 )
 
 // NewTempDir will return a new temp directory for testing
-func NewTempDir(t *testing.T) string {
+func NewTempDir(t TestingT) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf(err.Error())
+		t.FailNow()
 	}
 
 	t.Cleanup(func() {
