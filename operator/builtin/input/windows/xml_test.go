@@ -72,8 +72,8 @@ func TestParseRecord(t *testing.T) {
 
 	expected := map[string]interface{}{
 		"event_id": map[string]interface{}{
-			"qualifiers": 2,
-			"id":         1,
+			"id":         uint32(1),
+			"qualifiers": uint16(2),
 		},
 		"provider": map[string]interface{}{
 			"name":         "provider",
