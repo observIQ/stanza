@@ -1,7 +1,6 @@
 package file
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -847,6 +845,14 @@ func BenchmarkFileInput(b *testing.B) {
 			"Default",
 			NewInputConfig("test_id"),
 		},
+		{
+			"NoFileName",
+			func() *InputConfig {
+				cfg := NewInputConfig("test_id")
+				cfg.IncludeFileName = false
+				return cfg
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
@@ -869,16 +875,14 @@ func BenchmarkFileInput(b *testing.B) {
 			err = fileOperator.Start()
 			require.NoError(b, err)
 
+      file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+      require.NoError(b, err)
+
+      for i := 0; i < b.N; i++ {
+        file.WriteString("testlog\n")
+      }
+
 			b.ResetTimer()
-			go func() {
-				file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
-				require.NoError(b, err)
-
-				for i := 0; i < b.N; i++ {
-					file.WriteString("testlog\n")
-				}
-			}()
-
 			for i := 0; i < b.N; i++ {
 				<-fakeOutput.Received
 			}
