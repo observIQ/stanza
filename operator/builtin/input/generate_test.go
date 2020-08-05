@@ -81,7 +81,8 @@ pipeline:
 			{
 				Builder: &GenerateInputConfig{
 					InputConfig: helper.InputConfig{
-						WriteTo: entry.NewRecordField(),
+						LabelerConfig: helper.NewLabelerConfig(),
+						WriteTo:       entry.NewRecordField(),
 						WriterConfig: helper.WriterConfig{
 							BasicConfig: helper.BasicConfig{
 								OperatorID:   "my_generator",
@@ -89,8 +90,6 @@ pipeline:
 							},
 							OutputIDs: []string{"sampleoutput"},
 						},
-						LogType:       "generate_input",
-						AppendLogType: true,
 					},
 					Entry: entry.Entry{
 						Record: map[interface{}]interface{}{

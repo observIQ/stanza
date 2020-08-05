@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 - In the file input operator, file name and path fields are now added with `include_file_name` (default `true`) and `include_file_path` (default `false`)
+- Input and router operators can define labels on entries using the `labels` field
+- Add Event ID to windows event log entries
 
 ## [0.9.6] - 2020-08-04
 ### Changed
