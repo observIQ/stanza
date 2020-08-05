@@ -427,7 +427,7 @@ install_package()
   succeeded
 
   info "Extracting plugins..."
-  tar -zxvf "$agent_home/tmp/plugins.tar.gz" -C "$agent_home"
+  tar -zxf "$agent_home/tmp/plugins.tar.gz" -C "$agent_home"
   rm -fr "$agent_home/tmp"
 
   success "Carbon installation complete!"
