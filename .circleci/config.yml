@@ -422,55 +422,55 @@ workflows:
               ignore:
                 - master
 
-  test_build_release:
-    jobs:
-      - test-linux:
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - test-macos:
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - test-windows:
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - build:
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - fetch-plugins:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - wait-for-validation:
-          requires:
-            - test-linux
-            - test-macos
-            - test-windows
-            - build
-            - fetch-plugins
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - publish-github-release:
-          requires:
-            - wait-for-validation
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - publish-docker-release:
-          requires:
-            - wait-for-validation
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
+  # test_build_release:
+  #   jobs:
+  #     - test-linux:
+  #         filters:
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - test-macos:
+  #         filters:
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - test-windows:
+  #         filters:
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - build:
+  #         filters:
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - fetch-plugins:
+  #         filters:
+  #           branches:
+  #             ignore: /.*/
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - wait-for-validation:
+  #         requires:
+  #           - test-linux
+  #           - test-macos
+  #           - test-windows
+  #           - build
+  #           - fetch-plugins
+  #         filters:
+  #           branches:
+  #             ignore: /.*/
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - publish-github-release:
+  #         requires:
+  #           - wait-for-validation
+  #         filters:
+  #           branches:
+  #             ignore: /.*/
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
+  #     - publish-docker-release:
+  #         requires:
+  #           - wait-for-validation
+  #         filters:
+  #           branches:
+  #             ignore: /.*/
+  #           tags:
+  #             only: /^v\d+\.\d+\.\d+.*/
