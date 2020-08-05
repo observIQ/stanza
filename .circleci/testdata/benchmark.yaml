@@ -2,6 +2,7 @@
 pipeline:
   - type: file_input
     include: ["stream*.log"]
+    include_file_name: false
 
   - type: google_cloud_output
     # credentials found automatically on gce instance
