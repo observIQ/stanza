@@ -51,7 +51,6 @@ func TestFileSource_Build(t *testing.T) {
 		cfg.Include = []string{"/var/log/testpath.*"}
 		cfg.Exclude = []string{"/var/log/testpath.ex*"}
 		cfg.PollInterval = operator.Duration{Duration: 10 * time.Millisecond}
-		cfg.FilePathField = entry.NewRecordField("testpath")
 		return cfg
 	}
 
@@ -68,7 +67,8 @@ func TestFileSource_Build(t *testing.T) {
 			func(t *testing.T, f *InputOperator) {
 				require.Equal(t, f.OutputOperators[0], mockOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
-				require.Equal(t, f.FilePathField, entry.NewRecordField("testpath"))
+				require.Equal(t, f.FilePathField, entry.NewNilField())
+				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
 			},
 		},
@@ -209,6 +209,35 @@ func TestFileSource_ReadExistingLogs(t *testing.T) {
 	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog")
+}
+
+func TestFileSource_IncludeFile(t *testing.T) {
+	t.Parallel()
+	source, logReceived := newTestFileSource(t)
+	tempDir := testutil.NewTempDir(t)
+	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	source.FileNameField = entry.NewLabelField("file_name")
+	source.FilePathField = entry.NewLabelField("file_path")
+
+	// Create a file, then start
+	temp, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer temp.Close()
+
+	_, err = temp.WriteString("testlog\n")
+	require.NoError(t, err)
+
+	err = source.Start()
+	require.NoError(t, err)
+	defer source.Stop()
+
+	select {
+	case e := <-logReceived:
+		require.Equal(t, e.Labels["file_name"], filepath.Base(temp.Name()))
+		require.Equal(t, e.Labels["file_path"], temp.Name())
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for message")
+	}
 }
 
 func TestFileSource_ReadNewLogs(t *testing.T) {
@@ -620,6 +649,7 @@ func TestFileSource_FileMovedWhileOff_SmallFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	waitForMessage(t, logReceived, log1)
+	time.Sleep(50 * time.Millisecond)
 
 	// Restart the source
 	err = source.Stop()
@@ -799,6 +829,62 @@ func TestEncodings(t *testing.T) {
 				case <-time.After(time.Second):
 					require.FailNow(t, "Timed out waiting for entry to be read")
 				}
+			}
+		})
+	}
+}
+
+type fileInputBenchmark struct {
+	name   string
+	config *InputConfig
+}
+
+func BenchmarkFileInput(b *testing.B) {
+	cases := []fileInputBenchmark{
+		{
+			"Default",
+			NewInputConfig("test_id"),
+		},
+		{
+			"NoFileName",
+			func() *InputConfig {
+				cfg := NewInputConfig("test_id")
+				cfg.IncludeFileName = false
+				return cfg
+			}(),
+		},
+	}
+
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			tempDir := testutil.NewTempDir(b)
+			path := filepath.Join(tempDir, "in.log")
+
+			cfg := tc.config
+			cfg.OutputIDs = []string{"fake"}
+			cfg.Include = []string{path}
+			cfg.StartAt = "beginning"
+
+			fileOperator, err := cfg.Build(testutil.NewBuildContext(b))
+			require.NoError(b, err)
+
+			fakeOutput := testutil.NewFakeOutput(b)
+			err = fileOperator.SetOutputs([]operator.Operator{fakeOutput})
+			require.NoError(b, err)
+
+			err = fileOperator.Start()
+			require.NoError(b, err)
+
+      file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+      require.NoError(b, err)
+
+      for i := 0; i < b.N; i++ {
+        file.WriteString("testlog\n")
+      }
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				<-fakeOutput.Received
 			}
 		})
 	}

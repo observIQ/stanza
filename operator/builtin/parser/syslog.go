@@ -49,14 +49,9 @@ func (c SyslogParserConfig) Build(context operator.BuildContext) (operator.Opera
 		return nil, fmt.Errorf("missing field 'protocol'")
 	}
 
-	machine, err := buildMachine(c.Protocol)
-	if err != nil {
-		return nil, err
-	}
-
 	syslogParser := &SyslogParser{
 		ParserOperator: parserOperator,
-		machine:        machine,
+		protocol:       c.Protocol,
 	}
 
 	return syslogParser, nil
@@ -76,7 +71,7 @@ func buildMachine(protocol string) (syslog.Machine, error) {
 // SyslogParser is an operator that parses syslog.
 type SyslogParser struct {
 	helper.ParserOperator
-	machine syslog.Machine
+	protocol string
 }
 
 // Process will parse an entry field as syslog.
@@ -91,7 +86,12 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	syslog, err := s.machine.Parse(bytes)
+	machine, err := buildMachine(s.protocol)
+	if err != nil {
+		return nil, err
+	}
+
+	syslog, err := machine.Parse(bytes)
 	if err != nil {
 		return nil, err
 	}

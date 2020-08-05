@@ -8,14 +8,16 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 
 ### Configuration Fields
 
-| Field       | Default          | Description                                                                                      |
-| ---         | ---              | ---                                                                                              |
-| `id`        | `journald_input` | A unique identifier for the operator                                                             |
-| `output`    | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
-| `directory` |                  | A directory containing journal files to read entries from                                        |
-| `files`     |                  | A list of journal files to read entries from                                                     |
-| `write_to`  | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
-
+| Field             | Default          | Description                                                                                      |
+| ---               | ---              | ---                                                                                              |
+| `id`              | `journald_input` | A unique identifier for the operator                                                             |
+| `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
+| `directory`       |                  | A directory containing journal files to read entries from                                        |
+| `files`           |                  | A list of journal files to read entries from                                                     |
+| `write_to`        | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
+| `start_at`        | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`          |
+| `log_type`        | `journald_input` | The log_type label appended to all discovered entries                                            |
+| `append_log_type` | `true`           | If true, appends the log_type label to all entries                                               |
 
 
 ### Example Configurations

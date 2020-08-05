@@ -48,6 +48,9 @@ jobs:
       - run:
           name: Download Plugins Zip
           command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.zip -o ./artifacts/carbon-plugins.zip
+      - run:
+          name: Download Version File
+          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/version.json -o ./artifacts/version.json
       - persist_to_workspace:
           root: ./artifacts
           paths:

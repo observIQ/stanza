@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	"github.com/observiq/carbon/operator"
 	"go.etcd.io/bbolt"
@@ -13,10 +12,11 @@ import (
 )
 
 // NewTempDir will return a new temp directory for testing
-func NewTempDir(t *testing.T) string {
+func NewTempDir(t TestingT) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf(err.Error())
+		t.FailNow()
 	}
 
 	t.Cleanup(func() {
@@ -27,10 +27,11 @@ func NewTempDir(t *testing.T) string {
 }
 
 // NewTestDatabase will return a new database for testing
-func NewTestDatabase(t *testing.T) *bbolt.DB {
+func NewTestDatabase(t TestingT) *bbolt.DB {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf(err.Error())
+		t.FailNow()
 	}
 
 	t.Cleanup(func() {
@@ -39,7 +40,8 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 
 	db, err := bbolt.Open(filepath.Join(tempDir, "test.db"), 0666, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf(err.Error())
+		t.FailNow()
 	}
 
 	t.Cleanup(func() {
@@ -50,10 +52,11 @@ func NewTestDatabase(t *testing.T) *bbolt.DB {
 }
 
 // NewBuildContext will return a new build context for testing
-func NewBuildContext(t *testing.T) operator.BuildContext {
+func NewBuildContext(t TestingT) operator.BuildContext {
 	return operator.BuildContext{
-		Database: NewTestDatabase(t),
-		Logger:   zaptest.NewLogger(t).Sugar(),
+		PluginRegistry: make(operator.PluginRegistry),
+		Database:       NewTestDatabase(t),
+		Logger:         zaptest.NewLogger(t).Sugar(),
 	}
 }
 
@@ -68,4 +71,26 @@ func Trim(s string) string {
 	}
 
 	return strings.Join(trimmed, "\n")
+}
+
+type TestingT interface {
+	// Logs the given message without failing the test.
+	Logf(string, ...interface{})
+
+	// Logs the given message and marks the test as failed.
+	Errorf(string, ...interface{})
+
+	// Marks the test as failed.
+	Fail()
+
+	// Returns true if the test has been marked as failed.
+	Failed() bool
+
+	// Returns the name of the test.
+	Name() string
+
+	// Marks the test as failed and stops execution of that test.
+	FailNow()
+
+	Cleanup(func())
 }

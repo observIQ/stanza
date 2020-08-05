@@ -12,6 +12,7 @@ import (
 	"github.com/observiq/carbon/operator/helper"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/transform"
 )
 
 // ReadToEnd will read entries from a file and send them to the outputs of an input operator
@@ -28,8 +29,6 @@ func ReadToEnd(
 	maxLogSize int,
 	encoding encoding.Encoding,
 ) error {
-	defer messenger.FinishedReading()
-
 	select {
 	case <-ctx.Done():
 		return nil
@@ -59,30 +58,35 @@ func ReadToEnd(
 		return fmt.Errorf("seek file: %s", err)
 	}
 
-	scanner := bufio.NewScanner(file)
-	buf := make([]byte, 0, 16384)
-	scanner.Buffer(buf, maxLogSize)
-	pos := startOffset
-	scanFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		advance, token, err = splitFunc(data, atEOF)
-		pos += int64(advance)
-		return
-	}
-	scanner.Split(scanFunc)
-
-	decoder := encoding.NewDecoder()
+	scanner := NewPositionalScanner(file, maxLogSize, startOffset, splitFunc)
 
 	// Make a large, reusable buffer for transforming
+	decoder := encoding.NewDecoder()
 	decodeBuffer := make([]byte, 16384)
 
-	// If we're not at the end of the file, and we haven't
-	// advanced since last cycle, read the rest of the file as an entry
-	defer func() {
-		if pos < stat.Size() && pos == startOffset && lastSeenFileSize == stat.Size() {
-			readRemaining(ctx, file, pos, stat.Size(), messenger, inputOperator, filePathField, fileNameField, decoder, decodeBuffer)
+	fileName := filepath.Base(file.Name())
+	emit := func(msgBuf []byte) {
+		decoder.Reset()
+		var nDst int
+		for {
+			nDst, _, err = decoder.Transform(decodeBuffer, msgBuf, true)
+			if err != nil && err == transform.ErrShortDst {
+				decodeBuffer = make([]byte, len(decodeBuffer)*2)
+				continue
+			} else if err != nil {
+				inputOperator.Errorw("failed to transform encoding", zap.Error(err))
+				return
+			}
+			break
 		}
-	}()
 
+		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
+		e.Set(filePathField, path)
+		e.Set(fileNameField, fileName)
+		inputOperator.Write(ctx, e)
+	}
+
+	// Iterate over the tokenized file, emitting entries as we go
 	for {
 		select {
 		case <-ctx.Done():
@@ -94,47 +98,32 @@ func ReadToEnd(
 		if !ok {
 			if err := scanner.Err(); err == bufio.ErrTooLong {
 				return errors.NewError("log entry too large", "increase max_log_size or ensure that multiline regex patterns terminate")
+			} else if err != nil {
+				return errors.Wrap(err, "scanner error")
 			}
-			return scanner.Err()
+			break
 		}
 
-		decoder.Reset()
-		nDst, _, err := decoder.Transform(decodeBuffer, scanner.Bytes(), true)
+		emit(scanner.Bytes())
+		messenger.SetOffset(scanner.Pos())
+	}
+
+	// If we're not at the end of the file, and we haven't
+	// advanced since last cycle, read the rest of the file as an entry
+	if scanner.Pos() < stat.Size() && scanner.Pos() == startOffset && lastSeenFileSize == stat.Size() {
+		_, err := file.Seek(scanner.Pos(), 0)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "seeking for trailing entry")
 		}
 
-		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
-		e.Set(filePathField, path)
-		e.Set(fileNameField, filepath.Base(file.Name()))
-		inputOperator.Write(ctx, e)
-		messenger.SetOffset(pos)
-	}
-}
-
-// readRemaining will read the remaining characters in a file as a log entry.
-func readRemaining(ctx context.Context, file *os.File, filePos int64, fileSize int64, messenger fileUpdateMessenger, inputOperator helper.InputOperator, filePathField, fileNameField entry.Field, encoder *encoding.Decoder, decodeBuffer []byte) {
-	_, err := file.Seek(filePos, 0)
-	if err != nil {
-		inputOperator.Errorf("failed to seek to read last log entry")
-		return
+		msgBuf := make([]byte, stat.Size()-scanner.Pos())
+		n, err := file.Read(msgBuf)
+		if err != nil {
+			return errors.Wrap(err, "reading trailing entry")
+		}
+		emit(msgBuf[:n])
+		messenger.SetOffset(scanner.Pos() + int64(n))
 	}
 
-	msgBuf := make([]byte, fileSize-filePos)
-	n, err := file.Read(msgBuf)
-	if err != nil {
-		inputOperator.Errorf("failed to read trailing log")
-		return
-	}
-	encoder.Reset()
-	nDst, _, err := encoder.Transform(decodeBuffer, msgBuf, true)
-	if err != nil {
-		inputOperator.Errorw("failed to decode trailing log", zap.Error(err))
-	}
-
-	e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
-	e.Set(filePathField, file.Name())
-	e.Set(fileNameField, filepath.Base(file.Name()))
-	inputOperator.Write(ctx, e)
-	messenger.SetOffset(filePos + int64(n))
+	return nil
 }

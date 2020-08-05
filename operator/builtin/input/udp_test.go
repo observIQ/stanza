@@ -8,33 +8,18 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestUDPInput(t *testing.T) {
-	basicUDPInputConfig := func() *UDPInputConfig {
-		return &UDPInputConfig{
-			InputConfig: helper.InputConfig{
-				WriteTo: entry.NewRecordField(),
-				WriterConfig: helper.WriterConfig{
-					BasicConfig: helper.BasicConfig{
-						OperatorID:   "test_id",
-						OperatorType: "udp_input",
-					},
-					OutputIDs: []string{"test_output_id"},
-				},
-			},
-		}
-	}
+func udpInputTest(input []byte, expected []string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+		cfg := NewUDPInputConfig("test_input")
+		address := newRandListenAddress()
+		cfg.ListenAddress = address
 
-	t.Run("Simple", func(t *testing.T) {
-		cfg := basicUDPInputConfig()
-		cfg.ListenAddress = "127.0.0.1:63001"
-
-		buildContext := testutil.NewBuildContext(t)
-		newOperator, err := cfg.Build(buildContext)
+		newOperator, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
 
 		mockOutput := testutil.Operator{}
@@ -52,20 +37,74 @@ func TestUDPInput(t *testing.T) {
 		require.NoError(t, err)
 		defer udpInput.Stop()
 
-		conn, err := net.Dial("udp", "127.0.0.1:63001")
+		conn, err := net.Dial("udp", address)
 		require.NoError(t, err)
 		defer conn.Close()
 
-		_, err = conn.Write([]byte("message1\n"))
+		_, err = conn.Write(input)
 		require.NoError(t, err)
 
-		expectedRecord := "message1"
+		for _, expectedRecord := range expected {
+			select {
+			case entry := <-entryChan:
+				require.Equal(t, expectedRecord, entry.Record)
+			case <-time.After(time.Second):
+				require.FailNow(t, "Timed out waiting for message to be written")
+			}
+		}
+
 		select {
 		case entry := <-entryChan:
-			require.Equal(t, expectedRecord, entry.Record)
-		case <-time.After(time.Second):
-			require.FailNow(t, "Timed out waiting for message to be written")
+			require.FailNow(t, "Unexpected entry: %s", entry)
+		case <-time.After(100 * time.Millisecond):
+			return
 		}
-	})
+	}
+}
 
+func TestUDPInput(t *testing.T) {
+	t.Run("Simple", udpInputTest([]byte("message1"), []string{"message1"}))
+	t.Run("TrailingNewlines", udpInputTest([]byte("message1\n"), []string{"message1"}))
+	t.Run("TrailingCRNewlines", udpInputTest([]byte("message1\r\n"), []string{"message1"}))
+	t.Run("NewlineInMessage", udpInputTest([]byte("message1\nmessage2\n"), []string{"message1\nmessage2"}))
+}
+
+func BenchmarkUdpInput(b *testing.B) {
+	cfg := NewUDPInputConfig("test_id")
+	address := newRandListenAddress()
+	cfg.ListenAddress = address
+
+	newOperator, err := cfg.Build(testutil.NewBuildContext(b))
+	require.NoError(b, err)
+
+	fakeOutput := testutil.NewFakeOutput(b)
+	udpInput := newOperator.(*UDPInput)
+	udpInput.InputOperator.OutputOperators = []operator.Operator{fakeOutput}
+
+	err = udpInput.Start()
+	require.NoError(b, err)
+
+	done := make(chan struct{})
+	go func() {
+		conn, err := net.Dial("udp", address)
+		require.NoError(b, err)
+		defer udpInput.Stop()
+		defer conn.Close()
+		message := []byte("message\n")
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				_, err := conn.Write(message)
+				require.NoError(b, err)
+			}
+		}
+	}()
+
+	for i := 0; i < b.N; i++ {
+		<-fakeOutput.Received
+	}
+
+	defer close(done)
 }

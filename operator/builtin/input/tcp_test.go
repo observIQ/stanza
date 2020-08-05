@@ -1,6 +1,8 @@
 package input
 
 import (
+	"fmt"
+	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -8,33 +10,17 @@ import (
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestTCPInput(t *testing.T) {
-	basicTCPInputConfig := func() *TCPInputConfig {
-		return &TCPInputConfig{
-			InputConfig: helper.InputConfig{
-				WriteTo: entry.NewRecordField(),
-				WriterConfig: helper.WriterConfig{
-					BasicConfig: helper.BasicConfig{
-						OperatorID:   "test_id",
-						OperatorType: "tcp_input",
-					},
-					OutputIDs: []string{"test_output_id"},
-				},
-			},
-		}
-	}
+func tcpInputTest(input []byte, expected []string) func(t *testing.T) {
+	return func(t *testing.T) {
+		cfg := NewTCPInputConfig("test_id")
+		address := newRandListenAddress()
+		cfg.ListenAddress = address
 
-	t.Run("Simple", func(t *testing.T) {
-		cfg := basicTCPInputConfig()
-		cfg.ListenAddress = "127.0.0.1:64001"
-
-		buildContext := testutil.NewBuildContext(t)
-		newOperator, err := cfg.Build(buildContext)
+		newOperator, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
 
 		mockOutput := testutil.Operator{}
@@ -50,20 +36,77 @@ func TestTCPInput(t *testing.T) {
 		require.NoError(t, err)
 		defer tcpInput.Stop()
 
-		conn, err := net.Dial("tcp", "127.0.0.1:64001")
+		conn, err := net.Dial("tcp", address)
 		require.NoError(t, err)
 		defer conn.Close()
 
-		_, err = conn.Write([]byte("message1\n"))
+		_, err = conn.Write(input)
 		require.NoError(t, err)
 
-		expectedRecord := "message1"
+		for _, expectedMessage := range expected {
+			select {
+			case entry := <-entryChan:
+				require.Equal(t, expectedMessage, entry.Record)
+			case <-time.After(time.Second):
+				require.FailNow(t, "Timed out waiting for message to be written")
+			}
+		}
+
 		select {
 		case entry := <-entryChan:
-			require.Equal(t, expectedRecord, entry.Record)
-		case <-time.After(time.Second):
-			require.FailNow(t, "Timed out waiting for message to be written")
+			require.FailNow(t, "Unexpected entry: %s", entry)
+		case <-time.After(100 * time.Millisecond):
+			return
 		}
-	})
+	}
+}
 
+func TestTcpInput(t *testing.T) {
+	t.Run("Simple", tcpInputTest([]byte("message\n"), []string{"message"}))
+	t.Run("CarriageReturn", tcpInputTest([]byte("message\r\n"), []string{"message"}))
+}
+
+func newRandListenAddress() string {
+	port := rand.Int()%16000 + 49152
+	return fmt.Sprintf("127.0.0.1:%d", port)
+}
+
+func BenchmarkTcpInput(b *testing.B) {
+	cfg := NewTCPInputConfig("test_id")
+	address := newRandListenAddress()
+	cfg.ListenAddress = address
+
+	newOperator, err := cfg.Build(testutil.NewBuildContext(b))
+	require.NoError(b, err)
+
+	fakeOutput := testutil.NewFakeOutput(b)
+	tcpInput := newOperator.(*TCPInput)
+	tcpInput.InputOperator.OutputOperators = []operator.Operator{fakeOutput}
+
+	err = tcpInput.Start()
+	require.NoError(b, err)
+
+	done := make(chan struct{})
+	go func() {
+		conn, err := net.Dial("tcp", address)
+		require.NoError(b, err)
+		defer tcpInput.Stop()
+		defer conn.Close()
+		message := []byte("message\n")
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				_, err := conn.Write(message)
+				require.NoError(b, err)
+			}
+		}
+	}()
+
+	for i := 0; i < b.N; i++ {
+		<-fakeOutput.Received
+	}
+
+	defer close(done)
 }

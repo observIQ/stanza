@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## Unreleased
+### Changed
+- In the file input operator, file name and path fields are now added with `include_file_name` (default `true`) and `include_file_path` (default `false`)
+
+## [0.9.6] - 2020-08-04
+### Changed
+- Fork go-syslog to support long sdnames that are not rfc5424-compliant
+- Reduce noise in debug messages for TCP and UDP inputs
+### Added
+- `log_type` label added by default to input operators
+### Fixed
+- Trim carriage returns from TCP input
+
+## [0.9.5] - 2020-07-28
+### Added
+- Configurable `timeout` parameter for the `k8s_metadata_decorator` ([PR54](https://github.com/observIQ/carbon/pull/54))
+- Journald operator now supports `start_at` parameter ([PR55](https://github.com/observIQ/carbon/pull/55))
+
+### Changed
+- Enhanced plugin parameter metadata structure, to support required/optional and default values ([PR59](https://github.com/observIQ/carbon/pull/59))
+
+### Fixed
+- Issue where multiple instances of `syslog_parser` would cause parsing errors ([PR61](https://github.com/observIQ/carbon/pull/61))
+- `short destination buffer` error now is handled by increasing encoding buffer size ([PR58](https://github.com/observIQ/carbon/pull/58))
+- Issue where omitting the output field in a plugin could result in errors ([PR56](https://github.com/observIQ/carbon/pull/56))
+
 ## [0.9.4] - 2020-07-21
 - Allow omitting `id`, defaulting to plugin type if unique within namespace
 - Allow omitting `output`, defaulting to the next operator in the pipeline if valid

@@ -27,6 +27,7 @@ func init() {
 func NewJournaldInputConfig(operatorID string) *JournaldInputConfig {
 	return &JournaldInputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, "journald_input"),
+		StartAt:     "end",
 	}
 }
 
@@ -36,6 +37,7 @@ type JournaldInputConfig struct {
 
 	Directory *string  `json:"directory,omitempty" yaml:"directory,omitempty"`
 	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
+	StartAt   string   `json:"start_at,omitempty"  yaml:"start_at,omitempty"`
 }
 
 // Build will build a journald input operator from the supplied configuration
@@ -55,6 +57,14 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator
 
 	// Continue watching logs until cancelled
 	args = append(args, "--follow")
+
+	switch c.StartAt {
+	case "end":
+	case "beginning":
+		args = append(args, "--no-tail")
+	default:
+		return nil, fmt.Errorf("invalid value '%s' for parameter 'start_at'", c.StartAt)
+	}
 
 	switch {
 	case c.Directory != nil:
