@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	syslog "github.com/influxdata/go-syslog/v3"
-	"github.com/influxdata/go-syslog/v3/rfc3164"
-	"github.com/influxdata/go-syslog/v3/rfc5424"
+	syslog "github.com/observiq/go-syslog/v3"
+	"github.com/observiq/go-syslog/v3/rfc3164"
+	"github.com/observiq/go-syslog/v3/rfc5424"
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/operator"
 	"github.com/observiq/carbon/operator/helper"
