@@ -20,10 +20,6 @@ install-tools:
 test:
 	go test -race -coverprofile coverage.txt -coverpkg ./... ./...
 
-.PHONY: bench
-bench:
-	go test -run=NONE -bench '.*' ./... -benchmem
-
 .PHONY: lint
 lint:
 	golangci-lint run ./...

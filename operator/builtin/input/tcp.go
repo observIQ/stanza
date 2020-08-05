@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
 	"github.com/observiq/carbon/operator"
 	"github.com/observiq/carbon/operator/helper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -87,12 +87,8 @@ func (t *TCPInput) goListen(ctx context.Context) {
 		for {
 			conn, err := t.listener.AcceptTCP()
 			if err != nil {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					t.Debugw("Listener accept error", zap.Error(err))
-				}
+				t.Debugf("Exiting listener: %s", err)
+				break
 			}
 
 			t.Debugf("Received connection: %s", conn.RemoteAddr().String())
@@ -125,15 +121,31 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 		defer t.waitGroup.Done()
 		defer cancel()
 
-		scanner := bufio.NewScanner(conn)
-		for scanner.Scan() {
-			entry := t.NewEntry(scanner.Text())
+		reader := bufio.NewReaderSize(conn, 1024*64)
+		for {
+			message, err := t.readMessage(conn, reader)
+			if err != nil {
+				t.Debugf("Exiting message handler: %s", err)
+				break
+			}
+
+			entry := t.NewEntry(message)
 			t.Write(ctx, entry)
 		}
-		if err := scanner.Err(); err != nil {
-			t.Errorw("Scanner error", zap.Error(err))
-		}
 	}()
+}
+
+// readMessage will read a log message from a TCP connection.
+func (t *TCPInput) readMessage(conn net.Conn, reader *bufio.Reader) (string, error) {
+	message, err := reader.ReadBytes('\n')
+	if err != nil {
+		if err == io.EOF {
+			return string(message), err
+		}
+		return "", err
+	}
+
+	return string(message[:len(message)-1]), nil
 }
 
 // Stop will stop listening for log entries over TCP.

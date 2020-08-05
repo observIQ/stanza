@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 
 	"github.com/observiq/carbon/operator"
 	"go.etcd.io/bbolt"
@@ -12,11 +13,10 @@ import (
 )
 
 // NewTempDir will return a new temp directory for testing
-func NewTempDir(t TestingT) string {
+func NewTempDir(t *testing.T) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Errorf(err.Error())
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
@@ -27,11 +27,10 @@ func NewTempDir(t TestingT) string {
 }
 
 // NewTestDatabase will return a new database for testing
-func NewTestDatabase(t TestingT) *bbolt.DB {
+func NewTestDatabase(t *testing.T) *bbolt.DB {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Errorf(err.Error())
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
@@ -40,8 +39,7 @@ func NewTestDatabase(t TestingT) *bbolt.DB {
 
 	db, err := bbolt.Open(filepath.Join(tempDir, "test.db"), 0666, nil)
 	if err != nil {
-		t.Errorf(err.Error())
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
@@ -52,7 +50,7 @@ func NewTestDatabase(t TestingT) *bbolt.DB {
 }
 
 // NewBuildContext will return a new build context for testing
-func NewBuildContext(t TestingT) operator.BuildContext {
+func NewBuildContext(t *testing.T) operator.BuildContext {
 	return operator.BuildContext{
 		PluginRegistry: make(operator.PluginRegistry),
 		Database:       NewTestDatabase(t),
@@ -71,26 +69,4 @@ func Trim(s string) string {
 	}
 
 	return strings.Join(trimmed, "\n")
-}
-
-type TestingT interface {
-	// Logs the given message without failing the test.
-	Logf(string, ...interface{})
-
-	// Logs the given message and marks the test as failed.
-	Errorf(string, ...interface{})
-
-	// Marks the test as failed.
-	Fail()
-
-	// Returns true if the test has been marked as failed.
-	Failed() bool
-
-	// Returns the name of the test.
-	Name() string
-
-	// Marks the test as failed and stops execution of that test.
-	FailNow()
-
-	Cleanup(func())
 }

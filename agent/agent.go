@@ -21,10 +21,9 @@ type LogAgent struct {
 	Database  string
 	*zap.SugaredLogger
 
-	buildParams map[string]interface{}
-	database    operator.Database
-	pipeline    *pipeline.Pipeline
-	running     bool
+	database operator.Database
+	pipeline *pipeline.Pipeline
+	running  bool
 }
 
 // Start will start the log monitoring process.
@@ -49,7 +48,6 @@ func (a *LogAgent) Start() error {
 		PluginRegistry: registry,
 		Logger:         a.SugaredLogger,
 		Database:       a.database,
-		Parameters:     a.buildParams,
 	}
 
 	pipeline, err := a.Config.Pipeline.BuildPipeline(buildContext)
@@ -112,11 +110,5 @@ func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, operatorDir, databaseFi
 		SugaredLogger: logger,
 		PluginDir:     operatorDir,
 		Database:      databaseFile,
-		buildParams:   make(map[string]interface{}),
 	}
-}
-
-func (a *LogAgent) WithBuildParameter(key string, value interface{}) *LogAgent {
-	a.buildParams[key] = value
-	return a
 }

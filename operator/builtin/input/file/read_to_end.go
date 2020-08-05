@@ -64,7 +64,6 @@ func ReadToEnd(
 	decoder := encoding.NewDecoder()
 	decodeBuffer := make([]byte, 16384)
 
-	fileName := filepath.Base(file.Name())
 	emit := func(msgBuf []byte) {
 		decoder.Reset()
 		var nDst int
@@ -82,7 +81,7 @@ func ReadToEnd(
 
 		e := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
 		e.Set(filePathField, path)
-		e.Set(fileNameField, fileName)
+		e.Set(fileNameField, filepath.Base(file.Name()))
 		inputOperator.Write(ctx, e)
 	}
 

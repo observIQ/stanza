@@ -25,7 +25,6 @@ type Builder interface {
 type BuildContext struct {
 	PluginRegistry PluginRegistry
 	Database       Database
-	Parameters     map[string]interface{}
 	Logger         *zap.SugaredLogger
 }
 
