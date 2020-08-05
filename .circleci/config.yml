@@ -274,7 +274,7 @@ jobs:
       - store_artifacts:
           path: ./out
 
-  report-results:
+  report-summary:
     docker:
       - image: circleci/golang:1.14
     resource_class: small
@@ -289,15 +289,40 @@ jobs:
             curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" -o tmp/aggregated_results.json \
               "$RESULTS_SERVICE?command=summarize&git_commit_hash=$CIRCLE_SHA1&profile=false"
       - run:
-          name: Write Table Labels
-          command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/table.md
+          name: Write Summary Labels
+          command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/summary.md
       - run:
           name: Convert Results to Rows
-          command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) | \(.mem_avg) |"') | awk  '{gsub("\|\|","|\n|")};1' >> tmp/table.md
-      - run: cat tmp/table.md
+          command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) | \(.mem_avg) |"') | awk  '{gsub("\|\|","|\n|")};1' >> tmp/summary.md
+      - run: cat tmp/summary.md
       - pr-comment/pr-comment:
-          comment: $(cat tmp/table.md)
+          comment: $(cat tmp/summary.md)
           maxComments: 10
+
+  report-diff:
+    docker:
+      - image: circleci/golang:1.14
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Setup Workspace
+          command: mkdir tmp
+      - run:
+          name: Get Aggregated Results
+          command: >
+            curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" -o tmp/aggregated_results.json \
+              "$RESULTS_SERVICE?command=diff&git_commit_hash=$CIRCLE_SHA1&profile=false"
+      # - run:
+      #     name: Write Table Labels
+      #     command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/table.md
+      # - run:
+      #     name: Convert Results to Rows
+      #     command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) | \(.mem_avg) |"') | awk  '{gsub("\|\|","|\n|")};1' >> tmp/table.md
+      - run: cat tmp/table.md
+      # - pr-comment/pr-comment:
+      #     comment: $(cat tmp/table.md)
+      #     maxComments: 10
 
 workflows:
   version: 2
@@ -364,7 +389,23 @@ workflows:
           instance: circleci-<< pipeline.number >>-f10-10000
           rate: 10000
           files: 10
-      - report-results:
+      - report-summary:
+          requires:
+            - f1-1000
+            - f1-5000
+            - f1-10000
+            - f1-50000
+            - f1-100000
+            - f10-100
+            - f10-500
+            - f10-1000
+            - f10-5000
+            - f10-10000
+          filters:
+            branches:
+              ignore:
+                - master
+      - report-diff:
           requires:
             - f1-1000
             - f1-5000
