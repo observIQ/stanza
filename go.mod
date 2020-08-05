@@ -11,11 +11,12 @@ require (
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/googleapis/gax-go v1.0.3
 	github.com/hashicorp/go-uuid v1.0.2
-	github.com/influxdata/go-syslog/v3 v3.0.0
+	github.com/influxdata/go-syslog/v3 v3.0.0 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/kardianos/service v1.0.0
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/observiq/ctimefmt v1.0.0
+	github.com/observiq/go-syslog/v3 v3.0.2
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.5.1
@@ -37,5 +38,3 @@ require (
 	k8s.io/apimachinery v0.18.4
 	k8s.io/client-go v0.18.4
 )
-
-replace github.com/influxdata/go-syslog/v3 => github.com/observiq/go-syslog/v3 v3.0.1
