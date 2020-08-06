@@ -12,11 +12,7 @@ func NewVersionCommand() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "Print the carbon version",
 		Run: func(_ *cobra.Command, _ []string) {
-			if version.Version != "" {
-				println(version.Version)
-			} else {
-				println(version.GitHash)
-			}
+			println(version.GetVersion())
 		},
 	}
 }
