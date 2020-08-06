@@ -13,6 +13,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	gax "github.com/googleapis/gax-go"
 	"github.com/observiq/carbon/entry"
+	"github.com/observiq/carbon/internal/version"
 	"github.com/observiq/carbon/operator"
 	"github.com/observiq/carbon/operator/buffer"
 	"github.com/observiq/carbon/operator/helper"
@@ -141,7 +142,7 @@ func (p *GoogleCloudOutput) Start() error {
 
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
-	options = append(options, option.WithUserAgent("CarbonLogAgent/0.0.9"))
+	options = append(options, option.WithUserAgent("CarbonLogAgent/"+version.GetVersion()))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
