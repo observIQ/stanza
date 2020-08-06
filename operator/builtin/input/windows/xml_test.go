@@ -48,6 +48,10 @@ func TestParseSeverity(t *testing.T) {
 
 func TestParseRecord(t *testing.T) {
 	xml := EventXML{
+		EventID: EventID{
+			ID:         1,
+			Qualifiers: 2,
+		},
 		Provider: Provider{
 			Name:            "provider",
 			GUID:            "guid",
@@ -67,18 +71,24 @@ func TestParseRecord(t *testing.T) {
 	}
 
 	expected := map[string]interface{}{
-		"provider_name": "provider",
-		"provider_id":   "guid",
-		"event_source":  "event source",
-		"system_time":   "2020-07-30T01:01:01.123456789Z",
-		"computer":      "computer",
-		"channel":       "application",
-		"record_id":     uint64(1),
-		"level":         "Information",
-		"message":       "message",
-		"task":          "task",
-		"opcode":        "opcode",
-		"keywords":      []string{"keyword"},
+		"event_id": map[string]interface{}{
+			"id":         uint32(1),
+			"qualifiers": uint16(2),
+		},
+		"provider": map[string]interface{}{
+			"name":         "provider",
+			"guid":         "guid",
+			"event_source": "event source",
+		},
+		"system_time": "2020-07-30T01:01:01.123456789Z",
+		"computer":    "computer",
+		"channel":     "application",
+		"record_id":   uint64(1),
+		"level":       "Information",
+		"message":     "message",
+		"task":        "task",
+		"opcode":      "opcode",
+		"keywords":    []string{"keyword"},
 	}
 
 	require.Equal(t, expected, xml.parseRecord())

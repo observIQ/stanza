@@ -104,7 +104,15 @@ func TestInputOperatorProcess(t *testing.T) {
 func TestInputOperatorNewEntry(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	writeTo := entry.NewRecordField("test-field")
+	labelExpr, err := ExprStringConfig("test").Build()
+	require.NoError(t, err)
+
 	input := InputOperator{
+		Labeler: Labeler{
+			labels: map[string]*ExprString{
+				"test-label": labelExpr,
+			},
+		},
 		WriterOperator: WriterOperator{
 			BasicOperator: BasicOperator{
 				OperatorID:    "test-id",
@@ -115,8 +123,14 @@ func TestInputOperatorNewEntry(t *testing.T) {
 		WriteTo: writeTo,
 	}
 
-	entry := input.NewEntry("test")
+	entry, err := input.NewEntry("test")
+	require.NoError(t, err)
+
 	value, exists := entry.Get(writeTo)
 	require.True(t, exists)
 	require.Equal(t, "test", value)
+
+	label, exists := entry.Labels["test-label"]
+	require.True(t, exists)
+	require.Equal(t, "test", label)
 }

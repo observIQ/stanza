@@ -98,7 +98,12 @@ func (u *UDPInput) goHandleMessages(ctx context.Context) {
 				break
 			}
 
-			entry := u.NewEntry(message)
+			entry, err := u.NewEntry(message)
+			if err != nil {
+				u.Errorw("Failed to create entry", zap.Error(err))
+				continue
+			}
+
 			u.Write(ctx, entry)
 		}
 	}()

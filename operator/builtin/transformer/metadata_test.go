@@ -31,34 +31,6 @@ func TestMetadata(t *testing.T) {
 		expected *entry.Entry
 	}{
 		{
-			"AddTagLiteral",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
-				cfg.Tags = []helper.ExprStringConfig{"tag1"}
-				return cfg
-			}(),
-			entry.New(),
-			func() *entry.Entry {
-				e := entry.New()
-				e.Tags = []string{"tag1"}
-				return e
-			}(),
-		},
-		{
-			"AddTagExpr",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
-				cfg.Tags = []helper.ExprStringConfig{`prefix-EXPR( 'test1' )`}
-				return cfg
-			}(),
-			entry.New(),
-			func() *entry.Entry {
-				e := entry.New()
-				e.Tags = []string{"prefix-test1"}
-				return e
-			}(),
-		},
-		{
 			"AddLabelLiteral",
 			func() *MetadataOperatorConfig {
 				cfg := baseConfig()
@@ -112,20 +84,6 @@ func TestMetadata(t *testing.T) {
 				return e
 			}(),
 		},
-		{
-			"AddTagEnv",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
-				cfg.Tags = []helper.ExprStringConfig{`EXPR(env("TEST_METADATA_PLUGIN_ENV"))`}
-				return cfg
-			}(),
-			entry.New(),
-			func() *entry.Entry {
-				e := entry.New()
-				e.Tags = []string{"foo"}
-				return e
-			}(),
-		},
 	}
 
 	for _, tc := range cases {
@@ -147,7 +105,6 @@ func TestMetadata(t *testing.T) {
 
 			select {
 			case e := <-entryChan:
-				require.Equal(t, e.Tags, tc.expected.Tags)
 				require.Equal(t, e.Labels, tc.expected.Labels)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")
