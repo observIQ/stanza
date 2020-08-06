@@ -318,7 +318,7 @@ jobs:
           command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/table.md
       - run:
           name: Convert Results to Rows
-          command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) +\(.cpu_avg_diff) | \(.mem_avg) +\(.mem_avg_diff) |"') | awk  '{gsub("\|\|","|\n|")};1' | awk  '{gsub("+-","-")};1' >> tmp/table.md
+          command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) +\(.cpu_avg_diff) | \(.mem_avg) +\(.mem_avg_diff) |"') | awk  '{gsub("\|\|","|\n|")};1' | awk  '{gsub("\+-","-")};1' >> tmp/table.md
       - run: cat tmp/table.md
       - pr-comment/pr-comment:
           comment: $(cat tmp/table.md)
