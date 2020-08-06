@@ -274,7 +274,7 @@ jobs:
       - store_artifacts:
           path: ./out
 
-  report-results:
+  report-benchmark:
     docker:
       - image: circleci/golang:1.14
     resource_class: small
@@ -286,14 +286,14 @@ jobs:
       - run:
           name: Get Aggregated Results
           command: >
-            curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" -o tmp/aggregated_results.json \
-              "$RESULTS_SERVICE?command=summarize&git_commit_hash=$CIRCLE_SHA1&profile=false"
+            curl -f --header "secret: $RESULTS_SECRET" --header "Content-Type: application/json" -o tmp/benchmark_results.json \
+              "$RESULTS_SERVICE?command=diff&git_commit_hash=$CIRCLE_SHA1"
       - run:
           name: Write Table Labels
-          command: printf "| Log Files | Logs / Second | CPU Average (%%) | Memory Average (MB) |\n| --- | --- | --- | --- |\n" > tmp/table.md
+          command: printf "| Log Files | Logs / Second | CPU Avg (%%) | CPU Avg Δ (%%) | Memory Avg (MB) | Memory Avg Δ (MB) |\n| --- | --- | --- | --- | --- | --- |\n" > tmp/table.md
       - run:
           name: Convert Results to Rows
-          command: printf "%s" $(cat tmp/aggregated_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) | \(.mem_avg) |"') | awk  '{gsub("\|\|","|\n|")};1' >> tmp/table.md
+          command: printf "%s" $(cat tmp/benchmark_results.json | jq -r '.records | .[] | "| \(.log_files) | \(.logs_per_second) | \(.cpu_avg) | +\(.cpu_avg_diff) | \(.mem_avg) | +\(.mem_avg_diff) |"') | awk  '{gsub("\+-","-")};1' | awk  '{gsub("\|\|","|\n|")};1' >> tmp/table.md
       - run: cat tmp/table.md
       - pr-comment/pr-comment:
           comment: $(cat tmp/table.md)
@@ -364,7 +364,7 @@ workflows:
           instance: circleci-<< pipeline.number >>-f10-10000
           rate: 10000
           files: 10
-      - report-results:
+      - report-benchmark:
           requires:
             - f1-1000
             - f1-5000
