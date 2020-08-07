@@ -290,15 +290,25 @@ func jsonValueToStructValue(v interface{}) *structpb.Value {
 	switch x := v.(type) {
 	case bool:
 		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: x}}
+	case float32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
 	case float64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: x}}
 	case int:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int64:
+	case int8:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int16:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
 	case int32:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
 	case uint:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint8:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint16:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
 	case uint32:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
