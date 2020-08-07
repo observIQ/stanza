@@ -3,9 +3,12 @@ package output
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
 	"testing"
 	"time"
 
+	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	gax "github.com/googleapis/gax-go"
@@ -13,9 +16,11 @@ import (
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/operator"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	sev "google.golang.org/genproto/googleapis/logging/type"
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
+	"google.golang.org/grpc"
 )
 
 type mockCloudLoggingClient struct {
@@ -259,5 +264,116 @@ func googleCloudSeverityTestCase(s entry.Severity, expected sev.LogSeverity) goo
 			}
 			return req
 		}(),
+	}
+}
+
+// Adapted from https://github.com/googleapis/google-cloud-go/blob/master/internal/testutil/server.go
+type loggingHandler struct {
+	logpb.LoggingServiceV2Server
+
+	received chan *logpb.LogEntry
+}
+
+func (h *loggingHandler) WriteLogEntries(_ context.Context, req *logpb.WriteLogEntriesRequest) (*logpb.WriteLogEntriesResponse, error) {
+	for _, e := range req.Entries {
+		h.received <- e
+	}
+	return &logpb.WriteLogEntriesResponse{}, nil
+}
+
+func TestGoogleCloudOutputClient(t *testing.T) {
+	received := make(chan *logpb.LogEntry, 1)
+	serv := grpc.NewServer()
+	logpb.RegisterLoggingServiceV2Server(serv, &loggingHandler{
+		received: received,
+	})
+
+	lis, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		log.Fatal(err)
+	}
+	go serv.Serve(lis)
+
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
+	require.NoError(t, err)
+
+	cfg := NewGoogleCloudOutputConfig("test_id")
+	cfg.ProjectID = "test_project_id"
+	op, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+
+	gco := op.(*GoogleCloudOutput)
+	gco.client = client
+
+	ctx = context.Background()
+	e := entry.New()
+	e.Record = "test"
+	op.Process(ctx, e)
+	err = op.Stop()
+	require.NoError(t, err)
+
+	select {
+	case <-received:
+	case <-time.After(time.Second):
+		require.FailNow(t, "Did not received expected log")
+	}
+
+}
+
+func BenchmarkGoogleCloudOutputClient(b *testing.B) {
+	received := make(chan *logpb.LogEntry, b.N)
+	serv := grpc.NewServer()
+	logpb.RegisterLoggingServiceV2Server(serv, &loggingHandler{
+		received: received,
+	})
+
+	lis, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		log.Fatal(err)
+	}
+	go serv.Serve(lis)
+
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
+	require.NoError(b, err)
+
+	cfg := NewGoogleCloudOutputConfig("test_id")
+	cfg.ProjectID = "test_project_id"
+	op, err := cfg.Build(testutil.NewBuildContext(b))
+	require.NoError(b, err)
+
+	gco := op.(*GoogleCloudOutput)
+	gco.client = client
+
+	ctx = context.Background()
+	e := entry.New()
+	b.ResetTimer()
+	e.Record = "test"
+	for i := 0; i < b.N; i++ {
+		op.Process(ctx, e)
+
+	}
+	go func() {
+		err = op.Stop()
+		require.NoError(b, err)
+	}()
+
+	for i := 0; i < b.N; i++ {
+		<-received
 	}
 }
