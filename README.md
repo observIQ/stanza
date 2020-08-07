@@ -124,11 +124,12 @@ That's it! You should have logs streaming to Elasticsearch. From here you can ex
 
 To learn more about configuration, visit our [docs](./docs/README.md).
 
-### Can I route logs through a proxy server?
-Yes. The agent will respect `http_proxy` and `https_proxy` environment variables, as defined in Golang's [net/http](https://golang.org/pkg/net/http/#ProxyFromEnvironment) package.
-
 ## How do I contribute?
 
 First, check out our section on [`getting started with development`](./docs/development.md)
 
 Next, take a look at our contribution guidelines in [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+
+## Other questions?
+
+Check out our [FAQ](/docs/faq.md), or open an issue with your question. We'd love to hear from you.
