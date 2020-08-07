@@ -3,15 +3,14 @@ package output
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
-	gax "github.com/googleapis/gax-go"
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/operator"
@@ -22,21 +21,6 @@ import (
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/grpc"
 )
-
-type mockCloudLoggingClient struct {
-	closed          chan struct{}
-	writeLogEntries chan *logpb.WriteLogEntriesRequest
-}
-
-func (client *mockCloudLoggingClient) Close() error {
-	client.closed <- struct{}{}
-	return nil
-}
-
-func (client *mockCloudLoggingClient) WriteLogEntries(ctx context.Context, req *logpb.WriteLogEntriesRequest, opts ...gax.CallOption) (*logpb.WriteLogEntriesResponse, error) {
-	client.writeLogEntries <- req
-	return nil, nil
-}
 
 type googleCloudTestCase struct {
 	name           string
@@ -218,17 +202,23 @@ func TestGoogleCloudOutput(t *testing.T) {
 			cloudOutput, err := tc.config.Build(buildContext)
 			require.NoError(t, err)
 
-			mockClient := &mockCloudLoggingClient{
-				closed:          make(chan struct{}, 1),
-				writeLogEntries: make(chan *logpb.WriteLogEntriesRequest, 10),
-			}
-			cloudOutput.(*GoogleCloudOutput).client = mockClient
+			conn, received, stop, err := startServer()
+			require.NoError(t, err)
+			defer stop()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
+			require.NoError(t, err)
+
+			cloudOutput.(*GoogleCloudOutput).client = client
 
 			err = cloudOutput.Process(context.Background(), tc.input)
 			require.NoError(t, err)
 
 			select {
-			case req := <-mockClient.writeLogEntries:
+			case req := <-received:
 				require.Equal(t, tc.expectedOutput, req)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for writeLogEntries request")
@@ -271,18 +261,16 @@ func googleCloudSeverityTestCase(s entry.Severity, expected sev.LogSeverity) goo
 type loggingHandler struct {
 	logpb.LoggingServiceV2Server
 
-	received chan *logpb.LogEntry
+	received chan *logpb.WriteLogEntriesRequest
 }
 
 func (h *loggingHandler) WriteLogEntries(_ context.Context, req *logpb.WriteLogEntriesRequest) (*logpb.WriteLogEntriesResponse, error) {
-	for _, e := range req.Entries {
-		h.received <- e
-	}
+	h.received <- req
 	return &logpb.WriteLogEntriesResponse{}, nil
 }
 
-func TestGoogleCloudOutputClient(t *testing.T) {
-	received := make(chan *logpb.LogEntry, 1)
+func startServer() (*grpc.ClientConn, chan *logpb.WriteLogEntriesRequest, func(), error) {
+	received := make(chan *logpb.WriteLogEntriesRequest, 1)
 	serv := grpc.NewServer()
 	logpb.RegisterLoggingServiceV2Server(serv, &loggingHandler{
 		received: received,
@@ -290,90 +278,109 @@ func TestGoogleCloudOutputClient(t *testing.T) {
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, nil, err
 	}
 	go serv.Serve(lis)
 
 	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
-	require.NoError(t, err)
-
-	cfg := NewGoogleCloudOutputConfig("test_id")
-	cfg.ProjectID = "test_project_id"
-	op, err := cfg.Build(testutil.NewBuildContext(t))
-	require.NoError(t, err)
-
-	gco := op.(*GoogleCloudOutput)
-	gco.client = client
-
-	ctx = context.Background()
-	e := entry.New()
-	e.Record = "test"
-	op.Process(ctx, e)
-	err = op.Stop()
-	require.NoError(t, err)
-
-	select {
-	case <-received:
-	case <-time.After(time.Second):
-		require.FailNow(t, "Did not received expected log")
-	}
-
+	return conn, received, serv.Stop, nil
 }
 
-func BenchmarkGoogleCloudOutputClient(b *testing.B) {
-	received := make(chan *logpb.LogEntry, b.N)
-	serv := grpc.NewServer()
-	logpb.RegisterLoggingServiceV2Server(serv, &loggingHandler{
-		received: received,
-	})
+type googleCloudOutputBenchmark struct {
+	name  string
+	entry *entry.Entry
+}
 
-	lis, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		log.Fatal(err)
-	}
-	go serv.Serve(lis)
+func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
+	conn, received, stop, err := startServer()
+	require.NoError(b, err)
+	defer stop()
 
-	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
+	client, err := vkit.NewClient(context.Background(), option.WithGRPCConn(conn))
 	require.NoError(b, err)
 
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
 	op, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
+	op.(*GoogleCloudOutput).client = client
 
-	gco := op.(*GoogleCloudOutput)
-	gco.client = client
-
-	ctx = context.Background()
-	e := entry.New()
 	b.ResetTimer()
-	e.Record = "test"
 	for i := 0; i < b.N; i++ {
-		op.Process(ctx, e)
-
+		op.Process(context.Background(), g.entry)
 	}
 	go func() {
 		err = op.Stop()
 		require.NoError(b, err)
 	}()
 
-	for i := 0; i < b.N; i++ {
-		<-received
+	i := 0
+	for i < b.N {
+		req := <-received
+		i += len(req.Entries)
 	}
+}
+
+func BenchmarkGoogleCloudOutput(b *testing.B) {
+	t := time.Date(2007, 01, 01, 10, 15, 32, 0, time.UTC)
+	cases := []googleCloudOutputBenchmark{
+		{
+			"Simple",
+			&entry.Entry{
+				Timestamp: t,
+				Record:    "test",
+			},
+		},
+		{
+			"MapRecord",
+			&entry.Entry{
+				Timestamp: t,
+				Record:    mapOfSize(1, 0),
+			},
+		},
+		{
+			"LargeMapRecord",
+			&entry.Entry{
+				Timestamp: t,
+				Record:    mapOfSize(30, 0),
+			},
+		},
+		{
+			"DeepMapRecord",
+			&entry.Entry{
+				Timestamp: t,
+				Record:    mapOfSize(1, 10),
+			},
+		},
+		{
+			"Labels",
+			&entry.Entry{
+				Timestamp: t,
+				Record:    "test",
+				Labels: map[string]string{
+					"test": "val",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		b.Run(tc.name, tc.Run)
+	}
+}
+
+func mapOfSize(keys, depth int) map[string]interface{} {
+	m := make(map[string]interface{})
+	for i := 0; i < keys; i++ {
+		if depth == 0 {
+			m["k"+strconv.Itoa(i)] = "v" + strconv.Itoa(i)
+		} else {
+			m["k"+strconv.Itoa(i)] = mapOfSize(keys, depth-1)
+		}
+	}
+	return m
 }

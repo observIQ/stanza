@@ -11,7 +11,6 @@ import (
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	gax "github.com/googleapis/gax-go"
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/internal/version"
 	"github.com/observiq/carbon/operator"
@@ -93,14 +92,8 @@ type GoogleCloudOutput struct {
 	traceField   *entry.Field
 	spanIDField  *entry.Field
 
-	client  CloudLoggingClient
+	client  *vkit.Client
 	timeout time.Duration
-}
-
-// CloudLoggingClient is a client that writes entries to google cloud logging
-type CloudLoggingClient interface {
-	Close() error
-	WriteLogEntries(context.Context, *logpb.WriteLogEntriesRequest, ...gax.CallOption) (*logpb.WriteLogEntriesResponse, error)
 }
 
 // Start will start the google cloud logger.
