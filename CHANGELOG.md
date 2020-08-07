@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Fixed
 - Google Cloud Output failure when sent a field of type uint16
+- Added a default function to plugin templates
 
 ## [0.9.7] - 2020-08-05
 ### Changed
