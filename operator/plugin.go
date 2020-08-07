@@ -127,7 +127,7 @@ func (r PluginRegistry) Add(pluginType string, contents string) error {
 		return fmt.Errorf("plugin type %s already exists as a builtin plugin", pluginType)
 	}
 
-	pluginTemplate, err := template.New(pluginType).Parse(contents)
+	pluginTemplate, err := template.New(pluginType).Funcs(pluginFuncs()).Parse(contents)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s as a plugin template: %s", pluginType, err)
 	}
@@ -143,4 +143,19 @@ func NewPluginRegistry(dir string) (PluginRegistry, error) {
 		return registry, err
 	}
 	return registry, nil
+}
+
+// pluginFuncs returns a map of custom plugin functions used for templating.
+func pluginFuncs() template.FuncMap {
+	funcs := make(map[string]interface{})
+	funcs["default"] = defaultPluginFunc
+	return funcs
+}
+
+// defaultPluginFunc is a plugin function that returns a default value if the supplied value is nil.
+func defaultPluginFunc(def interface{}, val interface{}) interface{} {
+	if val == nil {
+		return def
+	}
+	return val
 }
