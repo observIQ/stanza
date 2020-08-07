@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -270,7 +271,7 @@ func (h *loggingHandler) WriteLogEntries(_ context.Context, req *logpb.WriteLogE
 }
 
 func startServer() (*grpc.ClientConn, chan *logpb.WriteLogEntriesRequest, func(), error) {
-	received := make(chan *logpb.WriteLogEntriesRequest, 1)
+	received := make(chan *logpb.WriteLogEntriesRequest, 10)
 	serv := grpc.NewServer()
 	logpb.RegisterLoggingServiceV2Server(serv, &loggingHandler{
 		received: received,
@@ -303,26 +304,36 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 	client, err := vkit.NewClient(context.Background(), option.WithGRPCConn(conn))
 	require.NoError(b, err)
 
-	cfg := NewGoogleCloudOutputConfig("test_id")
+	cfg := NewGoogleCloudOutputConfig(g.name)
 	cfg.ProjectID = "test_project_id"
 	op, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
 	op.(*GoogleCloudOutput).client = client
+	op.(*GoogleCloudOutput).timeout = 30 * time.Second
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		op.Process(context.Background(), g.entry)
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
+		for i := 0; i < b.N; i++ {
+			op.Process(context.Background(), g.entry)
+		}
 		err = op.Stop()
 		require.NoError(b, err)
 	}()
 
-	i := 0
-	for i < b.N {
-		req := <-received
-		i += len(req.Entries)
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		i := 0
+		for i < b.N {
+			req := <-received
+			i += len(req.Entries)
+		}
+	}()
+
+	wg.Wait()
 }
 
 func BenchmarkGoogleCloudOutput(b *testing.B) {
