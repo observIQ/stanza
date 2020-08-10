@@ -30,50 +30,17 @@ func NewFakeOutput(t TestingT) *FakeOutput {
 	}
 }
 
-func (f *FakeOutput) CanOutput() bool {
-	return false
-}
+func (f *FakeOutput) CanOutput() bool                              { return false }
+func (f *FakeOutput) CanProcess() bool                             { return true }
+func (f *FakeOutput) ID() string                                   { return "fake" }
+func (f *FakeOutput) Logger() *zap.SugaredLogger                   { return f.SugaredLogger }
+func (f *FakeOutput) Outputs() []operator.Operator                 { return nil }
+func (f *FakeOutput) SetOutputs(outputs []operator.Operator) error { return nil }
+func (f *FakeOutput) Start() error                                 { return nil }
+func (f *FakeOutput) Stop() error                                  { return nil }
+func (f *FakeOutput) Type() string                                 { return "fake_output" }
 
-func (f *FakeOutput) CanProcess() bool {
-	return true
-}
-
-func (f *FakeOutput) ID() string {
-	return "fake"
-}
-
-// Logger provides a mock function with given fields:
-func (f *FakeOutput) Logger() *zap.SugaredLogger {
-	return f.SugaredLogger
-}
-
-// Outputs provides a mock function with given fields:
-func (f *FakeOutput) Outputs() []operator.Operator {
-	return nil
-}
-
-// Process provides a mock function with given fields: _a0, _a1
 func (f *FakeOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	f.Received <- entry
 	return nil
-}
-
-// SetOutputs provides a mock function with given fields: _a0
-func (f *FakeOutput) SetOutputs(outputs []operator.Operator) error {
-	return nil
-}
-
-// Start provides a mock function with given fields:
-func (f *FakeOutput) Start() error {
-	return nil
-}
-
-// Stop provides a mock function with given fields:
-func (f *FakeOutput) Stop() error {
-	return nil
-}
-
-// Type provides a mock function with given fields:
-func (f *FakeOutput) Type() string {
-	return "fake_output"
 }
