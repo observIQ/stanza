@@ -11,31 +11,31 @@ import (
 )
 
 func init() {
-	operator.Register("host_decorator", func() operator.Builder { return NewHostDecoratorConfig("") })
+	operator.Register("host_metadata", func() operator.Builder { return NewHostMetadataConfig("") })
 }
 
-// NewHostDecoratorConfig returns a HostDecoratorConfig with default values
-func NewHostDecoratorConfig(operatorID string) *HostDecoratorConfig {
-	return &HostDecoratorConfig{
+// NewHostMetadataConfig returns a HostMetadataConfig with default values
+func NewHostMetadataConfig(operatorID string) *HostMetadataConfig {
+	return &HostMetadataConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "host_decorator"),
 		IncludeHostname:   true,
 	}
 }
 
 //
-type HostDecoratorConfig struct {
+type HostMetadataConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 	IncludeHostname          bool `json:"include_hostname,omitempty"     yaml:"include_hostname,omitempty"`
 }
 
 // Build will build an operator from the supplied configuration
-func (c HostDecoratorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c HostMetadataConfig) Build(context operator.BuildContext) (operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build transformer")
 	}
 
-	op := &HostDecorator{
+	op := &HostMetadata{
 		TransformerOperator: transformerOperator,
 		includeHostname:     c.IncludeHostname,
 	}
@@ -50,8 +50,8 @@ func (c HostDecoratorConfig) Build(context operator.BuildContext) (operator.Oper
 	return op, nil
 }
 
-// HostDecorator is an operator that can add host metadata to incoming entries
-type HostDecorator struct {
+// HostMetadata is an operator that can add host metadata to incoming entries
+type HostMetadata struct {
 	helper.TransformerOperator
 
 	hostname        string
@@ -59,12 +59,12 @@ type HostDecorator struct {
 }
 
 // Process will process an incoming entry using the metadata transform.
-func (h *HostDecorator) Process(ctx context.Context, entry *entry.Entry) error {
+func (h *HostMetadata) Process(ctx context.Context, entry *entry.Entry) error {
 	return h.ProcessWith(ctx, entry, h.Transform)
 }
 
 // Transform will transform an entry, adding the configured host metadata.
-func (h *HostDecorator) Transform(entry *entry.Entry) (*entry.Entry, error) {
+func (h *HostMetadata) Transform(entry *entry.Entry) (*entry.Entry, error) {
 	if h.includeHostname {
 		entry.AddLabel("hostname", h.hostname)
 	}
