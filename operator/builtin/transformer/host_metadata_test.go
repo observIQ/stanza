@@ -11,19 +11,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHostDecorator(t *testing.T) {
+func TestHostMetadata(t *testing.T) {
 
 	cases := []struct {
 		name           string
-		hd             *HostDecorator
+		hd             *HostMetadata
 		expectedLabels map[string]string
 	}{
 		{
 			"Default",
-			func() *HostDecorator {
-				op, err := NewHostDecoratorConfig("").Build(testutil.NewBuildContext(t))
+			func() *HostMetadata {
+				op, err := NewHostMetadataConfig("").Build(testutil.NewBuildContext(t))
 				require.NoError(t, err)
-				hd := op.(*HostDecorator)
+				hd := op.(*HostMetadata)
 				hd.hostname = "test"
 				return hd
 			}(),
@@ -33,12 +33,12 @@ func TestHostDecorator(t *testing.T) {
 		},
 		{
 			"NoHostname",
-			func() *HostDecorator {
-				cfg := NewHostDecoratorConfig("")
+			func() *HostMetadata {
+				cfg := NewHostMetadataConfig("")
 				cfg.IncludeHostname = false
 				op, err := cfg.Build(testutil.NewBuildContext(t))
 				require.NoError(t, err)
-				hd := op.(*HostDecorator)
+				hd := op.(*HostMetadata)
 				hd.hostname = "test"
 				return hd
 			}(),
@@ -62,19 +62,19 @@ func TestHostDecorator(t *testing.T) {
 	}
 }
 
-type hostDecoratorBenchmark struct {
+type hostMetadataBenchmark struct {
 	name   string
-	cfgMod func(*HostDecoratorConfig)
+	cfgMod func(*HostMetadataConfig)
 }
 
-func (g *hostDecoratorBenchmark) Run(b *testing.B) {
-	cfg := NewHostDecoratorConfig(g.name)
+func (g *hostMetadataBenchmark) Run(b *testing.B) {
+	cfg := NewHostMetadataConfig(g.name)
 	g.cfgMod(cfg)
 	op, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
 
 	fake := testutil.NewFakeOutput(b)
-	op.(*HostDecorator).OutputOperators = []operator.Operator{fake}
+	op.(*HostMetadata).OutputOperators = []operator.Operator{fake}
 
 	b.ResetTimer()
 	var wg sync.WaitGroup
@@ -101,14 +101,14 @@ func (g *hostDecoratorBenchmark) Run(b *testing.B) {
 }
 
 func BenchmarkGoogleCloudOutput(b *testing.B) {
-	cases := []hostDecoratorBenchmark{
+	cases := []hostMetadataBenchmark{
 		{
 			"Default",
-			func(cfg *HostDecoratorConfig) {},
+			func(cfg *HostMetadataConfig) {},
 		},
 		{
 			"NoHostname",
-			func(cfg *HostDecoratorConfig) {
+			func(cfg *HostMetadataConfig) {
 				cfg.IncludeHostname = false
 			},
 		},
