@@ -292,8 +292,9 @@ func startServer() (*grpc.ClientConn, chan *logpb.WriteLogEntriesRequest, func()
 }
 
 type googleCloudOutputBenchmark struct {
-	name  string
-	entry *entry.Entry
+	name      string
+	entry     *entry.Entry
+	configMod func(*GoogleCloudOutputConfig)
 }
 
 func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
@@ -306,6 +307,9 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 
 	cfg := NewGoogleCloudOutputConfig(g.name)
 	cfg.ProjectID = "test_project_id"
+	if g.configMod != nil {
+		g.configMod(cfg)
+	}
 	op, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
 	op.(*GoogleCloudOutput).client = client
@@ -345,6 +349,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 				Timestamp: t,
 				Record:    "test",
 			},
+			nil,
 		},
 		{
 			"MapRecord",
@@ -352,6 +357,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 				Timestamp: t,
 				Record:    mapOfSize(1, 0),
 			},
+			nil,
 		},
 		{
 			"LargeMapRecord",
@@ -359,6 +365,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 				Timestamp: t,
 				Record:    mapOfSize(30, 0),
 			},
+			nil,
 		},
 		{
 			"DeepMapRecord",
@@ -366,6 +373,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 				Timestamp: t,
 				Record:    mapOfSize(1, 10),
 			},
+			nil,
 		},
 		{
 			"Labels",
@@ -375,6 +383,17 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 				Labels: map[string]string{
 					"test": "val",
 				},
+			},
+			nil,
+		},
+		{
+			"Compression",
+			&entry.Entry{
+				Timestamp: t,
+				Record:    "compressiblecompressiblecompressiblecompressiblecompressiblecompressiblecompressible",
+			},
+			func(cfg *GoogleCloudOutputConfig) {
+				cfg.UseCompression = true
 			},
 		},
 	}
