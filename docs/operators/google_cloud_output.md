@@ -14,6 +14,7 @@ The `google_cloud_output` operator will send entries to Google Cloud Logging.
 | `severity_field`   |                       | A [field](/docs/types/field.md) for the severity on the log entry                                          |
 | `trace_field`      |                       | A [field](/docs/types/field.md) for the trace on the log entry                                             |
 | `span_id_field`    |                       | A [field](/docs/types/field.md) for the span_id on the log entry                                           |
+| `use_compression`  | `false`               | Whether to compress the log entry payloads with gzip before sending to Google Cloud                        |
 | `timeout`          | 10s                   | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out |
 
 If both `credentials` and `credentials_file` are left empty, the agent will attempt to find
