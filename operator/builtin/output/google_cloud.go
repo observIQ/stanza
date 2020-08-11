@@ -22,6 +22,8 @@ import (
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 	sev "google.golang.org/genproto/googleapis/logging/type"
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding/gzip"
 )
 
 func init() {
@@ -30,9 +32,10 @@ func init() {
 
 func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 	return &GoogleCloudOutputConfig{
-		OutputConfig: helper.NewOutputConfig(operatorID, "google_cloud_output"),
-		BufferConfig: buffer.NewConfig(),
-		Timeout:      operator.Duration{Duration: 10 * time.Second},
+		OutputConfig:   helper.NewOutputConfig(operatorID, "google_cloud_output"),
+		BufferConfig:   buffer.NewConfig(),
+		Timeout:        operator.Duration{Duration: 30 * time.Second},
+		UseCompression: false,
 	}
 }
 
@@ -48,6 +51,7 @@ type GoogleCloudOutputConfig struct {
 	TraceField      *entry.Field      `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
 	SpanIDField     *entry.Field      `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 	Timeout         operator.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
+	UseCompression  bool              `json:"use_compression,omitempty"  yaml:"use_compression,omitempty"`
 }
 
 // Build will build a google cloud output operator.
@@ -72,6 +76,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         c.Timeout.Raw(),
+		useCompression:  c.UseCompression,
 	}
 
 	newBuffer.SetHandler(googleCloudOutput)
@@ -88,9 +93,10 @@ type GoogleCloudOutput struct {
 	credentialsFile string
 	projectID       string
 
-	logNameField *entry.Field
-	traceField   *entry.Field
-	spanIDField  *entry.Field
+	logNameField   *entry.Field
+	traceField     *entry.Field
+	spanIDField    *entry.Field
+	useCompression bool
 
 	client  *vkit.Client
 	timeout time.Duration
@@ -136,6 +142,9 @@ func (p *GoogleCloudOutput) Start() error {
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
 	options = append(options, option.WithUserAgent("CarbonLogAgent/"+version.GetVersion()))
+	if p.useCompression {
+		options = append(options, option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name))))
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

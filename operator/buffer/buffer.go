@@ -27,7 +27,7 @@ func NewConfig() Config {
 		BundleByteThreshold:  4 * 1024 * 1024 * 1024,   // 4MB
 		BundleByteLimit:      4 * 1024 * 1024 * 1024,   // 4MB
 		BufferedByteLimit:    500 * 1024 * 1024 * 1024, // 500MB
-		HandlerLimit:         32,
+		HandlerLimit:         16,
 		Retry:                NewRetryConfig(),
 	}
 }
