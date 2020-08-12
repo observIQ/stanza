@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Google Cloud Output failure when sent a field of type uint16
 ### Added
 - Added a default function to plugin templates
-- Add a host metadata operator that adds hostname to entries
+- Add a host metadata operator that adds hostname and IP to entries
 - Google Cloud Output option to enable gzip compression
 
 ## [0.9.7] - 2020-08-05
