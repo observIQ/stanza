@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"context"
+	"os"
 	"sync"
 	"testing"
 
@@ -11,47 +12,56 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHostMetadata(t *testing.T) {
+func testHostname() (string, error) {
+	return "test", nil
+}
 
+func TestHostMetadata(t *testing.T) {
 	cases := []struct {
 		name           string
-		hd             *HostMetadata
+		modifyConfig   func(*HostMetadataConfig)
 		expectedLabels map[string]string
+		fakeHostname   func() (string, error)
 	}{
 		{
 			"Default",
-			func() *HostMetadata {
-				op, err := NewHostMetadataConfig("").Build(testutil.NewBuildContext(t))
-				require.NoError(t, err)
-				hd := op.(*HostMetadata)
-				hd.hostname = "test"
-				return hd
-			}(),
+			func(cfg *HostMetadataConfig) {
+				cfg.IncludeIP = false
+			},
 			map[string]string{
 				"hostname": "test",
 			},
+			testHostname,
 		},
 		{
 			"NoHostname",
-			func() *HostMetadata {
-				cfg := NewHostMetadataConfig("")
+			func(cfg *HostMetadataConfig) {
 				cfg.IncludeHostname = false
-				op, err := cfg.Build(testutil.NewBuildContext(t))
-				require.NoError(t, err)
-				hd := op.(*HostMetadata)
-				hd.hostname = "test"
-				return hd
-			}(),
+				cfg.IncludeIP = false
+			},
 			nil,
+			testHostname,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			hostname = tc.fakeHostname
+			defer func() { hostname = os.Hostname }()
+
+			cfg := NewHostMetadataConfig("test_id")
+			cfg.OutputIDs = []string{"fake"}
+			tc.modifyConfig(cfg)
+
+			op, err := cfg.Build(testutil.NewBuildContext(t))
+			require.NoError(t, err)
+
 			fake := testutil.NewFakeOutput(t)
-			tc.hd.OutputOperators = []operator.Operator{fake}
+			err = op.SetOutputs([]operator.Operator{fake})
+			require.NoError(t, err)
+
 			e := entry.New()
-			tc.hd.Process(context.Background(), e)
+			op.Process(context.Background(), e)
 			select {
 			case r := <-fake.Received:
 				require.Equal(t, tc.expectedLabels, r.Labels)
@@ -100,7 +110,7 @@ func (g *hostMetadataBenchmark) Run(b *testing.B) {
 	wg.Wait()
 }
 
-func BenchmarkGoogleCloudOutput(b *testing.B) {
+func BenchmarkHostMetadata(b *testing.B) {
 	cases := []hostMetadataBenchmark{
 		{
 			"Default",

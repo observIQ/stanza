@@ -1,6 +1,6 @@
-## `host_decorator` operator
+## `host_metadata` operator
 
-The `host_decorator` operator adds labels to incoming entries.
+The `host_metadata` operator adds labels to incoming entries.
 
 ### Configuration Fields
 
@@ -17,7 +17,7 @@ The `host_decorator` operator adds labels to incoming entries.
 
 Configuration:
 ```yaml
-- type: host_decorator
+- type: host_metadata
   include_hostname: true
 ```
 
