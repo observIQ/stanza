@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.8] - 2020-08-12
 ### Fixed
-- Google Cloud Output failure when sent a field of type uint16
+- Google Cloud Output failure when sent a field of type uint16 ([PR82](https://github.com/observIQ/carbon/pull/82))
 ### Added
-- Added a default function to plugin templates
-- Add a host metadata operator that adds hostname and IP to entries
-- Google Cloud Output option to enable gzip compression
+- Added a default function to plugin templates ([PR84](https://github.com/observIQ/carbon/pull/84))
+- Add a host metadata operator that adds hostname and IP to entries ([PR85](https://github.com/observIQ/carbon/pull/85))
+- Google Cloud Output option to enable gzip compression ([PR86](https://github.com/observIQ/carbon/pull/86))
 
 ## [0.9.7] - 2020-08-05
 ### Changed
