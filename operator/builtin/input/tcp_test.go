@@ -1,8 +1,6 @@
 package input
 
 import (
-	"fmt"
-	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -17,8 +15,7 @@ import (
 func tcpInputTest(input []byte, expected []string) func(t *testing.T) {
 	return func(t *testing.T) {
 		cfg := NewTCPInputConfig("test_id")
-		address := newRandListenAddress()
-		cfg.ListenAddress = address
+		cfg.ListenAddress = ":0"
 
 		newOperator, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
@@ -36,7 +33,7 @@ func tcpInputTest(input []byte, expected []string) func(t *testing.T) {
 		require.NoError(t, err)
 		defer tcpInput.Stop()
 
-		conn, err := net.Dial("tcp", address)
+		conn, err := net.Dial("tcp", tcpInput.listener.Addr().String())
 		require.NoError(t, err)
 		defer conn.Close()
 
@@ -66,15 +63,9 @@ func TestTcpInput(t *testing.T) {
 	t.Run("CarriageReturn", tcpInputTest([]byte("message\r\n"), []string{"message"}))
 }
 
-func newRandListenAddress() string {
-	port := rand.Int()%16000 + 49152
-	return fmt.Sprintf("127.0.0.1:%d", port)
-}
-
 func BenchmarkTcpInput(b *testing.B) {
 	cfg := NewTCPInputConfig("test_id")
-	address := newRandListenAddress()
-	cfg.ListenAddress = address
+	cfg.ListenAddress = ":0"
 
 	newOperator, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
@@ -88,7 +79,7 @@ func BenchmarkTcpInput(b *testing.B) {
 
 	done := make(chan struct{})
 	go func() {
-		conn, err := net.Dial("tcp", address)
+		conn, err := net.Dial("tcp", tcpInput.listener.Addr().String())
 		require.NoError(b, err)
 		defer tcpInput.Stop()
 		defer conn.Close()
