@@ -14,10 +14,8 @@ import (
 
 func udpInputTest(input []byte, expected []string) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Parallel()
 		cfg := NewUDPInputConfig("test_input")
-		address := newRandListenAddress()
-		cfg.ListenAddress = address
+		cfg.ListenAddress = ":0"
 
 		newOperator, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
@@ -37,7 +35,7 @@ func udpInputTest(input []byte, expected []string) func(t *testing.T) {
 		require.NoError(t, err)
 		defer udpInput.Stop()
 
-		conn, err := net.Dial("udp", address)
+		conn, err := net.Dial("udp", udpInput.connection.LocalAddr().String())
 		require.NoError(t, err)
 		defer conn.Close()
 
@@ -71,8 +69,7 @@ func TestUDPInput(t *testing.T) {
 
 func BenchmarkUdpInput(b *testing.B) {
 	cfg := NewUDPInputConfig("test_id")
-	address := newRandListenAddress()
-	cfg.ListenAddress = address
+	cfg.ListenAddress = ":0"
 
 	newOperator, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
@@ -86,7 +83,7 @@ func BenchmarkUdpInput(b *testing.B) {
 
 	done := make(chan struct{})
 	go func() {
-		conn, err := net.Dial("udp", address)
+		conn, err := net.Dial("udp", udpInput.connection.LocalAddr().String())
 		require.NoError(b, err)
 		defer udpInput.Stop()
 		defer conn.Close()
