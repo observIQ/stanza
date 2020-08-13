@@ -31,7 +31,7 @@ func TestMetadataCache(t *testing.T) {
 }
 
 func basicConfig() *K8sMetadataDecoratorConfig {
-	cfg := NewK8smetadataDecoratorConfig("testoperator")
+	cfg := NewK8sMetadataDecoratorConfig("testoperator")
 	cfg.OutputIDs = []string{"mock"}
 	return cfg
 }

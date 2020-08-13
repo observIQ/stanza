@@ -15,10 +15,10 @@ import (
 )
 
 func init() {
-	operator.Register("k8s_metadata_decorator", func() operator.Builder { return NewK8smetadataDecoratorConfig("") })
+	operator.Register("k8s_metadata_decorator", func() operator.Builder { return NewK8sMetadataDecoratorConfig("") })
 }
 
-func NewK8smetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfig {
+func NewK8sMetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfig {
 	return &K8sMetadataDecoratorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "k8s_metadata_decorator"),
 		PodNameField:      entry.NewRecordField("pod_name"),
