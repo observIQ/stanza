@@ -11,8 +11,8 @@ func MockHostLabelerConfig(includeIP, includeHostname bool, ip, hostname string)
 	return HostLabelerConfig{
 		IncludeIP:       includeIP,
 		IncludeHostname: includeHostname,
-		GetIP:           func() (string, error) { return ip, nil },
-		GetHostname:     func() (string, error) { return hostname, nil },
+		getIP:           func() (string, error) { return ip, nil },
+		getHostname:     func() (string, error) { return hostname, nil },
 	}
 }
 

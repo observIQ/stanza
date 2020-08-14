@@ -14,8 +14,8 @@ func NewHostLabelerConfig() HostLabelerConfig {
 	return HostLabelerConfig{
 		IncludeHostname: true,
 		IncludeIP:       true,
-		GetHostname:     getHostname,
-		GetIP:           getIP,
+		getHostname:     getHostname,
+		getIP:           getIP,
 	}
 }
 
@@ -23,8 +23,8 @@ func NewHostLabelerConfig() HostLabelerConfig {
 type HostLabelerConfig struct {
 	IncludeHostname bool `json:"include_hostname,omitempty"     yaml:"include_hostname,omitempty"`
 	IncludeIP       bool `json:"include_ip,omitempty"     yaml:"include_ip,omitempty"`
-	GetHostname     func() (string, error)
-	GetIP           func() (string, error)
+	getHostname     func() (string, error)
+	getIP           func() (string, error)
 }
 
 // Build will build a host labeler from the supplied configuration
@@ -34,16 +34,16 @@ func (c HostLabelerConfig) Build() (HostLabeler, error) {
 		includeIP:       c.IncludeIP,
 	}
 
-	if c.GetHostname == nil {
+	if c.getHostname == nil {
 		return labeler, fmt.Errorf("getHostname func is not set")
 	}
 
-	if c.GetIP == nil {
+	if c.getIP == nil {
 		return labeler, fmt.Errorf("getIP func is not set")
 	}
 
 	if c.IncludeHostname {
-		hostname, err := c.GetHostname()
+		hostname, err := c.getHostname()
 		if err != nil {
 			return labeler, errors.Wrap(err, "get hostname")
 		}
@@ -51,7 +51,7 @@ func (c HostLabelerConfig) Build() (HostLabeler, error) {
 	}
 
 	if c.IncludeIP {
-		ip, err := c.GetIP()
+		ip, err := c.getIP()
 		if err != nil {
 			return labeler, errors.Wrap(err, "get ip address")
 		}
