@@ -821,6 +821,7 @@ func TestEncodings(t *testing.T) {
 
 			err = source.Start()
 			require.NoError(t, err)
+			defer source.Stop()
 
 			for _, expected := range tc.expected {
 				select {
@@ -875,12 +876,12 @@ func BenchmarkFileInput(b *testing.B) {
 			err = fileOperator.Start()
 			require.NoError(b, err)
 
-      file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
-      require.NoError(b, err)
+			file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+			require.NoError(b, err)
 
-      for i := 0; i < b.N; i++ {
-        file.WriteString("testlog\n")
-      }
+			for i := 0; i < b.N; i++ {
+				file.WriteString("testlog\n")
+			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
