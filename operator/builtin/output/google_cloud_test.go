@@ -258,6 +258,84 @@ func googleCloudSeverityTestCase(s entry.Severity, expected sev.LogSeverity) goo
 	}
 }
 
+type googleCloudProtobufTest struct {
+	name   string
+	record interface{}
+}
+
+func (g *googleCloudProtobufTest) Run(t *testing.T) {
+	t.Run(g.name, func(t *testing.T) {
+		e := &logpb.LogEntry{}
+		err := setPayload(e, g.record)
+		require.NoError(t, err)
+	})
+}
+
+func TestGoogleCloudSetPayload(t *testing.T) {
+	cases := []googleCloudProtobufTest{
+		{
+			"string",
+			"test",
+		},
+		{
+			"[]byte",
+			[]byte("test"),
+		},
+		{
+			"map[string]string",
+			map[string]string{"test": "val"},
+		},
+		{
+			"Nested_[]string",
+			map[string]interface{}{
+				"sub": []string{"1", "2"},
+			},
+		},
+		{
+			"Nested_[]int",
+			map[string]interface{}{
+				"sub": []int{1, 2},
+			},
+		},
+		{
+			"Nested_uint32",
+			map[string]interface{}{
+				"sub": uint32(32),
+			},
+		},
+		{
+			"DeepNested_map",
+			map[string]interface{}{
+				"0": map[string]map[string]map[string]string{
+					"1": {"2": {"3": "test"}},
+				},
+			},
+		},
+		{
+			"DeepNested_slice",
+			map[string]interface{}{
+				"0": [][][]string{{{"0", "1"}}},
+			},
+		},
+		{
+			"AnonymousStruct",
+			map[string]interface{}{
+				"0": struct{ Field string }{Field: "test"},
+			},
+		},
+		{
+			"NamedStruct",
+			map[string]interface{}{
+				"0": time.Now(),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc.Run(t)
+	}
+}
+
 // Adapted from https://github.com/googleapis/google-cloud-go/blob/master/internal/testutil/server.go
 type loggingHandler struct {
 	logpb.LoggingServiceV2Server
