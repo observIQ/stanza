@@ -387,13 +387,13 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			nil,
 		},
 		{
-			"Compression",
+			"NoCompression",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "compressiblecompressiblecompressiblecompressiblecompressiblecompressiblecompressible",
+				Record:    "test",
 			},
 			func(cfg *GoogleCloudOutputConfig) {
-				cfg.UseCompression = true
+				cfg.UseCompression = false
 			},
 		},
 	}
