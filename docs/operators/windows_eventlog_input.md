@@ -9,9 +9,9 @@ The `windows_eventlog_input` operator reads logs from the windows event log API.
 | `id`              | `windows_eventlog_input` | A unique identifier for the operator                                                         |
 | `output`          | Next in pipeline         | The connected operator(s) that will receive all outbound entries                             |
 | `channel`         | required                 | The windows event log channel to monitor                                                     |
-| `max_reads`       | 100                      | The maximum number of records read and processed at one time                                 |
+| `max_reads`       | 100                      | The maximum number of records read into memory, before beginning a new batch                 |
 | `start_at`        | `end`                    | On first startup, where to start reading logs from the API. Options are `beginning` or `end` |
-| `poll_interval`   | 1s                       | The interval at which the channel is checked for new log entries                             |
+| `poll_interval`   | 1s                       | The interval at which the channel is checked for new log entries. This check begins again after all new records have been read |
 | `labels`          | {}                       | A map of `key: value` labels to add to the entry                                             |
 
 ### Example Configurations
@@ -22,7 +22,6 @@ Configuration:
 ```yaml
 - type: windows_eventlog_input
   channel: application
-  start_at: beginning
 ```
 
 Output entry sample:
