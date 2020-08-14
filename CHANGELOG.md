@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.9] - 2020-08-14
 ### Added
-- Kubernetes events input operator
+- Kubernetes events input operator ([PR88](https://github.com/observIQ/carbon/pull/88))
+### Fixed
+- Small improvements to test stability
+- Fallback to reflection to convert entries to Google Cloud log entries ([PR93](https://github.com/observIQ/carbon/pull/93))
 
 ## [0.9.8] - 2020-08-12
 ### Fixed
