@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
 
@@ -21,34 +20,50 @@ func TestHostMetadata(t *testing.T) {
 		name           string
 		modifyConfig   func(*HostMetadataConfig)
 		expectedLabels map[string]string
-		fakeHostname   func() (string, error)
 	}{
 		{
-			"Default",
+			"HostnameAndIP",
 			func(cfg *HostMetadataConfig) {
-				cfg.IncludeIP = false
+				cfg.GetHostname = func() (string, error) { return "hostname", nil }
+				cfg.GetIP = func() (string, error) { return "ip", nil }
 			},
 			map[string]string{
-				"hostname": "test",
+				"hostname": "hostname",
+				"ip":       "ip",
 			},
-			testHostname,
 		},
 		{
-			"NoHostname",
+			"HostnameNoIP",
+			func(cfg *HostMetadataConfig) {
+				cfg.IncludeIP = false
+				cfg.GetHostname = func() (string, error) { return "hostname", nil }
+			},
+			map[string]string{
+				"hostname": "hostname",
+			},
+		},
+		{
+			"IPNoHostname",
+			func(cfg *HostMetadataConfig) {
+				cfg.IncludeHostname = false
+				cfg.GetIP = func() (string, error) { return "ip", nil }
+			},
+			map[string]string{
+				"ip": "ip",
+			},
+		},
+		{
+			"NoHostnameOrIP",
 			func(cfg *HostMetadataConfig) {
 				cfg.IncludeHostname = false
 				cfg.IncludeIP = false
 			},
 			nil,
-			testHostname,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			hostname = tc.fakeHostname
-			defer func() { hostname = os.Hostname }()
-
 			cfg := NewHostMetadataConfig("test_id")
 			cfg.OutputIDs = []string{"fake"}
 			tc.modifyConfig(cfg)
