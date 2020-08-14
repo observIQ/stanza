@@ -35,7 +35,7 @@ func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 		OutputConfig:   helper.NewOutputConfig(operatorID, "google_cloud_output"),
 		BufferConfig:   buffer.NewConfig(),
 		Timeout:        operator.Duration{Duration: 30 * time.Second},
-		UseCompression: false,
+		UseCompression: true,
 	}
 }
 
