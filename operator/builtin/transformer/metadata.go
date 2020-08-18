@@ -18,6 +18,7 @@ func NewMetadataOperatorConfig(operatorID string) *MetadataOperatorConfig {
 	return &MetadataOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "metadata"),
 		LabelerConfig:     helper.NewLabelerConfig(),
+		IdentifierConfig:  helper.NewIdentifierConfig(),
 	}
 }
 
@@ -25,6 +26,7 @@ func NewMetadataOperatorConfig(operatorID string) *MetadataOperatorConfig {
 type MetadataOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 	helper.LabelerConfig     `yaml:",inline"`
+	helper.IdentifierConfig  `yaml:",inline"`
 }
 
 // Build will build a metadata operator from the supplied configuration
@@ -39,9 +41,15 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.O
 		return nil, errors.Wrap(err, "failed to build labeler")
 	}
 
+	identifier, err := c.IdentifierConfig.Build()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build identifier")
+	}
+
 	metadataOperator := &MetadataOperator{
 		TransformerOperator: transformerOperator,
 		Labeler:             labeler,
+		Identifier:          identifier,
 	}
 
 	return metadataOperator, nil
@@ -51,6 +59,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.O
 type MetadataOperator struct {
 	helper.TransformerOperator
 	helper.Labeler
+	helper.Identifier
 }
 
 // Process will process an incoming entry using the metadata transform.
@@ -60,9 +69,12 @@ func (p *MetadataOperator) Process(ctx context.Context, entry *entry.Entry) erro
 
 // Transform will transform an entry using the labeler and tagger.
 func (p *MetadataOperator) Transform(entry *entry.Entry) (*entry.Entry, error) {
-	err := p.Label(entry)
-	if err != nil {
-		return entry, err
+	if err := p.Label(entry); err != nil {
+		return entry, errors.Wrap(err, "failed to add labels to entry")
+	}
+
+	if err := p.Identify(entry); err != nil {
+		return entry, errors.Wrap(err, "failed to add resource keys to entry")
 	}
 
 	return entry, nil

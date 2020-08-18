@@ -5,12 +5,15 @@ Kubernetes API, and currently requires that Carbon is running inside a Kubernete
 
 ### Configuration Fields
 
-| Field        | Default           | Description                                                                          |
-| ---          | ---               | ---                                                                                  |
-| `id`         | `k8s_event_input` | A unique identifier for the operator                                                 |
-| `output`     | Next in pipeline  | The connected operator(s) that will receive all outbound entries                     |
-| `namespaces` | All namespaces    | An array of namespaces to collect events from. If unset, defaults to all namespaces. |
-
+| Field        | Default           | Description                                                                                      |
+| ---          | ---               | ---                                                                                              |
+| `id`         | `k8s_event_input` | A unique identifier for the operator                                                             |
+| `output`     | Next in pipeline  | The connected operator(s) that will receive all outbound entries                                 |
+| `namespaces` | All namespaces    | An array of namespaces to collect events from. If unset, defaults to all namespaces.             |
+| `write_to`   | $                 | The record [field](/docs/types/field.md) written to when creating a new log entry                |
+| `labels`     | {}                | A map of `key: value` labels to add to the entry's labels                                        |
+| `resource`   | {}                | A map of `key: value` labels to add to the entry's resource                                      |
+ 
 ### Example Configurations
 
 #### Mock a file input

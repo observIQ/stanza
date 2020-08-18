@@ -4,13 +4,14 @@ The `udp_input` operator listens for logs from UDP packets.
 
 ### Configuration Fields
 
-| Field             | Default          | Description                                                         |
-| ---               | ---              | ---                                                                 |
-| `id`              | `udp_input`      | A unique identifier for the operator                                |
-| `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries    |
-| `listen_address`  | required         | A listen address of the form `<ip>:<port>`                          |
-| `write_to`        | $                | A [field](/docs/types/field.md) that will be set to the log message |
-| `labels`          | {}               | A map of `key: value` labels to add to the entry                    |
+| Field             | Default          | Description                                                                       |
+| ---               | ---              | ---                                                                               |
+| `id`              | `udp_input`      | A unique identifier for the operator                                              |
+| `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                  |
+| `listen_address`  | required         | A listen address of the form `<ip>:<port>`                                        |
+| `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry |
+| `labels`          | {}               | A map of `key: value` labels to add to the entry's labels                         |
+| `resource`        | {}               | A map of `key: value` labels to add to the entry's resource                       |
 
 ### Example Configurations
 

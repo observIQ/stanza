@@ -18,6 +18,9 @@ func TestExprString(t *testing.T) {
 		e.Record = map[string]interface{}{
 			"test": "value",
 		}
+		e.Resource = map[string]string{
+			"id": "value",
+		}
 		return e
 	}
 
@@ -76,6 +79,10 @@ func TestExprString(t *testing.T) {
 		{
 			"my EXPR(env('TEST_EXPR_STRING_ENV'))",
 			"my foo",
+		},
+		{
+			"EXPR( $resource.id )",
+			"value",
 		},
 	}
 

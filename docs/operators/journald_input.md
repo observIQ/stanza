@@ -14,10 +14,10 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 | `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
 | `directory`       |                  | A directory containing journal files to read entries from                                        |
 | `files`           |                  | A list of journal files to read entries from                                                     |
-| `write_to`        | $                | A [field](/docs/types/field.md) that will be set to the path of the file the entry was read from |
+| `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry                |
 | `start_at`        | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`          |
-| `labels`          | {}               | A map of `key: value` labels to add to the entry                                                 |
-
+| `labels`          | {}               | A map of `key: value` labels to add to the entry's labels                                        |
+| `resource`        | {}               | A map of `key: value` labels to add to the entry's resource                                      |
 
 ### Example Configurations
 

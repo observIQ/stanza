@@ -8,7 +8,8 @@ The `metadata` operator adds labels to incoming entries.
 | ---        | ---              | ---                                                                                             |
 | `id`       | `metadata`       | A unique identifier for the operator                                                            |
 | `output`   | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
-| `labels`   | {}               | A map of `key: value` labels to add to the entry                                                |
+| `labels`   | {}               | A map of `key: value` labels to add to the entry's labels                                       |
+| `resource` | {}               | A map of `key: value` labels to add to the entry's resource                                     |
 | `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
 Inside the label values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
@@ -18,13 +19,15 @@ with the `$` variable in the expression so labels can be added dynamically from 
 ### Example Configurations
 
 
-#### Add static tags and labels
+#### Add static labels and resource
 
 Configuration:
 ```yaml
 - type: metadata
   labels:
     environment: "production"
+  resource:
+    cluster: "blue"
 ```
 
 <table>
@@ -50,6 +53,9 @@ Configuration:
   "timestamp": "2020-06-15T11:15:50.475364-04:00",
   "labels": {
     "environment": "production"
+  },
+  "resource": {
+    "cluster": "blue"
   },
   "record": {
     "message": "test"

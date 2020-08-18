@@ -9,8 +9,8 @@ import (
 type Entry struct {
 	Timestamp time.Time         `json:"timestamp"        yaml:"timestamp"`
 	Severity  Severity          `json:"severity"         yaml:"severity"`
-	Tags      []string          `json:"tags,omitempty"   yaml:"tags,omitempty"`
 	Labels    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Resource  map[string]string `json:"resource,omitempty" yaml:"resource,omitempty"`
 	Record    interface{}       `json:"record"           yaml:"record"`
 }
 
@@ -27,6 +27,14 @@ func (entry *Entry) AddLabel(key, value string) {
 		entry.Labels = make(map[string]string)
 	}
 	entry.Labels[key] = value
+}
+
+// AddResourceKey wil add a key/value pair to the entry's resource.
+func (entry *Entry) AddResourceKey(key, value string) {
+	if entry.Resource == nil {
+		entry.Resource = make(map[string]string)
+	}
+	entry.Resource[key] = value
 }
 
 // Get will return the value of a field on the entry, including a boolean indicating if the field exists.
@@ -148,8 +156,8 @@ func (entry *Entry) Copy() *Entry {
 	return &Entry{
 		Timestamp: entry.Timestamp,
 		Severity:  entry.Severity,
-		Tags:      copyStringArray(entry.Tags),
 		Labels:    copyStringMap(entry.Labels),
+		Resource:  copyStringMap(entry.Resource),
 		Record:    copyValue(entry.Record),
 	}
 }

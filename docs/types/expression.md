@@ -9,7 +9,7 @@ For reference documentation of the expression language, see [here](https://githu
 Available to the expressions are a few special variables:
 - `$record` contains the entry's record
 - `$labels` contains the entry's labels
-- `$tags` contains the entry's tags
+- `$resource` contains the entry's resource
 - `$timestamp` contains the entry's timestamp
 - `env()` is a function that allows you to read environment variables
 

@@ -84,6 +84,60 @@ func TestMetadata(t *testing.T) {
 				return e
 			}(),
 		},
+		{
+			"AddResourceLiteral",
+			func() *MetadataOperatorConfig {
+				cfg := baseConfig()
+				cfg.Resource = map[string]helper.ExprStringConfig{
+					"key1": "value1",
+				}
+				return cfg
+			}(),
+			entry.New(),
+			func() *entry.Entry {
+				e := entry.New()
+				e.Resource = map[string]string{
+					"key1": "value1",
+				}
+				return e
+			}(),
+		},
+		{
+			"AddResourceExpr",
+			func() *MetadataOperatorConfig {
+				cfg := baseConfig()
+				cfg.Resource = map[string]helper.ExprStringConfig{
+					"key1": `EXPR("start" + "end")`,
+				}
+				return cfg
+			}(),
+			entry.New(),
+			func() *entry.Entry {
+				e := entry.New()
+				e.Resource = map[string]string{
+					"key1": "startend",
+				}
+				return e
+			}(),
+		},
+		{
+			"AddResourceEnv",
+			func() *MetadataOperatorConfig {
+				cfg := baseConfig()
+				cfg.Resource = map[string]helper.ExprStringConfig{
+					"key1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
+				}
+				return cfg
+			}(),
+			entry.New(),
+			func() *entry.Entry {
+				e := entry.New()
+				e.Resource = map[string]string{
+					"key1": "foo",
+				}
+				return e
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
@@ -106,6 +160,7 @@ func TestMetadata(t *testing.T) {
 			select {
 			case e := <-entryChan:
 				require.Equal(t, e.Labels, tc.expected.Labels)
+				require.Equal(t, e.Resource, tc.expected.Resource)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")
 			}
