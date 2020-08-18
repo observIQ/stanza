@@ -96,7 +96,11 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	}
 	logger.Debugw("Parsed config", "config", cfg)
 
-	agent := agent.NewLogAgent(cfg, logger, flags.PluginDir, flags.DatabaseFile)
+	agent, err := agent.NewLogAgent(cfg, logger, flags.PluginDir, flags.DatabaseFile, nil)
+	if err != nil {
+		logger.Errorw("Failed to build agent", zap.Error(err))
+	}
+
 	ctx, cancel := context.WithCancel(command.Context())
 	service, err := newAgentService(ctx, agent, cancel)
 	if err != nil {
@@ -108,7 +112,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 
 	err = service.Run()
 	if err != nil {
-		logger.Errorw("Failed to run agent service", zap.Any("error", err))
+		logger.Errorw("Failed to run agent service", zap.Error(err))
 		os.Exit(1)
 	}
 

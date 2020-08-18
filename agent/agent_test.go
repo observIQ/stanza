@@ -15,17 +15,11 @@ func TestNewLogAgent(t *testing.T) {
 	mockCfg := Config{}
 	mockLogger := zap.NewNop().Sugar()
 	mockPluginDir := "/some/path/plugins"
-	mockDatabaseFile := "/some/path/database"
-	mockParameterKey := "test"
-	mockParameterValue := "value"
-	agent := NewLogAgent(&mockCfg, mockLogger, mockPluginDir, mockDatabaseFile).
-		WithBuildParameter(mockParameterKey, mockParameterValue)
+	mockDatabaseFile := ""
+	agent, err := NewLogAgent(&mockCfg, mockLogger, mockPluginDir, mockDatabaseFile, nil)
+	require.NoError(t, err)
 
-	require.Equal(t, &mockCfg, agent.Config)
 	require.Equal(t, mockLogger, agent.SugaredLogger)
-	require.Equal(t, mockPluginDir, agent.PluginDir)
-	require.Equal(t, mockDatabaseFile, agent.Database)
-	require.Equal(t, mockParameterValue, agent.buildParams[mockParameterKey])
 }
 
 func TestOpenDatabase(t *testing.T) {
