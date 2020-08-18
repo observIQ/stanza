@@ -106,11 +106,11 @@ func OpenDatabase(file string) (operator.Database, error) {
 }
 
 // NewLogAgent creates a new carbon log agent.
-func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, operatorDir, databaseFile string) *LogAgent {
+func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string) *LogAgent {
 	return &LogAgent{
 		Config:        cfg,
 		SugaredLogger: logger,
-		PluginDir:     operatorDir,
+		PluginDir:     pluginDir,
 		Database:      databaseFile,
 		buildParams:   make(map[string]interface{}),
 	}
