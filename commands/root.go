@@ -99,6 +99,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	agent, err := agent.NewLogAgent(cfg, logger, flags.PluginDir, flags.DatabaseFile, nil)
 	if err != nil {
 		logger.Errorw("Failed to build agent", zap.Error(err))
+		os.Exit(1)
 	}
 
 	ctx, cancel := context.WithCancel(command.Context())
