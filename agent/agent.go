@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/observiq/carbon/errors"
@@ -25,62 +26,60 @@ type LogAgent struct {
 	database    operator.Database
 	pipeline    *pipeline.Pipeline
 	running     bool
+
+	startOnce sync.Once
+	stopOnce  sync.Once
 }
 
 // Start will start the log monitoring process.
 func (a *LogAgent) Start() error {
-	if a.running {
-		return nil
-	}
+	var err error
+	a.startOnce.Do(func() {
+		database, err := OpenDatabase(a.Database)
+		if err != nil {
+			err = errors.Wrap(err, "open database")
+			return
+		}
+		a.database = database
 
-	database, err := OpenDatabase(a.Database)
-	if err != nil {
-		a.Errorw("Failed to open database", zap.Any("error", err))
-		return err
-	}
-	a.database = database
+		registry, err := operator.NewPluginRegistry(a.PluginDir)
+		if err != nil {
+			a.Errorw("Failed to load plugin registry", zap.Any("error", err))
+		}
 
-	registry, err := operator.NewPluginRegistry(a.PluginDir)
-	if err != nil {
-		a.Errorw("Failed to load plugin registry", zap.Any("error", err))
-	}
+		buildContext := operator.BuildContext{
+			PluginRegistry: registry,
+			Logger:         a.SugaredLogger,
+			Database:       a.database,
+			Parameters:     a.buildParams,
+		}
 
-	buildContext := operator.BuildContext{
-		PluginRegistry: registry,
-		Logger:         a.SugaredLogger,
-		Database:       a.database,
-		Parameters:     a.buildParams,
-	}
+		pipeline, err := a.Config.Pipeline.BuildPipeline(buildContext)
+		if err != nil {
+			err = errors.Wrap(err, "build pipeline")
+			return
+		}
+		a.pipeline = pipeline
 
-	pipeline, err := a.Config.Pipeline.BuildPipeline(buildContext)
-	if err != nil {
-		return errors.Wrap(err, "build pipeline")
-	}
-	a.pipeline = pipeline
+		err = a.pipeline.Start()
+		if err != nil {
+			err = errors.Wrap(err, "start pipeline")
+			return
+		}
 
-	err = a.pipeline.Start()
-	if err != nil {
-		return errors.Wrap(err, "Start pipeline")
-	}
+		a.Info("Agent started")
+	})
 
-	a.running = true
-	a.Info("Agent started")
-	return nil
+	return err
 }
 
 // Stop will stop the log monitoring process.
 func (a *LogAgent) Stop() {
-	if !a.running {
-		return
-	}
+	a.stopOnce.Do(func() {
+		a.pipeline.Stop()
+		a.database.Close()
+	})
 
-	a.pipeline.Stop()
-	a.pipeline = nil
-
-	a.database.Close()
-	a.database = nil
-
-	a.running = false
 	a.Info("Agent stopped")
 }
 
