@@ -16,15 +16,15 @@ func init() {
 // NewHostMetadataConfig returns a HostMetadataConfig with default values
 func NewHostMetadataConfig(operatorID string) *HostMetadataConfig {
 	return &HostMetadataConfig{
-		TransformerConfig: helper.NewTransformerConfig(operatorID, "host_decorator"),
-		HostLabelerConfig: helper.NewHostLabelerConfig(),
+		TransformerConfig:    helper.NewTransformerConfig(operatorID, "host_decorator"),
+		HostIdentifierConfig: helper.NewHostIdentifierConfig(),
 	}
 }
 
 // HostMetadataConfig is the configuration of a host metadata operator
 type HostMetadataConfig struct {
-	helper.TransformerConfig `yaml:",inline"`
-	helper.HostLabelerConfig `yaml:",inline"`
+	helper.TransformerConfig    `yaml:",inline"`
+	helper.HostIdentifierConfig `yaml:",inline"`
 }
 
 // Build will build an operator from the supplied configuration
@@ -34,14 +34,14 @@ func (c HostMetadataConfig) Build(context operator.BuildContext) (operator.Opera
 		return nil, errors.Wrap(err, "failed to build transformer")
 	}
 
-	hostLabeler, err := c.HostLabelerConfig.Build()
+	hostIdentifier, err := c.HostIdentifierConfig.Build()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build host labeler")
 	}
 
 	operator := &HostMetadata{
 		TransformerOperator: transformerOperator,
-		HostLabeler:         hostLabeler,
+		HostIdentifier:      hostIdentifier,
 	}
 
 	return operator, nil
@@ -50,7 +50,7 @@ func (c HostMetadataConfig) Build(context operator.BuildContext) (operator.Opera
 // HostMetadata is an operator that can add host metadata to incoming entries
 type HostMetadata struct {
 	helper.TransformerOperator
-	helper.HostLabeler
+	helper.HostIdentifier
 }
 
 // Process will process an incoming entry using the metadata transform.
@@ -60,6 +60,6 @@ func (h *HostMetadata) Process(ctx context.Context, entry *entry.Entry) error {
 
 // Transform will transform an entry, adding the configured host metadata.
 func (h *HostMetadata) Transform(entry *entry.Entry) (*entry.Entry, error) {
-	h.HostLabeler.Label(entry)
+	h.HostIdentifier.Identify(entry)
 	return entry, nil
 }

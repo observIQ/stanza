@@ -7,7 +7,6 @@ import (
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
-	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/errors"
 	"github.com/observiq/carbon/operator"
 	"github.com/observiq/carbon/operator/helper"
@@ -163,17 +162,21 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 				return
 			}
 
-			entry := entry.New()
-			entry.AddLabel("event_type", string(event.Type))
 			typedEvent := event.Object.(*apiv1.Event)
-			entry.Timestamp = typedEvent.LastTimestamp.Time
-
-			var err error
-			entry.Record, err = runtime.DefaultUnstructuredConverter.ToUnstructured(event.Object)
+			record, err := runtime.DefaultUnstructuredConverter.ToUnstructured(event.Object)
 			if err != nil {
 				k.Error("Failed to convert event to map", zap.Error(err))
+				continue
 			}
 
+			entry, err := k.NewEntry(record)
+			if err != nil {
+				k.Error("Failed to create new entry from record", zap.Error(err))
+				continue
+			}
+
+			entry.Timestamp = typedEvent.LastTimestamp.Time
+			entry.AddLabel("event_type", string(event.Type))
 			k.Write(ctx, entry)
 		case <-ctx.Done():
 			return

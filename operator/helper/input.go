@@ -12,17 +12,19 @@ import (
 // NewInputConfig creates a new input config with default values.
 func NewInputConfig(operatorID, operatorType string) InputConfig {
 	return InputConfig{
-		LabelerConfig: NewLabelerConfig(),
-		WriterConfig:  NewWriterConfig(operatorID, operatorType),
-		WriteTo:       entry.NewRecordField(),
+		LabelerConfig:    NewLabelerConfig(),
+		IdentifierConfig: NewIdentifierConfig(),
+		WriterConfig:     NewWriterConfig(operatorID, operatorType),
+		WriteTo:          entry.NewRecordField(),
 	}
 }
 
 // InputConfig provides a basic implementation of an input operator config.
 type InputConfig struct {
-	LabelerConfig `yaml:",inline"`
-	WriterConfig  `yaml:",inline"`
-	WriteTo       entry.Field `json:"write_to" yaml:"write_to"`
+	LabelerConfig    `yaml:",inline"`
+	IdentifierConfig `yaml:",inline"`
+	WriterConfig     `yaml:",inline"`
+	WriteTo          entry.Field `json:"write_to" yaml:"write_to"`
 }
 
 // Build will build a base producer.
@@ -37,8 +39,14 @@ func (c InputConfig) Build(context operator.BuildContext) (InputOperator, error)
 		return InputOperator{}, errors.WithDetails(err, "operator_id", c.ID())
 	}
 
+	identifier, err := c.IdentifierConfig.Build()
+	if err != nil {
+		return InputOperator{}, errors.WithDetails(err, "operator_id", c.ID())
+	}
+
 	inputOperator := InputOperator{
 		Labeler:        labeler,
+		Identifier:     identifier,
 		WriterOperator: writerOperator,
 		WriteTo:        c.WriteTo,
 	}
@@ -49,17 +57,22 @@ func (c InputConfig) Build(context operator.BuildContext) (InputOperator, error)
 // InputOperator provides a basic implementation of an input operator.
 type InputOperator struct {
 	Labeler
+	Identifier
 	WriterOperator
 	WriteTo entry.Field
 }
 
-// NewEntry will create a new entry using the write_to field and applying labels.
+// NewEntry will create a new entry using the `write_to`, `labels`, and `resource` configuration.
 func (i *InputOperator) NewEntry(value interface{}) (*entry.Entry, error) {
 	entry := entry.New()
 	entry.Set(i.WriteTo, value)
 
 	if err := i.Label(entry); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to add labels to entry")
+	}
+
+	if err := i.Identify(entry); err != nil {
+		return nil, errors.Wrap(err, "failed to add resource keys to entry")
 	}
 
 	return entry, nil

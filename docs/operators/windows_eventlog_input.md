@@ -12,7 +12,9 @@ The `windows_eventlog_input` operator reads logs from the windows event log API.
 | `max_reads`       | 100                      | The maximum number of records read into memory, before beginning a new batch                 |
 | `start_at`        | `end`                    | On first startup, where to start reading logs from the API. Options are `beginning` or `end` |
 | `poll_interval`   | 1s                       | The interval at which the channel is checked for new log entries. This check begins again after all new records have been read |
-| `labels`          | {}                       | A map of `key: value` labels to add to the entry                                             |
+| `write_to`        | $                        | The record [field](/docs/types/field.md) written to when creating a new log entry            |
+| `labels`          | {}                       | A map of `key: value` labels to add to the entry's labels                                    |
+| `resource`        | {}                       | A map of `key: value` labels to add to the entry's resource                                  |
 
 ### Example Configurations
 

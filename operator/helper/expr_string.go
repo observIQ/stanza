@@ -125,8 +125,8 @@ func GetExprEnv(e *entry.Entry) map[string]interface{} {
 	env["$"] = e.Record
 	env["$record"] = e.Record
 	env["$labels"] = e.Labels
+	env["$resource"] = e.Resource
 	env["$timestamp"] = e.Timestamp
-	env["$tags"] = e.Tags
 
 	return env
 }

@@ -9,9 +9,9 @@ import (
 	"github.com/observiq/carbon/errors"
 )
 
-// NewHostLabelerConfig returns a HostLabelerConfig with default values
-func NewHostLabelerConfig() HostLabelerConfig {
-	return HostLabelerConfig{
+// NewHostIdentifierConfig returns a HostIdentifierConfig with default values
+func NewHostIdentifierConfig() HostIdentifierConfig {
+	return HostIdentifierConfig{
 		IncludeHostname: true,
 		IncludeIP:       true,
 		getHostname:     getHostname,
@@ -19,8 +19,8 @@ func NewHostLabelerConfig() HostLabelerConfig {
 	}
 }
 
-// HostLabelerConfig is the configuration of a host labeler
-type HostLabelerConfig struct {
+// HostIdentifierConfig is the configuration of a host identifier
+type HostIdentifierConfig struct {
 	IncludeHostname bool `json:"include_hostname,omitempty"     yaml:"include_hostname,omitempty"`
 	IncludeIP       bool `json:"include_ip,omitempty"     yaml:"include_ip,omitempty"`
 	getHostname     func() (string, error)
@@ -28,37 +28,37 @@ type HostLabelerConfig struct {
 }
 
 // Build will build a host labeler from the supplied configuration
-func (c HostLabelerConfig) Build() (HostLabeler, error) {
-	labeler := HostLabeler{
+func (c HostIdentifierConfig) Build() (HostIdentifier, error) {
+	identifier := HostIdentifier{
 		includeHostname: c.IncludeHostname,
 		includeIP:       c.IncludeIP,
 	}
 
 	if c.getHostname == nil {
-		return labeler, fmt.Errorf("getHostname func is not set")
+		return identifier, fmt.Errorf("getHostname func is not set")
 	}
 
 	if c.getIP == nil {
-		return labeler, fmt.Errorf("getIP func is not set")
+		return identifier, fmt.Errorf("getIP func is not set")
 	}
 
 	if c.IncludeHostname {
 		hostname, err := c.getHostname()
 		if err != nil {
-			return labeler, errors.Wrap(err, "get hostname")
+			return identifier, errors.Wrap(err, "get hostname")
 		}
-		labeler.hostname = hostname
+		identifier.hostname = hostname
 	}
 
 	if c.IncludeIP {
 		ip, err := c.getIP()
 		if err != nil {
-			return labeler, errors.Wrap(err, "get ip address")
+			return identifier, errors.Wrap(err, "get ip address")
 		}
-		labeler.ip = ip
+		identifier.ip = ip
 	}
 
-	return labeler, nil
+	return identifier, nil
 }
 
 // getHostname will return the hostname of the current host
@@ -105,21 +105,21 @@ func getIP() (string, error) {
 	return ip, nil
 }
 
-// HostLabeler is a helper that adds host related metadata to an entry's labels
-type HostLabeler struct {
+// HostIdentifier is a helper that adds host related metadata to an entry's resource
+type HostIdentifier struct {
 	hostname        string
 	ip              string
 	includeHostname bool
 	includeIP       bool
 }
 
-// Label will label an entry with host related metadata
-func (h *HostLabeler) Label(entry *entry.Entry) {
+// Identify will add host related metadata to an entry's resource
+func (h *HostIdentifier) Identify(entry *entry.Entry) {
 	if h.includeHostname {
-		entry.AddLabel("hostname", h.hostname)
+		entry.AddResourceKey("hostname", h.hostname)
 	}
 
 	if h.includeIP {
-		entry.AddLabel("ip", h.ip)
+		entry.AddResourceKey("ip", h.ip)
 	}
 }

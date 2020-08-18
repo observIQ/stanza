@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func MockHostLabelerConfig(includeIP, includeHostname bool, ip, hostname string) HostLabelerConfig {
-	return HostLabelerConfig{
+func MockHostIdentifierConfig(includeIP, includeHostname bool, ip, hostname string) HostIdentifierConfig {
+	return HostIdentifierConfig{
 		IncludeIP:       includeIP,
 		IncludeHostname: includeHostname,
 		getIP:           func() (string, error) { return ip, nil },
@@ -18,13 +18,13 @@ func MockHostLabelerConfig(includeIP, includeHostname bool, ip, hostname string)
 
 func TestHostLabeler(t *testing.T) {
 	cases := []struct {
-		name           string
-		config         HostLabelerConfig
-		expectedLabels map[string]string
+		name             string
+		config           HostIdentifierConfig
+		expectedResource map[string]string
 	}{
 		{
 			"HostnameAndIP",
-			MockHostLabelerConfig(true, true, "ip", "hostname"),
+			MockHostIdentifierConfig(true, true, "ip", "hostname"),
 			map[string]string{
 				"hostname": "hostname",
 				"ip":       "ip",
@@ -32,33 +32,33 @@ func TestHostLabeler(t *testing.T) {
 		},
 		{
 			"HostnameNoIP",
-			MockHostLabelerConfig(false, true, "ip", "hostname"),
+			MockHostIdentifierConfig(false, true, "ip", "hostname"),
 			map[string]string{
 				"hostname": "hostname",
 			},
 		},
 		{
 			"IPNoHostname",
-			MockHostLabelerConfig(true, false, "ip", "hostname"),
+			MockHostIdentifierConfig(true, false, "ip", "hostname"),
 			map[string]string{
 				"ip": "ip",
 			},
 		},
 		{
 			"NoHostnameNoIP",
-			MockHostLabelerConfig(false, false, "", "test"),
+			MockHostIdentifierConfig(false, false, "", "test"),
 			nil,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			labeler, err := tc.config.Build()
+			identifier, err := tc.config.Build()
 			require.NoError(t, err)
 
 			e := entry.New()
-			labeler.Label(e)
-			require.Equal(t, tc.expectedLabels, e.Labels)
+			identifier.Identify(e)
+			require.Equal(t, tc.expectedResource, e.Resource)
 		})
 	}
 }

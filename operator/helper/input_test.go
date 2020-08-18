@@ -104,13 +104,22 @@ func TestInputOperatorProcess(t *testing.T) {
 func TestInputOperatorNewEntry(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	writeTo := entry.NewRecordField("test-field")
+
 	labelExpr, err := ExprStringConfig("test").Build()
+	require.NoError(t, err)
+
+	resourceExpr, err := ExprStringConfig("resource").Build()
 	require.NoError(t, err)
 
 	input := InputOperator{
 		Labeler: Labeler{
 			labels: map[string]*ExprString{
 				"test-label": labelExpr,
+			},
+		},
+		Identifier: Identifier{
+			resource: map[string]*ExprString{
+				"resource-key": resourceExpr,
 			},
 		},
 		WriterOperator: WriterOperator{
@@ -130,7 +139,11 @@ func TestInputOperatorNewEntry(t *testing.T) {
 	require.True(t, exists)
 	require.Equal(t, "test", value)
 
-	label, exists := entry.Labels["test-label"]
+	labelValue, exists := entry.Labels["test-label"]
 	require.True(t, exists)
-	require.Equal(t, "test", label)
+	require.Equal(t, "test", labelValue)
+
+	resourceValue, exists := entry.Resource["resource-key"]
+	require.True(t, exists)
+	require.Equal(t, "resource", resourceValue)
 }

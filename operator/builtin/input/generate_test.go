@@ -81,8 +81,9 @@ pipeline:
 			{
 				Builder: &GenerateInputConfig{
 					InputConfig: helper.InputConfig{
-						LabelerConfig: helper.NewLabelerConfig(),
-						WriteTo:       entry.NewRecordField(),
+						LabelerConfig:    helper.NewLabelerConfig(),
+						IdentifierConfig: helper.NewIdentifierConfig(),
+						WriteTo:          entry.NewRecordField(),
 						WriterConfig: helper.WriterConfig{
 							BasicConfig: helper.BasicConfig{
 								OperatorID:   "my_generator",
