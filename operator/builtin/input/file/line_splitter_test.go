@@ -59,6 +59,15 @@ func TestLineStartSplitFunc(t *testing.T) {
 			},
 		},
 		{
+			Name:    "TwoLogsLineStart",
+			Pattern: `^LOGSTART \d+ `,
+			Raw:     []byte("LOGSTART 123 LOGSTART 345 log1\nLOGSTART 234 log2\nLOGSTART 345 foo"),
+			ExpectedTokenized: []string{
+				"LOGSTART 123 LOGSTART 345 log1\n",
+				"LOGSTART 234 log2\n",
+			},
+		},
+		{
 			Name:              "NoMatches",
 			Pattern:           `LOGSTART \d+ `,
 			Raw:               []byte(`file that has no matches in it`),
@@ -114,8 +123,12 @@ func TestLineStartSplitFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		re := regexp.MustCompile(tc.Pattern)
-		splitFunc := NewLineStartSplitFunc(re)
+		cfg := NewInputConfig("")
+		cfg.Multiline = &MultilineConfig{
+			LineStartPattern: tc.Pattern,
+		}
+		splitFunc, err := cfg.getSplitFunc(unicode.UTF8)
+		require.NoError(t, err)
 		t.Run(tc.Name, tc.RunFunc(splitFunc))
 	}
 
@@ -156,6 +169,15 @@ func TestLineEndSplitFunc(t *testing.T) {
 			ExpectedTokenized: []string{
 				`log1 LOGEND 123`,
 				`log2 LOGEND 234`,
+			},
+		},
+		{
+			Name:    "TwoLogsLineEndSimple",
+			Pattern: `LOGEND$`,
+			Raw:     []byte("log1 LOGEND LOGEND\nlog2 LOGEND\n"),
+			ExpectedTokenized: []string{
+				"log1 LOGEND LOGEND",
+				"\nlog2 LOGEND",
 			},
 		},
 		{
@@ -210,8 +232,12 @@ func TestLineEndSplitFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		re := regexp.MustCompile(tc.Pattern)
-		splitFunc := NewLineEndSplitFunc(re)
+		cfg := NewInputConfig("")
+		cfg.Multiline = &MultilineConfig{
+			LineEndPattern: tc.Pattern,
+		}
+		splitFunc, err := cfg.getSplitFunc(unicode.UTF8)
+		require.NoError(t, err)
 		t.Run(tc.Name, tc.RunFunc(splitFunc))
 	}
 }

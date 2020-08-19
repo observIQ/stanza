@@ -165,35 +165,32 @@ func lookupEncoding(enc string) (encoding.Encoding, error) {
 
 // getSplitFunc will return the split function associated the configured mode.
 func (c InputConfig) getSplitFunc(encoding encoding.Encoding) (bufio.SplitFunc, error) {
-	var splitFunc bufio.SplitFunc
 	if c.Multiline == nil {
-		var err error
-		splitFunc, err = NewNewlineSplitFunc(encoding)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		definedLineEndPattern := c.Multiline.LineEndPattern != ""
-		definedLineStartPattern := c.Multiline.LineStartPattern != ""
-
-		switch {
-		case definedLineEndPattern == definedLineStartPattern:
-			return nil, fmt.Errorf("if multiline is configured, exactly one of line_start_pattern or line_end_pattern must be set")
-		case definedLineEndPattern:
-			re, err := regexp.Compile(c.Multiline.LineEndPattern)
-			if err != nil {
-				return nil, fmt.Errorf("compile line end regex: %s", err)
-			}
-			splitFunc = NewLineEndSplitFunc(re)
-		case definedLineStartPattern:
-			re, err := regexp.Compile(c.Multiline.LineStartPattern)
-			if err != nil {
-				return nil, fmt.Errorf("compile line start regex: %s", err)
-			}
-			splitFunc = NewLineStartSplitFunc(re)
-		}
+		return NewNewlineSplitFunc(encoding)
 	}
-	return splitFunc, nil
+	endPattern := c.Multiline.LineEndPattern
+	startPattern := c.Multiline.LineStartPattern
+
+	switch {
+	case endPattern != "" && startPattern != "":
+		return nil, fmt.Errorf("only one of line_start_pattern or line_end_pattern can be set")
+	case endPattern == "" && startPattern == "":
+		return nil, fmt.Errorf("one of line_start_pattern or line_end_pattern must be set")
+	case endPattern != "":
+		re, err := regexp.Compile("(?m)" + c.Multiline.LineEndPattern)
+		if err != nil {
+			return nil, fmt.Errorf("compile line end regex: %s", err)
+		}
+		return NewLineEndSplitFunc(re), nil
+	case startPattern != "":
+		re, err := regexp.Compile("(?m)" + c.Multiline.LineStartPattern)
+		if err != nil {
+			return nil, fmt.Errorf("compile line start regex: %s", err)
+		}
+		return NewLineStartSplitFunc(re), nil
+	default:
+		return nil, fmt.Errorf("unreachable")
+	}
 }
 
 // InputOperator is an operator that monitors files for entries
