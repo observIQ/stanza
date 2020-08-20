@@ -6,11 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.10] - 2020-08-20
 ### Added
-- The `Resource` field was added to Entry
-- The `Identifier` helper was created to assist with writing to `Resource`
+- The `Resource` field was added to Entry ([PR95](https://github.com/observIQ/carbon/pull/95))
+- The `Identifier` helper was created to assist with writing to `Resource` ([PR95](https://github.com/observIQ/carbon/pull/95))
 
 ### Removed
-- The `Tags` field was removed from Entry
+- The `Tags` field was removed from Entry ([PR95](https://github.com/observIQ/carbon/pull/95))
 
 ### Changed
 - The `host_metadata` operator now writes to an entry's `Resource` field, instead of Labels
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `metadata` operator embeds the `Identifier` helper and supports writing to `Resource`
 - Input operators embed the `Identifier` helper and support writing to `Resource`
 - The `k8s_event` operator now supports the `write_to`, `labels`, and `resource` configuration options
-- Multiline for `file_input` now supports matching on new lines characters
+- Multiline for `file_input` now supports matching on new lines characters ([PR96](https://github.com/observIQ/carbon/pull/96))
 
 ## [0.9.9] - 2020-08-14
 ### Added
