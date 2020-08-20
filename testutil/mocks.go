@@ -2,6 +2,7 @@ package testutil
 
 import (
 	context "context"
+	"testing"
 
 	entry "github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/operator"
@@ -23,7 +24,7 @@ type FakeOutput struct {
 	*zap.SugaredLogger
 }
 
-func NewFakeOutput(t TestingT) *FakeOutput {
+func NewFakeOutput(t testing.TB) *FakeOutput {
 	return &FakeOutput{
 		Received:      make(chan *entry.Entry, 100),
 		SugaredLogger: zaptest.NewLogger(t).Sugar(),

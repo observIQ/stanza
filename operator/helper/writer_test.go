@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/internal/testutil"
 	"github.com/observiq/carbon/operator"
+	"github.com/observiq/carbon/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
