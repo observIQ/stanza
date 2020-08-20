@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/observiq/carbon/internal/testutil"
+	"github.com/observiq/carbon/testutil"
 	"github.com/stretchr/testify/require"
 )
 

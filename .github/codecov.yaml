@@ -5,4 +5,4 @@ coverage:
     project: off
     patch: off
 ignore:
-  - "internal/testutil/*"
+  - "testutil/*"
