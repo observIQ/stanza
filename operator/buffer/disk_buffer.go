@@ -127,6 +127,7 @@ func (d *DiskBuffer) BatchAdd(ctx context.Context, entries []*entry.Entry) error
 	case message := <-d.fastReadChannel:
 		sendCount := min(message.maxCount, len(newDiskEntries))
 		message.response <- newFastReadResponse(newDiskEntries[:sendCount], entries[:sendCount])
+		d.nextFlushableIndex += sendCount // TODO this doesn't feel like it belongs here
 	default:
 	}
 
@@ -165,6 +166,7 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	select {
 	case message := <-d.fastReadChannel:
 		message.response <- newFastReadResponse(newDiskEntries, []*entry.Entry{newEntry})
+		d.nextFlushableIndex += 1 // TODO this doesn't feel like it belongs here
 	default:
 	}
 
@@ -285,6 +287,7 @@ func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (fun
 	}
 
 	var fastAdded []*diskEntry
+LOOP:
 	for n < len(dst) {
 		if fastAdded == nil {
 			fastAdded = make([]*diskEntry, 0, len(dst)-n)
@@ -293,7 +296,7 @@ func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (fun
 		message := newFastReadRequest(len(dst) - n) // TODO pool fast read messages?
 		select {
 		case <-timeout:
-			break
+			break LOOP
 		case d.fastReadChannel <- message:
 			resp := <-message.response
 			copy(dst[n:], resp.entries)
@@ -389,6 +392,8 @@ func (d *DiskBuffer) Close() error {
 
 // Compact removes all flushed entries from disk
 func (d *DiskBuffer) Compact() error {
+	d.Lock()
+	defer d.Unlock()
 	// Overview of the compaction algorithm:
 	// The first step is to find two ranges of diskEntries. The first range
 	// is composed of all flushed entries. The second range immediately follows

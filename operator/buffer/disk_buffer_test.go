@@ -3,6 +3,7 @@ package buffer
 import (
 	"context"
 	"strconv"
+	"sync"
 	"time"
 
 	"testing"
@@ -19,9 +20,9 @@ func intEntry(i int) *entry.Entry {
 	return e
 }
 
-func writeN(t testing.TB, buffer *DiskBuffer, n int) {
+func writeN(t testing.TB, buffer *DiskBuffer, n, start int) {
 	ctx := context.Background()
-	for i := 0; i < n; i++ {
+	for i := start; i < n+start; i++ {
 		err := buffer.Add(ctx, intEntry(i))
 		require.NoError(t, err)
 	}
@@ -40,6 +41,17 @@ func batchN(t testing.TB, buffer *DiskBuffer, n int) {
 func readN(t testing.TB, buffer *DiskBuffer, n, start int) func() {
 	entries := make([]*entry.Entry, n)
 	f, readCount, err := buffer.Read(entries)
+	require.NoError(t, err)
+	require.Equal(t, n, readCount)
+	for i := 0; i < n; i++ {
+		require.Equal(t, intEntry(start+i), entries[i])
+	}
+	return f
+}
+
+func readWaitN(t testing.TB, buffer *DiskBuffer, n, start int) func() {
+	entries := make([]*entry.Entry, n)
+	f, readCount, err := buffer.ReadWait(entries, time.After(time.Minute))
 	require.NoError(t, err)
 	require.Equal(t, n, readCount)
 	for i := 0; i < n; i++ {
@@ -82,20 +94,49 @@ func compact(t testing.TB, b *DiskBuffer) {
 func TestDiskBuffer(t *testing.T) {
 	t.Run("Simple", func(t *testing.T) {
 		b := openBuffer(t)
-		writeN(t, b, 1)
+		writeN(t, b, 1, 0)
 		readN(t, b, 1, 0)
 	})
 
 	t.Run("Write20Read10Read10", func(t *testing.T) {
 		b := openBuffer(t)
-		writeN(t, b, 20)
+		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
 		readN(t, b, 10, 10)
 	})
 
+	t.Run("SingleReadWaitMultipleWrites", func(t *testing.T) {
+		b := openBuffer(t)
+		writeN(t, b, 10, 0)
+		readyDone := make(chan struct{})
+		go func() {
+			readyDone <- struct{}{}
+			readWaitN(t, b, 20, 0)
+			readyDone <- struct{}{}
+		}()
+		<-readyDone
+		writeN(t, b, 10, 10)
+		<-readyDone
+	})
+
+	t.Run("ReadWaitOnlyWaitForPartialWrite", func(t *testing.T) {
+		b := openBuffer(t)
+		writeN(t, b, 10, 0)
+		readyDone := make(chan struct{})
+		go func() {
+			readyDone <- struct{}{}
+			readWaitN(t, b, 15, 0)
+			readyDone <- struct{}{}
+		}()
+		<-readyDone
+		writeN(t, b, 10, 10)
+		<-readyDone
+		readN(t, b, 5, 15)
+	})
+
 	t.Run("Write10Read10Read0", func(t *testing.T) {
 		b := openBuffer(t)
-		writeN(t, b, 10)
+		writeN(t, b, 10, 0)
 		readN(t, b, 10, 0)
 		dst := make([]*entry.Entry, 10)
 		_, n, err := b.Read(dst)
@@ -105,7 +146,7 @@ func TestDiskBuffer(t *testing.T) {
 
 	t.Run("Write20Read10Read10Unfull", func(t *testing.T) {
 		b := openBuffer(t)
-		writeN(t, b, 20)
+		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
 		dst := make([]*entry.Entry, 20)
 		_, n, err := b.Read(dst)
@@ -115,7 +156,7 @@ func TestDiskBuffer(t *testing.T) {
 
 	t.Run("Write20Read10CompactRead10", func(t *testing.T) {
 		b := openBuffer(t)
-		writeN(t, b, 20)
+		writeN(t, b, 20, 0)
 		flushN(t, b, 10, 0)
 		compact(t, b)
 		readN(t, b, 10, 10)
@@ -219,6 +260,56 @@ func BenchmarkDiskBufferBatchWrite(b *testing.B) {
 			}
 		})
 	}
+}
+
+func BenchmarkDiskBuffer(b *testing.B) {
+	b.Run("AddReadWait100", func(b *testing.B) {
+		buffer := openBuffer(b)
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			e := entry.New()
+			e.Record = "test log"
+			ctx := context.Background()
+			for i := 0; i < b.N; i++ {
+				buffer.Add(ctx, e)
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dst := make([]*entry.Entry, 100)
+			for i := 0; i < b.N; {
+				flush, n, _ := buffer.ReadWait(dst, time.After(time.Second))
+				i += n
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					flush()
+				}()
+			}
+		}()
+
+		cancel := make(chan struct{})
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			for {
+				select {
+				case <-cancel:
+					return
+				case <-time.After(500 * time.Millisecond):
+					buffer.Compact()
+				}
+			}
+		}()
+
+		wg.Wait()
+		close(cancel)
+		<-done
+	})
 }
 
 func BenchmarkDiskBufferCompact(b *testing.B) {
