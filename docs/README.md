@@ -48,6 +48,7 @@ General purpose:
 - [Metadata](/docs/operators/metadata.md)
 - [Restructure records](/docs/operators/restructure.md)
 - [Router](/docs/operators/router.md)
+- [Filter](/docs/operators/filter.md)
 - [Kubernetes Metadata Decorator](/docs/operators/k8s_metadata_decorator.md)
 - [Host Metadata](/docs/operators/host_metadata.md)
 - [Rate limit](/docs/operators/rate_limit.md)
