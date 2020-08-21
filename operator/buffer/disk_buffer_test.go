@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"testing"
@@ -18,7 +19,7 @@ func intEntry(i int) *entry.Entry {
 	return e
 }
 
-func writeN(t *testing.T, buffer *DiskBuffer, n int) {
+func writeN(t testing.TB, buffer *DiskBuffer, n int) {
 	ctx := context.Background()
 	for i := 0; i < n; i++ {
 		err := buffer.Add(ctx, intEntry(i))
@@ -26,7 +27,7 @@ func writeN(t *testing.T, buffer *DiskBuffer, n int) {
 	}
 }
 
-func batchN(t *testing.T, buffer *DiskBuffer, n int) {
+func batchN(t testing.TB, buffer *DiskBuffer, n int) {
 	entries := make([]*entry.Entry, n)
 	for i := 0; i < n; i++ {
 		entries[i] = intEntry(i)
@@ -36,7 +37,7 @@ func batchN(t *testing.T, buffer *DiskBuffer, n int) {
 	require.NoError(t, err)
 }
 
-func readN(t *testing.T, buffer *DiskBuffer, n, start int) func() {
+func readN(t testing.TB, buffer *DiskBuffer, n, start int) func() {
 	entries := make([]*entry.Entry, n)
 	f, readCount, err := buffer.Read(entries)
 	require.NoError(t, err)
@@ -47,12 +48,24 @@ func readN(t *testing.T, buffer *DiskBuffer, n, start int) func() {
 	return f
 }
 
-func flushN(t *testing.T, buffer *DiskBuffer, n, start int) {
+func uncheckedReadN(t testing.TB, buffer *DiskBuffer, n int) func() {
+	entries := make([]*entry.Entry, n)
+	f, readCount, _ := buffer.Read(entries)
+	require.Equal(t, n, readCount)
+	return f
+}
+
+func flushN(t testing.TB, buffer *DiskBuffer, n, start int) {
 	f := readN(t, buffer, n, start)
 	f()
 }
 
-func openBuffer(t *testing.T) *DiskBuffer {
+func uncheckedFlushN(t testing.TB, buffer *DiskBuffer, n int) {
+	f := uncheckedReadN(t, buffer, n)
+	f()
+}
+
+func openBuffer(t testing.TB) *DiskBuffer {
 	buffer := NewDiskBuffer()
 	dir := testutil.NewTempDir(t)
 	err := buffer.Open(dir)
@@ -61,7 +74,7 @@ func openBuffer(t *testing.T) *DiskBuffer {
 	return buffer
 }
 
-func compact(t *testing.T, b *DiskBuffer) {
+func compact(t testing.TB, b *DiskBuffer) {
 	err := b.Compact()
 	require.NoError(t, err)
 }
@@ -177,72 +190,118 @@ func TestDiskBuffer(t *testing.T) {
 
 }
 
-// func BenchmarkDiskBufferWrite(b *testing.B) {
-// 	dir := testutil.NewTempDir(b)
+func BenchmarkDiskBufferWrite(b *testing.B) {
+	buffer := openBuffer(b)
 
-// 	buffer, err := NewDiskBuffer(filepath.Join(dir, "test.db"))
-// 	require.NoError(b, err)
-// 	defer buffer.Close()
+	e := entry.New()
+	ctx := context.Background()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		buffer.Add(ctx, e)
+	}
+}
 
-// 	e := entry.New()
-// 	ctx := context.Background()
-// 	for i := 0; i < b.N; i++ {
-// 		buffer.Add(ctx, e)
-// 	}
-// }
+func BenchmarkDiskBufferBatchWrite(b *testing.B) {
+	for _, batchSize := range []int{1, 5, 10, 50, 100} {
+		b.Run(strconv.Itoa(batchSize), func(b *testing.B) {
+			buffer := openBuffer(b)
 
-// func BenchmarkDiskBufferBatchWrite(b *testing.B) {
-// 	for _, batchSize := range []int{1, 5, 10, 50, 100} {
-// 		b.Run(strconv.Itoa(batchSize), func(b *testing.B) {
-// 			dir := testutil.NewTempDir(b)
+			e := entry.New()
+			ctx := context.Background()
+			batch := make([]*entry.Entry, batchSize)
+			for i := 0; i < batchSize; i++ {
+				batch[i] = e
+			}
 
-// 			buffer, err := NewDiskBuffer(filepath.Join(dir, "test.db"))
-// 			require.NoError(b, err)
-// 			defer buffer.Close()
+			b.ResetTimer()
+			for i := 0; i < b.N; i += batchSize {
+				buffer.BatchAdd(ctx, batch)
+			}
+		})
+	}
+}
 
-// 			e := entry.New()
-// 			ctx := context.Background()
-// 			batch := make([]*entry.Entry, batchSize)
-// 			for i := 0; i < batchSize; i++ {
-// 				batch[i] = e
-// 			}
+func BenchmarkDiskBufferCompact(b *testing.B) {
+	b.Run("AllFlushed", func(b *testing.B) {
+		for _, n := range []int{1, 10, 100, 1000, 10000} {
+			b.Run(strconv.Itoa(n), func(b *testing.B) {
+				for i := 0; i < b.N; i++ {
+					b.StopTimer()
+					buffer := openBuffer(b)
+					batchN(b, buffer, n)
+					uncheckedFlushN(b, buffer, n)
+					b.StartTimer()
 
-// 			b.ResetTimer()
-// 			for i := 0; i < b.N; i += batchSize {
-// 				buffer.BatchAdd(ctx, batch)
-// 			}
-// 		})
-// 	}
-// }
+					err := buffer.Compact()
+					require.NoError(b, err)
+					buffer.Close()
+				}
+			})
+		}
+	})
 
-// func BenchmarkDiskBufferRead(b *testing.B) {
-// 	readSizes := []int{1, 10, 100, 1000}
-// 	for _, readSize := range readSizes {
-// 		b.Run(strconv.Itoa(readSize), func(b *testing.B) {
-// 			dir := testutil.NewTempDir(b)
+	b.Run("AllRead", func(b *testing.B) {
+		for _, n := range []int{1, 10, 100, 1000, 10000} {
+			b.Run(strconv.Itoa(n), func(b *testing.B) {
+				for i := 0; i < b.N; i++ {
+					b.StopTimer()
+					buffer := openBuffer(b)
+					batchN(b, buffer, n)
+					uncheckedReadN(b, buffer, n)
+					b.StartTimer()
 
-// 			buffer, err := NewDiskBuffer(filepath.Join(dir, "test.db"))
-// 			require.NoError(b, err)
-// 			defer buffer.Close()
+					err := buffer.Compact()
+					require.NoError(b, err)
+					buffer.Close()
+				}
+			})
+		}
+	})
 
-// 			// Populate the buffer
-// 			e := entry.New()
-// 			ctx := context.Background()
-// 			batch := make([]*entry.Entry, 10)
-// 			for i := 0; i < 10; i++ {
-// 				batch[i] = e
-// 			}
-// 			for i := 0; i < b.N; i += 10 {
-// 				buffer.BatchAdd(ctx, batch)
-// 			}
+	b.Run("NoneRead", func(b *testing.B) {
+		for _, n := range []int{1, 10, 100, 1000, 10000} {
+			b.Run(strconv.Itoa(n), func(b *testing.B) {
+				for i := 0; i < b.N; i++ {
+					b.StopTimer()
+					buffer := openBuffer(b)
+					batchN(b, buffer, n)
+					b.StartTimer()
 
-// 			b.ResetTimer()
-// 			dst := make([]*entry.Entry, readSize)
-// 			for i := 0; i < b.N; {
-// 				_, n, _ := buffer.Read(dst)
-// 				i += n
-// 			}
-// 		})
-// 	}
+					err := buffer.Compact()
+					require.NoError(b, err)
+					buffer.Close()
+				}
+			})
+		}
+	})
 
-// }
+	b.Run("Fragmented", func(b *testing.B) {
+		for _, n := range []int{100, 1000, 10000} {
+			b.Run(strconv.Itoa(n), func(b *testing.B) {
+				for i := 0; i < b.N; i++ {
+					b.StopTimer()
+					buffer := openBuffer(b)
+					batchN(b, buffer, n)
+
+					// alternate reading and flushing in batches of 10
+					flush := false
+					for j := 0; j < n; j += 10 {
+						if flush {
+							uncheckedFlushN(b, buffer, 10)
+							flush = false
+							continue
+						}
+						uncheckedReadN(b, buffer, 10)
+						flush = true
+					}
+					b.StartTimer()
+
+					err := buffer.Compact()
+					require.NoError(b, err)
+					buffer.Close()
+				}
+			})
+		}
+	})
+
+}

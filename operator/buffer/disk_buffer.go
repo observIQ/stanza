@@ -10,11 +10,21 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/observiq/carbon/entry"
 )
 
 type DiskBuffer struct {
+	// TODO all entry metadata must currently be held in memory.
+	// This takes ~25 bytes of memory per entry, which, at
+	// 10000 entries per second, is 20.1GB per day
+	//
+	// Since, if we're backing up to disk this much, we're likely
+	// not flushing much, only the currently flushing entries need to be
+	// held in memory. It's possible we could store metadata past
+	// nextFlushableIndex only on disk
+
 	diskEntries        []*diskEntry
 	nextFlushableIndex int
 
@@ -22,13 +32,15 @@ type DiskBuffer struct {
 	metadata *os.File
 	sync.Mutex
 
-	copyBuffer []byte
+	fastReadChannel chan fastReadRequest
+	copyBuffer      []byte
 }
 
 // NewDiskBuffer creates a new DiskBuffer
 func NewDiskBuffer() *DiskBuffer {
 	return &DiskBuffer{
-		copyBuffer: make([]byte, 1<<16), // TODO benchmark different sizes
+		fastReadChannel: make(chan fastReadRequest),
+		copyBuffer:      make([]byte, 1<<16), // TODO benchmark different sizes
 	}
 }
 
@@ -82,6 +94,8 @@ func (d *DiskBuffer) BatchAdd(ctx context.Context, entries []*entry.Entry) error
 
 	wr := bufio.NewWriter(d.data)
 
+	// TODO consider if gzipping individual log entries is valuable,
+	// or if we can gzip chunks of entries for longer term storage
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	newDiskEntries := make([]*diskEntry, 0, len(entries))
@@ -97,20 +111,30 @@ func (d *DiskBuffer) BatchAdd(ctx context.Context, entries []*entry.Entry) error
 			return err
 		}
 
-		newDiskEntries = append(newDiskEntries, NewDiskEntry(currentOffset, n))
+		newDiskEntries = append(newDiskEntries, newDiskEntry(currentOffset, n))
 		currentOffset += n
 	}
 
-	err = d.addDiskEntries(newDiskEntries)
-	if err != nil {
+	if err = d.addDiskEntries(newDiskEntries); err != nil {
 		return err
 	}
 
-	return wr.Flush()
+	if err = wr.Flush(); err != nil {
+		return err
+	}
+
+	select {
+	case message := <-d.fastReadChannel:
+		sendCount := min(message.maxCount, len(newDiskEntries))
+		message.response <- newFastReadResponse(newDiskEntries[:sendCount], entries[:sendCount])
+	default:
+	}
+
+	return nil
 }
 
 // Add adds an entry to the buffer
-func (d *DiskBuffer) Add(ctx context.Context, entry *entry.Entry) error {
+func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	// TODO use channels instead of locks to play nice with context
 	d.Lock()
 	defer d.Unlock()
@@ -123,7 +147,7 @@ func (d *DiskBuffer) Add(ctx context.Context, entry *entry.Entry) error {
 
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
-	err = enc.Encode(entry)
+	err = enc.Encode(newEntry)
 	if err != nil {
 		return err
 	}
@@ -133,7 +157,18 @@ func (d *DiskBuffer) Add(ctx context.Context, entry *entry.Entry) error {
 		return err
 	}
 
-	return d.addDiskEntries([]*diskEntry{NewDiskEntry(fileEndOffset, int64(n))})
+	newDiskEntries := []*diskEntry{newDiskEntry(fileEndOffset, int64(n))}
+	if err = d.addDiskEntries(newDiskEntries); err != nil {
+		return err
+	}
+
+	select {
+	case message := <-d.fastReadChannel:
+		message.response <- newFastReadResponse(newDiskEntries, []*entry.Entry{newEntry})
+	default:
+	}
+
+	return nil
 }
 
 // addDiskEntries adds the diskEntry metadata both to the in-memory store as well as the
@@ -171,6 +206,9 @@ func (d *DiskBuffer) addDiskEntries(entries []*diskEntry) error {
 // syncMetadata writes the in-memory metadata to disk. It should only be called
 // when the buffer's lock is held
 func (d *DiskBuffer) syncMetadata() error {
+	// TODO this likely needs to store both offset and length because
+	// offset alone will not account for partial compressions with partially
+	// overwritten chunks of entries
 	var buf bytes.Buffer
 
 	count := [8]byte{}
@@ -240,6 +278,42 @@ func (d *DiskBuffer) loadMetadata() error {
 	return nil
 }
 
+func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (func(), int, error) {
+	f, n, err := d.Read(dst)
+	if err != nil {
+		return func() {}, 0, err
+	}
+
+	var fastAdded []*diskEntry
+	for n < len(dst) {
+		if fastAdded == nil {
+			fastAdded = make([]*diskEntry, 0, len(dst)-n)
+		}
+
+		message := newFastReadRequest(len(dst) - n) // TODO pool fast read messages?
+		select {
+		case <-timeout:
+			break
+		case d.fastReadChannel <- message:
+			resp := <-message.response
+			copy(dst[n:], resp.entries)
+			fastAdded = append(fastAdded, resp.diskEntries...)
+			n += len(resp.entries)
+		}
+	}
+
+	markFlushed := func() {
+		// TODO locking?
+		f()
+		d.Lock()
+		for _, entry := range fastAdded {
+			entry.flushed = true
+		}
+		d.Unlock()
+	}
+	return markFlushed, n, nil
+}
+
 func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 	// A note on file layout and assumptions:
 	// With our file layout, we guarantee that all flushable entries are
@@ -291,9 +365,11 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 	copy(inFlight, d.diskEntries[d.nextFlushableIndex:d.nextFlushableIndex+flushCount])
 	d.nextFlushableIndex += flushCount
 	markFlushed := func() {
+		d.Lock()
 		for _, entry := range inFlight {
 			entry.flushed = true
 		}
+		d.Unlock()
 	}
 
 	return markFlushed, flushCount, nil
@@ -411,6 +487,9 @@ func (d *DiskBuffer) overwriteRange(range1, range2 []*diskEntry) (int64, error) 
 // where the first range is composed successfully flushed diskEntries and the second
 // range is composed of
 func getRanges(searchStart int, entries []*diskEntry) (start1, start2, end2 int) {
+	// TODO it's likely possible to optimize this when searchStart > nextFlushableIndex
+	// because we know that every entry after nextFlushableIndex is unflushed
+
 	// search for the first flushed entry in range 1
 	for start1 = searchStart; start1 < len(entries); start1++ {
 		if entries[start1].flushed {
@@ -482,9 +561,41 @@ func (d *diskEntry) unmarshalBinary(src []byte) {
 	d.onDiskSize = int64(binary.LittleEndian.Uint64(src[1:9]))
 }
 
-func NewDiskEntry(offset, size int64) *diskEntry {
+func newDiskEntry(offset, size int64) *diskEntry {
 	return &diskEntry{
 		startOffset: offset,
 		onDiskSize:  size,
 	}
+}
+
+type fastReadRequest struct {
+	response chan fastReadResponse
+	maxCount int
+}
+
+type fastReadResponse struct {
+	diskEntries []*diskEntry
+	entries     []*entry.Entry
+}
+
+func newFastReadRequest(maxCount int) fastReadRequest {
+	return fastReadRequest{
+		response: make(chan fastReadResponse),
+		maxCount: maxCount,
+	}
+}
+
+func newFastReadResponse(diskEntries []*diskEntry, entries []*entry.Entry) fastReadResponse {
+	return fastReadResponse{
+		diskEntries: diskEntries,
+		entries:     entries,
+	}
+}
+
+func min(first, second int) int {
+	m := first
+	if second < first {
+		m = second
+	}
+	return m
 }
