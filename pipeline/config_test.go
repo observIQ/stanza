@@ -296,21 +296,12 @@ func TestBuildValidPipelineDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("drop_it").Build(context)
+	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
 	require.NoError(t, err)
-
-	nodes := pl.Graph.Nodes()
-
-	require.True(t, nodes.Next())
-	generateNodeID := nodes.Node().ID()
-
-	require.True(t, nodes.Next())
-	outputNodeID := nodes.Node().ID()
-
-	require.True(t, pl.Graph.HasEdgeFromTo(generateNodeID, outputNodeID))
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.drop_it")))
 }
 
 func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
@@ -333,25 +324,13 @@ func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("drop_it").Build(context)
+	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
 	require.NoError(t, err)
-
-	nodes := pl.Graph.Nodes()
-
-	require.True(t, nodes.Next())
-	generateNodeID := nodes.Node().ID()
-
-	require.True(t, nodes.Next())
-	noopNodeID := nodes.Node().ID()
-
-	require.True(t, nodes.Next())
-	outputNodeID := nodes.Node().ID()
-
-	require.True(t, pl.Graph.HasEdgeFromTo(generateNodeID, noopNodeID))
-	require.True(t, pl.Graph.HasEdgeFromTo(noopNodeID, outputNodeID))
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.noop")))
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.noop"), createNodeID("$.drop_it")))
 }
 
 func TestBuildValidPluginDefaultOutput(t *testing.T) {
@@ -375,21 +354,12 @@ pipeline:
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("drop_it").Build(context)
+	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
 	require.NoError(t, err)
-
-	nodes := pl.Graph.Nodes()
-
-	require.True(t, nodes.Next())
-	generateNodeID := nodes.Node().ID()
-
-	require.True(t, nodes.Next())
-	outputNodeID := nodes.Node().ID()
-
-	require.True(t, pl.Graph.HasEdgeFromTo(generateNodeID, outputNodeID))
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.plugin.plugin_generate"), createNodeID("$.drop_it")))
 }
 
 func TestBuildInvalidPipelineInvalidType(t *testing.T) {
