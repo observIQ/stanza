@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"context"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -112,4 +113,43 @@ func TestFilterOperator(t *testing.T) {
 			require.Equal(t, tc.filtered, filtered)
 		})
 	}
+}
+
+func TestFilterDropRatio(t *testing.T) {
+	cfg := NewFilterOperatorConfig("test")
+	cfg.Expression = `$.message == "test_message"`
+	cfg.DropRatio = 0.5
+	buildContext := testutil.NewBuildContext(t)
+	testOperator, err := cfg.Build(buildContext)
+	require.NoError(t, err)
+
+	processedEntries := 0
+	mockOutput := testutil.NewMockOperator("output")
+	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		processedEntries++
+	})
+
+	filterOperator, ok := testOperator.(*FilterOperator)
+	filterOperator.OutputOperators = []operator.Operator{mockOutput}
+	require.True(t, ok)
+
+	testEntry := &entry.Entry{
+		Record: map[string]interface{}{
+			"message": "test_message",
+		},
+	}
+
+	for i := 1; i < 11; i++ {
+		rand.Seed(1)
+		err = filterOperator.Process(context.Background(), testEntry)
+		require.NoError(t, err)
+	}
+
+	for i := 1; i < 11; i++ {
+		rand.Seed(2)
+		err = filterOperator.Process(context.Background(), testEntry)
+		require.NoError(t, err)
+	}
+
+	require.Equal(t, 10, processedEntries)
 }
