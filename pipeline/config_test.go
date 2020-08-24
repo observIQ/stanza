@@ -7,6 +7,7 @@ import (
 
 	"github.com/observiq/stanza/operator"
 	_ "github.com/observiq/stanza/operator/builtin"
+	"github.com/observiq/stanza/operator/builtin/output"
 	"github.com/observiq/stanza/operator/builtin/transformer"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
@@ -277,6 +278,44 @@ pipeline:
 
 	_, err = pipelineConfig.BuildPipeline(context, nil)
 	require.NoError(t, err)
+}
+
+func TestBuildValidPluginDefaultOutput(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+	pluginTemplate := `
+pipeline:
+  - id: plugin_generate
+    type: generate_input
+    count: 1
+    entry:
+      record:
+        message: test
+`
+	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	require.NoError(t, err)
+
+	pipelineConfig := Config{
+		Params{
+			"id":   "plugin",
+			"type": "plugin",
+		},
+	}
+
+	defaultOutput, err := output.NewDropOutputConfig("drop_it").Build(context)
+	require.NoError(t, err)
+
+	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	require.NoError(t, err)
+
+	nodes := pl.Graph.Nodes()
+
+	require.True(t, nodes.Next())
+	generateNodeID := nodes.Node().ID()
+
+	require.True(t, nodes.Next())
+	outputNodeID := nodes.Node().ID()
+
+	require.True(t, pl.Graph.HasEdgeFromTo(generateNodeID, outputNodeID))
 }
 
 func TestBuildInvalidPipelineInvalidType(t *testing.T) {
