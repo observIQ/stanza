@@ -280,6 +280,80 @@ pipeline:
 	require.NoError(t, err)
 }
 
+func TestBuildValidPipelineDefaultOutput(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+
+	pipelineConfig := Config{
+		Params{
+			"id":    "generate_input",
+			"type":  "generate_input",
+			"count": 1,
+			"entry": map[string]interface{}{
+				"record": map[string]interface{}{
+					"message": "test",
+				},
+			},
+		},
+	}
+
+	defaultOutput, err := output.NewDropOutputConfig("drop_it").Build(context)
+	require.NoError(t, err)
+
+	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	require.NoError(t, err)
+
+	nodes := pl.Graph.Nodes()
+
+	require.True(t, nodes.Next())
+	generateNodeID := nodes.Node().ID()
+
+	require.True(t, nodes.Next())
+	outputNodeID := nodes.Node().ID()
+
+	require.True(t, pl.Graph.HasEdgeFromTo(generateNodeID, outputNodeID))
+}
+
+func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+
+	pipelineConfig := Config{
+		Params{
+			"id":    "generate_input",
+			"type":  "generate_input",
+			"count": 1,
+			"entry": map[string]interface{}{
+				"record": map[string]interface{}{
+					"message": "test",
+				},
+			},
+		},
+		Params{
+			"id":   "noop",
+			"type": "noop",
+		},
+	}
+
+	defaultOutput, err := output.NewDropOutputConfig("drop_it").Build(context)
+	require.NoError(t, err)
+
+	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	require.NoError(t, err)
+
+	nodes := pl.Graph.Nodes()
+
+	require.True(t, nodes.Next())
+	generateNodeID := nodes.Node().ID()
+
+	require.True(t, nodes.Next())
+	noopNodeID := nodes.Node().ID()
+
+	require.True(t, nodes.Next())
+	outputNodeID := nodes.Node().ID()
+
+	require.True(t, pl.Graph.HasEdgeFromTo(generateNodeID, noopNodeID))
+	require.True(t, pl.Graph.HasEdgeFromTo(noopNodeID, outputNodeID))
+}
+
 func TestBuildValidPluginDefaultOutput(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	pluginTemplate := `
