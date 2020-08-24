@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 	"go.uber.org/zap"
 	"google.golang.org/api/support/bundler"
 )

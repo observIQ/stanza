@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
-	"github.com/observiq/carbon/testutil"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

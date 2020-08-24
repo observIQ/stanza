@@ -3,10 +3,10 @@ package transformer
 import (
 	"context"
 
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 )
 
 func init() {

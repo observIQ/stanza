@@ -1,7 +1,7 @@
 ## `k8s_event_input` operator
 
 The `k8s_event_input` operator generates logs from Kubernetes events. It does this by connecting to the
-Kubernetes API, and currently requires that Carbon is running inside a Kubernetes cluster.
+Kubernetes API, and currently requires that Stanza is running inside a Kubernetes cluster.
 
 ### Configuration Fields
 
@@ -37,21 +37,21 @@ Output events:
     "firstTimestamp": "2020-08-13T16:43:57Z",
     "involvedObject": {
       "apiVersion": "v1",
-      "fieldPath": "spec.containers{carbon}",
+      "fieldPath": "spec.containers{stanza}",
       "kind": "Pod",
-      "name": "carbon-g6rzd",
+      "name": "stanza-g6rzd",
       "namespace": "default",
       "resourceVersion": "18292818",
       "uid": "47d965e6-4bb3-4c58-a089-1a8b16bf21b0"
     },
     "lastTimestamp": "2020-08-13T16:43:57Z",
-    "message": "Pulling image \"observiq/carbon:dev\"",
+    "message": "Pulling image \"observiq/stanza:dev\"",
     "metadata": {
       "creationTimestamp": "2020-08-13T16:43:57Z",
-      "name": "carbon-g6rzd.162ae19292cebe25",
+      "name": "stanza-g6rzd.162ae19292cebe25",
       "namespace": "default",
       "resourceVersion": "29923",
-      "selfLink": "/api/v1/namespaces/default/events/carbon-g6rzd.162ae19292cebe25",
+      "selfLink": "/api/v1/namespaces/default/events/stanza-g6rzd.162ae19292cebe25",
       "uid": "d210b74b-5c58-473f-ac51-3e21f6f8e2d1"
     },
     "reason": "Pulling",

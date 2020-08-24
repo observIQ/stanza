@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/operator"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zaptest"
 )

@@ -6,8 +6,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 )
 

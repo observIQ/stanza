@@ -2,14 +2,14 @@
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: carbon-metadata
+  name: stanza-metadata
   namespace: default
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 # kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: carbon-metadata
+  name: stanza-metadata
   namespace: default
 rules:
   - apiGroups: [""]
@@ -21,19 +21,19 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: carbon-metadata
+  name: stanza-metadata
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: carbon-metadata
+  name: stanza-metadata
 subjects:
   - kind: ServiceAccount
-    name: carbon-metadata
+    name: stanza-metadata
     namespace: default
 ---
 kind: ConfigMap
 metadata:
-  name: carbon-config
+  name: stanza-config
   namespace: default
 apiVersion: v1
 data:
@@ -48,21 +48,21 @@ data:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: carbon
+  name: stanza
   namespace: default
 spec:
   selector:
     matchLabels:
-      name: carbon
+      name: stanza
   template:
     metadata:
       labels:
-        name: carbon
+        name: stanza
     spec:
-      serviceAccountName: carbon-metadata
+      serviceAccountName: stanza-metadata
       containers:
-        - name: carbon
-          image: observiq/carbon:dev
+        - name: stanza
+          image: observiq/stanza:dev
           imagePullPolicy: Always
           resources:
             limits:
@@ -72,7 +72,7 @@ spec:
               memory: "250Mi"
               cpu: 100m
           volumeMounts:
-            - mountPath: /carbon_home/config.yaml
+            - mountPath: /stanza_home/config.yaml
               name: config
               subPath: config.yaml
             - mountPath: /var/log
@@ -90,4 +90,4 @@ spec:
             path: /var/lib/docker/containers
         - name: config
           configMap:
-            name: carbon-config
+            name: stanza-config

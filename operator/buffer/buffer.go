@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
 )
 
 // Buffer is an entity that buffers log entries to an operator

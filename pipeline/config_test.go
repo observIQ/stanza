@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/carbon/operator"
-	_ "github.com/observiq/carbon/operator/builtin"
-	"github.com/observiq/carbon/operator/builtin/transformer"
-	"github.com/observiq/carbon/testutil"
+	"github.com/observiq/stanza/operator"
+	_ "github.com/observiq/stanza/operator/builtin"
+	"github.com/observiq/stanza/operator/builtin/transformer"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )

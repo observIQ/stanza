@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
-	_ "github.com/observiq/carbon/operator/builtin" // register operators
-	"github.com/observiq/carbon/pipeline"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
+	_ "github.com/observiq/stanza/operator/builtin" // register operators
+	"github.com/observiq/stanza/pipeline"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
@@ -68,7 +68,7 @@ func OpenDatabase(file string) (operator.Database, error) {
 	return bbolt.Open(file, 0666, options)
 }
 
-// NewLogAgent creates a new carbon log agent.
+// NewLogAgent creates a new stanza log agent.
 func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string, buildParams map[string]interface{}) (*LogAgent, error) {
 	database, err := OpenDatabase(databaseFile)
 	if err != nil {

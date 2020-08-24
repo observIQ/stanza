@@ -1,14 +1,14 @@
 FROM ubuntu:bionic
 
-RUN mkdir -p /carbon_home
-ENV CARBON_HOME=/carbon_home
-RUN echo "pipeline:\n" >> /carbon_home/config.yaml
+RUN mkdir -p /stanza_home
+ENV STANZA_HOME=/stanza_home
+RUN echo "pipeline:\n" >> /stanza_home/config.yaml
 RUN apt-get update && apt-get install -y systemd ca-certificates
 
-COPY ./artifacts/carbon_linux_amd64 /carbon_home/carbon
-COPY ./artifacts/carbon-plugins.tar.gz /tmp/carbon-plugins.tar.gz
-RUN tar -zxvf /tmp/carbon-plugins.tar.gz -C /carbon_home/
-ENTRYPOINT /carbon_home/carbon \
-  --config /carbon_home/config.yaml \
-  --database /carbon_home/carbon.db \
-  --plugin_dir /carbon_home/plugins
+COPY ./artifacts/stanza_linux_amd64 /stanza_home/stanza
+COPY ./artifacts/stanza-plugins.tar.gz /tmp/stanza-plugins.tar.gz
+RUN tar -zxvf /tmp/stanza-plugins.tar.gz -C /stanza_home/
+ENTRYPOINT /stanza_home/stanza \
+  --config /stanza_home/config.yaml \
+  --database /stanza_home/stanza.db \
+  --plugin_dir /stanza_home/plugins

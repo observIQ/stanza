@@ -1,9 +1,9 @@
 package version
 
-// Version is the current version of the carbon library
+// Version is the current version of the stanza library
 var Version string
 
-// GitHash is the current git hash of the carbon library
+// GitHash is the current git hash of the stanza library
 var GitHash string
 
 func GetVersion() string {

@@ -1,16 +1,16 @@
 # Connecting through a proxy
 
-Carbon supports sending logs through a HTTP proxy. To enable this, set the environment variables HTTP_PROXY and HTTPS_PROXY to the address of your proxy server.
+Stanza supports sending logs through a HTTP proxy. To enable this, set the environment variables HTTP_PROXY and HTTPS_PROXY to the address of your proxy server.
 
 For example:
 
 ```bash
 export HTTP_PROXY=http://user:password@myproxy:3128
 export HTTPS_PROXY=http://user:password@myproxy:3128
-carbon -c ./config.yaml
+stanza -c ./config.yaml
 ```
 
-To set this for the Carbon service on Linux, the service file can be modified with `systemctl edit --full carbon`, and add the following lines in the `[Service]` section.
+To set this for the Stanza service on Linux, the service file can be modified with `systemctl edit --full stanza`, and add the following lines in the `[Service]` section.
 
 ```service
 Environment=HTTP_PROXY=http://user:password@myproxy:3128

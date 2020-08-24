@@ -3,7 +3,7 @@ package helper
 import (
 	"sync"
 
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/operator"
 	"go.etcd.io/bbolt"
 )
 

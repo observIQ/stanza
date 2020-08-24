@@ -11,12 +11,12 @@ import (
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/internal/version"
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/buffer"
-	"github.com/observiq/carbon/operator/helper"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/internal/version"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -142,7 +142,7 @@ func (p *GoogleCloudOutput) Start() error {
 
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
-	options = append(options, option.WithUserAgent("CarbonLogAgent/"+version.GetVersion()))
+	options = append(options, option.WithUserAgent("StanzaLogAgent/"+version.GetVersion()))
 	if p.useCompression {
 		options = append(options, option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name))))
 	}

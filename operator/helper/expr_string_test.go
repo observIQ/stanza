@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 	"github.com/stretchr/testify/require"
 )
 

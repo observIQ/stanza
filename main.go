@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/observiq/carbon/commands"
+	"github.com/observiq/stanza/commands"
 )
 
 func main() {

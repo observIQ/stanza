@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/observiq/carbon/internal/version"
+	"github.com/observiq/stanza/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -10,7 +10,7 @@ func NewVersionCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Args:  cobra.NoArgs,
-		Short: "Print the carbon version",
+		Short: "Print the stanza version",
 		Run: func(_ *cobra.Command, _ []string) {
 			println(version.GetVersion())
 		},

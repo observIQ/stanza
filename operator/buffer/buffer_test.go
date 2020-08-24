@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"

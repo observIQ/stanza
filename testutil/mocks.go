@@ -4,8 +4,8 @@ import (
 	context "context"
 	"testing"
 
-	entry "github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/operator"
+	entry "github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	zap "go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )

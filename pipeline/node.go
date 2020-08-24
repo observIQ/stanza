@@ -3,7 +3,7 @@ package pipeline
 import (
 	"hash/fnv"
 
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/operator"
 )
 
 // OperatorNode is a basic node that represents an operator in a pipeline.

@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	agent "github.com/observiq/carbon/agent"
-	"github.com/observiq/carbon/operator/helper"
+	agent "github.com/observiq/stanza/agent"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
 )
@@ -20,7 +20,7 @@ func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 		Short: "Manage input operator offsets",
 		Args:  cobra.NoArgs,
 		Run: func(command *cobra.Command, args []string) {
-			stdout.Write([]byte("No offsets subcommand specified. See `carbon offsets help` for details\n"))
+			stdout.Write([]byte("No offsets subcommand specified. See `stanza offsets help` for details\n"))
 		},
 	}
 

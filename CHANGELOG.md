@@ -4,20 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.11] - 2020-08-24
 ### Added
 - The 'filter' operator
 
 ### Changed
+- Renamed project to `stanza`
 - Move `testutil` package out of `internal`
 
 ## [0.9.10] - 2020-08-20
 ### Added
-- The `Resource` field was added to Entry ([PR95](https://github.com/observIQ/carbon/pull/95))
-- The `Identifier` helper was created to assist with writing to `Resource` ([PR95](https://github.com/observIQ/carbon/pull/95))
+- The `Resource` field was added to Entry ([PR95](https://github.com/observIQ/stanza/pull/95))
+- The `Identifier` helper was created to assist with writing to `Resource` ([PR95](https://github.com/observIQ/stanza/pull/95))
 
 ### Removed
-- The `Tags` field was removed from Entry ([PR95](https://github.com/observIQ/carbon/pull/95))
+- The `Tags` field was removed from Entry ([PR95](https://github.com/observIQ/stanza/pull/95))
 
 ### Changed
 - The `host_metadata` operator now writes to an entry's `Resource` field, instead of Labels
@@ -25,22 +26,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `metadata` operator embeds the `Identifier` helper and supports writing to `Resource`
 - Input operators embed the `Identifier` helper and support writing to `Resource`
 - The `k8s_event` operator now supports the `write_to`, `labels`, and `resource` configuration options
-- Multiline for `file_input` now supports matching on new lines characters ([PR96](https://github.com/observIQ/carbon/pull/96))
+- Multiline for `file_input` now supports matching on new lines characters ([PR96](https://github.com/observIQ/stanza/pull/96))
 
 ## [0.9.9] - 2020-08-14
 ### Added
-- Kubernetes events input operator ([PR88](https://github.com/observIQ/carbon/pull/88))
+- Kubernetes events input operator ([PR88](https://github.com/observIQ/stanza/pull/88))
 ### Fixed
 - Small improvements to test stability
-- Fallback to reflection to convert entries to Google Cloud log entries ([PR93](https://github.com/observIQ/carbon/pull/93))
+- Fallback to reflection to convert entries to Google Cloud log entries ([PR93](https://github.com/observIQ/stanza/pull/93))
 
 ## [0.9.8] - 2020-08-12
 ### Fixed
-- Google Cloud Output failure when sent a field of type uint16 ([PR82](https://github.com/observIQ/carbon/pull/82))
+- Google Cloud Output failure when sent a field of type uint16 ([PR82](https://github.com/observIQ/stanza/pull/82))
 ### Added
-- Added a default function to plugin templates ([PR84](https://github.com/observIQ/carbon/pull/84))
-- Add a host metadata operator that adds hostname and IP to entries ([PR85](https://github.com/observIQ/carbon/pull/85))
-- Google Cloud Output option to enable gzip compression ([PR86](https://github.com/observIQ/carbon/pull/86))
+- Added a default function to plugin templates ([PR84](https://github.com/observIQ/stanza/pull/84))
+- Add a host metadata operator that adds hostname and IP to entries ([PR85](https://github.com/observIQ/stanza/pull/85))
+- Google Cloud Output option to enable gzip compression ([PR86](https://github.com/observIQ/stanza/pull/86))
 
 ## [0.9.7] - 2020-08-05
 ### Changed
@@ -60,16 +61,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.5] - 2020-07-28
 ### Added
-- Configurable `timeout` parameter for the `k8s_metadata_decorator` ([PR54](https://github.com/observIQ/carbon/pull/54))
-- Journald operator now supports `start_at` parameter ([PR55](https://github.com/observIQ/carbon/pull/55))
+- Configurable `timeout` parameter for the `k8s_metadata_decorator` ([PR54](https://github.com/observIQ/stanza/pull/54))
+- Journald operator now supports `start_at` parameter ([PR55](https://github.com/observIQ/stanza/pull/55))
 
 ### Changed
-- Enhanced plugin parameter metadata structure, to support required/optional and default values ([PR59](https://github.com/observIQ/carbon/pull/59))
+- Enhanced plugin parameter metadata structure, to support required/optional and default values ([PR59](https://github.com/observIQ/stanza/pull/59))
 
 ### Fixed
-- Issue where multiple instances of `syslog_parser` would cause parsing errors ([PR61](https://github.com/observIQ/carbon/pull/61))
-- `short destination buffer` error now is handled by increasing encoding buffer size ([PR58](https://github.com/observIQ/carbon/pull/58))
-- Issue where omitting the output field in a plugin could result in errors ([PR56](https://github.com/observIQ/carbon/pull/56))
+- Issue where multiple instances of `syslog_parser` would cause parsing errors ([PR61](https://github.com/observIQ/stanza/pull/61))
+- `short destination buffer` error now is handled by increasing encoding buffer size ([PR58](https://github.com/observIQ/stanza/pull/58))
+- Issue where omitting the output field in a plugin could result in errors ([PR56](https://github.com/observIQ/stanza/pull/56))
 
 ## [0.9.4] - 2020-07-21
 - Allow omitting `id`, defaulting to plugin type if unique within namespace
@@ -77,17 +78,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.3] - 2020-07-20
 ### Added
-- Support for multiple encodings in the file input plugin ([PR39](https://github.com/observIQ/carbon/pull/39))
-- Install scripts and docker image now include plugins from `carbon-plugins` repository ([PR45](https://github.com/observIQ/carbon/pull/45))
-- Publish image to dockerhub ([PR42](https://github.com/observIQ/carbon/pull/42))
-- Improved default configuration ([PR41](https://github.com/observIQ/carbon/pull/41))
-- Basic developer documentation ([PR43](https://github.com/observIQ/carbon/pull/43))
+- Support for multiple encodings in the file input plugin ([PR39](https://github.com/observIQ/stanza/pull/39))
+- Install scripts and docker image now include plugins from `stanza-plugins` repository ([PR45](https://github.com/observIQ/stanza/pull/45))
+- Publish image to dockerhub ([PR42](https://github.com/observIQ/stanza/pull/42))
+- Improved default configuration ([PR41](https://github.com/observIQ/stanza/pull/41))
+- Basic developer documentation ([PR43](https://github.com/observIQ/stanza/pull/43))
 ### Fixed
-- JournalD emits `map[string]interface{}` ([PR38](https://github.com/observIQ/carbon/pull/38))
+- JournalD emits `map[string]interface{}` ([PR38](https://github.com/observIQ/stanza/pull/38))
 
 ## [0.9.2] - 2020-07-13
 ### Added
-- Link `carbon` into `/usr/local/bin` so it's available on most users' `PATH` ([PR28](https://github.com/observIQ/carbon/pull/28))
+- Link `stanza` into `/usr/local/bin` so it's available on most users' `PATH` ([PR28](https://github.com/observIQ/stanza/pull/28))
 - New parameter `file_name_path` to the file input plugin for cases when just the file name is needed
 ### Changed
 - Renamed `path_field` to `file_path_field` in the file input plugin
@@ -96,9 +97,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.1] - 2020-07-13
 ### Added
-- More specific warning and error messages for common configuration issues ([PR12](https://github.com/observIQ/carbon/pull/12),[PR13](https://github.com/observIQ/carbon/pull/13),[PR14](https://github.com/observIQ/carbon/pull/14))
+- More specific warning and error messages for common configuration issues ([PR12](https://github.com/observIQ/stanza/pull/12),[PR13](https://github.com/observIQ/stanza/pull/13),[PR14](https://github.com/observIQ/stanza/pull/14))
 ### Fixed
-- Writing from files being actively written to will sometimes read partial entries ([PR21](https://github.com/observIQ/carbon/pull/21))
+- Writing from files being actively written to will sometimes read partial entries ([PR21](https://github.com/observIQ/stanza/pull/21))
 - Minor documentation omissions
 
 ## [0.9.0] - 2020-07-07

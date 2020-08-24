@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
 	"gonum.org/v1/gonum/graph/encoding/dot"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"

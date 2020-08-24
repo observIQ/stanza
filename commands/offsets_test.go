@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	agent "github.com/observiq/carbon/agent"
-	"github.com/observiq/carbon/operator/helper"
+	agent "github.com/observiq/stanza/agent"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/bbolt"
 )

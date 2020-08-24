@@ -8,8 +8,8 @@ import (
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/errors"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/errors"
 )
 
 type ExprStringConfig string

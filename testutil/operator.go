@@ -5,10 +5,10 @@ package testutil
 import (
 	context "context"
 
-	entry "github.com/observiq/carbon/entry"
+	entry "github.com/observiq/stanza/entry"
 	mock "github.com/stretchr/testify/mock"
 
-	operator "github.com/observiq/carbon/operator"
+	operator "github.com/observiq/stanza/operator"
 
 	zap "go.uber.org/zap"
 )
