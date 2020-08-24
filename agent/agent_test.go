@@ -16,7 +16,10 @@ func TestNewLogAgent(t *testing.T) {
 	mockLogger := zap.NewNop().Sugar()
 	mockPluginDir := "/some/path/plugins"
 	mockDatabaseFile := ""
-	agent, err := NewLogAgent(&mockCfg, mockLogger, mockPluginDir, mockDatabaseFile, nil)
+	agent, err := NewBuilder(&mockCfg, mockLogger).
+		WithPluginDir(mockPluginDir).
+		WithDatabaseFile(mockDatabaseFile).
+		Build()
 	require.NoError(t, err)
 
 	require.Equal(t, mockLogger, agent.SugaredLogger)

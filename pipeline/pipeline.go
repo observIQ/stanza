@@ -149,18 +149,9 @@ func setOperatorOutputs(operators []operator.Operator) error {
 }
 
 // NewPipeline creates a new pipeline of connected operators.
-func NewPipeline(operators []operator.Operator, defaultOutput *operator.Operator) (*Pipeline, error) {
+func NewPipeline(operators []operator.Operator) (*Pipeline, error) {
 	if err := setOperatorOutputs(operators); err != nil {
 		return nil, err
-	}
-
-	if defaultOutput != nil {
-		for _, op := range operators {
-			if op.CanOutput() && len(op.Outputs()) == 0 {
-				op.AddOutput(*defaultOutput)
-			}
-		}
-		operators = append(operators, *defaultOutput)
 	}
 
 	graph := simple.NewDirectedGraph()

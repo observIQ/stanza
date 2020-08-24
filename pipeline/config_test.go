@@ -275,7 +275,7 @@ pipeline:
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context)
+	_, err = pipelineConfig.BuildPipeline(context, nil)
 	require.NoError(t, err)
 }
 
@@ -294,7 +294,7 @@ func TestBuildInvalidPipelineInvalidType(t *testing.T) {
 		},
 	}
 
-	_, err := pipelineConfig.BuildPipeline(context)
+	_, err := pipelineConfig.BuildPipeline(context, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unsupported `type` for operator config")
 }
@@ -325,7 +325,7 @@ pipeline:
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context)
+	_, err = pipelineConfig.BuildPipeline(context, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "build operator configs")
 }
@@ -344,7 +344,7 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	}
 
 	context := testutil.NewBuildContext(t)
-	_, err := pipelineConfig.BuildPipeline(context)
+	_, err := pipelineConfig.BuildPipeline(context, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing required parameter 'listen_address'")
 }
@@ -369,7 +369,7 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 	}
 
 	context := testutil.NewBuildContext(t)
-	_, err := pipelineConfig.BuildPipeline(context)
+	_, err := pipelineConfig.BuildPipeline(context, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not exist")
 }
