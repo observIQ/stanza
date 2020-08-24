@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/observiq/carbon/errors"
+	"github.com/observiq/stanza/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 

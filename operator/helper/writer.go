@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 )
 
 func NewWriterConfig(operatorID, operatorType string) WriterConfig {

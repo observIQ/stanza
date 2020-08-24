@@ -3,8 +3,8 @@ package pipeline
 import (
 	"testing"
 
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/testutil"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gonum.org/v1/gonum/graph"

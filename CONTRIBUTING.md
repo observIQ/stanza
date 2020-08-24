@@ -1,34 +1,34 @@
-# Contributing to Carbon
+# Contributing to Stanza
 
 ## Development
 
 You can view and edit the source code by cloning this repository:
 
 ```bash
-git clone https://github.com/observiq/carbon.git
+git clone https://github.com/observiq/stanza.git
 ```
 ## Pull Requests
 
 ### How to Send Pull Requests
 
-Everyone is welcome to contribute code to `carbon` via
+Everyone is welcome to contribute code to `stanza` via
 GitHub pull requests (PRs).
 
 To create a new PR, fork the project in GitHub and clone the upstream
 repo:
 
 ```sh
-$ go get -d github.com/observiq/carbon
+$ go get -d github.com/observiq/stanza
 ```
 
-This will put the project in `${GOPATH}/src/github.com/observiq/carbon`. You
+This will put the project in `${GOPATH}/src/github.com/observiq/stanza`. You
 can alternatively use `git` directly with:
 
 ```sh
-$ git clone https://github.com/observiq/carbon
+$ git clone https://github.com/observiq/stanza
 ```
 
-This would put the project in the `carbon` directory in
+This would put the project in the `stanza` directory in
 current working directory.
 
 Enter the newly created directory and add your fork as a new remote:
@@ -49,7 +49,7 @@ $ git commit
 $ git push <YOUR_FORK> <YOUR_BRANCH_NAME>
 ```
 
-Open a pull request against the main `carbon` repo.
+Open a pull request against the main `stanza` repo.
 
 ### How to Receive Comments
 

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 )
 
 // EventXML is the rendered xml of an event.

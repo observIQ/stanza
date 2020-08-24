@@ -41,13 +41,13 @@ jobs:
           at: ./artifacts
       - run:
           name: Download Plugins Tarball
-          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.tar.gz -o ./artifacts/carbon-plugins.tar.gz
+          command: curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./artifacts/stanza-plugins.tar.gz
       - run:
           name: Download Plugins Zip
-          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/carbon-plugins.zip -o ./artifacts/carbon-plugins.zip
+          command: curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.zip -o ./artifacts/stanza-plugins.zip
       - run:
           name: Download Version File
-          command: curl -fL https://github.com/observiq/carbon-plugins/releases/latest/download/version.json -o ./artifacts/version.json
+          command: curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/version.json -o ./artifacts/version.json
       - persist_to_workspace:
           root: ./artifacts
           paths:
@@ -82,11 +82,11 @@ jobs:
           name: "Publish Release on Docker Hub"
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
-            docker build -t observiq/carbon:${docker_tag} .
+            docker build -t observiq/stanza:${docker_tag} .
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
-            docker push observiq/carbon:${docker_tag}
-            docker tag observiq/carbon:${docker_tag} observiq/carbon:latest
-            docker push observiq/carbon:latest
+            docker push observiq/stanza:${docker_tag}
+            docker tag observiq/stanza:${docker_tag} observiq/stanza:latest
+            docker push observiq/stanza:latest
 
   test-linux:
     executor: golang
@@ -177,8 +177,8 @@ jobs:
           name: Setup Workspace
           command: mkdir {bin,out,tmp}
       - run:
-          name: Build Carbon Agent
-          command: GOPROXY=direct go build -v -o ./bin/carbon ./
+          name: Build Stanza Agent
+          command: GOPROXY=direct go build -v -o ./bin/stanza ./
       - run:
           name: Build Log Bench
           command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
@@ -214,7 +214,7 @@ jobs:
       - run:
           name: Setup VM Workspace
           command: gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'mkdir -p ~/benchmark/out' &&
-            gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/carbon << parameters.instance >>:~/benchmark/ &&
+            gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/stanza << parameters.instance >>:~/benchmark/ &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/logbench << parameters.instance >>:~/benchmark/ &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./.circleci/testdata/benchmark.yaml << parameters.instance >>:~/benchmark/config.yaml &&
             gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'chmod -R 777 ~/benchmark'
@@ -228,7 +228,7 @@ jobs:
                   gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
                     '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
                       -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
-                      ~/benchmark/carbon --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
+                      ~/benchmark/stanza --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml --cpu_profile ~/benchmark/out/cpu.pprof --cpu_profile_duration 30s \
                       --mem_profile ~/benchmark/out/mem.pprof --mem_profile_delay 10s > ~/benchmark/out/notes 2>&1'
       - unless:
           condition: << parameters.profile >>
@@ -239,7 +239,7 @@ jobs:
                   gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- \
                     '~/benchmark/logbench -log $(echo stream{1..<< parameters.files >>}.log | tr " " ,) \
                       -rate << parameters.rate >> -t << parameters.duration >> -r 30s -f 2s -out ~/benchmark/out/results.json \
-                      ~/benchmark/carbon --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
+                      ~/benchmark/stanza --database ~/benchmark/logagent.db --config ~/benchmark/config.yaml > ~/benchmark/out/notes 2>&1'
 
       - run:
           name: Retrieve Results

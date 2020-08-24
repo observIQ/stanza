@@ -5,8 +5,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/errors"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/errors"
 )
 
 // NewHostIdentifierConfig returns a HostIdentifierConfig with default values

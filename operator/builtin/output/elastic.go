@@ -9,11 +9,11 @@ import (
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/buffer"
-	"github.com/observiq/carbon/operator/helper"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 )
 

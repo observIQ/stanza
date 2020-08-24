@@ -1,6 +1,6 @@
 ## Severity Parsing
 
-`carbon` uses a flexible severity parsing system based on the integers 0 to 100. Standard severities are provided at multiples of 10.
+`stanza` uses a flexible severity parsing system based on the integers 0 to 100. Standard severities are provided at multiples of 10.
 
 This severity system allows each output operator to interpret the values 0 to 100 as appropriate for the corresponding backend.
 

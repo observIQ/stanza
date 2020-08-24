@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 )
 
 // NewLabelerConfig creates a new labeler config with default values

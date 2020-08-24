@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	yaml "gopkg.in/yaml.v2"
 )
 

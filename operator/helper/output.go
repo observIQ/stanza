@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"github.com/observiq/carbon/errors"
-	"github.com/observiq/carbon/operator"
+	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator"
 )
 
 func NewOutputConfig(operatorID, operatorType string) OutputConfig {

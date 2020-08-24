@@ -1,4 +1,4 @@
-artifacts/carbon_darwin_amd64
-artifacts/carbon_windows_amd64
+artifacts/stanza_darwin_amd64
+artifacts/stanza_windows_amd64
 .git/
 dev/

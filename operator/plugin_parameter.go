@@ -3,7 +3,7 @@ package operator
 import (
 	"fmt"
 
-	"github.com/observiq/carbon/errors"
+	"github.com/observiq/stanza/errors"
 )
 
 // PluginParameter is a basic description of a plugin's parameter.

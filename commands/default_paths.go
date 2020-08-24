@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var agentName = "carbon"
+var agentName = "stanza"
 
 func defaultPluginDir() string {
 	if stat, err := os.Stat("./plugins"); err == nil {

@@ -1,7 +1,7 @@
 package output
 
 import (
-	"github.com/observiq/carbon/operator/helper"
+	"github.com/observiq/stanza/operator/helper"
 )
 
 func newFakeNullOutput() *DropOutput {

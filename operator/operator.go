@@ -5,7 +5,7 @@ package operator
 import (
 	"context"
 
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 	"go.uber.org/zap"
 )
 
