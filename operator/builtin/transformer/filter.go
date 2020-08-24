@@ -3,6 +3,7 @@ package transformer
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
@@ -20,13 +21,15 @@ func init() {
 func NewFilterOperatorConfig(operatorID string) *FilterOperatorConfig {
 	return &FilterOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "filter"),
+		DropRatio:         1,
 	}
 }
 
 // FilterOperatorConfig is the configuration of a filter operator
 type FilterOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
-	Expression               string `json:"expr"   yaml:"expr"`
+	Expression               string  `json:"expr"   yaml:"expr"`
+	DropRatio                float64 `json:"drop_ratio"   yaml:"drop_ratio"`
 }
 
 // Build will build a filter operator from the supplied configuration
@@ -41,9 +44,14 @@ func (c FilterOperatorConfig) Build(context operator.BuildContext) (operator.Ope
 		return nil, fmt.Errorf("failed to compile expression '%s': %w", c.Expression, err)
 	}
 
+	if c.DropRatio < 0.0 || c.DropRatio > 1.0 {
+		return nil, fmt.Errorf("drop_ratio must be a number between 0 and 1")
+	}
+
 	filterOperator := &FilterOperator{
 		TransformerOperator: transformer,
 		expression:          compiledExpression,
+		dropRatio:           c.DropRatio,
 	}
 
 	return filterOperator, nil
@@ -53,6 +61,7 @@ func (c FilterOperatorConfig) Build(context operator.BuildContext) (operator.Ope
 type FilterOperator struct {
 	helper.TransformerOperator
 	expression *vm.Program
+	dropRatio  float64
 }
 
 // Process will drop incoming entries that match the filter expression
@@ -72,7 +81,7 @@ func (f *FilterOperator) Process(ctx context.Context, entry *entry.Entry) error 
 		return nil
 	}
 
-	if !filtered {
+	if !filtered || rand.Float64() > f.dropRatio {
 		f.Write(ctx, entry)
 	}
 

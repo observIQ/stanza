@@ -7,7 +7,6 @@ import (
 
 	"github.com/observiq/carbon/entry"
 	"github.com/observiq/carbon/operator"
-	"github.com/observiq/carbon/operator/helper"
 	"github.com/observiq/carbon/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -16,12 +15,6 @@ import (
 func TestFilterOperator(t *testing.T) {
 	os.Setenv("TEST_FILTER_PLUGIN_ENV", "foo")
 	defer os.Unsetenv("TEST_FILTER_PLUGIN_ENV")
-
-	basicConfig := func() *FilterOperatorConfig {
-		return &FilterOperatorConfig{
-			TransformerConfig: helper.NewTransformerConfig("test_operator_id", "filter"),
-		}
-	}
 
 	cases := []struct {
 		name       string
@@ -96,7 +89,7 @@ func TestFilterOperator(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg := basicConfig()
+			cfg := NewFilterOperatorConfig("test")
 			cfg.Expression = tc.expression
 
 			buildContext := testutil.NewBuildContext(t)
