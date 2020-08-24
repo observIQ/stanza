@@ -73,7 +73,7 @@ type LogAgentBuilder struct {
 	logger        *zap.SugaredLogger
 	pluginDir     string
 	databaseFile  string
-	defaultOutput *operator.Operator
+	defaultOutput operator.Operator
 }
 
 func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
@@ -93,7 +93,7 @@ func (b *LogAgentBuilder) WithDatabaseFile(databaseFile string) *LogAgentBuilder
 	return b
 }
 
-func (b *LogAgentBuilder) WithDefaultOutput(defaultOutput *operator.Operator) *LogAgentBuilder {
+func (b *LogAgentBuilder) WithDefaultOutput(defaultOutput operator.Operator) *LogAgentBuilder {
 	b.defaultOutput = defaultOutput
 	return b
 }
