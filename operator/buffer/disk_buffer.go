@@ -1,11 +1,11 @@
 package buffer
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -16,20 +16,8 @@ import (
 )
 
 type DiskBuffer struct {
-	// TODO all entry metadata must currently be held in memory.
-	// This takes ~25 bytes of memory per entry, which, at
-	// 10000 entries per second, is 20.1GB per day
-	//
-	// Since, if we're backing up to disk this much, we're likely
-	// not flushing much, only the currently flushing entries need to be
-	// held in memory. It's possible we could store metadata past
-	// nextFlushableIndex only on disk
-
-	diskEntries        []*diskEntry
-	nextFlushableIndex int
-
+	metadata Metadata
 	data     *os.File
-	metadata *os.File
 	sync.Mutex
 
 	fastReadChannel chan fastReadRequest
@@ -52,12 +40,7 @@ func (d *DiskBuffer) Open(path string) error {
 		return err
 	}
 
-	d.metadata, err = os.OpenFile(filepath.Join(path, "metadata"), os.O_CREATE|os.O_RDWR, 0755)
-	if err != nil {
-		return err
-	}
-
-	err = d.loadMetadata()
+	d.metadata, err = OpenMetadata(filepath.Join(path, "metadata"))
 	if err != nil {
 		return err
 	}
@@ -66,69 +49,6 @@ func (d *DiskBuffer) Open(path string) error {
 	err = d.Compact()
 	if err != nil {
 		return err
-	}
-
-	// On startup, nextFlushableIndex is not set correctly by Compact,
-	// so we compact, then recalculate it
-	// TODO try to make this intrinsic
-	d.nextFlushableIndex = 0
-	for i := len(d.diskEntries) - 1; i >= 0; i-- {
-		if d.diskEntries[i].flushed {
-			d.nextFlushableIndex = i + 1
-		}
-	}
-	return nil
-}
-
-// BatchAdd adds a slice of entry.Entry to the buffer
-func (d *DiskBuffer) BatchAdd(ctx context.Context, entries []*entry.Entry) error {
-	// TODO use channels instead of locks to play nice with context
-	d.Lock()
-	defer d.Unlock()
-
-	// Seek to end of the file
-	fileEndOffset, err := d.data.Seek(0, 2)
-	if err != nil {
-		return err
-	}
-
-	wr := bufio.NewWriter(d.data)
-
-	// TODO consider if gzipping individual log entries is valuable,
-	// or if we can gzip chunks of entries for longer term storage
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	newDiskEntries := make([]*diskEntry, 0, len(entries))
-	currentOffset := fileEndOffset
-	for _, entry := range entries {
-		err = enc.Encode(entry)
-		if err != nil {
-			return err
-		}
-
-		n, err := buf.WriteTo(wr)
-		if err != nil {
-			return err
-		}
-
-		newDiskEntries = append(newDiskEntries, newDiskEntry(currentOffset, n))
-		currentOffset += n
-	}
-
-	if err = d.addDiskEntries(newDiskEntries); err != nil {
-		return err
-	}
-
-	if err = wr.Flush(); err != nil {
-		return err
-	}
-
-	select {
-	case message := <-d.fastReadChannel:
-		sendCount := min(message.maxCount, len(newDiskEntries))
-		message.response <- newFastReadResponse(newDiskEntries[:sendCount], entries[:sendCount])
-		d.nextFlushableIndex += sendCount // TODO this doesn't feel like it belongs here
-	default:
 	}
 
 	return nil
@@ -146,28 +66,24 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 		return err
 	}
 
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	counter := NewCountingWriter(d.data)
+	enc := json.NewEncoder(counter)
 	err = enc.Encode(newEntry)
 	if err != nil {
 		return err
 	}
 
-	n, err := d.data.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	newDiskEntries := []*diskEntry{newDiskEntry(fileEndOffset, int64(n))}
-	if err = d.addDiskEntries(newDiskEntries); err != nil {
-		return err
-	}
-
 	select {
 	case message := <-d.fastReadChannel:
+		newDiskEntries := []*diskEntry{newDiskEntry(fileEndOffset, int64(counter.BytesWritten()))}
+		err := d.metadata.addReadEntries(newDiskEntries)
+		if err != nil {
+			return err
+		}
 		message.response <- newFastReadResponse(newDiskEntries, []*entry.Entry{newEntry})
-		d.nextFlushableIndex += 1 // TODO this doesn't feel like it belongs here
+		d.metadata.unreadStartOffset += int64(counter.BytesWritten())
 	default:
+		d.metadata.unreadCount += 1
 	}
 
 	return nil
@@ -175,124 +91,24 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 
 // addDiskEntries adds the diskEntry metadata both to the in-memory store as well as the
 // on disk metadata store
-func (d *DiskBuffer) addDiskEntries(entries []*diskEntry) error {
-	d.diskEntries = append(d.diskEntries, entries...)
-
-	var buf bytes.Buffer
-	binDiskEntry := [9]byte{}
-	for _, diskEntry := range entries {
-		diskEntry.marshalBinary(binDiskEntry[:])
-		_, err := buf.Write(binDiskEntry[:])
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err := d.metadata.Seek(0, 2)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.metadata.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	count := [8]byte{}
-	binary.LittleEndian.PutUint64(count[:], uint64(len(d.diskEntries)))
-	_, err = d.metadata.WriteAt(count[:], 0)
-
-	return err
-}
-
-// syncMetadata writes the in-memory metadata to disk. It should only be called
-// when the buffer's lock is held
-func (d *DiskBuffer) syncMetadata() error {
-	// TODO this likely needs to store both offset and length because
-	// offset alone will not account for partial compressions with partially
-	// overwritten chunks of entries
-	var buf bytes.Buffer
-
-	count := [8]byte{}
-	binary.LittleEndian.PutUint64(count[:], uint64(len(d.diskEntries)))
-	buf.Write(count[:])
-
-	binDiskEntry := [9]byte{}
-	for _, diskEntry := range d.diskEntries {
-		diskEntry.marshalBinary(binDiskEntry[:])
-		_, err := buf.Write(binDiskEntry[:])
-		if err != nil {
-			return err
-		}
-	}
-
-	// Write full buffer
-	_, err := d.metadata.WriteAt(buf.Bytes(), 0)
-	if err != nil {
-		return err
-	}
-
-	// Truncate file
-	return d.metadata.Truncate(int64(9*len(d.diskEntries)) + 8)
-}
-
-// loadMetadata loads the buffer's metadata from disk
-func (d *DiskBuffer) loadMetadata() error {
-	// Seek to beginning of file
-	_, err := d.metadata.Seek(0, 0)
-	if err != nil {
-		return err
-	}
-
-	rd := bufio.NewReader(d.metadata)
-
-	// The first 8 bytes are the number of entries
-	countBytes := [8]byte{}
-	_, err = rd.Read(countBytes[:])
-	if err != nil {
-		if err == io.EOF {
-			d.diskEntries = make([]*diskEntry, 0, 100)
-			return nil
-		}
-		return err
-	}
-	count := binary.LittleEndian.Uint64(countBytes[:])
-	d.diskEntries = make([]*diskEntry, 0, count)
-
-	binDiskEntry := [9]byte{}
-	currentOffset := int64(0)
-	for i := uint64(0); i < count; i++ {
-		_, err := rd.Read(binDiskEntry[:])
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-
-		var entry diskEntry
-		entry.unmarshalBinary(binDiskEntry[:])
-		entry.startOffset = currentOffset
-		currentOffset += entry.onDiskSize
-		d.diskEntries = append(d.diskEntries, &entry)
-	}
-
-	return nil
-}
 
 func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (func(), int, error) {
+	// Check if there any entries waiting to be read on disk
 	f, n, err := d.Read(dst)
 	if err != nil {
 		return func() {}, 0, err
 	}
 
-	var fastAdded []*diskEntry
+	// Return early if we've filled the destination slice
+	if n == len(dst) {
+		return f, n, nil
+	}
+
+	// Attempt to fill the remainder of the buffer with entries as they are added
+	// so we can avoid disk reads
+	fastAdded := make([]*diskEntry, 0, len(dst)-n)
 LOOP:
 	for n < len(dst) {
-		if fastAdded == nil {
-			fastAdded = make([]*diskEntry, 0, len(dst)-n)
-		}
-
 		message := newFastReadRequest(len(dst) - n) // TODO pool fast read messages?
 		select {
 		case <-timeout:
@@ -306,7 +122,6 @@ LOOP:
 	}
 
 	markFlushed := func() {
-		// TODO locking?
 		f()
 		d.Lock()
 		for _, entry := range fastAdded {
@@ -317,56 +132,86 @@ LOOP:
 	return markFlushed, n, nil
 }
 
+type CountingWriter struct {
+	w io.Writer
+	n int
+}
+
+func (c CountingWriter) Write(dst []byte) (int, error) {
+	n, err := c.w.Write(dst)
+	c.n += n
+	return n, err
+}
+
+func (c CountingWriter) BytesWritten() int {
+	return c.n
+}
+
+func NewCountingWriter(w io.Writer) CountingWriter {
+	return CountingWriter{
+		w: w,
+	}
+}
+
+type CountingReader struct {
+	r io.Reader
+	n int
+}
+
+func (c CountingReader) Read(dst []byte) (int, error) {
+	n, err := c.r.Read(dst)
+	c.n += n
+	return n, err
+}
+
+func (c CountingReader) BytesRead() int {
+	return c.n
+}
+
+func NewCountingReader(r io.Reader) CountingReader {
+	return CountingReader{
+		r: r,
+	}
+}
+
 func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
-	// A note on file layout and assumptions:
-	// With our file layout, we guarantee that all flushable entries are
-	// contiguous and at the end of the file. Once an entry is read, there
-	// is no way to mark the entry as unread. If it cannot be flushed,
-	// the reader must handle erroring or retrying.
-	//
-	// Since we know that all flushable entries are at the end, we can just
-	// track the index of the next entry ready to be read, then read from
-	// disk consecutively until our destination buffer is full. This allows
-	// us to do large, buffered reads for efficiency.
-	//
-	// The only time flushable entries are not guaranteed to be at the end is
-	// at startup, when there may be entries that have been read, but not marked
-	// as flushed. This is why we run a compaction when we create a buffer object
-	// from an existing file.
 	d.Lock()
 	defer d.Unlock()
 
-	if d.nextFlushableIndex == len(d.diskEntries) {
+	if d.metadata.unreadCount == 0 {
 		return func() {}, 0, nil
 	}
 
-	// Seek to the beginning of the next entry to flush
-	_, err := d.data.Seek(d.diskEntries[d.nextFlushableIndex].startOffset, 0)
+	_, err := d.data.Seek(d.metadata.unreadStartOffset, 0)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Read count is minimum of the length of the destination
-	// slice and the number of entries available
-	flushCount := len(dst)
-	readyToFlush := len(d.diskEntries) - d.nextFlushableIndex
-	if readyToFlush < flushCount {
-		flushCount = readyToFlush
-	}
+	readCount := min(len(dst), int(d.metadata.unreadCount))
 
-	dec := json.NewDecoder(d.data)
-	for i := 0; i < flushCount; i++ {
+	inFlight := make([]*diskEntry, readCount)
+	counter := NewCountingReader(d.data)
+	currentOffset := d.metadata.unreadStartOffset
+	dec := json.NewDecoder(counter)
+	for i := 0; i < readCount; i++ {
 		var entry entry.Entry
 		err := dec.Decode(&entry)
 		if err != nil {
 			return nil, 0, err
 		}
 		dst[i] = &entry
+
+		// TODO explanatory comment
+		l := counter.BytesRead() - dec.Buffered().(*bytes.Reader).Len()
+		inFlight[i] = &diskEntry{
+			length:      int64(l),
+			startOffset: currentOffset,
+		}
+		currentOffset += int64(l)
 	}
 
-	inFlight := make([]*diskEntry, flushCount)
-	copy(inFlight, d.diskEntries[d.nextFlushableIndex:d.nextFlushableIndex+flushCount])
-	d.nextFlushableIndex += flushCount
+	d.metadata.read = append(d.metadata.read, inFlight...)
+	d.metadata.unreadStartOffset = currentOffset
 	markFlushed := func() {
 		d.Lock()
 		for _, entry := range inFlight {
@@ -375,18 +220,17 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 		d.Unlock()
 	}
 
-	return markFlushed, flushCount, nil
+	return markFlushed, readCount, nil
 }
 
 func (d *DiskBuffer) Close() error {
 	d.Lock()
 	defer d.Unlock()
-	err := d.syncMetadata()
+	err := d.metadata.Close()
 	if err != nil {
 		return err
 	}
 	d.data.Close()
-	d.metadata.Close()
 	return nil
 }
 
@@ -394,83 +238,105 @@ func (d *DiskBuffer) Close() error {
 func (d *DiskBuffer) Compact() error {
 	d.Lock()
 	defer d.Unlock()
-	// Overview of the compaction algorithm:
-	// The first step is to find two ranges of diskEntries. The first range
-	// is composed of all flushed entries. The second range immediately follows
-	// the first and is composed of all unflushed entries.
-	//
-	// Additionally, the on-disk size of the second range is strictly smaller than the on-disk
-	// size of the first range. This is so we can guarantee that our operations are (loosely) atomic --
-	// we will never overwrite any of the second (live) range until the operation is complete.
-	//
-	// Once we have our ranges, we copy the second range into the space of the first range.
-	// This is done in chunks so we can reuse a large buffer. Once we have successfully copied
-	// the full second range, we update the offsets for the unflushed diskEntries then write
-	// the updated offsets to disk.
-	//
-	// This process is repeated until there are no more flushed entries on disk.
-	// At this point, the file is truncated to the end of the last live entry to
-	// return disk space to the OS.
 
-	searchStart := 0
+	// First, if there is a dead range from a previous incomplete compaction, delete it
+	err := d.deleteDeadRange()
+	if err != nil {
+		return err
+	}
+
+	deletedBytes := int64(0)
 	for {
-		// Find range 1 and range 2
-		start1, start2, end2 := getRanges(searchStart, d.diskEntries)
-		if start1 == start2 || start2 == end2 {
-			// Finish when there are no flushed entries on disk
-			// TODO make it more clear why this is true
+		start, end, ok := d.metadata.nextFlushedRange()
+		if !ok {
 			break
 		}
 
-		// In the next iteration, start searching for ranges
-		// beginning at the end of range 2 (the index changes
-		// after deleting range 1)
-		searchStart = end2 - (start2 - start1)
+		firstFlushed := d.metadata.read[start]
+		lastFlushed := d.metadata.read[end-1]
 
-		// Copy range 2 into the space of range 1
-		offset, err := d.overwriteRange(d.diskEntries[start1:start2], d.diskEntries[start2:end2])
+		startOffset := firstFlushed.startOffset
+		endOffset := lastFlushed.startOffset + lastFlushed.length
+		bytesMoved, err := d.overwriteRange(startOffset, endOffset)
 		if err != nil {
 			return err
 		}
 
-		// Update the offsets of range 2
-		for _, diskEntry := range d.diskEntries[start2:end2] {
-			diskEntry.startOffset -= offset
+		for _, diskEntry := range d.metadata.read[end:] {
+			diskEntry.startOffset -= (endOffset - startOffset)
 		}
 
 		// Remove range 1 from tracked diskEntries
-		d.diskEntries = append(d.diskEntries[:start1], d.diskEntries[start2:]...)
+		d.metadata.read = append(d.metadata.read[:start], d.metadata.read[end:]...)
 
-		err = d.syncMetadata()
+		d.metadata.deadRangeStart = int64(endOffset)
+		d.metadata.deadRangeLength = int64(bytesMoved)
+
+		err = d.metadata.Sync()
 		if err != nil {
 			return err
 		}
 
-		d.nextFlushableIndex -= start2 - start1
+		d.metadata.unreadStartOffset -= (endOffset - startOffset)
+		deletedBytes += (endOffset - startOffset)
 	}
 
-	return d.data.Truncate(onDiskSize(d.diskEntries))
+	info, err := d.data.Stat()
+	if err != nil {
+		return err
+	}
+	return d.data.Truncate(info.Size() - deletedBytes)
 }
 
-func (d *DiskBuffer) overwriteRange(range1, range2 []*diskEntry) (int64, error) {
-	reader := io.LimitedReader{
-		R: d.data,
-		N: onDiskSize(range2),
+func (d *DiskBuffer) deleteDeadRange() error {
+	// Exit fast if there is no dead range
+	if d.metadata.deadRangeLength == 0 {
+		return nil
 	}
 
-	readPosition := range2[0].startOffset
-	writePosition := range1[0].startOffset
-	movedOffset := readPosition - writePosition
-	eof := false
-	for !eof {
-		// Seek to the current read position
-		_, err := d.data.Seek(readPosition, 0)
+	// Keep atomically overwriting ranges until we're at the end of the file
+	for {
+		// Replace the range with the proceeding range of bytes
+		start := d.metadata.deadRangeStart
+		length := d.metadata.deadRangeLength
+		n, err := d.overwriteRange(start, start+length)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
+		// Update the dead range, writing to disk
+		err = d.metadata.setDeadRange(start+length, length)
+		if err != nil {
+			return err
+		}
+
+		if int64(n) < d.metadata.deadRangeLength {
+			// We're at the end of the file
+			break
+		}
+	}
+
+	info, err := d.data.Stat()
+	if err != nil {
+		return err
+	}
+
+	err = d.data.Truncate(info.Size() - d.metadata.deadRangeLength)
+	if err != nil {
+		return err
+	}
+
+	return d.metadata.setDeadRange(0, 0)
+}
+
+func (d *DiskBuffer) overwriteRange(start, end int64) (int, error) {
+	readPosition := end
+	writePosition := start
+	bytesRead := 0
+	eof := false
+	for !eof {
 		// Read a chunk
-		n, err := reader.Read(d.copyBuffer)
+		n, err := d.data.ReadAt(d.copyBuffer, readPosition)
 		if err != nil {
 			if err != io.EOF {
 				return 0, err
@@ -483,59 +349,11 @@ func (d *DiskBuffer) overwriteRange(range1, range2 []*diskEntry) (int64, error) 
 		if err != nil {
 			return 0, err
 		}
+
+		bytesRead += n
 	}
 
-	return movedOffset, nil
-}
-
-// getRanges returns the starting and ending indexes of the two ranges  of diskEntries
-// where the first range is composed successfully flushed diskEntries and the second
-// range is composed of
-func getRanges(searchStart int, entries []*diskEntry) (start1, start2, end2 int) {
-	// TODO it's likely possible to optimize this when searchStart > nextFlushableIndex
-	// because we know that every entry after nextFlushableIndex is unflushed
-
-	// search for the first flushed entry in range 1
-	for start1 = searchStart; start1 < len(entries); start1++ {
-		if entries[start1].flushed {
-			break
-		}
-	}
-
-	// search for the last flushed entry in range 1
-	for start2 = start1; start2 < len(entries); start2++ {
-		if !entries[start2].flushed {
-			break
-		}
-	}
-
-	range1DiskSize := onDiskSize(entries[start1:start2])
-
-	// search for the last unflushed entry, or the last entry that will allow
-	// range2 to fit inside the space of range 1
-	for end2 = start2; end2 < len(entries); end2++ {
-		if entries[end2].flushed {
-			break
-		}
-
-		range2DiskSize := onDiskSize(entries[start2:end2])
-		if range2DiskSize > range1DiskSize {
-			break
-		}
-	}
-
-	return start1, start2, end2
-}
-
-// onDiskSize calculates the size in bytes on disk for a contiguous
-// range of diskEntries
-func onDiskSize(entries []*diskEntry) int64 {
-	if len(entries) == 0 {
-		return 0
-	}
-
-	last := entries[len(entries)-1]
-	return last.startOffset + last.onDiskSize - entries[0].startOffset
+	return bytesRead, nil
 }
 
 type diskEntry struct {
@@ -543,33 +361,17 @@ type diskEntry struct {
 	// to be removed from disk
 	flushed bool
 
+	// The number of bytes the entry takes on disk
+	length int64
+
 	// The offset in the file where the entry starts
 	startOffset int64
-
-	// The number of bytes the entry takes on disk
-	onDiskSize int64
-}
-
-func (d *diskEntry) marshalBinary(dst []byte) {
-	if d.flushed {
-		dst[0] = 1
-	} else {
-		dst[0] = 0
-	}
-	binary.LittleEndian.PutUint64(dst[1:9], uint64(d.onDiskSize))
-}
-
-func (d *diskEntry) unmarshalBinary(src []byte) {
-	if src[0] == 1 {
-		d.flushed = true
-	}
-	d.onDiskSize = int64(binary.LittleEndian.Uint64(src[1:9]))
 }
 
 func newDiskEntry(offset, size int64) *diskEntry {
 	return &diskEntry{
 		startOffset: offset,
-		onDiskSize:  size,
+		length:      size,
 	}
 }
 
@@ -603,4 +405,221 @@ func min(first, second int) int {
 		m = second
 	}
 	return m
+}
+
+type Metadata struct {
+	// File is a handle to the on-disk metadata store
+	//
+	// The layout of the file is as follows:
+	// - 8 byte DatabaseVersion as LittleEndian uint64
+	// - 8 byte DeadRangeStartOffset as LittleEndian uint64
+	// - 8 byte DeadRangeLength as LittleEndian uint64
+	// - 8 byte UnreadStartOffset as LittleEndian uint64
+	// - 8 byte UnreadCount as LittleEndian uint64
+	// - 8 byte ReadCount as LittleEndian uint64
+	// - Repeated ReadCount times:
+	//     - 1 byte Flushed bool as LittleEndian uint8
+	//     - 8 byte Length as LittleEndian uint64
+	//     - 8 byte StartOffset as LittleEndian uint64
+	file *os.File
+
+	// noncontiguous represents the range of entries at the
+	// beginning of the data file that aren't guaranteed to be
+	// contiguous and unflushed
+	read []*diskEntry
+
+	// contiguousStart is the offset in the data file where the
+	// block of contiguous, unflushed entries starts.
+	unreadStartOffset int64
+
+	// contiguousCount is the number of entries in the contiguous,
+	// unflushed block.
+	unreadCount int64
+
+	// deadRangeStart is file offset of the beginning of the dead range.
+	// The dead range is a range of the file that contains unused information
+	// and should only exist during a compaction. If this exists on startup,
+	// it should be removed as part of the startup compaction.
+	deadRangeStart int64
+
+	// deadRangeLength is the length of the dead range
+	deadRangeLength int64
+}
+
+func OpenMetadata(path string) (Metadata, error) {
+	m := Metadata{}
+
+	var err error
+	m.file, err = os.OpenFile(filepath.Join(path, "metadata"), os.O_CREATE|os.O_RDWR, 0755)
+	if err != nil {
+		return Metadata{}, err
+	}
+
+	err = m.Read(m.file)
+	if err != nil {
+		return Metadata{}, fmt.Errorf("read metadata file: %s", err)
+	}
+
+	return m, nil
+}
+
+func (m Metadata) Sync() error {
+	var buf bytes.Buffer
+
+	// Serialize to a buffer first so we can do an atomic write operation
+	m.Write(&buf)
+
+	n, err := m.file.Write(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	// Since our on-disk format for metadata self-describes length,
+	// it's okay to truncate as a separate operation because an un-truncated
+	// file is still readable
+	// TODO write a test for this
+	err = m.file.Truncate(int64(n))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m Metadata) Close() error {
+	err := m.Sync()
+	if err != nil {
+		return err
+	}
+	m.file.Close()
+	return nil
+}
+
+func (m Metadata) Write(wr io.Writer) {
+	binary.Write(wr, binary.LittleEndian, uint64(1))
+
+	binary.Write(wr, binary.LittleEndian, m.deadRangeStart)
+	binary.Write(wr, binary.LittleEndian, m.deadRangeLength)
+
+	binary.Write(wr, binary.LittleEndian, m.unreadStartOffset)
+	binary.Write(wr, binary.LittleEndian, m.unreadCount)
+
+	binary.Write(wr, binary.LittleEndian, uint64(len(m.read)))
+	for _, diskEntry := range m.read {
+		binary.Write(wr, binary.LittleEndian, diskEntry.flushed)
+		binary.Write(wr, binary.LittleEndian, diskEntry.length)
+		binary.Write(wr, binary.LittleEndian, diskEntry.startOffset)
+	}
+}
+
+func (m Metadata) setDeadRange(start, length int64) error {
+	m.deadRangeStart = start
+	m.deadRangeLength = length
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.LittleEndian, m.deadRangeStart)
+	binary.Write(&buf, binary.LittleEndian, m.deadRangeLength)
+	_, err := m.file.WriteAt(buf.Bytes(), 8)
+	return err
+}
+
+func (m Metadata) Read(r io.Reader) error {
+	// Read version
+	var version uint64
+	err := binary.Read(r, binary.LittleEndian, &version)
+	if err != nil {
+		return fmt.Errorf("failed to read version: %s", err)
+	}
+
+	// Read dead range
+	err = binary.Read(r, binary.LittleEndian, &m.deadRangeStart)
+	if err != nil {
+		return err
+	}
+	err = binary.Read(r, binary.LittleEndian, &m.deadRangeLength)
+	if err != nil {
+		return err
+	}
+
+	// Read contiguous
+	binary.Read(r, binary.LittleEndian, &m.unreadStartOffset)
+	err = binary.Read(r, binary.LittleEndian, &version)
+	if err != nil {
+		return fmt.Errorf("failed to read contiguous start offset: %s", err)
+	}
+	err = binary.Read(r, binary.LittleEndian, &m.unreadCount)
+	if err != nil {
+		return fmt.Errorf("failed to read contiguous count: %s", err)
+	}
+
+	// Read noncontiguous
+	var readCount uint64
+	binary.Read(r, binary.LittleEndian, &readCount)
+	m.read = make([]*diskEntry, readCount)
+	for i := 0; i < int(readCount); i++ {
+		newEntry := diskEntry{}
+		err = binary.Read(r, binary.LittleEndian, &newEntry.flushed)
+		if err != nil {
+			return fmt.Errorf("failed to read disk entry flushed: %s", err)
+		}
+
+		binary.Read(r, binary.LittleEndian, &newEntry.length)
+		if err != nil {
+			return fmt.Errorf("failed to read disk entry length: %s", err)
+		}
+
+		binary.Read(r, binary.LittleEndian, &newEntry.startOffset)
+		if err != nil {
+			return fmt.Errorf("failed to read disk entry start offset: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func (m Metadata) nextFlushedRange() (int, int, bool) {
+	start := -1
+	end := -1
+
+	for i, entry := range m.read {
+		if entry.flushed {
+			start = i
+			break
+		}
+	}
+
+	for i, entry := range m.read[start:] {
+		if !entry.flushed {
+			break
+		}
+		end = i
+	}
+
+	if start == -1 || end == -1 {
+		return 0, 0, false
+	}
+
+	return start, end, true
+}
+
+func (m Metadata) addReadEntries(entries []*diskEntry) error {
+	var buf bytes.Buffer
+	for _, diskEntry := range entries {
+		binary.Write(&buf, binary.LittleEndian, diskEntry.flushed)
+		binary.Write(&buf, binary.LittleEndian, diskEntry.length)
+		binary.Write(&buf, binary.LittleEndian, diskEntry.startOffset)
+	}
+
+	_, err := m.file.WriteAt(buf.Bytes(), int64(48+len(m.read)*17))
+	if err != nil {
+		return err
+	}
+
+	m.read = append(m.read, entries...)
+
+	_, err = m.file.Seek(40, 0)
+	if err != nil {
+		return err
+	}
+
+	return binary.Write(m.file, binary.LittleEndian, int64(len(m.read)))
 }
