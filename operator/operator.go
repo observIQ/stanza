@@ -27,6 +27,8 @@ type Operator interface {
 	Outputs() []Operator
 	// SetOutputs will set the connected outputs.
 	SetOutputs([]Operator) error
+	// AddOutput will add an output to the operator.
+	AddOutput(Operator) error
 
 	// CanProcess indicates if the operator will process entries from other operators.
 	CanProcess() bool

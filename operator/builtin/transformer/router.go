@@ -156,6 +156,11 @@ func (p *RouterOperator) SetOutputs(operators []operator.Operator) error {
 	return nil
 }
 
+// AddOutput is unsupported and will return an error
+func (p *RouterOperator) AddOutput(operator operator.Operator) error {
+	return fmt.Errorf("add output is an unsupported operation for the router")
+}
+
 // findOperators will find a subset of operators from a collection.
 func (p *RouterOperator) findOperators(operators []operator.Operator, operatorIDs []string) ([]operator.Operator, error) {
 	result := make([]operator.Operator, 0)

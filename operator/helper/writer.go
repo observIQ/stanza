@@ -117,6 +117,12 @@ func (w *WriterOperator) SetOutputs(operators []operator.Operator) error {
 	return nil
 }
 
+// AddOutput adds an output to the writer
+func (w *WriterOperator) AddOutput(output operator.Operator) error {
+	w.OutputOperators = append(w.OutputOperators, output)
+	return nil
+}
+
 // FindOperator will find an operator matching the supplied id.
 func (w *WriterOperator) findOperator(operators []operator.Operator, operatorID string) (operator.Operator, bool) {
 	for _, operator := range operators {
