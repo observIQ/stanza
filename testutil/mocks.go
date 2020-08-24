@@ -37,7 +37,6 @@ func (f *FakeOutput) ID() string                                   { return "fak
 func (f *FakeOutput) Logger() *zap.SugaredLogger                   { return f.SugaredLogger }
 func (f *FakeOutput) Outputs() []operator.Operator                 { return nil }
 func (f *FakeOutput) SetOutputs(outputs []operator.Operator) error { return nil }
-func (f *FakeOutput) AddOutput(output operator.Operator) error     { return nil }
 func (f *FakeOutput) Start() error                                 { return nil }
 func (f *FakeOutput) Stop() error                                  { return nil }
 func (f *FakeOutput) Type() string                                 { return "fake_output" }

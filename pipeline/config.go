@@ -28,7 +28,7 @@ func (c Config) BuildPipeline(context operator.BuildContext, defaultOutput opera
 	if defaultOutput != nil {
 		for _, op := range operators {
 			if op.CanOutput() && len(op.Outputs()) == 0 {
-				op.AddOutput(defaultOutput)
+				op.SetOutputs([]operator.Operator{defaultOutput})
 			}
 		}
 		operators = append(operators, defaultOutput)
