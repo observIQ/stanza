@@ -233,7 +233,7 @@ func BenchmarkDiskBuffer(b *testing.B) {
 				panicOnErr(err)
 				i += n
 				go func() {
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(50 * time.Millisecond)
 					flush()
 				}()
 			}

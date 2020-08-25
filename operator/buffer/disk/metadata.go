@@ -222,3 +222,39 @@ func (m *Metadata) nextFlushedRange() (int, int, bool) {
 
 	return start, end, true
 }
+
+// getCleanableRanges returns the starting and ending indexes of the two ranges  of diskEntries
+// where the first range is composed successfully flushed diskEntries and the second
+// range is composed of
+func getCleanableRanges(searchStart int, entries []*diskEntry) (start1, start2, end2 int) {
+	// search for the first flushed entry in range 1
+	for start1 = searchStart; start1 < len(entries); start1++ {
+		if entries[start1].flushed {
+			break
+		}
+	}
+
+	// search for the last flushed entry in range 1
+	for start2 = start1; start2 < len(entries); start2++ {
+		if !entries[start2].flushed {
+			break
+		}
+	}
+
+	range1DiskSize := onDiskSize(entries[start1:start2])
+
+	// search for the last unflushed entry, or the last entry that will allow
+	// range2 to fit inside the space of range 1
+	for end2 = start2; end2 < len(entries); end2++ {
+		if entries[end2].flushed {
+			break
+		}
+
+		range2DiskSize := onDiskSize(entries[start2:end2])
+		if range2DiskSize > range1DiskSize {
+			break
+		}
+	}
+
+	return start1, start2, end2
+}

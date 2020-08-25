@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -115,17 +116,28 @@ func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (fun
 	return d.Read(dst)
 }
 
-func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
+func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.Lock()
 	defer d.Unlock()
+	defer func() {
+		if err != nil {
+			mf, _ := os.Create("/tmp/metadata")
+			d.metadata.file.Seek(0, 0)
+			io.Copy(mf, d.metadata.file)
+
+			df, _ := os.Create("/tmp/data")
+			d.data.Seek(0, 0)
+			io.Copy(df, d.data)
+		}
+	}()
 
 	if d.metadata.unreadCount == 0 {
 		return func() {}, 0, nil
 	}
 
-	_, err := d.data.Seek(d.metadata.unreadStartOffset, 0)
+	_, err = d.data.Seek(d.metadata.unreadStartOffset, 0)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("seek to unread: %s", err)
 	}
 
 	readCount := min(len(dst), int(d.metadata.unreadCount))
@@ -138,7 +150,7 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 		var entry entry.Entry
 		err := dec.Decode(&entry)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("decode: %s", err)
 		}
 		dst[i] = &entry
 
@@ -152,7 +164,7 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 	}
 
 	d.metadata.read = append(d.metadata.read, inFlight...)
-	d.metadata.unreadStartOffset = currentOffset
+	d.metadata.unreadStartOffset = currentOffset + 1 // Add one for the trailing newline
 	d.metadata.unreadCount -= int64(readCount)
 	markFlushed := func() {
 		d.Lock()
@@ -181,49 +193,89 @@ func (d *DiskBuffer) Compact() error {
 	d.Lock()
 	defer d.Unlock()
 
-	deletedBytes := int64(0)
-	for {
-		start, end, ok := d.metadata.nextFlushedRange()
-		if !ok {
-			break
+	m := d.metadata
+	for i := 0; i < len(m.read); {
+		if m.read[i].flushed {
+			// If the next entry is flushed, find the range of flushed entries, then
+			// update the length of the dead space to include the range, delete
+			// the flushed entries from metadata, then  sync metadata
+
+			// Find the end index of the slice of flushed entries
+			j := i + 1
+			for ; j < len(m.read); j++ {
+				if !m.read[i].flushed {
+					break
+				}
+			}
+
+			// Expand the dead range
+			m.deadRangeLength += onDiskSize(m.read[i:j])
+
+			// Delete the range from metadata
+			m.read = append(m.read[:i], m.read[j:]...)
+		} else {
+			// If the next entry is unflushed, find the range of unflushed entries
+			// that can fit completely inside the dead space. Copy those into the dead
+			// space, update their offsets, update nextIndex, update the offset of
+			// the dead space, then sync metadata
+
+			// Find the end index of the slice of unflushed entries, or the end index
+			// of the range that fits inside the dead range
+			j := i + 1
+			for ; j < len(m.read); j++ {
+				if m.read[i].flushed {
+					break
+				}
+
+				if onDiskSize(m.read[i:j]) > m.deadRangeLength {
+					break
+				}
+			}
+
+			// Move the range into the dead space
+			bytesMoved, err := d.moveRange(
+				m.deadRangeStart,
+				m.deadRangeLength,
+				m.read[i].startOffset,
+				m.read[j-1].length,
+			)
+			if err != nil {
+				return err
+			}
+
+			// Update the offsets of the moved range
+			offsetDelta := m.read[i].startOffset - m.deadRangeStart
+			for _, diskEntry := range m.read {
+				diskEntry.startOffset -= offsetDelta
+			}
+
+			// Update the offset of the dead space
+			m.deadRangeStart += int64(bytesMoved)
+
+			// Update i
+			i = j
 		}
 
-		firstFlushed := d.metadata.read[start]
-		lastFlushed := d.metadata.read[end-1]
-
-		startOffset := firstFlushed.startOffset
-		endOffset := lastFlushed.startOffset + lastFlushed.length
-		bytesMoved, err := d.overwriteRange(startOffset, endOffset)
+		// Sync after every operation
+		err := d.metadata.Sync()
 		if err != nil {
 			return err
 		}
-
-		for _, diskEntry := range d.metadata.read[end:] {
-			diskEntry.startOffset -= (endOffset - startOffset)
-		}
-		// TODO this logic is wrong. We should be moving all read entries to the beginning
-		// of the file, then deleting the dead range created in the space before the unread entries
-
-		// Remove range 1 from tracked diskEntries
-		d.metadata.read = append(d.metadata.read[:start], d.metadata.read[end:]...)
-
-		d.metadata.deadRangeStart = endOffset
-		d.metadata.deadRangeLength = int64(bytesMoved)
-
-		err = d.metadata.Sync()
-		if err != nil {
-			return err
-		}
-
-		d.metadata.unreadStartOffset -= (endOffset - startOffset)
-		deletedBytes += (endOffset - startOffset)
 	}
 
-	info, err := d.data.Stat()
-	if err != nil {
-		return err
+	// Bubble the dead space through the unflushed entries, then truncate
+	return d.deleteDeadRange()
+}
+
+// onDiskSize calculates the size in bytes on disk for a contiguous
+// range of diskEntries
+func onDiskSize(entries []*diskEntry) int64 {
+	if len(entries) == 0 {
+		return 0
 	}
-	return d.data.Truncate(info.Size() - deletedBytes)
+
+	last := entries[len(entries)-1]
+	return last.startOffset + last.length - entries[0].startOffset
 }
 
 func (d *DiskBuffer) deleteDeadRange() error {
@@ -232,12 +284,16 @@ func (d *DiskBuffer) deleteDeadRange() error {
 		return nil
 	}
 
-	// Keep atomically overwriting ranges until we're at the end of the file
 	for {
 		// Replace the range with the proceeding range of bytes
 		start := d.metadata.deadRangeStart
 		length := d.metadata.deadRangeLength
-		n, err := d.overwriteRange(start, start+length)
+		n, err := d.moveRange(
+			start,
+			length,
+			start+length,
+			length,
+		)
 		if err != nil {
 			return err
 		}
@@ -267,14 +323,27 @@ func (d *DiskBuffer) deleteDeadRange() error {
 	return d.metadata.setDeadRange(0, 0)
 }
 
-func (d *DiskBuffer) overwriteRange(start, end int64) (int, error) {
-	readPosition := end
-	writePosition := start
+func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, error) {
+	if length2 > length1 {
+		return 0, fmt.Errorf("cannot move a range into a space smaller than itself")
+	}
+
+	readPosition := start2
+	writePosition := start1
 	bytesRead := 0
+
+	rd := io.LimitReader(d.data, length2)
+
 	eof := false
 	for !eof {
+		// Seek to last read position
+		_, err := d.data.Seek(readPosition, 0)
+		if err != nil {
+			return 0, err
+		}
+
 		// Read a chunk
-		n, err := d.data.ReadAt(d.copyBuffer, readPosition)
+		n, err := rd.Read(d.copyBuffer)
 		if err != nil {
 			if err != io.EOF {
 				return 0, err
@@ -282,6 +351,7 @@ func (d *DiskBuffer) overwriteRange(start, end int64) (int, error) {
 			eof = true
 		}
 		readPosition += int64(n)
+		bytesRead += n
 
 		// Write the chunk back into a free region
 		_, err = d.data.WriteAt(d.copyBuffer[:n], writePosition)
@@ -290,7 +360,6 @@ func (d *DiskBuffer) overwriteRange(start, end int64) (int, error) {
 		}
 		writePosition += int64(n)
 
-		bytesRead += n
 	}
 
 	return bytesRead, nil
