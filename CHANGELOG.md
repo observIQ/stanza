@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.12] - 2020-08-25
 ### Changed
-- Agent is not embeddable with a default output
+- Agent is now embeddable with a default output
 
 ## [0.9.11] - 2020-08-24
 ### Added
