@@ -210,7 +210,6 @@ func BenchmarkDiskBuffer(b *testing.B) {
 	b.Run("AddReadWait100", func(b *testing.B) {
 		buffer := openBuffer(b)
 		var wg sync.WaitGroup
-		println(b.N)
 
 		wg.Add(1)
 		go func() {
@@ -221,7 +220,6 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				panicOnErr(buffer.Add(ctx, e))
 			}
-			println("finished writing")
 		}()
 
 		wg.Add(1)
@@ -237,7 +235,6 @@ func BenchmarkDiskBuffer(b *testing.B) {
 					flush()
 				}()
 			}
-			println("finished reading")
 		}()
 
 		cancel := make(chan struct{})
