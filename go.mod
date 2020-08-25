@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go/logging v1.0.0
 	github.com/antonmedv/expr v1.8.2
 	github.com/cenkalti/backoff/v4 v4.0.2
-	github.com/dgraph-io/badger v1.6.1
 	github.com/elastic/go-elasticsearch/v7 v7.7.0
 	github.com/golang/protobuf v1.4.2
 	github.com/golangci/golangci-lint v1.30.0 // indirect

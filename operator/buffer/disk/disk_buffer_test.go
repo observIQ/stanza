@@ -1,4 +1,4 @@
-package buffer
+package disk
 
 import (
 	"context"
@@ -26,16 +26,6 @@ func writeN(t testing.TB, buffer *DiskBuffer, n, start int) {
 		err := buffer.Add(ctx, intEntry(i))
 		require.NoError(t, err)
 	}
-}
-
-func batchN(t testing.TB, buffer *DiskBuffer, n int) {
-	entries := make([]*entry.Entry, n)
-	for i := 0; i < n; i++ {
-		entries[i] = intEntry(i)
-	}
-	ctx := context.Background()
-	err := buffer.BatchAdd(ctx, entries)
-	require.NoError(t, err)
 }
 
 func readN(t testing.TB, buffer *DiskBuffer, n, start int) func() {
@@ -96,6 +86,13 @@ func TestDiskBuffer(t *testing.T) {
 		b := openBuffer(t)
 		writeN(t, b, 1, 0)
 		readN(t, b, 1, 0)
+	})
+
+	t.Run("Write2Read1Read1", func(t *testing.T) {
+		b := openBuffer(t)
+		writeN(t, b, 2, 0)
+		readN(t, b, 1, 0)
+		readN(t, b, 1, 1)
 	})
 
 	t.Run("Write20Read10Read10", func(t *testing.T) {
@@ -162,50 +159,16 @@ func TestDiskBuffer(t *testing.T) {
 		readN(t, b, 10, 10)
 	})
 
-	t.Run("Batch20Read10Read10", func(t *testing.T) {
-		b := openBuffer(t)
-		batchN(t, b, 20)
-		readN(t, b, 10, 0)
-		readN(t, b, 10, 10)
-	})
-
-	t.Run("Batch10Read10Read0", func(t *testing.T) {
-		b := openBuffer(t)
-		batchN(t, b, 10)
-		readN(t, b, 10, 0)
-		dst := make([]*entry.Entry, 10)
-		_, n, err := b.Read(dst)
-		require.NoError(t, err)
-		require.Equal(t, 0, n)
-	})
-
-	t.Run("Batch20Read10Read10Unfull", func(t *testing.T) {
-		b := openBuffer(t)
-		batchN(t, b, 20)
-		readN(t, b, 10, 0)
-		dst := make([]*entry.Entry, 20)
-		_, n, err := b.Read(dst)
-		require.NoError(t, err)
-		require.Equal(t, 10, n)
-	})
-
-	t.Run("Batch20Read10CompactRead10", func(t *testing.T) {
-		b := openBuffer(t)
-		batchN(t, b, 20)
-		flushN(t, b, 10, 0)
-		compact(t, b)
-		readN(t, b, 10, 10)
-	})
-
 	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
 		b := NewDiskBuffer()
 		dir := testutil.NewTempDir(t)
 		err := b.Open(dir)
 		require.NoError(t, err)
 
-		batchN(t, b, 20)
+		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
-		b.Close()
+		err = b.Close()
+		require.NoError(t, err)
 
 		b2 := NewDiskBuffer()
 		err = b2.Open(dir)
@@ -219,9 +182,10 @@ func TestDiskBuffer(t *testing.T) {
 		err := b.Open(dir)
 		require.NoError(t, err)
 
-		batchN(t, b, 20)
+		writeN(t, b, 20, 0)
 		flushN(t, b, 10, 0)
-		b.Close()
+		err = b.Close()
+		require.NoError(t, err)
 
 		b2 := NewDiskBuffer()
 		err = b2.Open(dir)
@@ -242,30 +206,11 @@ func BenchmarkDiskBufferWrite(b *testing.B) {
 	}
 }
 
-func BenchmarkDiskBufferBatchWrite(b *testing.B) {
-	for _, batchSize := range []int{1, 5, 10, 50, 100} {
-		b.Run(strconv.Itoa(batchSize), func(b *testing.B) {
-			buffer := openBuffer(b)
-
-			e := entry.New()
-			ctx := context.Background()
-			batch := make([]*entry.Entry, batchSize)
-			for i := 0; i < batchSize; i++ {
-				batch[i] = e
-			}
-
-			b.ResetTimer()
-			for i := 0; i < b.N; i += batchSize {
-				buffer.BatchAdd(ctx, batch)
-			}
-		})
-	}
-}
-
 func BenchmarkDiskBuffer(b *testing.B) {
 	b.Run("AddReadWait100", func(b *testing.B) {
 		buffer := openBuffer(b)
 		var wg sync.WaitGroup
+		println(b.N)
 
 		wg.Add(1)
 		go func() {
@@ -274,8 +219,9 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			e.Record = "test log"
 			ctx := context.Background()
 			for i := 0; i < b.N; i++ {
-				buffer.Add(ctx, e)
+				panicOnErr(buffer.Add(ctx, e))
 			}
+			println("finished writing")
 		}()
 
 		wg.Add(1)
@@ -283,13 +229,15 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			defer wg.Done()
 			dst := make([]*entry.Entry, 100)
 			for i := 0; i < b.N; {
-				flush, n, _ := buffer.ReadWait(dst, time.After(time.Second))
+				flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
+				panicOnErr(err)
 				i += n
 				go func() {
 					time.Sleep(100 * time.Millisecond)
 					flush()
 				}()
 			}
+			println("finished reading")
 		}()
 
 		cancel := make(chan struct{})
@@ -300,7 +248,7 @@ func BenchmarkDiskBuffer(b *testing.B) {
 				select {
 				case <-cancel:
 					return
-				case <-time.After(500 * time.Millisecond):
+				case <-time.After(50 * time.Millisecond):
 					buffer.Compact()
 				}
 			}
@@ -319,7 +267,7 @@ func BenchmarkDiskBufferCompact(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					b.StopTimer()
 					buffer := openBuffer(b)
-					batchN(b, buffer, n)
+					writeN(b, buffer, n, 0)
 					uncheckedFlushN(b, buffer, n)
 					b.StartTimer()
 
@@ -337,7 +285,7 @@ func BenchmarkDiskBufferCompact(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					b.StopTimer()
 					buffer := openBuffer(b)
-					batchN(b, buffer, n)
+					writeN(b, buffer, n, 0)
 					uncheckedReadN(b, buffer, n)
 					b.StartTimer()
 
@@ -355,7 +303,7 @@ func BenchmarkDiskBufferCompact(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					b.StopTimer()
 					buffer := openBuffer(b)
-					batchN(b, buffer, n)
+					writeN(b, buffer, n, 0)
 					b.StartTimer()
 
 					err := buffer.Compact()
@@ -372,7 +320,7 @@ func BenchmarkDiskBufferCompact(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					b.StopTimer()
 					buffer := openBuffer(b)
-					batchN(b, buffer, n)
+					writeN(b, buffer, n, 0)
 
 					// alternate reading and flushing in batches of 10
 					flush := false
@@ -395,4 +343,10 @@ func BenchmarkDiskBufferCompact(b *testing.B) {
 		}
 	})
 
+}
+
+func panicOnErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
