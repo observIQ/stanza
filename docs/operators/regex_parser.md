@@ -14,6 +14,7 @@ The `regex_parser` operator parses the string-type field selected by `parse_from
 | `preserve`   | false            | Preserve the unparsed value on the record                                                                                                       |
 | `on_error`   | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                 |
 | `timestamp`  | `nil`            | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator      |
+| `severity`   | `nil`            | An optional [severity](/docs/types/severity.md) block which will parse a severity field before passing the entry to the output operator         |
 
 ### Example Configurations
 
