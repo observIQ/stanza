@@ -54,6 +54,11 @@ func fieldFromString(s string) (Field, error) {
 			return Field{}, fmt.Errorf("labels cannot be nested")
 		}
 		return Field{LabelField{split[1]}}, nil
+	case "$resource":
+		if len(split) != 2 {
+			return Field{}, fmt.Errorf("resource fields cannot be nested")
+		}
+		return Field{ResourceField{split[1]}}, nil
 	case "$record", "$":
 		return Field{RecordField{split[1:]}}, nil
 	default:
