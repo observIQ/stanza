@@ -12,6 +12,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	fakev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	fakeTest "k8s.io/client-go/testing"
@@ -27,6 +28,15 @@ func (f *fakeWatch) ResultChan() <-chan watch.Event {
 	ch <- watch.Event{
 		Type: "ADDED",
 		Object: (&apiv1.Event{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Pod",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				ClusterName: "testcluster",
+				Name:        "testpodname",
+				UID:         types.UID("testuid"),
+				Namespace:   "testnamespace",
+			},
 			LastTimestamp: metav1.Time{
 				Time: fakeTime,
 			},
@@ -63,6 +73,10 @@ func TestWatchNamespace(t *testing.T) {
 	select {
 	case entry := <-fake.Received:
 		require.Equal(t, entry.Timestamp, fakeTime)
+		require.Equal(t, entry.Resource["k8s.cluster.name"], "testcluster")
+		require.Equal(t, entry.Resource["k8s.namespace.name"], "testnamespace")
+		require.Equal(t, entry.Resource["k8s.pod.uid"], "testuid")
+		require.Equal(t, entry.Resource["k8s.pod.name"], "testpodname")
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for entry")
 	}

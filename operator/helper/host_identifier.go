@@ -116,10 +116,10 @@ type HostIdentifier struct {
 // Identify will add host related metadata to an entry's resource
 func (h *HostIdentifier) Identify(entry *entry.Entry) {
 	if h.includeHostname {
-		entry.AddResourceKey("hostname", h.hostname)
+		entry.AddResourceKey("host.name", h.hostname)
 	}
 
 	if h.includeIP {
-		entry.AddResourceKey("ip", h.ip)
+		entry.AddResourceKey("host.ip", h.ip)
 	}
 }

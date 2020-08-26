@@ -7,6 +7,7 @@ import (
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
+	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
@@ -177,9 +178,41 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 
 			entry.Timestamp = typedEvent.LastTimestamp.Time
 			entry.AddLabel("event_type", string(event.Type))
+			k.populateResource(typedEvent, entry)
 			k.Write(ctx, entry)
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+// populateResource uses the keys from Event.ObjectMeta to populate the resource of the entry
+func (k *K8sEvents) populateResource(event *apiv1.Event, entry *entry.Entry) {
+	entry.AddResourceKey("k8s.cluster.name", event.ClusterName)
+	entry.AddResourceKey("k8s.namespace.name", event.Namespace)
+	switch event.Kind {
+	case "Pod":
+		entry.AddResourceKey("k8s.pod.uid", string(event.UID))
+		entry.AddResourceKey("k8s.pod.name", event.Name)
+	case "Container":
+		entry.AddResourceKey("k8s.container.name", event.Name)
+	case "ReplicaSet":
+		entry.AddResourceKey("k8s.replicaset.uid", string(event.UID))
+		entry.AddResourceKey("k8s.replicaset.name", event.Name)
+	case "Deployment":
+		entry.AddResourceKey("k8s.deployment.uid", string(event.UID))
+		entry.AddResourceKey("k8s.deployment.name", event.Name)
+	case "StatefulSet":
+		entry.AddResourceKey("k8s.statefulset.uid", string(event.UID))
+		entry.AddResourceKey("k8s.statefulset.name", event.Name)
+	case "DaemonSet":
+		entry.AddResourceKey("k8s.daemonset.uid", string(event.UID))
+		entry.AddResourceKey("k8s.daemonset.name", event.Name)
+	case "Job":
+		entry.AddResourceKey("k8s.job.uid", string(event.UID))
+		entry.AddResourceKey("k8s.job.name", event.Name)
+	case "CronJob":
+		entry.AddResourceKey("k8s.cronjob.uid", string(event.UID))
+		entry.AddResourceKey("k8s.cronjob.name", event.Name)
 	}
 }

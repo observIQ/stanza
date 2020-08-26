@@ -26,22 +26,22 @@ func TestHostLabeler(t *testing.T) {
 			"HostnameAndIP",
 			MockHostIdentifierConfig(true, true, "ip", "hostname"),
 			map[string]string{
-				"hostname": "hostname",
-				"ip":       "ip",
+				"host.name": "hostname",
+				"host.ip":   "ip",
 			},
 		},
 		{
 			"HostnameNoIP",
 			MockHostIdentifierConfig(false, true, "ip", "hostname"),
 			map[string]string{
-				"hostname": "hostname",
+				"host.name": "hostname",
 			},
 		},
 		{
 			"IPNoHostname",
 			MockHostIdentifierConfig(true, false, "ip", "hostname"),
 			map[string]string{
-				"ip": "ip",
+				"host.ip": "ip",
 			},
 		},
 		{
