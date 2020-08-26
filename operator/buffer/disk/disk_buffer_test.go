@@ -2,6 +2,7 @@ package disk
 
 import (
 	"context"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -193,6 +194,39 @@ func TestDiskBuffer(t *testing.T) {
 		readN(t, b2, 10, 10)
 	})
 
+	t.Run("Write10kRandomFlushReadCompact", func(t *testing.T) {
+		b := NewDiskBuffer()
+		dir := testutil.NewTempDir(t)
+		err := b.Open(dir)
+		require.NoError(t, err)
+
+		writes := 0
+		reads := 0
+
+		for i := 0; i < 10000; i++ {
+			r := rand.Int() % 1000
+			switch {
+			case r < 900:
+				println("writing " + strconv.Itoa(writes))
+				writeN(t, b, 1, writes)
+				writes++
+			case r < 990:
+				readCount := (writes - reads) / 2
+				println("reading " + strconv.Itoa(readCount))
+				f := readN(t, b, readCount, reads)
+				if r%2 == 0 {
+					println("flushing")
+					f()
+				}
+				reads += readCount
+			default:
+				println("compacting")
+				err := b.Compact()
+				require.NoError(t, err)
+			}
+		}
+	})
+
 }
 
 func BenchmarkDiskBufferWrite(b *testing.B) {
@@ -346,4 +380,8 @@ func panicOnErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func dumpBuffer(buffer *DiskBuffer, path string) {
+
 }

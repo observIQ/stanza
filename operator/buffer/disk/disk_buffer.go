@@ -119,17 +119,6 @@ func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (fun
 func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.Lock()
 	defer d.Unlock()
-	defer func() {
-		if err != nil {
-			mf, _ := os.Create("/tmp/metadata")
-			d.metadata.file.Seek(0, 0)
-			io.Copy(mf, d.metadata.file)
-
-			df, _ := os.Create("/tmp/data")
-			d.data.Seek(0, 0)
-			io.Copy(df, d.data)
-		}
-	}()
 
 	if d.metadata.unreadCount == 0 {
 		return func() {}, 0, nil
