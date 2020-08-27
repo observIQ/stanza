@@ -9,8 +9,8 @@ import (
 
 	"testing"
 
-	"github.com/observiq/carbon/entry"
-	"github.com/observiq/carbon/internal/testutil"
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

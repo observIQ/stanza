@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 )
 
 type DiskBuffer struct {
