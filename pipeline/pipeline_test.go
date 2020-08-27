@@ -141,7 +141,7 @@ func TestPipeline(t *testing.T) {
 
 		operator2 := testutil.NewMockOperator("operator2")
 		operator2.On("SetOutputs", mock.Anything).Return(nil)
-		operator2.On("Outputs").Return([]operator.Operator{operator1, operator1})
+		operator2.On("Outputs").Return([]operator.Operator{operator1, operator1}, nil)
 
 		node1 := createOperatorNode(operator1)
 		node2 := createOperatorNode(operator2)

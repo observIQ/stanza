@@ -19,6 +19,7 @@ install-tools:
 .PHONY: test
 test:
 	go test -race -coverprofile coverage.txt -coverpkg ./... ./...
+	go tool cover -html=coverage.txt -o coverage.html
 
 .PHONY: bench
 bench:

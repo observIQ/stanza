@@ -2,7 +2,7 @@
 Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash.
 
 [![<observIQ>](https://circleci.com/gh/observIQ/stanza.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/stanza)
-[![codecov](https://codecov.io/gh/observIQ/stanza/branch/master/graph/badge.svg?token=i50h3UFXLg)](https://codecov.io/gh/observIQ/stanza)
+[![codecov](https://codecov.io/gh/observIQ/stanza/branch/master/graph/badge.svg)](https://codecov.io/gh/observIQ/stanza)
 [![Go Report Card](https://goreportcard.com/badge/github.com/observIQ/stanza)](https://goreportcard.com/report/github.com/observIQ/stanza)
 
 ## How do I install the agent?

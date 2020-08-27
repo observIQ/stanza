@@ -6,7 +6,7 @@ This repo contains documentation for the Stanza Log Agent.
 The agent is configured using a YAML config file that is passed in using the `--config` flag. This file defines a collection of operators beneath a top-level `pipeline` key. Each operator possesses a `type` and `id` field.
 
 ```yaml
-plugins:
+pipeline:
   - type: udp_input
     listen_address: :5141
 

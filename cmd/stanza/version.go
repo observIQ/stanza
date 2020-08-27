@@ -1,4 +1,4 @@
-package commands
+package main
 
 import (
 	"github.com/observiq/stanza/internal/version"

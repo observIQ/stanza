@@ -1,4 +1,4 @@
-package commands
+package main
 
 import (
 	"context"
@@ -96,7 +96,10 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	}
 	logger.Debugw("Parsed config", "config", cfg)
 
-	agent, err := agent.NewLogAgent(cfg, logger, flags.PluginDir, flags.DatabaseFile, nil)
+	agent, err := agent.NewBuilder(cfg, logger).
+		WithPluginDir(flags.PluginDir).
+		WithDatabaseFile(flags.DatabaseFile).
+		Build()
 	if err != nil {
 		logger.Errorw("Failed to build agent", zap.Error(err))
 		os.Exit(1)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
-	_ "github.com/observiq/stanza/operator/builtin" // register operators
 	"github.com/observiq/stanza/pipeline"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
@@ -68,26 +67,54 @@ func OpenDatabase(file string) (operator.Database, error) {
 	return bbolt.Open(file, 0666, options)
 }
 
-// NewLogAgent creates a new stanza log agent.
-func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile string, buildParams map[string]interface{}) (*LogAgent, error) {
-	database, err := OpenDatabase(databaseFile)
+type LogAgentBuilder struct {
+	cfg           *Config
+	logger        *zap.SugaredLogger
+	pluginDir     string
+	databaseFile  string
+	defaultOutput operator.Operator
+}
+
+func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
+	return &LogAgentBuilder{
+		cfg:    cfg,
+		logger: logger,
+	}
+}
+
+func (b *LogAgentBuilder) WithPluginDir(pluginDir string) *LogAgentBuilder {
+	b.pluginDir = pluginDir
+	return b
+}
+
+func (b *LogAgentBuilder) WithDatabaseFile(databaseFile string) *LogAgentBuilder {
+	b.databaseFile = databaseFile
+	return b
+}
+
+func (b *LogAgentBuilder) WithDefaultOutput(defaultOutput operator.Operator) *LogAgentBuilder {
+	b.defaultOutput = defaultOutput
+	return b
+}
+
+func (b *LogAgentBuilder) Build() (*LogAgent, error) {
+	database, err := OpenDatabase(b.databaseFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "open database")
 	}
 
-	registry, err := operator.NewPluginRegistry(pluginDir)
+	registry, err := operator.NewPluginRegistry(b.pluginDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "load plugin registry")
 	}
 
 	buildContext := operator.BuildContext{
+		Logger:         b.logger,
 		PluginRegistry: registry,
-		Logger:         logger,
 		Database:       database,
-		Parameters:     buildParams,
 	}
 
-	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext)
+	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +122,6 @@ func NewLogAgent(cfg *Config, logger *zap.SugaredLogger, pluginDir, databaseFile
 	return &LogAgent{
 		pipeline:      pipeline,
 		database:      database,
-		SugaredLogger: logger,
+		SugaredLogger: b.logger,
 	}, nil
 }
