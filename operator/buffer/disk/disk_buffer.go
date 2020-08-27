@@ -222,6 +222,7 @@ func (d *DiskBuffer) Compact() error {
 			}
 
 			// Move the range into the dead space
+			// TODO what if the first entry in the range is larger than the dead range?
 			bytesMoved, err := d.moveRange(
 				m.deadRangeStart,
 				m.deadRangeLength,

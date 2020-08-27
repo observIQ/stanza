@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/internal/testutil"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
 
