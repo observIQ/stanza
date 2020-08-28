@@ -188,31 +188,36 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 
 // populateResource uses the keys from Event.ObjectMeta to populate the resource of the entry
 func (k *K8sEvents) populateResource(event *apiv1.Event, entry *entry.Entry) {
-	entry.AddResourceKey("k8s.cluster.name", event.ClusterName)
-	entry.AddResourceKey("k8s.namespace.name", event.Namespace)
-	switch event.Kind {
+	io := event.InvolvedObject
+
+	if event.ClusterName != "" {
+		entry.AddResourceKey("k8s.cluster.name", event.ClusterName)
+	}
+	entry.AddResourceKey("k8s.namespace.name", io.Namespace)
+
+	switch io.Kind {
 	case "Pod":
-		entry.AddResourceKey("k8s.pod.uid", string(event.UID))
-		entry.AddResourceKey("k8s.pod.name", event.Name)
+		entry.AddResourceKey("k8s.pod.uid", string(io.UID))
+		entry.AddResourceKey("k8s.pod.name", io.Name)
 	case "Container":
-		entry.AddResourceKey("k8s.container.name", event.Name)
+		entry.AddResourceKey("k8s.container.name", io.Name)
 	case "ReplicaSet":
-		entry.AddResourceKey("k8s.replicaset.uid", string(event.UID))
-		entry.AddResourceKey("k8s.replicaset.name", event.Name)
+		entry.AddResourceKey("k8s.replicaset.uid", string(io.UID))
+		entry.AddResourceKey("k8s.replicaset.name", io.Name)
 	case "Deployment":
-		entry.AddResourceKey("k8s.deployment.uid", string(event.UID))
-		entry.AddResourceKey("k8s.deployment.name", event.Name)
+		entry.AddResourceKey("k8s.deployment.uid", string(io.UID))
+		entry.AddResourceKey("k8s.deployment.name", io.Name)
 	case "StatefulSet":
-		entry.AddResourceKey("k8s.statefulset.uid", string(event.UID))
-		entry.AddResourceKey("k8s.statefulset.name", event.Name)
+		entry.AddResourceKey("k8s.statefulset.uid", string(io.UID))
+		entry.AddResourceKey("k8s.statefulset.name", io.Name)
 	case "DaemonSet":
-		entry.AddResourceKey("k8s.daemonset.uid", string(event.UID))
-		entry.AddResourceKey("k8s.daemonset.name", event.Name)
+		entry.AddResourceKey("k8s.daemonset.uid", string(io.UID))
+		entry.AddResourceKey("k8s.daemonset.name", io.Name)
 	case "Job":
-		entry.AddResourceKey("k8s.job.uid", string(event.UID))
-		entry.AddResourceKey("k8s.job.name", event.Name)
+		entry.AddResourceKey("k8s.job.uid", string(io.UID))
+		entry.AddResourceKey("k8s.job.name", io.Name)
 	case "CronJob":
-		entry.AddResourceKey("k8s.cronjob.uid", string(event.UID))
-		entry.AddResourceKey("k8s.cronjob.name", event.Name)
+		entry.AddResourceKey("k8s.cronjob.uid", string(io.UID))
+		entry.AddResourceKey("k8s.cronjob.name", io.Name)
 	}
 }
