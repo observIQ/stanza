@@ -82,8 +82,7 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 		return err
 	}
 
-	counter := NewCountingWriter(d.data)
-	enc := json.NewEncoder(counter)
+	enc := json.NewEncoder(d.data)
 	err = enc.Encode(newEntry)
 	if err != nil {
 		return err
