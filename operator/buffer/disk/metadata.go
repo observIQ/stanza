@@ -6,27 +6,26 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync/atomic"
 )
 
 type Metadata struct {
 	// File is a handle to the on-disk metadata store
 	//
 	// The layout of the file is as follows:
-	// - 8 byte DatabaseVersion as LittleEndian uint64
-	// - 8 byte DeadRangeStartOffset as LittleEndian uint64
-	// - 8 byte DeadRangeLength as LittleEndian uint64
-	// - 8 byte UnreadStartOffset as LittleEndian uint64
-	// - 8 byte UnreadCount as LittleEndian uint64
-	// - 8 byte ReadCount as LittleEndian uint64
+	// - 8 byte DatabaseVersion as LittleEndian int64
+	// - 8 byte DeadRangeStartOffset as LittleEndian int64
+	// - 8 byte DeadRangeLength as LittleEndian int64
+	// - 8 byte UnreadStartOffset as LittleEndian int64
+	// - 8 byte UnreadCount as LittleEndian int64
+	// - 8 byte ReadCount as LittleEndian int64
 	// - Repeated ReadCount times:
-	//     - 1 byte Flushed bool as LittleEndian uint8
+	//     - 1 byte Flushed bool LittleEndian
 	//     - 8 byte Length as LittleEndian uint64
 	//     - 8 byte StartOffset as LittleEndian uint64
 	file *os.File
 
-	// read is the collection of entries that have been read from disk
-	read []*diskEntry
+	// read is the collection of entries that have been read
+	read []*readEntry
 
 	// unreadStartOffset is the offset on disk where the contiguous
 	// range of unread entries start
@@ -65,7 +64,7 @@ func OpenMetadata(path string) (*Metadata, error) {
 			return &Metadata{}, fmt.Errorf("read metadata file: %s", err)
 		}
 	} else {
-		m.read = make([]*diskEntry, 0, 1000)
+		m.read = make([]*readEntry, 0, 1000)
 	}
 
 	return m, nil
@@ -104,19 +103,19 @@ func (m *Metadata) Close() error {
 }
 
 func (m *Metadata) Write(wr io.Writer) {
-	_ = binary.Write(wr, binary.LittleEndian, uint64(1))
+	_ = binary.Write(wr, binary.LittleEndian, int64(1))
 
 	_ = binary.Write(wr, binary.LittleEndian, m.deadRangeStart)
 	_ = binary.Write(wr, binary.LittleEndian, m.deadRangeLength)
 
 	_ = binary.Write(wr, binary.LittleEndian, m.unreadStartOffset)
-	_ = binary.Write(wr, binary.LittleEndian, m.AtomicUnreadCount())
+	_ = binary.Write(wr, binary.LittleEndian, m.unreadCount)
 
-	_ = binary.Write(wr, binary.LittleEndian, uint64(len(m.read)))
-	for _, diskEntry := range m.read {
-		_ = binary.Write(wr, binary.LittleEndian, diskEntry.flushed)
-		_ = binary.Write(wr, binary.LittleEndian, diskEntry.length)
-		_ = binary.Write(wr, binary.LittleEndian, diskEntry.startOffset)
+	_ = binary.Write(wr, binary.LittleEndian, int64(len(m.read)))
+	for _, readEntry := range m.read {
+		_ = binary.Write(wr, binary.LittleEndian, readEntry.flushed)
+		_ = binary.Write(wr, binary.LittleEndian, readEntry.length)
+		_ = binary.Write(wr, binary.LittleEndian, readEntry.startOffset)
 	}
 }
 
@@ -130,17 +129,9 @@ func (m *Metadata) setDeadRange(start, length int64) error {
 	return err
 }
 
-func (m *Metadata) AddUnreadCount(n int64) {
-	atomic.AddInt64(&m.unreadCount, n)
-}
-
-func (m *Metadata) AtomicUnreadCount() int64 {
-	return atomic.LoadInt64(&m.unreadCount)
-}
-
 func (m *Metadata) Read(r io.Reader) error {
 	// Read version
-	var version uint64
+	var version int64
 	err := binary.Read(r, binary.LittleEndian, &version)
 	if err != nil {
 		return fmt.Errorf("failed to read version: %s", err)
@@ -172,9 +163,9 @@ func (m *Metadata) Read(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("read read count: %s", err)
 	}
-	m.read = make([]*diskEntry, readCount)
+	m.read = make([]*readEntry, readCount)
 	for i := 0; i < int(readCount); i++ {
-		newEntry := diskEntry{}
+		newEntry := readEntry{}
 		err = binary.Read(r, binary.LittleEndian, &newEntry.flushed)
 		if err != nil {
 			return fmt.Errorf("read disk entry flushed: %s", err)
@@ -196,65 +187,26 @@ func (m *Metadata) Read(r io.Reader) error {
 	return nil
 }
 
-func (m *Metadata) nextFlushedRange() (int, int, bool) {
-	start := -1
-	end := -1
-	for i, diskEntry := range m.read {
-		if diskEntry.flushed {
-			start = i
-			break
-		}
-	}
-	if start == -1 {
-		return 0, 0, false
-	}
+// readEntry is a struct holding metadata about read entries
+type readEntry struct {
+	// A flushed entry is one that has been flushed and is ready
+	// to be removed from disk
+	flushed bool
 
-	for i := start; i < len(m.read); i++ {
-		if !m.read[i].flushed {
-			end = i
-			break
-		}
-	}
+	// The number of bytes the entry takes on disk
+	length int64
 
-	if end == -1 {
-		return start, len(m.read), true
-	}
-
-	return start, end, true
+	// The offset in the file where the entry starts
+	startOffset int64
 }
 
-// getCleanableRanges returns the starting and ending indexes of the two ranges  of diskEntries
-// where the first range is composed successfully flushed diskEntries and the second
-// range is composed of
-func getCleanableRanges(searchStart int, entries []*diskEntry) (start1, start2, end2 int) {
-	// search for the first flushed entry in range 1
-	for start1 = searchStart; start1 < len(entries); start1++ {
-		if entries[start1].flushed {
-			break
-		}
+// onDiskSize calculates the size in bytes on disk for a contiguous
+// range of diskEntries
+func onDiskSize(entries []*readEntry) int64 {
+	if len(entries) == 0 {
+		return 0
 	}
 
-	// search for the last flushed entry in range 1
-	for start2 = start1; start2 < len(entries); start2++ {
-		if !entries[start2].flushed {
-			break
-		}
-	}
-
-	range1DiskSize := onDiskSize(entries[start1:start2])
-
-	// search for the last unflushed entry, or the last entry that will allow
-	// range2 to fit inside the space of range 1
-	for end2 = start2; end2 < len(entries); end2++ {
-		if entries[end2].flushed {
-			break
-		}
-
-		range2DiskSize := onDiskSize(entries[start2:end2])
-		if range2DiskSize > range1DiskSize {
-			break
-		}
-	}
-
-	return start1, start2, end2
+	last := entries[len(entries)-1]
+	return last.startOffset + last.length - entries[0].startOffset
 }

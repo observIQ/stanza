@@ -69,7 +69,7 @@ func uncheckedFlushN(t testing.TB, buffer *DiskBuffer, n int) {
 }
 
 func openBuffer(t testing.TB) *DiskBuffer {
-	buffer := NewDiskBuffer()
+	buffer := NewDiskBuffer(1 << 30)
 	dir := testutil.NewTempDir(t)
 	err := buffer.Open(dir)
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestDiskBuffer(t *testing.T) {
 
 	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
 		t.Parallel()
-		b := NewDiskBuffer()
+		b := NewDiskBuffer(1 << 30)
 		dir := testutil.NewTempDir(t)
 		err := b.Open(dir)
 		require.NoError(t, err)
@@ -181,7 +181,7 @@ func TestDiskBuffer(t *testing.T) {
 		err = b.Close()
 		require.NoError(t, err)
 
-		b2 := NewDiskBuffer()
+		b2 := NewDiskBuffer(1 << 30)
 		err = b2.Open(dir)
 		require.NoError(t, err)
 		readN(t, b2, 20, 0)
@@ -189,7 +189,7 @@ func TestDiskBuffer(t *testing.T) {
 
 	t.Run("Write20Flush10CloseRead20", func(t *testing.T) {
 		t.Parallel()
-		b := NewDiskBuffer()
+		b := NewDiskBuffer(1 << 30)
 		dir := testutil.NewTempDir(t)
 		err := b.Open(dir)
 		require.NoError(t, err)
@@ -199,7 +199,7 @@ func TestDiskBuffer(t *testing.T) {
 		err = b.Close()
 		require.NoError(t, err)
 
-		b2 := NewDiskBuffer()
+		b2 := NewDiskBuffer(1 << 30)
 		err = b2.Open(dir)
 		require.NoError(t, err)
 		readN(t, b2, 10, 10)
@@ -214,7 +214,7 @@ func TestDiskBuffer(t *testing.T) {
 				t.Parallel()
 				r := rand.New(rand.NewSource(seed))
 
-				b := NewDiskBuffer()
+				b := NewDiskBuffer(1 << 30)
 				dir := testutil.NewTempDir(t)
 				err := b.Open(dir)
 				require.NoError(t, err)

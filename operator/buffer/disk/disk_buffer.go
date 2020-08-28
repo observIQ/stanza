@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
+	"golang.org/x/sync/semaphore"
 )
 
 type DiskBuffer struct {
@@ -26,16 +28,23 @@ type DiskBuffer struct {
 	// Readers using ReadWait will listen on this channel, and wait to read until
 	// there are enough entries to fill its buffer.
 	entryAdded chan int64
+
+	// readerLock ensures that there is only ever one reader listening to the
+	// entryAdded channel at a time.
 	readerLock sync.Mutex
+
+	// diskSizeSemaphore
+	diskSizeSemaphore *semaphore.Weighted
 
 	copyBuffer []byte
 }
 
 // NewDiskBuffer creates a new DiskBuffer
-func NewDiskBuffer() *DiskBuffer {
+func NewDiskBuffer(maxDiskSize int64) *DiskBuffer {
 	return &DiskBuffer{
-		entryAdded: make(chan int64),
-		copyBuffer: make([]byte, 1<<16), // TODO benchmark different sizes
+		entryAdded:        make(chan int64, 1),
+		copyBuffer:        make([]byte, 1<<16), // TODO benchmark different sizes
+		diskSizeSemaphore: semaphore.NewWeighted(maxDiskSize),
 	}
 }
 
@@ -52,6 +61,15 @@ func (d *DiskBuffer) Open(path string) error {
 		return err
 	}
 
+	info, err := d.data.Stat()
+	if err != nil {
+		return err
+	}
+
+	if ok := d.diskSizeSemaphore.TryAcquire(info.Size()); !ok {
+		return fmt.Errorf("current on-disk size is larger than max size")
+	}
+
 	// First, if there is a dead range from a previous incomplete compaction, delete it
 	err = d.deleteDeadRange()
 	if err != nil {
@@ -64,7 +82,8 @@ func (d *DiskBuffer) Open(path string) error {
 		return err
 	}
 
-	// Once everything is compacted, we can safely reset
+	// Once everything is compacted, we can safely reset all previously read, but
+	// unflushed entries to unread
 	d.metadata.unreadStartOffset = 0
 	d.metadata.unreadCount += int64(len(d.metadata.read))
 	d.metadata.read = d.metadata.read[:0]
@@ -73,48 +92,63 @@ func (d *DiskBuffer) Open(path string) error {
 
 // Add adds an entry to the buffer
 func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
+	var buf bytes.Buffer // TODO pool buffers
+	enc := json.NewEncoder(&buf)
+	err := enc.Encode(newEntry)
+	if err != nil {
+		return err
+	}
+
+	err = d.diskSizeSemaphore.Acquire(ctx, int64(buf.Len()))
+	if err != nil {
+		return err
+	}
+
 	d.Lock()
 	defer d.Unlock()
 
 	// Seek to end of the file
-	_, err := d.data.Seek(0, 2)
+	_, err = d.data.Seek(0, 2)
 	if err != nil {
 		return err
 	}
 
-	enc := json.NewEncoder(d.data)
-	err = enc.Encode(newEntry)
+	_, err = d.data.Write(buf.Bytes())
 	if err != nil {
 		return err
 	}
 
-	d.metadata.unreadCount++
-
-	// Notify a reader that new entries have been added
-	select {
-	case d.entryAdded <- d.metadata.unreadCount:
-	default:
-	}
+	d.incrementUnreadCount(1)
 
 	return nil
+}
+
+func (d *DiskBuffer) incrementUnreadCount(i int64) {
+	d.metadata.unreadCount += i
+
+	// Notify a reader that new entries have been added by either
+	// sending on the channel, or updating the value in the channel
+	select {
+	case <-d.entryAdded:
+		d.entryAdded <- d.metadata.unreadCount
+	case d.entryAdded <- d.metadata.unreadCount:
+	}
 }
 
 func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (func(), int, error) {
 	d.readerLock.Lock()
 	defer d.readerLock.Unlock()
 
-	// Wait until there are enough entries to do a single read
-	if d.metadata.AtomicUnreadCount() < int64(len(dst)) {
-	LOOP:
-		for {
-			select {
-			case n := <-d.entryAdded:
-				if n >= int64(len(dst)) {
-					break LOOP
-				}
-			case <-timeout:
+	// Wait until the timeout is hit, or there are enough unread entries to fill the destination buffer
+LOOP:
+	for {
+		select {
+		case n := <-d.entryAdded:
+			if n >= int64(len(dst)) {
 				break LOOP
 			}
+		case <-timeout:
+			break LOOP
 		}
 	}
 
@@ -125,17 +159,19 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.Lock()
 	defer d.Unlock()
 
+	// Return fast if there are no unread entries
 	if d.metadata.unreadCount == 0 {
 		return func() {}, 0, nil
 	}
 
+	// Seek to the start of the range of unread entries
 	_, err = d.data.Seek(d.metadata.unreadStartOffset, 0)
 	if err != nil {
 		return nil, 0, fmt.Errorf("seek to unread: %s", err)
 	}
 
 	readCount := min(len(dst), int(d.metadata.unreadCount))
-	newRead := make([]*diskEntry, readCount)
+	newRead := make([]*readEntry, readCount)
 	dec := json.NewDecoder(d.data)
 	entryStartOffset := d.metadata.unreadStartOffset
 	for i := 0; i < readCount; i++ {
@@ -146,7 +182,7 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 		}
 		dst[i] = &entry
 
-		newRead[i] = &diskEntry{
+		newRead[i] = &readEntry{
 			startOffset: entryStartOffset,
 			length:      d.metadata.unreadStartOffset + dec.InputOffset() + 1 - entryStartOffset,
 		}
@@ -158,30 +194,75 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.metadata.unreadCount -= int64(readCount)
 	markFlushed := func() {
 		d.Lock()
-		defer d.Unlock()
 		for _, entry := range newRead {
 			entry.flushed = true
 		}
+		d.Unlock()
+		// TODO auto-compact at some percent space used by flushed
 	}
 
 	return markFlushed, readCount, nil
 }
 
+// Close flushes the current metadata to disk, then closes the underlying files
 func (d *DiskBuffer) Close() error {
 	d.Lock()
 	defer d.Unlock()
+
 	err := d.metadata.Close()
 	if err != nil {
 		return err
 	}
-	d.data.Close()
-	return nil
+	return d.data.Close()
 }
 
 // Compact removes all flushed entries from disk
 func (d *DiskBuffer) Compact() error {
 	d.Lock()
 	defer d.Unlock()
+
+	// So how does this work? The goal here is to remove all flushed entries from disk,
+	// freeing up space for new entries. We do this by going through each entry that has
+	// been read and checking if it has been flushed. If it has, we know that space on
+	// disk is re-claimable, so we can move unflushed entries into its place.
+	//
+	// The tricky part is that we can't overwrite any data until we've both safely copied it
+	// to its new location and written a copy of the metadata that describes where that data
+	// is located on disk. This ensures that, if our process is killed mid-compaction, we will
+	// always have a complete, uncorrupted database.
+	//
+	// We do this by maintaining a "dead range" during compation. The dead range is
+	// effectively a range of bytes that can safely be deleted from disk just by shifting
+	// everything that comes after it backwards in the file. Then, when we open the disk
+	// buffer, the first thing we do is delete the dead range if it exists.
+	//
+	// To clear out flushed entries, we iterate over all the entries that have been read,
+	// finding ranges of either flushed or unflushed entries. If we have a range of flushed
+	// entries, we can expand the dead range to include the space those entries took on disk.
+	// If we find a range of unflushed entries, we move them to the beginning of the dead range
+	// and advance the start of the dead range to the end of the copied bytes.
+	//
+	// Once we iterate through all the read entries, we should be left with a dead range
+	// that's located right before the start of the unread entries. Since we know none of the
+	// unread entries need be flushed, we can simply bubble the dead range through the unread
+	// entries, then truncate the dead range from the end of the file once we're done.
+	//
+	// The most important part here is to sync the metadata to disk before overwriting any
+	// data. That way, at startup, we know where the dead zone is in the file so we can
+	// safely delete it without deleting any live data.
+	//
+	// Example:
+	// (f = flushed byte, r = read byte, u = unread byte, lowercase = dead range)
+	//
+	// FFFFRRRRFFRRRRRRRUUUUUUUUU // start of compaction
+	// ffffRRRRFFRRRRRRRUUUUUUUUU // mark the first flushed range as unread
+	// RRRRrrrrFFRRRRRRRUUUUUUUUU // move the read range to the beginning of the dead range
+	// RRRRrrrrffRRRRRRRUUUUUUUUU // expand the dead range to include the flushed range
+	// RRRRRRRRRRrrrrrrRUUUUUUUUU // move the portion of the next read range that fits into the dead range
+	// RRRRRRRRRRRrrrrrrUUUUUUUUU // move the remainder of the read range to start of the dead range
+	// RRRRRRRRRRRUUUUUUuuuuuuUUU // move the unread entries that fit into the dead range
+	// RRRRRRRRRRRUUUUUUUUUuuuuuu // move the remainder of the unread entries into the dead range
+	// RRRRRRRRRRRUUUUUUUUU       // truncate the file to remove the dead range
 
 	m := d.metadata
 	if m.deadRangeLength != 0 {
@@ -190,11 +271,7 @@ func (d *DiskBuffer) Compact() error {
 
 	for i := 0; i < len(m.read); {
 		if m.read[i].flushed {
-			// If the next entry is flushed, find the range of flushed entries, then
-			// update the length of the dead space to include the range, delete
-			// the flushed entries from metadata, then  sync metadata
-
-			// Find the end index of the slice of flushed entries
+			// Find the end index of the range of flushed entries
 			j := i + 1
 			for ; j < len(m.read); j++ {
 				if !m.read[i].flushed {
@@ -206,24 +283,24 @@ func (d *DiskBuffer) Compact() error {
 			rangeSize := onDiskSize(m.read[i:j])
 			m.deadRangeLength += rangeSize
 
-			// Update the effective offsets if the dead range is just deleted
+			// Update the effective offsets if the dead range is removed
 			for _, entry := range m.read[j:] {
 				entry.startOffset -= rangeSize
 			}
 
-			// Update the effective unreadStartOffset if the dead range is just deleted
+			// Update the effective unreadStartOffset if the dead range is removed
 			m.unreadStartOffset -= rangeSize
 
-			// Delete the range from metadata
+			// Delete the flushed range from metadata
 			m.read = append(m.read[:i], m.read[j:]...)
 
+			// Sync to disk
+			err := d.metadata.Sync()
+			if err != nil {
+				return err
+			}
 		} else {
-			// If the next entry is unflushed, find the range of unflushed entries.
-			// Copy those into the dead space in chunks, update the offset of
-			// the dead space, then sync metadata
-
-			// Find the end index of the slice of unflushed entries, or the end index
-			// of the range that fits inside the dead range
+			// Find the end index of the range of unflushed entries
 			j := i + 1
 			for ; j < len(m.read); j++ {
 				if m.read[i].flushed {
@@ -231,7 +308,7 @@ func (d *DiskBuffer) Compact() error {
 				}
 			}
 
-			// Continue early if there is no dead space to move unflushed entries into
+			// If there is no dead range, no need to move unflushed entries
 			if m.deadRangeLength == 0 {
 				i = j
 				continue
@@ -273,17 +350,6 @@ func (d *DiskBuffer) Compact() error {
 
 	// Bubble the dead space through the unflushed entries, then truncate
 	return d.deleteDeadRange()
-}
-
-// onDiskSize calculates the size in bytes on disk for a contiguous
-// range of diskEntries
-func onDiskSize(entries []*diskEntry) int64 {
-	if len(entries) == 0 {
-		return 0
-	}
-
-	last := entries[len(entries)-1]
-	return last.startOffset + last.length - entries[0].startOffset
 }
 
 func (d *DiskBuffer) deleteDeadRange() error {
@@ -328,9 +394,17 @@ func (d *DiskBuffer) deleteDeadRange() error {
 		return err
 	}
 
-	return d.metadata.setDeadRange(0, 0)
+	err = d.metadata.setDeadRange(0, 0)
+	if err != nil {
+		return err
+	}
+
+	d.diskSizeSemaphore.Release(d.metadata.deadRangeLength)
+	return nil
 }
 
+// moveRange moves from length2 bytes starting from start2 into the space from start1
+// to start1+length1
 func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, error) {
 	if length2 > length1 {
 		return 0, fmt.Errorf("cannot move a range into a space smaller than itself")
@@ -371,18 +445,6 @@ func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, err
 	}
 
 	return bytesRead, nil
-}
-
-type diskEntry struct {
-	// A flushed entry is one that has been flushed and is ready
-	// to be removed from disk
-	flushed bool
-
-	// The number of bytes the entry takes on disk
-	length int64
-
-	// The offset in the file where the entry starts
-	startOffset int64
 }
 
 func min(first, second int) int {
