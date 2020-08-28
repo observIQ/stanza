@@ -31,11 +31,11 @@ func (f *fakeWatch) ResultChan() <-chan watch.Event {
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Pod",
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				ClusterName: "testcluster",
-				Name:        "testpodname",
-				UID:         types.UID("testuid"),
-				Namespace:   "testnamespace",
+			InvolvedObject: apiv1.ObjectReference{
+				Kind:      "Pod",
+				Name:      "testpodname",
+				UID:       types.UID("testuid"),
+				Namespace: "testnamespace",
 			},
 			LastTimestamp: metav1.Time{
 				Time: fakeTime,
@@ -73,7 +73,6 @@ func TestWatchNamespace(t *testing.T) {
 	select {
 	case entry := <-fake.Received:
 		require.Equal(t, entry.Timestamp, fakeTime)
-		require.Equal(t, entry.Resource["k8s.cluster.name"], "testcluster")
 		require.Equal(t, entry.Resource["k8s.namespace.name"], "testnamespace")
 		require.Equal(t, entry.Resource["k8s.pod.uid"], "testuid")
 		require.Equal(t, entry.Resource["k8s.pod.name"], "testpodname")

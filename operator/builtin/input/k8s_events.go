@@ -190,9 +190,7 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 func (k *K8sEvents) populateResource(event *apiv1.Event, entry *entry.Entry) {
 	io := event.InvolvedObject
 
-	if event.ClusterName != "" {
-		entry.AddResourceKey("k8s.cluster.name", event.ClusterName)
-	}
+	entry.AddResourceKey("k8s.cluster.name", event.ClusterName)
 	entry.AddResourceKey("k8s.namespace.name", io.Namespace)
 
 	switch io.Kind {
