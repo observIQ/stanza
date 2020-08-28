@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/entry"
+	"github.com/observiq/carbon/entry"
 )
 
 type DiskBuffer struct {
@@ -119,6 +119,17 @@ func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (fun
 func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.Lock()
 	defer d.Unlock()
+	defer func() {
+		if err != nil {
+			mf, _ := os.Create("/tmp/metadata")
+			d.metadata.file.Seek(0, 0)
+			io.Copy(mf, d.metadata.file)
+
+			df, _ := os.Create("/tmp/data")
+			d.data.Seek(0, 0)
+			io.Copy(df, d.data)
+		}
+	}()
 
 	if d.metadata.unreadCount == 0 {
 		return func() {}, 0, nil
@@ -183,6 +194,10 @@ func (d *DiskBuffer) Compact() error {
 	defer d.Unlock()
 
 	m := d.metadata
+	if m.deadRangeLength == 0 {
+		return fmt.Errorf("cannot compact the disk buffer before removing the dead range")
+	}
+
 	for i := 0; i < len(m.read); {
 		if m.read[i].flushed {
 			// If the next entry is flushed, find the range of flushed entries, then
@@ -198,14 +213,27 @@ func (d *DiskBuffer) Compact() error {
 			}
 
 			// Expand the dead range
-			m.deadRangeLength += onDiskSize(m.read[i:j])
+			rangeSize := onDiskSize(m.read[i:j])
+			m.deadRangeLength += rangeSize
+
+			// Update the effective offsets if the dead range is just deleted
+			for _, entry := range m.read[j:] {
+				entry.startOffset -= rangeSize
+			}
+
+			// Update the effective unreadStartOffset if the dead range is just deleted
+			m.unreadStartOffset -= rangeSize
 
 			// Delete the range from metadata
 			m.read = append(m.read[:i], m.read[j:]...)
+
+			err := d.metadata.Sync()
+			if err != nil {
+				return err
+			}
 		} else {
-			// If the next entry is unflushed, find the range of unflushed entries
-			// that can fit completely inside the dead space. Copy those into the dead
-			// space, update their offsets, update nextIndex, update the offset of
+			// If the next entry is unflushed, find the range of unflushed entries.
+			// Copy those into the dead space in chunks, update the offset of
 			// the dead space, then sync metadata
 
 			// Find the end index of the slice of unflushed entries, or the end index
@@ -222,7 +250,6 @@ func (d *DiskBuffer) Compact() error {
 			}
 
 			// Move the range into the dead space
-			// TODO what if the first entry in the range is larger than the dead range?
 			bytesMoved, err := d.moveRange(
 				m.deadRangeStart,
 				m.deadRangeLength,
@@ -246,11 +273,6 @@ func (d *DiskBuffer) Compact() error {
 			i = j
 		}
 
-		// Sync after every operation
-		err := d.metadata.Sync()
-		if err != nil {
-			return err
-		}
 	}
 
 	// Bubble the dead space through the unflushed entries, then truncate
