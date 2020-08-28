@@ -84,12 +84,14 @@ func compact(t testing.TB, b *DiskBuffer) {
 
 func TestDiskBuffer(t *testing.T) {
 	t.Run("Simple", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 1, 0)
 		readN(t, b, 1, 0)
 	})
 
 	t.Run("Write2Read1Read1", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 2, 0)
 		readN(t, b, 1, 0)
@@ -97,6 +99,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write20Read10Read10", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
@@ -104,6 +107,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("SingleReadWaitMultipleWrites", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 10, 0)
 		readyDone := make(chan struct{})
@@ -113,11 +117,13 @@ func TestDiskBuffer(t *testing.T) {
 			readyDone <- struct{}{}
 		}()
 		<-readyDone
+		time.Sleep(100 * time.Millisecond)
 		writeN(t, b, 10, 10)
 		<-readyDone
 	})
 
 	t.Run("ReadWaitOnlyWaitForPartialWrite", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 10, 0)
 		readyDone := make(chan struct{})
@@ -133,6 +139,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write10Read10Read0", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 10, 0)
 		readN(t, b, 10, 0)
@@ -143,6 +150,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write20Read10Read10Unfull", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
@@ -153,6 +161,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write20Read10CompactRead10", func(t *testing.T) {
+		t.Parallel()
 		b := openBuffer(t)
 		writeN(t, b, 20, 0)
 		flushN(t, b, 10, 0)
@@ -161,6 +170,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
+		t.Parallel()
 		b := NewDiskBuffer()
 		dir := testutil.NewTempDir(t)
 		err := b.Open(dir)
@@ -178,6 +188,7 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write20Flush10CloseRead20", func(t *testing.T) {
+		t.Parallel()
 		b := NewDiskBuffer()
 		dir := testutil.NewTempDir(t)
 		err := b.Open(dir)
@@ -195,35 +206,41 @@ func TestDiskBuffer(t *testing.T) {
 	})
 
 	t.Run("Write10kRandomFlushReadCompact", func(t *testing.T) {
-		b := NewDiskBuffer()
-		dir := testutil.NewTempDir(t)
-		err := b.Open(dir)
-		require.NoError(t, err)
+		t.Parallel()
+		rand.Seed(time.Now().Unix())
+		for i := 0; i < 10; i++ {
+			seed := rand.Int63()
+			t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
+				t.Parallel()
+				r := rand.New(rand.NewSource(seed))
 
-		writes := 0
-		reads := 0
-
-		for i := 0; i < 10000; i++ {
-			r := rand.Int() % 1000
-			switch {
-			case r < 900:
-				println("writing " + strconv.Itoa(writes))
-				writeN(t, b, 1, writes)
-				writes++
-			case r < 990:
-				readCount := (writes - reads) / 2
-				println("reading " + strconv.Itoa(readCount))
-				f := readN(t, b, readCount, reads)
-				if r%2 == 0 {
-					println("flushing")
-					f()
-				}
-				reads += readCount
-			default:
-				println("compacting")
-				err := b.Compact()
+				b := NewDiskBuffer()
+				dir := testutil.NewTempDir(t)
+				err := b.Open(dir)
 				require.NoError(t, err)
-			}
+
+				writes := 0
+				reads := 0
+
+				for i := 0; i < 10000; i++ {
+					j := r.Int() % 1000
+					switch {
+					case j < 900:
+						writeN(t, b, 1, writes)
+						writes++
+					case j < 990:
+						readCount := (writes - reads) / 2
+						f := readN(t, b, readCount, reads)
+						if j%2 == 0 {
+							f()
+						}
+						reads += readCount
+					default:
+						err := b.Compact()
+						require.NoError(t, err)
+					}
+				}
+			})
 		}
 	})
 

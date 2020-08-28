@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,14 +10,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/carbon/entry"
+	"github.com/observiq/stanza/entry"
 )
 
 type DiskBuffer struct {
+	// Metadata holds information about the current state of the buffered entries
 	metadata *Metadata
-	data     *os.File
+
+	// Data is the file that stores the buffered entries
+	data *os.File
 	sync.Mutex
 
+	// entryAdded is a channel that is notified on every time an entry is added.
+	// The integer sent down the channel is the new number of unread entries stored.
+	// Readers using ReadWait will listen on this channel, and wait to read until
+	// there are enough entries to fill its buffer.
 	entryAdded chan int64
 	readerLock sync.Mutex
 
@@ -119,17 +125,6 @@ func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (fun
 func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.Lock()
 	defer d.Unlock()
-	defer func() {
-		if err != nil {
-			mf, _ := os.Create("/tmp/metadata")
-			d.metadata.file.Seek(0, 0)
-			io.Copy(mf, d.metadata.file)
-
-			df, _ := os.Create("/tmp/data")
-			d.data.Seek(0, 0)
-			io.Copy(df, d.data)
-		}
-	}()
 
 	if d.metadata.unreadCount == 0 {
 		return func() {}, 0, nil
@@ -141,11 +136,9 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	}
 
 	readCount := min(len(dst), int(d.metadata.unreadCount))
-
-	inFlight := make([]*diskEntry, readCount)
-	counter := NewCountingReader(d.data)
-	currentOffset := d.metadata.unreadStartOffset
-	dec := json.NewDecoder(counter)
+	newRead := make([]*diskEntry, readCount)
+	dec := json.NewDecoder(d.data)
+	entryStartOffset := d.metadata.unreadStartOffset
 	for i := 0; i < readCount; i++ {
 		var entry entry.Entry
 		err := dec.Decode(&entry)
@@ -154,22 +147,20 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 		}
 		dst[i] = &entry
 
-		// TODO explanatory comment
-		totalRead := counter.BytesRead() - dec.Buffered().(*bytes.Reader).Len()
-		inFlight[i] = &diskEntry{
-			length:      int64(totalRead) - currentOffset,
-			startOffset: currentOffset,
+		newRead[i] = &diskEntry{
+			startOffset: entryStartOffset,
+			length:      d.metadata.unreadStartOffset + dec.InputOffset() + 1 - entryStartOffset,
 		}
-		currentOffset = int64(totalRead)
+		entryStartOffset = d.metadata.unreadStartOffset + dec.InputOffset() + 1
 	}
 
-	d.metadata.read = append(d.metadata.read, inFlight...)
-	d.metadata.unreadStartOffset = currentOffset + 1 // Add one for the trailing newline
+	d.metadata.read = append(d.metadata.read, newRead...)
+	d.metadata.unreadStartOffset = entryStartOffset
 	d.metadata.unreadCount -= int64(readCount)
 	markFlushed := func() {
 		d.Lock()
 		defer d.Unlock()
-		for _, entry := range inFlight {
+		for _, entry := range newRead {
 			entry.flushed = true
 		}
 	}
@@ -194,7 +185,7 @@ func (d *DiskBuffer) Compact() error {
 	defer d.Unlock()
 
 	m := d.metadata
-	if m.deadRangeLength == 0 {
+	if m.deadRangeLength != 0 {
 		return fmt.Errorf("cannot compact the disk buffer before removing the dead range")
 	}
 
@@ -227,10 +218,6 @@ func (d *DiskBuffer) Compact() error {
 			// Delete the range from metadata
 			m.read = append(m.read[:i], m.read[j:]...)
 
-			err := d.metadata.Sync()
-			if err != nil {
-				return err
-			}
 		} else {
 			// If the next entry is unflushed, find the range of unflushed entries.
 			// Copy those into the dead space in chunks, update the offset of
@@ -243,31 +230,41 @@ func (d *DiskBuffer) Compact() error {
 				if m.read[i].flushed {
 					break
 				}
+			}
 
-				if onDiskSize(m.read[i:j]) > m.deadRangeLength {
-					break
+			// Continue early if there is no dead space to move unflushed entries into
+			if m.deadRangeLength == 0 {
+				i = j
+				continue
+			}
+
+			// Slide the range left, syncing dead range after every chunk
+			rangeSize := int(onDiskSize(m.read[i:j]))
+			for bytesMoved := 0; bytesMoved < rangeSize; {
+				remainingBytes := rangeSize - bytesMoved
+				chunkSize := min(int(m.deadRangeLength), remainingBytes)
+
+				// Move the chunk to the beginning of the dead space
+				_, err := d.moveRange(
+					m.deadRangeStart,
+					m.deadRangeLength,
+					m.read[i].startOffset+int64(bytesMoved),
+					int64(chunkSize),
+				)
+				if err != nil {
+					return err
+				}
+
+				// Update the offset of the dead space
+				m.deadRangeStart += int64(chunkSize)
+				bytesMoved += chunkSize
+
+				// Sync to disk all at once
+				err = d.metadata.Sync()
+				if err != nil {
+					return err
 				}
 			}
-
-			// Move the range into the dead space
-			bytesMoved, err := d.moveRange(
-				m.deadRangeStart,
-				m.deadRangeLength,
-				m.read[i].startOffset,
-				m.read[j-1].length,
-			)
-			if err != nil {
-				return err
-			}
-
-			// Update the offsets of the moved range
-			offsetDelta := m.read[i].startOffset - m.deadRangeStart
-			for _, diskEntry := range m.read {
-				diskEntry.startOffset -= offsetDelta
-			}
-
-			// Update the offset of the dead space
-			m.deadRangeStart += int64(bytesMoved)
 
 			// Update i
 			i = j
