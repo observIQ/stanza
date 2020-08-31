@@ -21,20 +21,25 @@ coupled with the [`rate_limit`](/docs/operators/rate_limit.md) operator.
 Configuration:
 ```yaml
 - type: generate_input
-  record:
-    message1: log1
-    message2: log2
+  entry:
+    record:
+      message1: log1
+      message2: log2
 ```
 
 Output records:
 ```json
 {
-  "message1": "log1",
-  "message2": "log2"
+  "record": {
+    "message1": "log1",
+    "message2": "log2"
+  },
 },
 {
-  "message1": "log1",
-  "message2": "log2"
+  "record": {
+    "message1": "log1",
+    "message2": "log2"
+  },
 },
 ...
 ```
