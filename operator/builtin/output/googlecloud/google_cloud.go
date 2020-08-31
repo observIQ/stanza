@@ -1,16 +1,14 @@
-package output
+package googlecloud
 
 import (
 	"context"
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"reflect"
 	"time"
 
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/internal/version"
@@ -21,7 +19,6 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
-	sev "google.golang.org/genproto/googleapis/logging/type"
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding/gzip"
@@ -194,7 +191,7 @@ func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.E
 	req := logpb.WriteLogEntriesRequest{
 		LogName:  p.toLogNamePath("default"),
 		Entries:  pbEntries,
-		Resource: globalResource(p.projectID),
+		Resource: p.defaultResource(),
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, p.timeout)
@@ -205,6 +202,15 @@ func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.E
 	}
 
 	return nil
+}
+
+func (p *GoogleCloudOutput) defaultResource() *mrpb.MonitoredResource {
+	return &mrpb.MonitoredResource{
+		Type: "global",
+		Labels: map[string]string{
+			"project_id": p.projectID,
+		},
+	}
 }
 
 func (p *GoogleCloudOutput) toLogNamePath(logName string) string {
@@ -251,225 +257,13 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		}
 	}
 
-	newEntry.Severity = interpretSeverity(e.Severity)
+	newEntry.Severity = convertSeverity(e.Severity)
 	err = setPayload(newEntry, e.Record)
 	if err != nil {
 		return nil, errors.Wrap(err, "set entry payload")
 	}
 
+	newEntry.Resource = getResource(e)
+
 	return newEntry, nil
-}
-
-func setPayload(entry *logpb.LogEntry, record interface{}) (err error) {
-	// Protect against the panic condition inside `jsonValueToStructValue`
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf(r.(string))
-		}
-	}()
-	switch p := record.(type) {
-	case string:
-		entry.Payload = &logpb.LogEntry_TextPayload{TextPayload: p}
-	case []byte:
-		entry.Payload = &logpb.LogEntry_TextPayload{TextPayload: string(p)}
-	case map[string]interface{}:
-		s := jsonMapToProtoStruct(p)
-		entry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: s}
-	case map[string]string:
-		fields := map[string]*structpb.Value{}
-		for k, v := range p {
-			fields[k] = jsonValueToStructValue(v)
-		}
-		entry.Payload = &logpb.LogEntry_JsonPayload{JsonPayload: &structpb.Struct{Fields: fields}}
-	default:
-		return fmt.Errorf("cannot convert record of type %T to a protobuf representation", record)
-	}
-
-	return nil
-}
-
-func jsonMapToProtoStruct(m map[string]interface{}) *structpb.Struct {
-	fields := map[string]*structpb.Value{}
-	for k, v := range m {
-		fields[k] = jsonValueToStructValue(v)
-	}
-	return &structpb.Struct{Fields: fields}
-}
-
-func jsonValueToStructValue(v interface{}) *structpb.Value {
-	switch x := v.(type) {
-	case bool:
-		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: x}}
-	case float32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case float64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: x}}
-	case int:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int8:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int16:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint8:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint16:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case string:
-		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: x}}
-	case nil:
-		return &structpb.Value{Kind: &structpb.Value_NullValue{}}
-	case map[string]interface{}:
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: jsonMapToProtoStruct(x)}}
-	case map[string]map[string]string:
-		fields := map[string]*structpb.Value{}
-		for k, v := range x {
-			fields[k] = jsonValueToStructValue(v)
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
-	case map[string]string:
-		fields := map[string]*structpb.Value{}
-		for k, v := range x {
-			fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
-	case []interface{}:
-		var vals []*structpb.Value
-		for _, e := range x {
-			vals = append(vals, jsonValueToStructValue(e))
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: vals}}}
-	case []string:
-		var vals []*structpb.Value
-		for _, e := range x {
-			vals = append(vals, jsonValueToStructValue(e))
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: vals}}}
-	default:
-		// Fallback to reflection for other types
-		return reflectToValue(reflect.ValueOf(v))
-	}
-}
-
-func reflectToValue(v reflect.Value) *structpb.Value {
-	switch v.Kind() {
-	case reflect.Bool:
-		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: v.Bool()}}
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v.Int())}}
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v.Uint())}}
-	case reflect.Float32, reflect.Float64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: v.Float()}}
-	case reflect.Ptr:
-		if v.IsNil() {
-			return nil
-		}
-		return reflectToValue(reflect.Indirect(v))
-	case reflect.Array, reflect.Slice:
-		size := v.Len()
-		if size == 0 {
-			return nil
-		}
-		values := make([]*structpb.Value, size)
-		for i := 0; i < size; i++ {
-			values[i] = reflectToValue(v.Index(i))
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: values}}}
-	case reflect.Struct:
-		t := v.Type()
-		size := v.NumField()
-		if size == 0 {
-			return nil
-		}
-		fields := make(map[string]*structpb.Value, size)
-		for i := 0; i < size; i++ {
-			name := t.Field(i).Name
-			// Better way?
-			if len(name) > 0 && 'A' <= name[0] && name[0] <= 'Z' {
-				fields[name] = reflectToValue(v.Field(i))
-			}
-		}
-		if len(fields) == 0 {
-			return nil
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
-	case reflect.Map:
-		keys := v.MapKeys()
-		if len(keys) == 0 {
-			return nil
-		}
-		fields := make(map[string]*structpb.Value, len(keys))
-		for _, k := range keys {
-			if k.Kind() == reflect.String {
-				fields[k.String()] = reflectToValue(v.MapIndex(k))
-			}
-		}
-		if len(fields) == 0 {
-			return nil
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
-	default:
-		// Last resort
-		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: fmt.Sprint(v)}}
-	}
-}
-
-func globalResource(projectID string) *mrpb.MonitoredResource {
-	return &mrpb.MonitoredResource{
-		Type: "global",
-		Labels: map[string]string{
-			"project_id": projectID,
-		},
-	}
-}
-
-var fastSev = map[entry.Severity]sev.LogSeverity{
-	entry.Catastrophe: sev.LogSeverity_EMERGENCY,
-	entry.Emergency:   sev.LogSeverity_EMERGENCY,
-	entry.Alert:       sev.LogSeverity_ALERT,
-	entry.Critical:    sev.LogSeverity_CRITICAL,
-	entry.Error:       sev.LogSeverity_ERROR,
-	entry.Warning:     sev.LogSeverity_WARNING,
-	entry.Notice:      sev.LogSeverity_NOTICE,
-	entry.Info:        sev.LogSeverity_INFO,
-	entry.Debug:       sev.LogSeverity_DEBUG,
-	entry.Trace:       sev.LogSeverity_DEBUG,
-	entry.Default:     sev.LogSeverity_DEFAULT,
-}
-
-func interpretSeverity(s entry.Severity) sev.LogSeverity {
-	if logSev, ok := fastSev[s]; ok {
-		return logSev
-	}
-
-	switch {
-	case s >= entry.Emergency:
-		return sev.LogSeverity_EMERGENCY
-	case s >= entry.Alert:
-		return sev.LogSeverity_ALERT
-	case s >= entry.Critical:
-		return sev.LogSeverity_CRITICAL
-	case s >= entry.Error:
-		return sev.LogSeverity_ERROR
-	case s >= entry.Warning:
-		return sev.LogSeverity_WARNING
-	case s >= entry.Notice:
-		return sev.LogSeverity_NOTICE
-	case s >= entry.Info:
-		return sev.LogSeverity_INFO
-	case s > entry.Default:
-		return sev.LogSeverity_DEBUG
-	default:
-		return sev.LogSeverity_DEFAULT
-	}
 }

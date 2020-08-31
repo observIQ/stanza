@@ -210,7 +210,32 @@ func toJSONDot(field RecordField) string {
 		return "$record"
 	}
 
-	return strings.Join(field.Keys, ".")
+	containsDots := false
+	for _, key := range field.Keys {
+		if strings.Contains(key, ".") {
+			containsDots = true
+		}
+	}
+
+	var b strings.Builder
+	if containsDots {
+		b.WriteString("$record")
+		for _, key := range field.Keys {
+			b.WriteString(`['`)
+			b.WriteString(key)
+			b.WriteString(`']`)
+		}
+	} else {
+		for i, key := range field.Keys {
+			if i != 0 {
+				b.WriteString(".")
+			}
+			b.WriteString(key)
+		}
+
+	}
+
+	return b.String()
 }
 
 // NewRecordField creates a new field from an ordered array of keys.

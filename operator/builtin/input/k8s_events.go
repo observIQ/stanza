@@ -7,6 +7,7 @@ import (
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
+	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
@@ -175,11 +176,55 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 				continue
 			}
 
-			entry.Timestamp = typedEvent.LastTimestamp.Time
+			// Prioritize EventTime > LastTimestamp > FirstTimestamp
+			switch {
+			case typedEvent.EventTime.Time != time.Time{}:
+				entry.Timestamp = typedEvent.EventTime.Time
+			case typedEvent.LastTimestamp.Time != time.Time{}:
+				entry.Timestamp = typedEvent.LastTimestamp.Time
+			case typedEvent.FirstTimestamp.Time != time.Time{}:
+				entry.Timestamp = typedEvent.FirstTimestamp.Time
+			}
+
 			entry.AddLabel("event_type", string(event.Type))
+			k.populateResource(typedEvent, entry)
 			k.Write(ctx, entry)
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+// populateResource uses the keys from Event.ObjectMeta to populate the resource of the entry
+func (k *K8sEvents) populateResource(event *apiv1.Event, entry *entry.Entry) {
+	io := event.InvolvedObject
+
+	entry.AddResourceKey("k8s.cluster.name", event.ClusterName)
+	entry.AddResourceKey("k8s.namespace.name", io.Namespace)
+
+	switch io.Kind {
+	case "Pod":
+		entry.AddResourceKey("k8s.pod.uid", string(io.UID))
+		entry.AddResourceKey("k8s.pod.name", io.Name)
+	case "Container":
+		entry.AddResourceKey("k8s.container.name", io.Name)
+	case "ReplicaSet":
+		entry.AddResourceKey("k8s.replicaset.uid", string(io.UID))
+		entry.AddResourceKey("k8s.replicaset.name", io.Name)
+	case "Deployment":
+		entry.AddResourceKey("k8s.deployment.uid", string(io.UID))
+		entry.AddResourceKey("k8s.deployment.name", io.Name)
+	case "StatefulSet":
+		entry.AddResourceKey("k8s.statefulset.uid", string(io.UID))
+		entry.AddResourceKey("k8s.statefulset.name", io.Name)
+	case "DaemonSet":
+		entry.AddResourceKey("k8s.daemonset.uid", string(io.UID))
+		entry.AddResourceKey("k8s.daemonset.name", io.Name)
+	case "Job":
+		entry.AddResourceKey("k8s.job.uid", string(io.UID))
+		entry.AddResourceKey("k8s.job.name", io.Name)
+	case "CronJob":
+		entry.AddResourceKey("k8s.cronjob.uid", string(io.UID))
+		entry.AddResourceKey("k8s.cronjob.name", io.Name)
 	}
 }

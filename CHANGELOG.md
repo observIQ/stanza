@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Support for accessing the resource with fields
+- Support for using fields to select keys that contain dots like `$record['field.with.dots']`
+- `google_cloud_output` will use resource create a monitored resource for supported resource types (currently only k8s resources)
+### Changed
+- The operators `host_metadata`, `k8s_event_input`, and `k8s_metadata_decorator` will now use the top-level resource field
+
 ## [0.9.12] - 2020-08-25
 ### Changed
 - Agent is now embeddable with a default output

@@ -1,6 +1,9 @@
 package entry
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // LabelField is the path to an entry label
 type LabelField struct {
@@ -42,6 +45,9 @@ func (l LabelField) Delete(entry *Entry) (interface{}, bool) {
 }
 
 func (l LabelField) String() string {
+	if strings.Contains(l.key, ".") {
+		return fmt.Sprintf(`$labels['%s']`, l.key)
+	}
 	return "$labels." + l.key
 }
 
