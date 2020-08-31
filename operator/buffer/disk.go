@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -20,7 +21,14 @@ type DiskBufferConfig struct {
 	MaxSize int `json:"max_size" yaml:"max_size"`
 }
 
-func (c DiskBufferConfig) Build() Buffer {
+// NewDiskBufferConfig creates a new default disk buffer config
+func NewDiskBufferConfig() *DiskBufferConfig {
+	return &DiskBufferConfig{
+		MaxSize: 1 << 32, // 4GiB
+	}
+}
+
+func (c DiskBufferConfig) Build(context *operator.BuildContext) Buffer {
 	return NewDiskBuffer(c.MaxSize)
 }
 
@@ -31,6 +39,10 @@ type DiskBuffer struct {
 	// Data is the file that stores the buffered entries
 	data *os.File
 	sync.Mutex
+
+	// atUnread indicates whether the file descriptor for data is currently seeked
+	// to the beginning of the unread entries
+	atUnread bool
 
 	// entryAdded is a channel that is notified on every time an entry is added.
 	// The integer sent down the channel is the new number of unread entries stored.
@@ -135,10 +147,13 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	d.Lock()
 	defer d.Unlock()
 
-	// Seek to end of the file
-	_, err = d.data.Seek(0, 2)
-	if err != nil {
-		return err
+	// Seek to end of the file if we're not there
+	if !d.atUnread {
+		_, err = d.data.Seek(0, 2)
+		if err != nil {
+			return err
+		}
+		d.atUnread = true
 	}
 
 	_, err = d.data.Write(buf.Bytes())
@@ -206,6 +221,7 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	if err != nil {
 		return nil, 0, fmt.Errorf("seek to unread: %s", err)
 	}
+	d.atUnread = false
 
 	readCount := min(len(dst), int(d.metadata.unreadCount))
 	newRead := make([]*readEntry, readCount)
@@ -465,6 +481,7 @@ func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, err
 		if err != nil {
 			return 0, err
 		}
+		d.atUnread = false
 
 		// Read a chunk
 		n, err := rd.Read(d.copyBuffer)

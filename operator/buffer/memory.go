@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -15,7 +16,13 @@ type MemoryBufferConfig struct {
 	MaxEvents int `json:"max_events" yaml:"max_events"`
 }
 
-func (c MemoryBufferConfig) Build() Buffer {
+func NewMemoryBufferConfig() *MemoryBufferConfig {
+	return &MemoryBufferConfig{
+		MaxEvents: 1 << 20,
+	}
+}
+
+func (c MemoryBufferConfig) Build(context *operator.BuildContext) Buffer {
 	return NewMemoryBuffer(c.MaxEvents)
 }
 
@@ -98,4 +105,9 @@ func (m *MemoryBuffer) newFlushFunc(ids []int64) func() {
 		m.inFlightMux.Unlock()
 		m.sem.Release(int64(len(ids)))
 	}
+}
+
+func (m *MemoryBuffer) Close() error {
+	// TODO
+	return nil
 }
