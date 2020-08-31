@@ -9,5 +9,4 @@ import (
 type Buffer interface {
 	Add(context.Context, *entry.Entry) error
 	Read([]*entry.Entry) (func(), int, error)
-	Flush()
 }
