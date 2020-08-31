@@ -176,7 +176,16 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 				continue
 			}
 
-			entry.Timestamp = typedEvent.LastTimestamp.Time
+			// Prioritize EventTime > LastTimestamp > FirstTimestamp
+			switch {
+			case typedEvent.EventTime.Time != time.Time{}:
+				entry.Timestamp = typedEvent.EventTime.Time
+			case typedEvent.LastTimestamp.Time != time.Time{}:
+				entry.Timestamp = typedEvent.LastTimestamp.Time
+			case typedEvent.FirstTimestamp.Time != time.Time{}:
+				entry.Timestamp = typedEvent.FirstTimestamp.Time
+			}
+
 			entry.AddLabel("event_type", string(event.Type))
 			k.populateResource(typedEvent, entry)
 			k.Write(ctx, entry)
