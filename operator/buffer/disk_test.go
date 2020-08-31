@@ -15,7 +15,7 @@ import (
 )
 
 func openBuffer(t testing.TB) *DiskBuffer {
-	buffer := NewDiskBuffer(1 << 30)
+	buffer := NewDiskBuffer(1 << 20)
 	dir := testutil.NewTempDir(t)
 	err := buffer.Open(dir)
 	require.NoError(t, err)
@@ -204,7 +204,7 @@ func BenchmarkDiskBufferWrite(b *testing.B) {
 }
 
 func BenchmarkDiskBuffer(b *testing.B) {
-	b.Run("AddReadWait100", func(b *testing.B) {
+	b.Run("AddReadWait", func(b *testing.B) {
 		buffer := openBuffer(b)
 		var wg sync.WaitGroup
 
@@ -222,35 +222,16 @@ func BenchmarkDiskBuffer(b *testing.B) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			dst := make([]*entry.Entry, 100)
+			dst := make([]*entry.Entry, 1000)
 			for i := 0; i < b.N; {
 				flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
 				panicOnErr(err)
 				i += n
-				go func() {
-					time.Sleep(50 * time.Millisecond)
-					flush()
-				}()
-			}
-		}()
-
-		cancel := make(chan struct{})
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			for {
-				select {
-				case <-cancel:
-					return
-				case <-time.After(50 * time.Millisecond):
-					buffer.Compact()
-				}
+				flush()
 			}
 		}()
 
 		wg.Wait()
-		close(cancel)
-		<-done
 	})
 }
 
@@ -336,5 +317,4 @@ func BenchmarkDiskBufferCompact(b *testing.B) {
 			})
 		}
 	})
-
 }

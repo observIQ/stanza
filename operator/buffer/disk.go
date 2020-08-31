@@ -263,10 +263,12 @@ func (d *DiskBuffer) checkCompact() {
 	case d.flushedBytes > d.maxBytes/2:
 		fallthrough
 	case time.Now().Sub(d.lastCompaction) > 5*time.Second:
+		println("compacting")
 		err := d.Compact()
 		if err != nil {
 			panic(err) // TODO how to report this error back to caller?
 		}
+		println("done compacting")
 	}
 }
 
@@ -337,6 +339,7 @@ func (d *DiskBuffer) Compact() error {
 			// Expand the dead range
 			rangeSize := onDiskSize(m.read[i:j])
 			m.deadRangeLength += rangeSize
+			d.flushedBytes -= rangeSize
 
 			// Update the effective offsets if the dead range is removed
 			for _, entry := range m.read[j:] {
