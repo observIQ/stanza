@@ -92,7 +92,8 @@ func (d *DiskBuffer) Open(path string) error {
 	return d.metadata.Sync()
 }
 
-// Add adds an entry to the buffer
+// Add adds an entry to the buffer, blocking until it is either added or the context
+// is cancelled.
 func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	var buf bytes.Buffer // TODO pool buffers
 	enc := json.NewEncoder(&buf)
@@ -125,6 +126,9 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	return nil
 }
 
+// incrementUnreadCount adds i to the unread count and notifies any callers of
+// ReadWait that an entry has been added. The disk buffer lock must be held when
+// calling this.
 func (d *DiskBuffer) incrementUnreadCount(i int64) {
 	d.metadata.unreadCount += i
 
@@ -137,6 +141,10 @@ func (d *DiskBuffer) incrementUnreadCount(i int64) {
 	}
 }
 
+// ReadWait reads entries from the buffer, waiting until either there are enough entries in the
+// buffer to fill dst, or an event is sent down the timeout channel. This amortizes the cost
+// of reading from the disk. It returns a function that, when called, marks the read entries as
+// flushed, the number of entries read, and an error.
 func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (func(), int, error) {
 	d.readerLock.Lock()
 	defer d.readerLock.Unlock()
@@ -157,6 +165,8 @@ LOOP:
 	return d.Read(dst)
 }
 
+// Read copies entries from the disk into the destination buffer. It returns a function that,
+// when called, marks the entries as flushed, the number of entries read, and an error.
 func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	d.Lock()
 	defer d.Unlock()
@@ -354,6 +364,8 @@ func (d *DiskBuffer) Compact() error {
 	return d.deleteDeadRange()
 }
 
+// deleteDeadRange moves the dead range to the end of the file, chunk by chunk,
+// so that if it is interrupted, it can just be continued at next startup.
 func (d *DiskBuffer) deleteDeadRange() error {
 	// Exit fast if there is no dead range
 	if d.metadata.deadRangeLength == 0 {
@@ -391,6 +403,7 @@ func (d *DiskBuffer) deleteDeadRange() error {
 		return err
 	}
 
+	// Truncate the extra space at the end of the file
 	err = d.data.Truncate(info.Size() - d.metadata.deadRangeLength)
 	if err != nil {
 		return err
