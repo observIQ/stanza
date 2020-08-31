@@ -15,7 +15,14 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-var _ Buffer = &DiskBuffer{}
+type DiskBufferConfig struct {
+	// TODO make this configurable in human-readable terms
+	MaxSize int `json:"max_size" yaml:"max_size"`
+}
+
+func (c DiskBufferConfig) Build() Buffer {
+	return NewDiskBuffer(c.MaxSize)
+}
 
 type DiskBuffer struct {
 	// Metadata holds information about the current state of the buffered entries
@@ -31,6 +38,10 @@ type DiskBuffer struct {
 	// there are enough entries to fill its buffer.
 	entryAdded chan int64
 
+	maxBytes       int64
+	flushedBytes   int64
+	lastCompaction time.Time
+
 	// readerLock ensures that there is only ever one reader listening to the
 	// entryAdded channel at a time.
 	readerLock sync.Mutex
@@ -38,15 +49,17 @@ type DiskBuffer struct {
 	// diskSizeSemaphore
 	diskSizeSemaphore *semaphore.Weighted
 
+	// copyBuffer is a pre-allocated byte slice that is used during compaction
 	copyBuffer []byte
 }
 
 // NewDiskBuffer creates a new DiskBuffer
-func NewDiskBuffer(maxDiskSize int64) *DiskBuffer {
+func NewDiskBuffer(maxDiskSize int) *DiskBuffer {
 	return &DiskBuffer{
+		maxBytes:          int64(maxDiskSize),
 		entryAdded:        make(chan int64, 1),
 		copyBuffer:        make([]byte, 1<<16), // TODO benchmark different sizes
-		diskSizeSemaphore: semaphore.NewWeighted(maxDiskSize),
+		diskSizeSemaphore: semaphore.NewWeighted(int64(maxDiskSize)),
 	}
 }
 
@@ -90,6 +103,18 @@ func (d *DiskBuffer) Open(path string) error {
 	d.metadata.unreadCount += int64(len(d.metadata.read))
 	d.metadata.read = d.metadata.read[:0]
 	return d.metadata.Sync()
+}
+
+// Close flushes the current metadata to disk, then closes the underlying files
+func (d *DiskBuffer) Close() error {
+	d.Lock()
+	defer d.Unlock()
+
+	err := d.metadata.Close()
+	if err != nil {
+		return err
+	}
+	return d.data.Close()
 }
 
 // Add adds an entry to the buffer, blocking until it is either added or the context
@@ -208,30 +233,32 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 		d.Lock()
 		for _, entry := range newRead {
 			entry.flushed = true
+			d.flushedBytes += entry.length
 		}
 		d.Unlock()
-		// TODO auto-compact at some percent space used by flushed
+		d.checkCompact()
 	}
 
 	return markFlushed, readCount, nil
 }
 
-// Close flushes the current metadata to disk, then closes the underlying files
-func (d *DiskBuffer) Close() error {
-	d.Lock()
-	defer d.Unlock()
-
-	err := d.metadata.Close()
-	if err != nil {
-		return err
+func (d *DiskBuffer) checkCompact() {
+	switch {
+	case d.flushedBytes > d.maxBytes/2:
+		fallthrough
+	case time.Now().Sub(d.lastCompaction) > 5*time.Second:
+		err := d.Compact()
+		if err != nil {
+			panic(err) // TODO how to report this error back to caller?
+		}
 	}
-	return d.data.Close()
 }
 
 // Compact removes all flushed entries from disk
 func (d *DiskBuffer) Compact() error {
 	d.Lock()
 	defer d.Unlock()
+	defer func() { d.lastCompaction = time.Now() }()
 
 	// So how does this work? The goal here is to remove all flushed entries from disk,
 	// freeing up space for new entries. We do this by going through each entry that has

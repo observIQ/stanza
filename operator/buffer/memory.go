@@ -11,9 +11,16 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-var _ Buffer = &MemoryBuffer{}
+type MemoryBufferConfig struct {
+	MaxEvents int `json:"max_events" yaml:"max_events"`
+}
+
+func (c MemoryBufferConfig) Build() Buffer {
+	return NewMemoryBuffer(c.MaxEvents)
+}
 
 type MemoryBuffer struct {
+	// TODO flush to database?
 	buf         chan *entry.Entry
 	inFlight    map[int64]*entry.Entry
 	inFlightMux sync.Mutex
@@ -21,10 +28,10 @@ type MemoryBuffer struct {
 	sem         *semaphore.Weighted
 }
 
-func NewMemoryBuffer(size int64) *MemoryBuffer {
+func NewMemoryBuffer(size int) *MemoryBuffer {
 	return &MemoryBuffer{
 		buf:      make(chan *entry.Entry, size),
-		sem:      semaphore.NewWeighted(size),
+		sem:      semaphore.NewWeighted(int64(size)),
 		inFlight: make(map[int64]*entry.Entry, size),
 	}
 }

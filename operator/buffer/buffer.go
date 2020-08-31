@@ -12,3 +12,11 @@ type Buffer interface {
 	Read([]*entry.Entry) (func(), int, error)
 	ReadWait([]*entry.Entry, <-chan time.Time) (func(), int, error)
 }
+
+type BufferConfig struct {
+	BufferBuilder
+}
+
+type BufferBuilder interface {
+	Build() Buffer
+}
