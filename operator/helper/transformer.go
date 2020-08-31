@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewTransformerConfig creates a new transformer config with default values
 func NewTransformerConfig(operatorID, operatorType string) TransformerConfig {
 	return TransformerConfig{
 		WriterConfig: NewWriterConfig(operatorID, operatorType),

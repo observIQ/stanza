@@ -16,6 +16,7 @@ func init() {
 	operator.Register("router", func() operator.Builder { return NewRouterOperatorConfig("") })
 }
 
+// NewRouterOperatorConfig config creates a new router operator config with default values
 func NewRouterOperatorConfig(operatorID string) *RouterOperatorConfig {
 	return &RouterOperatorConfig{
 		BasicConfig: helper.NewBasicConfig(operatorID, "router"),

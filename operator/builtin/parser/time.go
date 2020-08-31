@@ -13,6 +13,7 @@ func init() {
 	operator.Register("time_parser", func() operator.Builder { return NewTimeParserConfig("") })
 }
 
+// NewTimeParserConfig creates a new time parser config with default values
 func NewTimeParserConfig(operatorID string) *TimeParserConfig {
 	return &TimeParserConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "time_parser"),

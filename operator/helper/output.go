@@ -5,6 +5,7 @@ import (
 	"github.com/observiq/stanza/operator"
 )
 
+// NewOutputConfig creates a new output config
 func NewOutputConfig(operatorID, operatorType string) OutputConfig {
 	return OutputConfig{
 		BasicConfig: NewBasicConfig(operatorID, operatorType),

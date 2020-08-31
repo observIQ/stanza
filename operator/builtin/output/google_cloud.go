@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/url"
 	"reflect"
 	"time"
@@ -31,6 +32,7 @@ func init() {
 	operator.Register("google_cloud_output", func() operator.Builder { return NewGoogleCloudOutputConfig("") })
 }
 
+// NewGoogleCloudOutputConfig creates a new google cloud output config with default
 func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 	return &GoogleCloudOutputConfig{
 		OutputConfig:   helper.NewOutputConfig(operatorID, "google_cloud_output"),
@@ -158,13 +160,16 @@ func (p *GoogleCloudOutput) Start() error {
 	// Test writing a log message
 	ctx, cancel = context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
+	return p.TestConnection(ctx)
+}
+
+// TestConnection will attempt to send a test entry to google cloud logging
+func (p *GoogleCloudOutput) TestConnection(ctx context.Context) error {
 	testEntry := entry.New()
 	testEntry.Record = map[string]interface{}{"message": "Test connection"}
-	err = p.ProcessMulti(ctx, []*entry.Entry{testEntry})
-	if err != nil {
+	if err := p.ProcessMulti(ctx, []*entry.Entry{testEntry}); err != nil {
 		return fmt.Errorf("test connection: %s", err)
 	}
-
 	return nil
 }
 
@@ -300,30 +305,8 @@ func jsonValueToStructValue(v interface{}) *structpb.Value {
 	switch x := v.(type) {
 	case bool:
 		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: x}}
-	case float32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case float64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: x}}
-	case int:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int8:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int16:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case int64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint8:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint16:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
-	case uint64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case float32, float64, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return toFloatStructValue(v)
 	case string:
 		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: x}}
 	case nil:
@@ -360,6 +343,37 @@ func jsonValueToStructValue(v interface{}) *structpb.Value {
 	}
 }
 
+func toFloatStructValue(v interface{}) *structpb.Value {
+	switch x := v.(type) {
+	case float32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case float64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: x}}
+	case int:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int8:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int16:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case int64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint8:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint16:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	case uint64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(x)}}
+	default:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: math.NaN()}}
+	}
+}
+
 func reflectToValue(v reflect.Value) *structpb.Value {
 	switch v.Kind() {
 	case reflect.Bool:
@@ -371,57 +385,73 @@ func reflectToValue(v reflect.Value) *structpb.Value {
 	case reflect.Float32, reflect.Float64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: v.Float()}}
 	case reflect.Ptr:
-		if v.IsNil() {
-			return nil
-		}
-		return reflectToValue(reflect.Indirect(v))
+		return reflectToPtrValue(v)
 	case reflect.Array, reflect.Slice:
-		size := v.Len()
-		if size == 0 {
-			return nil
-		}
-		values := make([]*structpb.Value, size)
-		for i := 0; i < size; i++ {
-			values[i] = reflectToValue(v.Index(i))
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: values}}}
+		return reflectToArrayValue(v)
 	case reflect.Struct:
-		t := v.Type()
-		size := v.NumField()
-		if size == 0 {
-			return nil
-		}
-		fields := make(map[string]*structpb.Value, size)
-		for i := 0; i < size; i++ {
-			name := t.Field(i).Name
-			// Better way?
-			if len(name) > 0 && 'A' <= name[0] && name[0] <= 'Z' {
-				fields[name] = reflectToValue(v.Field(i))
-			}
-		}
-		if len(fields) == 0 {
-			return nil
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
+		return reflectToStructValue(v)
 	case reflect.Map:
-		keys := v.MapKeys()
-		if len(keys) == 0 {
-			return nil
-		}
-		fields := make(map[string]*structpb.Value, len(keys))
-		for _, k := range keys {
-			if k.Kind() == reflect.String {
-				fields[k.String()] = reflectToValue(v.MapIndex(k))
-			}
-		}
-		if len(fields) == 0 {
-			return nil
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
+		return reflectToMapValue(v)
 	default:
 		// Last resort
 		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: fmt.Sprint(v)}}
 	}
+}
+
+func reflectToPtrValue(v reflect.Value) *structpb.Value {
+	if v.IsNil() {
+		return nil
+	}
+	return reflectToValue(reflect.Indirect(v))
+}
+
+func reflectToArrayValue(v reflect.Value) *structpb.Value {
+	size := v.Len()
+	if size == 0 {
+		return nil
+	}
+	values := make([]*structpb.Value, size)
+	for i := 0; i < size; i++ {
+		values[i] = reflectToValue(v.Index(i))
+	}
+	return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: values}}}
+}
+
+func reflectToStructValue(v reflect.Value) *structpb.Value {
+	t := v.Type()
+	size := v.NumField()
+	if size == 0 {
+		return nil
+	}
+	fields := make(map[string]*structpb.Value, size)
+	for i := 0; i < size; i++ {
+		name := t.Field(i).Name
+		// Better way?
+		if len(name) > 0 && 'A' <= name[0] && name[0] <= 'Z' {
+			fields[name] = reflectToValue(v.Field(i))
+		}
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
+}
+
+func reflectToMapValue(v reflect.Value) *structpb.Value {
+	keys := v.MapKeys()
+	if len(keys) == 0 {
+		return nil
+	}
+	fields := make(map[string]*structpb.Value, len(keys))
+	for _, k := range keys {
+		if k.Kind() == reflect.String {
+			fields[k.String()] = reflectToValue(v.MapIndex(k))
+		}
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{Fields: fields}}}
 }
 
 func globalResource(projectID string) *mrpb.MonitoredResource {

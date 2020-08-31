@@ -79,69 +79,89 @@ func (param PluginParameter) validateDefault() error {
 	// Validate that Default corresponds to Type
 	switch param.Type {
 	case "string":
-		if _, ok := param.Default.(string); !ok {
-			return errors.NewError(
-				"default value for a parameter of type 'string' must be a string",
-				"ensure that the default value is a string",
-			)
-		}
+		return validateStringDefault(param)
 	case "int":
-		switch param.Default.(type) {
-		case int, int32, int64: // ok
-		default:
-			return errors.NewError(
-				"default value for a parameter of type 'int' must be an integer",
-				"ensure that the default value is an integer",
-			)
-		}
+		return validateIntDefault(param)
 	case "bool":
-		if _, ok := param.Default.(bool); !ok {
-			return errors.NewError(
-				"default value for a parameter of type 'bool' must be a boolean",
-				"ensure that the default value is a boolean",
-			)
-		}
+		return validateBoolDefault(param)
 	case "strings":
-		defaultList, ok := param.Default.([]interface{})
-		if !ok {
-			return errors.NewError(
-				"default value for a parameter of type 'strings' must be an array of strings",
-				"ensure that the default value is a string",
-			)
-		}
-		for _, s := range defaultList {
-			if _, ok := s.(string); !ok {
-				return errors.NewError(
-					"default value for a parameter of type 'strings' must be an array of strings",
-					"ensure that the default value is an array of strings",
-				)
-			}
-		}
+		return validateStringArrayDefault(param)
 	case "enum":
-		if param.Default != nil {
-			// Validate that the default value is included in the enumeration
-			def, ok := param.Default.(string)
-			if !ok {
-				return errors.NewError(
-					"invalid default for enumerated parameter",
-					"ensure that the default value is a string",
-				)
-			}
-			for _, val := range param.ValidValues {
-				if val == def {
-					return nil
-				}
-			}
-			return errors.NewError(
-				"invalid default value for enumerated parameter",
-				"ensure default value is listed as a valid value",
-			)
-		}
+		return validateEnumDefault(param)
 	default:
 		return errors.NewError(
 			"invalid type for parameter",
 			"ensure that the type is one of 'string', 'int', 'bool', 'strings', or 'enum'",
 		)
 	}
+}
+
+func validateStringDefault(param PluginParameter) error {
+	if _, ok := param.Default.(string); !ok {
+		return errors.NewError(
+			"default value for a parameter of type 'string' must be a string",
+			"ensure that the default value is a string",
+		)
+	}
 	return nil
+}
+
+func validateIntDefault(param PluginParameter) error {
+	switch param.Default.(type) {
+	case int, int32, int64:
+		return nil
+	default:
+		return errors.NewError(
+			"default value for a parameter of type 'int' must be an integer",
+			"ensure that the default value is an integer",
+		)
+	}
+}
+
+func validateBoolDefault(param PluginParameter) error {
+	if _, ok := param.Default.(bool); !ok {
+		return errors.NewError(
+			"default value for a parameter of type 'bool' must be a boolean",
+			"ensure that the default value is a boolean",
+		)
+	}
+	return nil
+}
+
+func validateStringArrayDefault(param PluginParameter) error {
+	defaultList, ok := param.Default.([]interface{})
+	if !ok {
+		return errors.NewError(
+			"default value for a parameter of type 'strings' must be an array of strings",
+			"ensure that the default value is a string",
+		)
+	}
+	for _, s := range defaultList {
+		if _, ok := s.(string); !ok {
+			return errors.NewError(
+				"default value for a parameter of type 'strings' must be an array of strings",
+				"ensure that the default value is an array of strings",
+			)
+		}
+	}
+	return nil
+}
+
+func validateEnumDefault(param PluginParameter) error {
+	def, ok := param.Default.(string)
+	if !ok {
+		return errors.NewError(
+			"invalid default for enumerated parameter",
+			"ensure that the default value is a string",
+		)
+	}
+	for _, val := range param.ValidValues {
+		if val == def {
+			return nil
+		}
+	}
+	return errors.NewError(
+		"invalid default value for enumerated parameter",
+		"ensure default value is listed as a valid value",
+	)
 }

@@ -18,6 +18,7 @@ func init() {
 	operator.Register("k8s_metadata_decorator", func() operator.Builder { return NewK8sMetadataDecoratorConfig("") })
 }
 
+// NewK8sMetadataDecoratorConfig creates a new k8s metadata decorator config with default values
 func NewK8sMetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfig {
 	return &K8sMetadataDecoratorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "k8s_metadata_decorator"),
