@@ -1,4 +1,4 @@
-package memory
+package buffer
 
 import (
 	"context"
@@ -8,23 +8,24 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/buffer"
 	"golang.org/x/sync/semaphore"
 )
 
-var _ buffer.Buffer = &MemoryBuffer{}
+var _ Buffer = &MemoryBuffer{}
 
 type MemoryBuffer struct {
-	buf      chan *entry.Entry
-	inFlight sync.Map // TODO benchmark against typed, locked map
-	entryID  int64
-	sem      *semaphore.Weighted
+	buf         chan *entry.Entry
+	inFlight    map[int64]*entry.Entry
+	inFlightMux sync.Mutex
+	entryID     int64
+	sem         *semaphore.Weighted
 }
 
 func NewMemoryBuffer(size int64) *MemoryBuffer {
 	return &MemoryBuffer{
-		buf: make(chan *entry.Entry, size),
-		sem: semaphore.NewWeighted(size),
+		buf:      make(chan *entry.Entry, size),
+		sem:      semaphore.NewWeighted(size),
+		inFlight: make(map[int64]*entry.Entry, size),
 	}
 }
 
@@ -49,7 +50,9 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 		case e := <-m.buf:
 			dst[i] = e
 			id := atomic.AddInt64(&m.entryID, 1)
-			m.inFlight.Store(id, e)
+			m.inFlightMux.Lock()
+			m.inFlight[id] = e
+			m.inFlightMux.Unlock()
 			inFlight[i] = id
 		default:
 			return m.newFlushFunc(inFlight[:i]), i, nil
@@ -67,7 +70,9 @@ func (m *MemoryBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (f
 		case e := <-m.buf:
 			dst[i] = e
 			id := atomic.AddInt64(&m.entryID, 1)
-			m.inFlight.Store(id, e)
+			m.inFlightMux.Lock()
+			m.inFlight[id] = e
+			m.inFlightMux.Unlock()
 			inFlight[i] = id
 		case <-timeout:
 			return m.newFlushFunc(inFlight[:i]), i, nil
@@ -79,9 +84,11 @@ func (m *MemoryBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (f
 
 func (m *MemoryBuffer) newFlushFunc(ids []int64) func() {
 	return func() {
+		m.inFlightMux.Lock()
 		for _, id := range ids {
-			m.inFlight.Delete(id)
+			delete(m.inFlight, id)
 		}
+		m.inFlightMux.Unlock()
 		m.sem.Release(int64(len(ids)))
 	}
 }

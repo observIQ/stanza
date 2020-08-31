@@ -1,4 +1,4 @@
-package disk
+package buffer
 
 import (
 	"bytes"
@@ -12,11 +12,10 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/buffer"
 	"golang.org/x/sync/semaphore"
 )
 
-var _ buffer.Buffer = &DiskBuffer{}
+var _ Buffer = &DiskBuffer{}
 
 type DiskBuffer struct {
 	// Metadata holds information about the current state of the buffered entries
