@@ -139,8 +139,8 @@ jobs:
           name: Unit Tests
           shell: powershell.exe
           command: >
-            go test -race ./...; \
-              cd ./cmd/stanza; go test -race ./...; cd ../..; \
+            go test -race ./...; `
+              cd ./cmd/stanza; go test -race ./...; cd ../..; `
               cd ./operator/builtin/input/file; go test -race ./...; cd ../../../..
 
   run-benchmark:

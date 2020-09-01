@@ -3,6 +3,8 @@ GOARCH=$(shell go env GOARCH)
 
 GIT_SHA=$(shell git rev-parse --short HEAD)
 
+PROJECT_ROOT = $(shell pwd)
+ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 
 BUILD_INFO_IMPORT_PATH=github.com/observiq/stanza/internal/version
@@ -19,11 +21,16 @@ install-tools:
 	go install github.com/vektra/mockery/cmd/mockery
 
 .PHONY: test
-test:
+test: clean test-all
+
+.PHONY: test-all
+test-all:
+	mkdir -p $(ARTIFACTS)
+	touch $(ARTIFACTS)/coverage.txt
 	@set -e; for dir in $(ALL_MODULES); do \
 		(cd "$${dir}" && \
-			go test -race -coverprofile coverage.txt -coverpkg ./... ./... && \
-			go tool cover -html=coverage.txt -o coverage.html); \
+			go test -race -coverprofile coverage.txt -coverpkg ./... ./...); \
+		cat "$${dir}"/coverage.txt >> $(ARTIFACTS)/coverage.txt; \
 	done
 
 .PHONY: bench
@@ -34,8 +41,9 @@ bench:
 
 .PHONY: clean
 clean:
+	rm -fr ./artifacts
 	@set -e; for dir in $(ALL_MODULES); do \
-		(cd "$${dir}" && rm coverage.txt coverage.html); \
+		(cd "$${dir}" && rm -f coverage.txt coverage.html); \
 	done
 
 .PHONY: lint
