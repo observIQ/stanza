@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/operator/builtin/output"
+	output "github.com/observiq/stanza/operator/builtin/output/stdout"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,10 +35,10 @@ func TestTomcatExample(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping on windows because of service failures")
 	}
-	err := os.Chdir("../examples/tomcat")
+	err := os.Chdir("../../examples/tomcat")
 	require.NoError(t, err)
 	defer func() {
-		err := os.Chdir("../../commands")
+		err := os.Chdir("../../cmd/stanza")
 		require.NoError(t, err)
 	}()
 
@@ -87,10 +87,10 @@ func TestSimplePluginsExample(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping on windows because of service failures")
 	}
-	err := os.Chdir("../examples/simple_plugins")
+	err := os.Chdir("../../examples/simple_plugins")
 	require.NoError(t, err)
 	defer func() {
-		err := os.Chdir("../../commands")
+		err := os.Chdir("../../cmd/stanza")
 		require.NoError(t, err)
 	}()
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	_ "github.com/observiq/stanza/operator/builtin/input/generate"
+	_ "github.com/observiq/stanza/operator/builtin/output/drop"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -269,8 +271,9 @@ pipeline:
 func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	pipelineConfig := Config{
 		Params{
-			"id":     "tcp_input",
-			"type":   "tcp_input",
+			"id":     "generate_input",
+			"type":   "generate_input",
+			"number": 1,
 			"output": "drop_output",
 		},
 		Params{
@@ -282,7 +285,7 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := pipelineConfig.BuildPipeline(context, nil)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required parameter 'listen_address'")
+	require.Contains(t, err.Error(), "field number not found")
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {

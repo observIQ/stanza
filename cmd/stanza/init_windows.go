@@ -1,4 +1,4 @@
-package input
+package main
 
 import (
 	// Load windows only packages when importing input operators

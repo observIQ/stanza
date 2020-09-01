@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-  _ "github.com/observiq/stanza/operator/builtin"
 )
 
 func main() {
