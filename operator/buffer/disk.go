@@ -18,7 +18,8 @@ import (
 
 type DiskBufferConfig struct {
 	// TODO make this configurable in human-readable terms
-	MaxSize int `json:"max_size" yaml:"max_size"`
+	MaxSize int    `json:"max_size" yaml:"max_size"`
+	Path    string `json:"path" yaml:"path"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
@@ -28,8 +29,12 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 	}
 }
 
-func (c DiskBufferConfig) Build(context *operator.BuildContext) Buffer {
-	return NewDiskBuffer(c.MaxSize)
+func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
+	b := NewDiskBuffer(c.MaxSize)
+	if err := b.Open(c.Path); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 type DiskBuffer struct {
@@ -40,7 +45,8 @@ type DiskBuffer struct {
 	data *os.File
 	sync.Mutex
 
-	// TODO
+	// atEnd indicates whether the data file descriptor is currently seeked to the
+	// end. This helps save us seek calls.
 	atEnd bool
 
 	// entryAdded is a channel that is notified on every time an entry is added.
@@ -109,7 +115,7 @@ func (d *DiskBuffer) Open(path string) error {
 	// Once everything is compacted, we can safely reset all previously read, but
 	// unflushed entries to unread
 	d.metadata.unreadStartOffset = 0
-	d.incrementUnreadCount(int64(len(d.metadata.read)))
+	d.addUnreadCount(int64(len(d.metadata.read)))
 	d.metadata.read = d.metadata.read[:0]
 	return d.metadata.Sync()
 }
@@ -128,7 +134,7 @@ func (d *DiskBuffer) Close() error {
 // Add adds an entry to the buffer, blocking until it is either added or the context
 // is cancelled.
 func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
-	var buf bytes.Buffer // TODO pool buffers
+	var buf bytes.Buffer
 	var err error
 	enc := json.NewEncoder(&buf)
 	if err := enc.Encode(newEntry); err != nil {
@@ -151,15 +157,15 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 		return err
 	}
 
-	d.incrementUnreadCount(1)
+	d.addUnreadCount(1)
 
 	return nil
 }
 
-// incrementUnreadCount adds i to the unread count and notifies any callers of
+// addUnreadCount adds i to the unread count and notifies any callers of
 // ReadWait that an entry has been added. The disk buffer lock must be held when
 // calling this.
-func (d *DiskBuffer) incrementUnreadCount(i int64) {
+func (d *DiskBuffer) addUnreadCount(i int64) {
 	d.metadata.unreadCount += i
 
 	// Notify a reader that new entries have been added by either
@@ -213,9 +219,11 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 
 	readCount := min(len(dst), int(d.metadata.unreadCount))
 	newRead := make([]*readEntry, readCount)
+
 	dec := json.NewDecoder(d.data)
-	entryStartOffset := d.metadata.unreadStartOffset
+	startOffset := d.metadata.unreadStartOffset
 	for i := 0; i < readCount; i++ {
+		// Decode an entry from the file
 		var entry entry.Entry
 		err := dec.Decode(&entry)
 		if err != nil {
@@ -223,17 +231,33 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 		}
 		dst[i] = &entry
 
+		// Calculate the end offset of the entry. We add one because
+		// the decoder doesn't consume the newline at the end of every entry
+		endOffset := d.metadata.unreadStartOffset + dec.InputOffset() + 1
 		newRead[i] = &readEntry{
-			startOffset: entryStartOffset,
-			length:      d.metadata.unreadStartOffset + dec.InputOffset() + 1 - entryStartOffset,
+			startOffset: startOffset,
+			length:      endOffset - startOffset,
 		}
-		entryStartOffset = d.metadata.unreadStartOffset + dec.InputOffset() + 1
+
+		// The start offset of the next entry is the end offset of the current
+		startOffset = endOffset
 	}
 
+	// Set the offset for the next unread entry
+	d.metadata.unreadStartOffset = startOffset
+
+	// Keep track of the newly read entries
 	d.metadata.read = append(d.metadata.read, newRead...)
-	d.metadata.unreadStartOffset = entryStartOffset
-	d.incrementUnreadCount(-int64(readCount))
-	markFlushed := func() {
+
+	// Remove the read entries from the unread count
+	d.addUnreadCount(-int64(readCount))
+
+	return d.newFlushFunc(newRead), readCount, nil
+}
+
+// newFlushFunc returns a function that marks read entries as flushed
+func (d *DiskBuffer) newFlushFunc(newRead []*readEntry) func() {
+	return func() {
 		d.Lock()
 		for _, entry := range newRead {
 			entry.flushed = true
@@ -242,10 +266,9 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 		d.Unlock()
 		d.checkCompact()
 	}
-
-	return markFlushed, readCount, nil
 }
 
+// checkCompact checks if a compaction should be performed, then kicks one off
 func (d *DiskBuffer) checkCompact() {
 	d.Lock()
 	switch {

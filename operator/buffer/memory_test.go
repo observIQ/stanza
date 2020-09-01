@@ -10,20 +10,27 @@ import (
 	"testing"
 
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func newMemoryBuffer(t testing.TB) *MemoryBuffer {
+	b, err := NewMemoryBufferConfig().Build(testutil.NewBuildContext(t), "test")
+	require.NoError(t, err)
+	return b.(*MemoryBuffer)
+}
 
 func TestMemoryBuffer(t *testing.T) {
 	t.Run("Simple", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 1, 0)
 		readN(t, b, 1, 0)
 	})
 
 	t.Run("Write2Read1Read1", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 2, 0)
 		readN(t, b, 1, 0)
 		readN(t, b, 1, 1)
@@ -31,7 +38,7 @@ func TestMemoryBuffer(t *testing.T) {
 
 	t.Run("Write20Read10Read10", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
 		readN(t, b, 10, 10)
@@ -39,7 +46,7 @@ func TestMemoryBuffer(t *testing.T) {
 
 	t.Run("SingleReadWaitMultipleWrites", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 10, 0)
 		readyDone := make(chan struct{})
 		go func() {
@@ -55,7 +62,7 @@ func TestMemoryBuffer(t *testing.T) {
 
 	t.Run("ReadWaitOnlyWaitForPartialWrite", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 10, 0)
 		readyDone := make(chan struct{})
 		go func() {
@@ -71,7 +78,7 @@ func TestMemoryBuffer(t *testing.T) {
 
 	t.Run("Write10Read10Read0", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 10, 0)
 		readN(t, b, 10, 0)
 		dst := make([]*entry.Entry, 10)
@@ -82,7 +89,7 @@ func TestMemoryBuffer(t *testing.T) {
 
 	t.Run("Write20Read10Read10Unfull", func(t *testing.T) {
 		t.Parallel()
-		b := NewMemoryBuffer(1 << 10)
+		b := newMemoryBuffer(t)
 		writeN(t, b, 20, 0)
 		readN(t, b, 10, 0)
 		dst := make([]*entry.Entry, 20)
@@ -100,7 +107,7 @@ func TestMemoryBuffer(t *testing.T) {
 				t.Parallel()
 				r := rand.New(rand.NewSource(seed))
 
-				b := NewMemoryBuffer(1 << 16)
+				b := newMemoryBuffer(t)
 
 				writes := 0
 				reads := 0
@@ -124,39 +131,58 @@ func TestMemoryBuffer(t *testing.T) {
 		}
 	})
 
+	t.Run("CloseReadUnflushed", func(t *testing.T) {
+		t.Parallel()
+		buildContext := testutil.NewBuildContext(t)
+		b, err := NewMemoryBufferConfig().Build(buildContext, "test")
+		require.NoError(t, err)
+
+		writeN(t, b, 20, 0)
+		readN(t, b, 5, 0)
+		flushN(t, b, 5, 5)
+		readN(t, b, 5, 10)
+
+		err = b.Close()
+		require.NoError(t, err)
+
+		b2, err := NewMemoryBufferConfig().Build(buildContext, "test")
+		require.NoError(t, err)
+
+		readN(t, b2, 5, 0)
+		readN(t, b2, 10, 10)
+	})
+
 }
 
 func BenchmarkMemoryBuffer(b *testing.B) {
-	b.Run("AddReadWait100", func(b *testing.B) {
-		buffer := NewMemoryBuffer(1 << 20)
-		var wg sync.WaitGroup
+	buffer := newMemoryBuffer(b)
+	var wg sync.WaitGroup
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			e := entry.New()
-			e.Record = "test log"
-			ctx := context.Background()
-			for i := 0; i < b.N; i++ {
-				panicOnErr(buffer.Add(ctx, e))
-			}
-		}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		e := entry.New()
+		e.Record = "test log"
+		ctx := context.Background()
+		for i := 0; i < b.N; i++ {
+			panicOnErr(buffer.Add(ctx, e))
+		}
+	}()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			dst := make([]*entry.Entry, 1000)
-			for i := 0; i < b.N; {
-				flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
-				panicOnErr(err)
-				i += n
-				go func() {
-					time.Sleep(50 * time.Millisecond)
-					flush()
-				}()
-			}
-		}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		dst := make([]*entry.Entry, 1000)
+		for i := 0; i < b.N; {
+			flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
+			panicOnErr(err)
+			i += n
+			go func() {
+				time.Sleep(50 * time.Millisecond)
+				flush()
+			}()
+		}
+	}()
 
-		wg.Wait()
-	})
+	wg.Wait()
 }

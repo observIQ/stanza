@@ -50,10 +50,11 @@ func TestMetadata(t *testing.T) {
 		for i, md := range cases {
 			t.Run(strconv.Itoa(i), func(t *testing.T) {
 				var buf bytes.Buffer
-				md.Write(&buf)
+				err := md.MarshalBinary(&buf)
+				require.NoError(t, err)
 
 				md2 := Metadata{}
-				err := md2.Read(&buf)
+				err = md2.UnmarshalBinary(&buf)
 				require.NoError(t, err)
 
 				require.Equal(t, md, md2)

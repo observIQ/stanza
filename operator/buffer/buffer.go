@@ -17,30 +17,43 @@ type Buffer interface {
 	Close() error
 }
 
-type BufferConfig struct {
+type Config struct {
 	Type string `json:"type" yaml:"type"`
 	BufferBuilder
 }
 
-type BufferBuilder interface {
-	Build(context *operator.BuildContext) Buffer
+func NewConfig() *Config {
+	return &Config{
+		Type: "memory",
+		BufferBuilder: &MemoryBufferConfig{
+			MaxEntries: 1 << 20,
+		},
+	}
 }
 
-func (bc *BufferConfig) UnmarshalJSON(data []byte) error {
+type BufferBuilder interface {
+	Build(context operator.BuildContext, pluginID string) (Buffer, error)
+}
+
+func (bc *Config) UnmarshalJSON(data []byte) error {
 	return bc.unmarshal(func(dst interface{}) error {
 		return json.Unmarshal(data, dst)
 	})
 }
 
-func (bc *BufferConfig) UnmarshalYAML(f func(interface{}) error) error {
+func (bc *Config) UnmarshalYAML(f func(interface{}) error) error {
 	return bc.unmarshal(f)
 }
 
-func (bc *BufferConfig) unmarshal(unmarshal func(interface{}) error) error {
-	err := unmarshal(bc)
+func (bc *Config) unmarshal(unmarshal func(interface{}) error) error {
+	var typeStruct struct {
+		Type string
+	}
+	err := unmarshal(&typeStruct)
 	if err != nil {
 		return err
 	}
+	bc.Type = typeStruct.Type
 
 	switch bc.Type {
 	case "memory":
@@ -51,7 +64,7 @@ func (bc *BufferConfig) unmarshal(unmarshal func(interface{}) error) error {
 		}
 		bc.BufferBuilder = mbc
 	case "disk":
-		dbc := NewMemoryBufferConfig()
+		dbc := NewDiskBufferConfig()
 		err := unmarshal(dbc)
 		if err != nil {
 			return err

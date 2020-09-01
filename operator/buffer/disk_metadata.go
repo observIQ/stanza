@@ -44,12 +44,12 @@ type Metadata struct {
 	deadRangeLength int64
 }
 
+// OpenMetadata opens and parses the metadata
 func OpenMetadata(path string) (*Metadata, error) {
 	m := &Metadata{}
 
 	var err error
-	m.file, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0755)
-	if err != nil {
+	if m.file, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0755); err != nil {
 		return &Metadata{}, err
 	}
 
@@ -59,7 +59,7 @@ func OpenMetadata(path string) (*Metadata, error) {
 	}
 
 	if info.Size() > 0 {
-		err = m.Read(m.file)
+		err = m.UnmarshalBinary(m.file)
 		if err != nil {
 			return &Metadata{}, fmt.Errorf("read metadata file: %s", err)
 		}
@@ -70,12 +70,15 @@ func OpenMetadata(path string) (*Metadata, error) {
 	return m, nil
 }
 
+// Sync persists the metadata to disk
 func (m *Metadata) Sync() error {
+	// Serialize to a buffer first so we write all at once
 	var buf bytes.Buffer
+	if err := m.MarshalBinary(&buf); err != nil {
+		return err
+	}
 
-	// Serialize to a buffer first so we can do an atomic write operation
-	m.Write(&buf)
-
+	// Write the whole thing to the file
 	n, err := m.file.WriteAt(buf.Bytes(), 0)
 	if err != nil {
 		return err
@@ -84,7 +87,6 @@ func (m *Metadata) Sync() error {
 	// Since our on-disk format for metadata self-describes length,
 	// it's okay to truncate as a separate operation because an un-truncated
 	// file is still readable
-	// TODO write a test for this
 	err = m.file.Truncate(int64(n))
 	if err != nil {
 		return err
@@ -93,6 +95,7 @@ func (m *Metadata) Sync() error {
 	return nil
 }
 
+// Close syncs metadata to disk and closes the underlying file descriptor
 func (m *Metadata) Close() error {
 	err := m.Sync()
 	if err != nil {
@@ -102,86 +105,94 @@ func (m *Metadata) Close() error {
 	return nil
 }
 
-func (m *Metadata) Write(wr io.Writer) {
-	_ = binary.Write(wr, binary.LittleEndian, int64(1))
-
-	_ = binary.Write(wr, binary.LittleEndian, m.deadRangeStart)
-	_ = binary.Write(wr, binary.LittleEndian, m.deadRangeLength)
-
-	_ = binary.Write(wr, binary.LittleEndian, m.unreadStartOffset)
-	_ = binary.Write(wr, binary.LittleEndian, m.unreadCount)
-
-	_ = binary.Write(wr, binary.LittleEndian, int64(len(m.read)))
-	for _, readEntry := range m.read {
-		_ = binary.Write(wr, binary.LittleEndian, readEntry.flushed)
-		_ = binary.Write(wr, binary.LittleEndian, readEntry.length)
-		_ = binary.Write(wr, binary.LittleEndian, readEntry.startOffset)
-	}
-}
-
+// setDeadRange sets the dead range start and length, then persists it to disk
+// without rewriting the whole file
 func (m *Metadata) setDeadRange(start, length int64) error {
 	m.deadRangeStart = start
 	m.deadRangeLength = length
 	var buf bytes.Buffer
-	_ = binary.Write(&buf, binary.LittleEndian, m.deadRangeStart)
-	_ = binary.Write(&buf, binary.LittleEndian, m.deadRangeLength)
+	if err := binary.Write(&buf, binary.LittleEndian, m.deadRangeStart); err != nil {
+		return err
+	}
+	if err := binary.Write(&buf, binary.LittleEndian, m.deadRangeLength); err != nil {
+		return err
+	}
 	_, err := m.file.WriteAt(buf.Bytes(), 8)
 	return err
 }
 
-func (m *Metadata) Read(r io.Reader) error {
+// MarshalBinary marshals a metadata struct to a binary stream
+func (m *Metadata) MarshalBinary(wr io.Writer) (err error) {
+	// Version (currently unused)
+	if err = binary.Write(wr, binary.LittleEndian, int64(1)); err != nil {
+		return
+	}
+
+	// Dead Range info
+	if err = binary.Write(wr, binary.LittleEndian, m.deadRangeStart); err != nil {
+		return
+	}
+	if err = binary.Write(wr, binary.LittleEndian, m.deadRangeLength); err != nil {
+		return
+	}
+
+	// Unread range info
+	if err = binary.Write(wr, binary.LittleEndian, m.unreadStartOffset); err != nil {
+		return
+	}
+	if err = binary.Write(wr, binary.LittleEndian, m.unreadCount); err != nil {
+		return
+	}
+
+	// Read entries offsets
+	if err = binary.Write(wr, binary.LittleEndian, int64(len(m.read))); err != nil {
+		return
+	}
+	for _, readEntry := range m.read {
+		if err = readEntry.MarshalBinary(wr); err != nil {
+			return
+		}
+	}
+	return nil
+}
+
+// UnmarshalBinary unmarshals metadata from a binary stream (usually a file)
+func (m *Metadata) UnmarshalBinary(r io.Reader) error {
 	// Read version
 	var version int64
-	err := binary.Read(r, binary.LittleEndian, &version)
-	if err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &version); err != nil {
 		return fmt.Errorf("failed to read version: %s", err)
 	}
 
 	// Read dead range
-	err = binary.Read(r, binary.LittleEndian, &m.deadRangeStart)
-	if err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &m.deadRangeStart); err != nil {
 		return err
 	}
-	err = binary.Read(r, binary.LittleEndian, &m.deadRangeLength)
-	if err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &m.deadRangeLength); err != nil {
 		return err
 	}
 
 	// Read unread info
-	err = binary.Read(r, binary.LittleEndian, &m.unreadStartOffset)
-	if err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &m.unreadStartOffset); err != nil {
 		return fmt.Errorf("read unread start offset: %s", err)
 	}
-	err = binary.Read(r, binary.LittleEndian, &m.unreadCount)
-	if err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &m.unreadCount); err != nil {
 		return fmt.Errorf("read contiguous count: %s", err)
 	}
 
 	// Read read info
 	var readCount int64
-	err = binary.Read(r, binary.LittleEndian, &readCount)
-	if err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &readCount); err != nil {
 		return fmt.Errorf("read read count: %s", err)
 	}
 	m.read = make([]*readEntry, readCount)
 	for i := 0; i < int(readCount); i++ {
-		newEntry := readEntry{}
-		err = binary.Read(r, binary.LittleEndian, &newEntry.flushed)
-		if err != nil {
-			return fmt.Errorf("read disk entry flushed: %s", err)
+		newEntry := &readEntry{}
+		if err := newEntry.UnmarshalBinary(r); err != nil {
+			return err
 		}
 
-		err = binary.Read(r, binary.LittleEndian, &newEntry.length)
-		if err != nil {
-			return fmt.Errorf("read disk entry length: %s", err)
-		}
-
-		err = binary.Read(r, binary.LittleEndian, &newEntry.startOffset)
-		if err != nil {
-			return fmt.Errorf("read disk entry start offset: %s", err)
-		}
-
-		m.read[i] = &newEntry
+		m.read[i] = newEntry
 	}
 
 	return nil
@@ -198,6 +209,36 @@ type readEntry struct {
 
 	// The offset in the file where the entry starts
 	startOffset int64
+}
+
+// MarshalBinary marshals a readEntry struct to a binary stream
+func (re readEntry) MarshalBinary(wr io.Writer) error {
+	if err := binary.Write(wr, binary.LittleEndian, re.flushed); err != nil {
+		return err
+	}
+	if err := binary.Write(wr, binary.LittleEndian, re.length); err != nil {
+		return err
+	}
+	if err := binary.Write(wr, binary.LittleEndian, re.startOffset); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UnmarshalBinary unmarshals a binary stream into a readEntry struct
+func (re *readEntry) UnmarshalBinary(r io.Reader) error {
+	if err := binary.Read(r, binary.LittleEndian, &re.flushed); err != nil {
+		return fmt.Errorf("read disk entry flushed: %s", err)
+	}
+
+	if err := binary.Read(r, binary.LittleEndian, &re.length); err != nil {
+		return fmt.Errorf("read disk entry length: %s", err)
+	}
+
+	if err := binary.Read(r, binary.LittleEndian, &re.startOffset); err != nil {
+		return fmt.Errorf("read disk entry start offset: %s", err)
+	}
+	return nil
 }
 
 // onDiskSize calculates the size in bytes on disk for a contiguous
