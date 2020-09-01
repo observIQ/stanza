@@ -78,13 +78,13 @@ func NewDiskBuffer(maxDiskSize int) *DiskBuffer {
 // Open opens the disk buffer files from a database directory
 func (d *DiskBuffer) Open(path string) error {
 	var err error
-	d.data, err = os.OpenFile(filepath.Join(path, "data"), os.O_CREATE|os.O_RDWR, 0755)
-	if err != nil {
+	dataPath := filepath.Join(path, "data")
+	if d.data, err = os.OpenFile(dataPath, os.O_CREATE|os.O_RDWR, 0755); err != nil {
 		return err
 	}
 
-	d.metadata, err = OpenMetadata(filepath.Join(path, "metadata"))
-	if err != nil {
+	metadataPath := filepath.Join(path, "metadata")
+	if d.metadata, err = OpenMetadata(metadataPath); err != nil {
 		return err
 	}
 
@@ -98,14 +98,12 @@ func (d *DiskBuffer) Open(path string) error {
 	}
 
 	// First, if there is a dead range from a previous incomplete compaction, delete it
-	err = d.deleteDeadRange()
-	if err != nil {
+	if err = d.deleteDeadRange(); err != nil {
 		return err
 	}
 
 	// Compact on open
-	err = d.Compact()
-	if err != nil {
+	if err = d.Compact(); err != nil {
 		return err
 	}
 
@@ -122,8 +120,7 @@ func (d *DiskBuffer) Close() error {
 	d.Lock()
 	defer d.Unlock()
 
-	err := d.metadata.Close()
-	if err != nil {
+	if err := d.metadata.Close(); err != nil {
 		return err
 	}
 	return d.data.Close()
@@ -133,14 +130,13 @@ func (d *DiskBuffer) Close() error {
 // is cancelled.
 func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	var buf bytes.Buffer // TODO pool buffers
+	var err error
 	enc := json.NewEncoder(&buf)
-	err := enc.Encode(newEntry)
-	if err != nil {
+	if err := enc.Encode(newEntry); err != nil {
 		return err
 	}
 
-	err = d.diskSizeSemaphore.Acquire(ctx, int64(buf.Len()))
-	if err != nil {
+	if err = d.diskSizeSemaphore.Acquire(ctx, int64(buf.Len())); err != nil {
 		return err
 	}
 
@@ -156,8 +152,7 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 		d.atUnread = true
 	}
 
-	_, err = d.data.Write(buf.Bytes())
-	if err != nil {
+	if _, err = d.data.Write(buf.Bytes()); err != nil {
 		return err
 	}
 
@@ -263,12 +258,10 @@ func (d *DiskBuffer) checkCompact() {
 	case d.flushedBytes > d.maxBytes/2:
 		fallthrough
 	case time.Now().Sub(d.lastCompaction) > 5*time.Second:
-		println("compacting")
 		err := d.Compact()
 		if err != nil {
 			panic(err) // TODO how to report this error back to caller?
 		}
-		println("done compacting")
 	}
 }
 
@@ -353,8 +346,7 @@ func (d *DiskBuffer) Compact() error {
 			m.read = append(m.read[:i], m.read[j:]...)
 
 			// Sync to disk
-			err := d.metadata.Sync()
-			if err != nil {
+			if err := d.metadata.Sync(); err != nil {
 				return err
 			}
 		} else {
@@ -433,8 +425,7 @@ func (d *DiskBuffer) deleteDeadRange() error {
 		}
 
 		// Update the dead range, writing to disk
-		err = d.metadata.setDeadRange(start+length, length)
-		if err != nil {
+		if err = d.metadata.setDeadRange(start+length, length); err != nil {
 			return err
 		}
 
