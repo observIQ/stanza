@@ -26,12 +26,13 @@ test: clean test-all
 .PHONY: test-all
 test-all:
 	mkdir -p $(ARTIFACTS)
-	touch $(ARTIFACTS)/coverage.txt
+	touch $(ARTIFACTS)/coverage.all
 	@set -e; for dir in $(ALL_MODULES); do \
 		(cd "$${dir}" && \
 			go test -race -coverprofile coverage.txt -coverpkg ./... ./...); \
-		cat "$${dir}"/coverage.txt >> $(ARTIFACTS)/coverage.txt; \
+		cat "$${dir}"/coverage.txt >> $(ARTIFACTS)/coverage.all; \
 	done
+	cat $(ARTIFACTS)/coverage.all | uniq -u > $(ARTIFACTS)/coverage.txt
 
 .PHONY: bench
 bench:
@@ -44,6 +45,12 @@ clean:
 	rm -fr ./artifacts
 	@set -e; for dir in $(ALL_MODULES); do \
 		(cd "$${dir}" && rm -f coverage.txt coverage.html); \
+	done
+
+.PHONY: listmod
+listmod:
+	@set -e; for dir in $(ALL_MODULES); do \
+		(echo "$${dir}"); \
 	done
 
 .PHONY: lint

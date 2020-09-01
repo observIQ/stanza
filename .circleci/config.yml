@@ -141,7 +141,28 @@ jobs:
           command: >
             go test -race ./...; `
               cd ./cmd/stanza; go test -race ./...; cd ../..; `
-              cd ./operator/builtin/input/file; go test -race ./...; cd ../../../..
+              cd ./operator/builtin/input/file; go test -race ./...; cd ../../../..; `
+              cd ./operator/builtin/input/journald; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/input/k8sevent; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/input/tcp; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/input/udp; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/input/windows; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/output/elastic; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/output/file; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/output/googlecloud; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/output/stdout; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/parser/json; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/parser/regex; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/parser/severity; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/parser/syslog; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/parser/time; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/filter; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/hostmetadata; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/k8smetadata; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/metadata; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/ratelimit; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/restructure; go test -race ./...; cd ../../..; `
+              cd ./operator/builtin/transformer/router; go test -race ./...; cd ../../..; 
 
   run-benchmark:
     parameters:
