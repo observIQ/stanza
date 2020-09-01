@@ -324,7 +324,7 @@ func (d *DiskBuffer) Compact() error {
 			// Find the end index of the range of flushed entries
 			j := i + 1
 			for ; j < len(m.read); j++ {
-				if !m.read[i].flushed {
+				if !m.read[j].flushed {
 					break
 				}
 			}
@@ -353,28 +353,29 @@ func (d *DiskBuffer) Compact() error {
 			// Find the end index of the range of unflushed entries
 			j := i + 1
 			for ; j < len(m.read); j++ {
-				if m.read[i].flushed {
+				if m.read[j].flushed {
 					break
 				}
 			}
 
 			// If there is no dead range, no need to move unflushed entries
+			rangeSize := onDiskSize(m.read[i:j])
 			if m.deadRangeLength == 0 {
 				i = j
+				m.deadRangeStart += rangeSize
 				continue
 			}
 
 			// Slide the range left, syncing dead range after every chunk
-			rangeSize := int(onDiskSize(m.read[i:j]))
-			for bytesMoved := 0; bytesMoved < rangeSize; {
-				remainingBytes := rangeSize - bytesMoved
+			for bytesMoved := 0; bytesMoved < int(rangeSize); {
+				remainingBytes := int(rangeSize) - bytesMoved
 				chunkSize := min(int(m.deadRangeLength), remainingBytes)
 
 				// Move the chunk to the beginning of the dead space
 				_, err := d.moveRange(
 					m.deadRangeStart,
 					m.deadRangeLength,
-					m.read[i].startOffset+int64(bytesMoved),
+					m.read[i].startOffset+int64(bytesMoved)+m.deadRangeLength,
 					int64(chunkSize),
 				)
 				if err != nil {
@@ -407,6 +408,9 @@ func (d *DiskBuffer) Compact() error {
 func (d *DiskBuffer) deleteDeadRange() error {
 	// Exit fast if there is no dead range
 	if d.metadata.deadRangeLength == 0 {
+		if d.metadata.deadRangeStart != 0 {
+			return d.metadata.setDeadRange(0, 0)
+		}
 		return nil
 	}
 

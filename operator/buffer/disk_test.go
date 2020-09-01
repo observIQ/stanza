@@ -115,6 +115,16 @@ func TestDiskBuffer(t *testing.T) {
 		readN(t, b, 10, 10)
 	})
 
+	t.Run("Write10Read2Flush2Read2Compact", func(t *testing.T) {
+		t.Parallel()
+		b := openBuffer(t)
+		writeN(t, b, 10, 0)
+		readN(t, b, 2, 0)
+		flushN(t, b, 2, 2)
+		readN(t, b, 2, 4)
+		b.Compact()
+	})
+
 	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
 		t.Parallel()
 		b := NewDiskBuffer(1 << 30)
@@ -155,7 +165,7 @@ func TestDiskBuffer(t *testing.T) {
 		t.Parallel()
 		rand.Seed(time.Now().Unix())
 		for i := 0; i < 10; i++ {
-			seed := rand.Int63()
+			seed := int64(1115271166182353700)
 			t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
 				t.Parallel()
 				r := rand.New(rand.NewSource(seed))
@@ -192,129 +202,34 @@ func TestDiskBuffer(t *testing.T) {
 
 }
 
-func BenchmarkDiskBufferWrite(b *testing.B) {
-	buffer := openBuffer(b)
-
-	e := entry.New()
-	ctx := context.Background()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		buffer.Add(ctx, e)
-	}
-}
-
 func BenchmarkDiskBuffer(b *testing.B) {
-	b.Run("AddReadWait", func(b *testing.B) {
-		buffer := openBuffer(b)
-		var wg sync.WaitGroup
+	buffer := openBuffer(b)
+	var wg sync.WaitGroup
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			e := entry.New()
-			e.Record = "test log"
-			ctx := context.Background()
-			for i := 0; i < b.N; i++ {
-				panicOnErr(buffer.Add(ctx, e))
-			}
-		}()
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			dst := make([]*entry.Entry, 1000)
-			for i := 0; i < b.N; {
-				flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
-				panicOnErr(err)
-				i += n
-				flush()
-			}
-		}()
-
-		wg.Wait()
-	})
-}
-
-func BenchmarkDiskBufferCompact(b *testing.B) {
-	b.Run("AllFlushed", func(b *testing.B) {
-		for _, n := range []int{1, 10, 100, 1000, 10000} {
-			b.Run(strconv.Itoa(n), func(b *testing.B) {
-				for i := 0; i < b.N; i++ {
-					b.StopTimer()
-					buffer := openBuffer(b)
-					writeN(b, buffer, n, 0)
-					uncheckedFlushN(b, buffer, n)
-					b.StartTimer()
-
-					err := buffer.Compact()
-					require.NoError(b, err)
-					buffer.Close()
-				}
-			})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		e := entry.New()
+		e.Record = "test log"
+		ctx := context.Background()
+		for i := 0; i < b.N; i++ {
+			panicOnErr(buffer.Add(ctx, e))
 		}
-	})
+		println(b.N)
+		println("finished writing")
+	}()
 
-	b.Run("AllRead", func(b *testing.B) {
-		for _, n := range []int{1, 10, 100, 1000, 10000} {
-			b.Run(strconv.Itoa(n), func(b *testing.B) {
-				for i := 0; i < b.N; i++ {
-					b.StopTimer()
-					buffer := openBuffer(b)
-					writeN(b, buffer, n, 0)
-					uncheckedReadN(b, buffer, n)
-					b.StartTimer()
-
-					err := buffer.Compact()
-					require.NoError(b, err)
-					buffer.Close()
-				}
-			})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		dst := make([]*entry.Entry, 1000)
+		for i := 0; i < b.N; {
+			flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
+			panicOnErr(err)
+			i += n
+			flush()
 		}
-	})
+	}()
 
-	b.Run("NoneRead", func(b *testing.B) {
-		for _, n := range []int{1, 10, 100, 1000, 10000} {
-			b.Run(strconv.Itoa(n), func(b *testing.B) {
-				for i := 0; i < b.N; i++ {
-					b.StopTimer()
-					buffer := openBuffer(b)
-					writeN(b, buffer, n, 0)
-					b.StartTimer()
-
-					err := buffer.Compact()
-					require.NoError(b, err)
-					buffer.Close()
-				}
-			})
-		}
-	})
-
-	b.Run("Fragmented", func(b *testing.B) {
-		for _, n := range []int{100, 1000, 10000} {
-			b.Run(strconv.Itoa(n), func(b *testing.B) {
-				for i := 0; i < b.N; i++ {
-					b.StopTimer()
-					buffer := openBuffer(b)
-					writeN(b, buffer, n, 0)
-
-					// alternate reading and flushing in batches of 10
-					flush := false
-					for j := 0; j < n; j += 10 {
-						if flush {
-							uncheckedFlushN(b, buffer, 10)
-							flush = false
-							continue
-						}
-						uncheckedReadN(b, buffer, 10)
-						flush = true
-					}
-					b.StartTimer()
-
-					err := buffer.Compact()
-					require.NoError(b, err)
-					buffer.Close()
-				}
-			})
-		}
-	})
+	wg.Wait()
 }
