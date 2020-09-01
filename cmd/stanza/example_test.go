@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	output "github.com/observiq/stanza/operator/builtin/output/stdout"
+	out "github.com/observiq/stanza/operator/builtin/output/stdout"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +46,7 @@ func TestTomcatExample(t *testing.T) {
 	cmd.SetArgs([]string{})
 
 	buf := muxWriter{}
-	output.Stdout = &buf
+	out.Stdout = &buf
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -98,7 +98,7 @@ func TestSimplePluginsExample(t *testing.T) {
 	cmd.SetArgs([]string{"--plugin_dir", "./plugins"})
 
 	buf := muxWriter{}
-	output.Stdout = &buf
+	out.Stdout = &buf
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

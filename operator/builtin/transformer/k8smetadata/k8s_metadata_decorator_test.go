@@ -50,8 +50,8 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 			},
 			OnError: "send",
 		},
-		podNameField:   entry.NewRecordField("pod_name"),
-		namespaceField: entry.NewRecordField("namespace"),
+		podNameField:   entry.NewResourceField("k8s.pod.name"),
+		namespaceField: entry.NewResourceField("k8s.namespace.name"),
 		cacheTTL:       10 * time.Minute,
 		timeout:        10 * time.Second,
 	}
@@ -96,10 +96,10 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 
 	expected := entry.Entry{
 		Labels: map[string]string{
-			"k8s_pod_label/podlabel1":           "podlab1",
-			"k8s_ns_label/label1":               "lab1",
-			"k8s_pod_annotation/podannotation1": "podann1",
-			"k8s_ns_annotation/annotation1":     "ann1",
+			"k8s-pod/podlabel1":                 "podlab1",
+			"k8s-ns/label1":                     "lab1",
+			"k8s-pod-annotation/podannotation1": "podann1",
+			"k8s-ns-annotation/annotation1":     "ann1",
 		},
 	}
 
@@ -109,9 +109,9 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 	}).Return(nil)
 
 	e := &entry.Entry{
-		Record: map[string]interface{}{
-			"pod_name":  "testpodname",
-			"namespace": "testnamespace",
+		Resource: map[string]string{
+			"k8s.pod.name":       "testpodname",
+			"k8s.namespace.name": "testnamespace",
 		},
 	}
 	err = pg.Process(context.Background(), e)

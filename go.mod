@@ -14,4 +14,3 @@ require (
 	google.golang.org/api v0.30.0
 	gopkg.in/yaml.v2 v2.3.0
 )
-

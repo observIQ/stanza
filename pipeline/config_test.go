@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/observiq/stanza/operator"
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	_ "github.com/observiq/stanza/operator/builtin/output/drop"
 	"github.com/observiq/stanza/testutil"
@@ -215,6 +216,88 @@ pipeline:
 
 	_, err = pipelineConfig.BuildPipeline(context, nil)
 	require.NoError(t, err)
+}
+
+func TestBuildValidPipelineDefaultOutput(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+
+	pipelineConfig := Config{
+		Params{
+			"id":    "generate_input",
+			"type":  "generate_input",
+			"count": 1,
+			"entry": map[string]interface{}{
+				"record": map[string]interface{}{
+					"message": "test",
+				},
+			},
+		},
+	}
+
+	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	require.NoError(t, err)
+
+	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	require.NoError(t, err)
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.drop_it")))
+}
+
+func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+
+	pipelineConfig := Config{
+		Params{
+			"id":    "generate_input",
+			"type":  "generate_input",
+			"count": 1,
+			"entry": map[string]interface{}{
+				"record": map[string]interface{}{
+					"message": "test",
+				},
+			},
+		},
+		Params{
+			"id":   "noop",
+			"type": "noop",
+		},
+	}
+
+	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	require.NoError(t, err)
+
+	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	require.NoError(t, err)
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.noop")))
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.noop"), createNodeID("$.drop_it")))
+}
+
+func TestBuildValidPluginDefaultOutput(t *testing.T) {
+	context := testutil.NewBuildContext(t)
+	pluginTemplate := `
+pipeline:
+  - id: plugin_generate
+    type: generate_input
+    count: 1
+    entry:
+      record:
+        message: test
+`
+	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	require.NoError(t, err)
+
+	pipelineConfig := Config{
+		Params{
+			"id":   "plugin",
+			"type": "plugin",
+		},
+	}
+
+	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	require.NoError(t, err)
+
+	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	require.NoError(t, err)
+	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.plugin.plugin_generate"), createNodeID("$.drop_it")))
 }
 
 func TestBuildInvalidPipelineInvalidType(t *testing.T) {

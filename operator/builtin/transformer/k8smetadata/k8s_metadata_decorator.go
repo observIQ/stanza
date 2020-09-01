@@ -21,8 +21,8 @@ func init() {
 func NewK8sMetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfig {
 	return &K8sMetadataDecoratorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "k8s_metadata_decorator"),
-		PodNameField:      entry.NewRecordField("pod_name"),
-		NamespaceField:    entry.NewRecordField("namespace"),
+		PodNameField:      entry.NewResourceField("k8s.pod.name"),
+		NamespaceField:    entry.NewResourceField("k8s.namespace.name"),
 		CacheTTL:          operator.Duration{Duration: 10 * time.Minute},
 		Timeout:           operator.Duration{Duration: 10 * time.Second},
 	}
@@ -69,6 +69,8 @@ type K8sMetadataDecorator struct {
 
 // MetadataCacheEntry is an entry in the metadata cache
 type MetadataCacheEntry struct {
+	ClusterName    string
+	UID            string
 	ExpirationTime time.Time
 	Labels         map[string]string
 	Annotations    map[string]string
@@ -198,7 +200,9 @@ func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, nam
 
 	// Cache the results
 	cacheEntry := MetadataCacheEntry{
+		ClusterName:    namespaceResponse.ClusterName,
 		ExpirationTime: time.Now().Add(k.cacheTTL),
+		UID:            string(namespaceResponse.UID),
 		Labels:         namespaceResponse.Labels,
 		Annotations:    namespaceResponse.Annotations,
 	}
@@ -229,6 +233,8 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 
 	// Cache the results
 	cacheEntry := MetadataCacheEntry{
+		ClusterName:    podResponse.ClusterName,
+		UID:            string(podResponse.UID),
 		ExpirationTime: time.Now().Add(k.cacheTTL),
 		Labels:         podResponse.Labels,
 		Annotations:    podResponse.Annotations,
@@ -244,24 +250,30 @@ func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta Metadat
 	}
 
 	for k, v := range nsMeta.Annotations {
-		entry.Labels["k8s_ns_annotation/"+k] = v
+		entry.Labels["k8s-ns-annotation/"+k] = v
 	}
 
 	for k, v := range nsMeta.Labels {
-		entry.Labels["k8s_ns_label/"+k] = v
+		entry.Labels["k8s-ns/"+k] = v
 	}
+
+	entry.Resource["k8s.namespace.uid"] = nsMeta.UID
+	entry.Resource["k8s.cluster.name"] = nsMeta.ClusterName
 }
 
-func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
+func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(podMeta MetadataCacheEntry, entry *entry.Entry) {
 	if entry.Labels == nil {
 		entry.Labels = make(map[string]string)
 	}
 
-	for k, v := range nsMeta.Annotations {
-		entry.Labels["k8s_pod_annotation/"+k] = v
+	for k, v := range podMeta.Annotations {
+		entry.Labels["k8s-pod-annotation/"+k] = v
 	}
 
-	for k, v := range nsMeta.Labels {
-		entry.Labels["k8s_pod_label/"+k] = v
+	for k, v := range podMeta.Labels {
+		entry.Labels["k8s-pod/"+k] = v
 	}
+
+	entry.Resource["k8s.pod.uid"] = podMeta.UID
+	entry.Resource["k8s.cluster.name"] = podMeta.ClusterName
 }

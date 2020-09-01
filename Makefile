@@ -23,10 +23,9 @@ test:
 	@set -e; for dir in $(ALL_MODULES); do \
 		echo "running tests in $${dir}"; \
 		(cd "$${dir}" && \
-			go test -race -coverprofile coverage.txt -coverpkg ./... ./... && \
+			go test -v -race -coverprofile coverage.txt -coverpkg ./... ./... && \
 			go tool cover -html=coverage.txt -o coverage.html); \
 	done
-	
 
 .PHONY: bench
 bench:

@@ -1,4 +1,4 @@
-package output
+package googlecloud
 
 import (
 	"context"
@@ -212,7 +212,6 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
 			require.NoError(t, err)
-
 			cloudOutput.(*GoogleCloudOutput).client = client
 
 			err = cloudOutput.Process(context.Background(), tc.input)
@@ -220,7 +219,9 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 			select {
 			case req := <-received:
+				t.Log("entry received")
 				require.Equal(t, tc.expectedOutput, req)
+				t.Log("equal")
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for writeLogEntries request")
 			}

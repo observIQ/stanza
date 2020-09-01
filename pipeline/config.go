@@ -240,6 +240,7 @@ func (p Params) buildPlugin(pluginRegistry operator.PluginRegistry, namespace st
 
 	templateParams["input"] = p.TemplateInput(namespace)
 	templateParams["output"] = p.TemplateOutput(namespace, defaultOutput)
+	templateParams["id"] = p.ID()
 
 	config, err := pluginRegistry.Render(p.Type(), templateParams)
 	if err != nil {
