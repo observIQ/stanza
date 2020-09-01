@@ -19,6 +19,7 @@ type Buffer interface {
 	Process(context.Context, *entry.Entry) error
 }
 
+// NewConfig creates a new buffer config
 func NewConfig() Config {
 	return Config{
 		BufferType:           "memory",
@@ -57,6 +58,7 @@ func (config *Config) Build() (Buffer, error) {
 	}
 }
 
+// NewRetryConfig creates a new retry config
 func NewRetryConfig() RetryConfig {
 	return RetryConfig{
 		InitialInterval:     operator.Duration{Duration: 500 * time.Millisecond},

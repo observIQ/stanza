@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewBasicConfig creates a new basic config
 func NewBasicConfig(operatorID, operatorType string) BasicConfig {
 	return BasicConfig{
 		OperatorID:   operatorID,

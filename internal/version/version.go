@@ -6,6 +6,7 @@ var Version string
 // GitHash is the current git hash of the stanza library
 var GitHash string
 
+// GetVersion returns the version of the stanza library
 func GetVersion() string {
 	if Version != "" {
 		return Version

@@ -5,11 +5,13 @@ import (
 	"io"
 )
 
+// PositionalScanner is a scanner that maintains position
 type PositionalScanner struct {
 	pos int64
 	*bufio.Scanner
 }
 
+// NewPositionalScanner creates a new positional scanner
 func NewPositionalScanner(r io.Reader, maxLogSize int, startOffset int64, splitFunc bufio.SplitFunc) *PositionalScanner {
 	ps := &PositionalScanner{
 		pos:     startOffset,
@@ -28,6 +30,7 @@ func NewPositionalScanner(r io.Reader, maxLogSize int, startOffset int64, splitF
 	return ps
 }
 
+// Pos returns the current position of the scanner
 func (ps *PositionalScanner) Pos() int64 {
 	return ps.pos
 }

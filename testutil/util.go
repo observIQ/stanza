@@ -61,6 +61,7 @@ func NewBuildContext(t testing.TB) operator.BuildContext {
 	}
 }
 
+// Trim removes white space from the lines of a string
 func Trim(s string) string {
 	lines := strings.Split(s, "\n")
 	trimmed := make([]string, 0, len(lines))

@@ -28,6 +28,7 @@ func init() {
 	operator.Register("google_cloud_output", func() operator.Builder { return NewGoogleCloudOutputConfig("") })
 }
 
+// NewGoogleCloudOutputConfig creates a new google cloud output config with default
 func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 	return &GoogleCloudOutputConfig{
 		OutputConfig:   helper.NewOutputConfig(operatorID, "google_cloud_output"),
@@ -155,13 +156,16 @@ func (p *GoogleCloudOutput) Start() error {
 	// Test writing a log message
 	ctx, cancel = context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
+	return p.TestConnection(ctx)
+}
+
+// TestConnection will attempt to send a test entry to google cloud logging
+func (p *GoogleCloudOutput) TestConnection(ctx context.Context) error {
 	testEntry := entry.New()
 	testEntry.Record = map[string]interface{}{"message": "Test connection"}
-	err = p.ProcessMulti(ctx, []*entry.Entry{testEntry})
-	if err != nil {
+	if err := p.ProcessMulti(ctx, []*entry.Entry{testEntry}); err != nil {
 		return fmt.Errorf("test connection: %s", err)
 	}
-
 	return nil
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/observiq/stanza/errors"
 )
 
+// ExprStringConfig is a string that represents an expression
 type ExprStringConfig string
 
 const (
@@ -19,6 +20,7 @@ const (
 	exprEndToken   = ")"
 )
 
+// Build creates an ExprStr string from the specified config
 func (e ExprStringConfig) Build() (*ExprString, error) {
 	s := string(e)
 	rangeStart := 0
@@ -93,6 +95,7 @@ type ExprString struct {
 	SubExprs   []*vm.Program
 }
 
+// Render will render an ExprString as a string
 func (e *ExprString) Render(env map[string]interface{}) (string, error) {
 	var b strings.Builder
 	for i := 0; i < len(e.SubExprs); i++ {
@@ -120,6 +123,7 @@ var envPool = sync.Pool{
 	},
 }
 
+// GetExprEnv returns a map of key/value pairs that can be be used to evaluate an expression
 func GetExprEnv(e *entry.Entry) map[string]interface{} {
 	env := envPool.Get().(map[string]interface{})
 	env["$"] = e.Record
@@ -131,6 +135,7 @@ func GetExprEnv(e *entry.Entry) map[string]interface{} {
 	return env
 }
 
+// PutExprEnv adds a key/value pair that will can be used to evaluate an expression
 func PutExprEnv(e map[string]interface{}) {
 	envPool.Put(e)
 }

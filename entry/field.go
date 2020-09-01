@@ -79,11 +79,17 @@ func (f Field) MarshalYAML() (interface{}, error) {
 type splitState uint
 
 const (
+	// BEGIN is the beginning state of a field split
 	BEGIN splitState = iota
+	// IN_BRACKET is the state of a field split inside a bracket
 	IN_BRACKET
+	// IN_QUOTE is the state of a field split inside a quote
 	IN_QUOTE
+	// OUT_QUOTE is the state of a field split outside a quote
 	OUT_QUOTE
+	// OUT_BRACKET is the state of a field split outside a bracket
 	OUT_BRACKET
+	// IN_UNBRACKETED_TOKEN is the state field split on any token outside brackets
 	IN_UNBRACKETED_TOKEN
 )
 
@@ -146,9 +152,8 @@ func splitField(s string) ([]string, error) {
 	case IN_QUOTE:
 		if quoteChar == '"' {
 			return nil, fmt.Errorf("found unclosed double quote")
-		} else {
-			return nil, fmt.Errorf("found unclosed single quote")
 		}
+		return nil, fmt.Errorf("found unclosed single quote")
 	case IN_UNBRACKETED_TOKEN:
 		fields = append(fields, s[tokenStart:])
 	}

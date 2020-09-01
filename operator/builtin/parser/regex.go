@@ -15,6 +15,7 @@ func init() {
 	operator.Register("regex_parser", func() operator.Builder { return NewRegexParserConfig("") })
 }
 
+// NewRegexParserConfig creates a new regex parser config with default values
 func NewRegexParserConfig(operatorID string) *RegexParserConfig {
 	return &RegexParserConfig{
 		ParserConfig: helper.NewParserConfig(operatorID, "regex_parser"),

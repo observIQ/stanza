@@ -12,6 +12,7 @@ func init() {
 	operator.Register("noop", func() operator.Builder { return NewNoopOperatorConfig("") })
 }
 
+// NewNoopOperatorConfig creates a new noop operator config with default values
 func NewNoopOperatorConfig(operatorID string) *NoopOperatorConfig {
 	return &NoopOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "noop"),

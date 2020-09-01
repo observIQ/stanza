@@ -17,6 +17,7 @@ func init() {
 	operator.Register("syslog_parser", func() operator.Builder { return NewSyslogParserConfig("") })
 }
 
+// NewSyslogParserConfig creates a new syslog parser config with default values
 func NewSyslogParserConfig(operatorID string) *SyslogParserConfig {
 	return &SyslogParserConfig{
 		ParserConfig: helper.NewParserConfig(operatorID, "syslog_parser"),

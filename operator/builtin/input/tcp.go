@@ -16,6 +16,7 @@ func init() {
 	operator.Register("tcp_input", func() operator.Builder { return NewTCPInputConfig("") })
 }
 
+// NewTCPInputConfig creates a new TCP input config with default values
 func NewTCPInputConfig(operatorID string) *TCPInputConfig {
 	return &TCPInputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, "tcp_input"),

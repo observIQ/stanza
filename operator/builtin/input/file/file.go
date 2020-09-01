@@ -28,6 +28,7 @@ func init() {
 	operator.Register("file_input", func() operator.Builder { return NewInputConfig("") })
 }
 
+// NewInputConfig creates a new input config with default values
 func NewInputConfig(operatorID string) *InputConfig {
 	return &InputConfig{
 		InputConfig:     helper.NewInputConfig(operatorID, "file_input"),
