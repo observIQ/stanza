@@ -1,4 +1,4 @@
-package input
+package k8sevent
 
 import (
 	"context"

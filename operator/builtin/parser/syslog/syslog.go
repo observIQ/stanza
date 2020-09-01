@@ -1,11 +1,11 @@
-package parser
+package syslog
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	syslog "github.com/observiq/go-syslog/v3"
+	sl "github.com/observiq/go-syslog/v3"
 	"github.com/observiq/go-syslog/v3/rfc3164"
 	"github.com/observiq/go-syslog/v3/rfc5424"
 	"github.com/observiq/stanza/entry"
@@ -58,7 +58,7 @@ func (c SyslogParserConfig) Build(context operator.BuildContext) (operator.Opera
 	return syslogParser, nil
 }
 
-func buildMachine(protocol string) (syslog.Machine, error) {
+func buildMachine(protocol string) (sl.Machine, error) {
 	switch protocol {
 	case "rfc3164":
 		return rfc3164.NewMachine(), nil
@@ -92,12 +92,12 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	syslog, err := machine.Parse(bytes)
+	slog, err := machine.Parse(bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	switch message := syslog.(type) {
+	switch message := slog.(type) {
 	case *rfc3164.SyslogMessage:
 		return s.parseRFC3164(message)
 	case *rfc5424.SyslogMessage:

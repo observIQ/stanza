@@ -3,7 +3,7 @@ GOARCH=$(shell go env GOARCH)
 
 GIT_SHA=$(shell git rev-parse --short HEAD)
 
-ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort | egrep  '^./' )
+ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 
 BUILD_INFO_IMPORT_PATH=github.com/observiq/stanza/internal/version
 BUILD_X1=-X $(BUILD_INFO_IMPORT_PATH).GitHash=$(GIT_SHA)

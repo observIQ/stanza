@@ -1,6 +1,6 @@
 // +build linux
 
-package input
+package journald
 
 import (
 	"bytes"

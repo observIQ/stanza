@@ -1,4 +1,4 @@
-package transformer
+package metadata
 
 import (
 	"context"

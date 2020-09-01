@@ -1,4 +1,4 @@
-package output
+package drop
 
 import (
 	"github.com/observiq/stanza/operator/helper"

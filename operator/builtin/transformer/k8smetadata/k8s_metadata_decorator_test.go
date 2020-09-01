@@ -1,4 +1,4 @@
-package transformer
+package k8smetadata
 
 import (
 	"context"

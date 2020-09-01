@@ -1,4 +1,4 @@
-package transformer
+package filter
 
 import (
 	"context"

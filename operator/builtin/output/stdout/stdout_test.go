@@ -1,4 +1,4 @@
-package output
+package stdout
 
 import (
 	"bytes"

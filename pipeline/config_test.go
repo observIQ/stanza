@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	"github.com/observiq/stanza/operator/builtin/output/drop"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
