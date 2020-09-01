@@ -98,7 +98,7 @@ jobs:
           name: Run Unit Tests
           command: make test
       - codecov/upload:
-          file: ./coverage.txt
+          file: '**/coverage.txt'
 
   test-macos:
     executor: mac

@@ -21,31 +21,17 @@ install-tools:
 	go install github.com/vektra/mockery/cmd/mockery
 
 .PHONY: test
-test: clean test-all
-
-.PHONY: test-all
-test-all:
-	mkdir -p $(ARTIFACTS)
-	touch $(ARTIFACTS)/coverage.all
-	@set -e; for dir in $(ALL_MODULES); do \
-		(cd "$${dir}" && \
-			go test -race -coverprofile coverage.txt -coverpkg ./... ./...); \
-		cat "$${dir}"/coverage.txt >> $(ARTIFACTS)/coverage.all; \
-	done
-	cat $(ARTIFACTS)/coverage.all | uniq -u > $(ARTIFACTS)/coverage.txt
+test:
+	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
 .PHONY: bench
 bench:
-	@set -e; for dir in $(ALL_MODULES); do \
-		(cd "$${dir}" && go test -run=NONE -bench '.*' ./... -benchmem); \
-	done
+	$(MAKE) for-all CMD="go test -run=NONE -bench '.*' ./... -benchmem"
 
 .PHONY: clean
 clean:
 	rm -fr ./artifacts
-	@set -e; for dir in $(ALL_MODULES); do \
-		(cd "$${dir}" && rm -f coverage.txt coverage.html); \
-	done
+	$(MAKE) for-all CMD="rm -f coverage.txt coverage.html"
 
 .PHONY: listmod
 listmod:
@@ -83,4 +69,10 @@ build-linux-amd64:
 .PHONY: build-windows-amd64
 build-windows-amd64:
 	@GOOS=windows GOARCH=amd64 $(MAKE) build
-	
+
+.PHONY: for-all
+for-all:
+	@$${CMD}
+	@set -e; for dir in $(ALL_MODULES); do \
+	  (cd "$${dir}" && $${CMD} ); \
+	done
