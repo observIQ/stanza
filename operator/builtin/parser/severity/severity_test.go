@@ -346,3 +346,9 @@ func parseSeverityTestConfig(parseFrom entry.Field, preset string, mapping map[i
 	}
 	return cfg
 }
+
+func makeTestEntry(field entry.Field, value interface{}) *entry.Entry {
+	e := entry.New()
+	e.Set(field, value)
+	return e
+}

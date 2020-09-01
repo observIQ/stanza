@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/stanza/operator"
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
-	_ "github.com/observiq/stanza/operator/builtin/output/drop"
+	"github.com/observiq/stanza/operator/builtin/output/drop"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -234,7 +233,7 @@ func TestBuildValidPipelineDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
@@ -262,7 +261,7 @@ func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
@@ -292,7 +291,7 @@ pipeline:
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)

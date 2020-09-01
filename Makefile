@@ -21,7 +21,6 @@ install-tools:
 .PHONY: test
 test:
 	@set -e; for dir in $(ALL_MODULES); do \
-		echo "running tests in $${dir}"; \
 		(cd "$${dir}" && \
 			go test -race -coverprofile coverage.txt -coverpkg ./... ./... && \
 			go tool cover -html=coverage.txt -o coverage.html); \
@@ -29,7 +28,15 @@ test:
 
 .PHONY: bench
 bench:
-	go test -run=NONE -bench '.*' ./... -benchmem
+	@set -e; for dir in $(ALL_MODULES); do \
+		(cd "$${dir}" && go test -run=NONE -bench '.*' ./... -benchmem); \
+	done
+
+.PHONY: clean
+clean:
+	@set -e; for dir in $(ALL_MODULES); do \
+		(cd "$${dir}" && rm coverage.txt coverage.html); \
+	done
 
 .PHONY: lint
 lint:
@@ -61,3 +68,4 @@ build-linux-amd64:
 .PHONY: build-windows-amd64
 build-windows-amd64:
 	@GOOS=windows GOARCH=amd64 $(MAKE) build
+	
