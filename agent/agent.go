@@ -67,6 +67,7 @@ func OpenDatabase(file string) (operator.Database, error) {
 	return bbolt.Open(file, 0666, options)
 }
 
+// LogAgentBuilder is a construct used to build a log agent
 type LogAgentBuilder struct {
 	cfg           *Config
 	logger        *zap.SugaredLogger
@@ -75,6 +76,7 @@ type LogAgentBuilder struct {
 	defaultOutput operator.Operator
 }
 
+// NewBuilder creates a new LogAgentBuilder
 func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
 	return &LogAgentBuilder{
 		cfg:    cfg,
@@ -82,21 +84,25 @@ func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
 	}
 }
 
+// WithPluginDir adds the specified plugin directory when building a log agent
 func (b *LogAgentBuilder) WithPluginDir(pluginDir string) *LogAgentBuilder {
 	b.pluginDir = pluginDir
 	return b
 }
 
+// WithDatabaseFile adds the specified database file when building a log agent
 func (b *LogAgentBuilder) WithDatabaseFile(databaseFile string) *LogAgentBuilder {
 	b.databaseFile = databaseFile
 	return b
 }
 
+// WithDefaultOutput adds a default output when building a log agent
 func (b *LogAgentBuilder) WithDefaultOutput(defaultOutput operator.Operator) *LogAgentBuilder {
 	b.defaultOutput = defaultOutput
 	return b
 }
 
+// Build will build a new log agent using the values defined on the builder
 func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 	database, err := OpenDatabase(b.databaseFile)
 	if err != nil {

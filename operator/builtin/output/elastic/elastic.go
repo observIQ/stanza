@@ -21,6 +21,7 @@ func init() {
 	operator.Register("elastic_output", func() operator.Builder { return NewElasticOutputConfig("") })
 }
 
+// NewElasticOutputConfig creates a new elastic output config with default values
 func NewElasticOutputConfig(operatorID string) *ElasticOutputConfig {
 	return &ElasticOutputConfig{
 		OutputConfig: helper.NewOutputConfig(operatorID, "elastic_output"),

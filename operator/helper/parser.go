@@ -8,6 +8,7 @@ import (
 	"github.com/observiq/stanza/operator"
 )
 
+// NewParserConfig creates a new parser config with default values
 func NewParserConfig(operatorID, operatorType string) ParserConfig {
 	return ParserConfig{
 		TransformerConfig: NewTransformerConfig(operatorID, operatorType),

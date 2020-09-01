@@ -9,6 +9,7 @@ import (
 	"github.com/observiq/stanza/operator"
 )
 
+// NewWriterConfig creates a new writer config
 func NewWriterConfig(operatorID, operatorType string) WriterConfig {
 	return WriterConfig{
 		BasicConfig: NewBasicConfig(operatorID, operatorType),

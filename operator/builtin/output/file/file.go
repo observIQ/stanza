@@ -17,6 +17,7 @@ func init() {
 	operator.Register("file_output", func() operator.Builder { return NewFileOutputConfig("") })
 }
 
+// NewFileOutputConfig creates a new file output config with default values
 func NewFileOutputConfig(operatorID string) *FileOutputConfig {
 	return &FileOutputConfig{
 		OutputConfig: helper.NewOutputConfig(operatorID, "file_output"),

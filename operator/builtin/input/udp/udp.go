@@ -15,6 +15,7 @@ func init() {
 	operator.Register("udp_input", func() operator.Builder { return NewUDPInputConfig("") })
 }
 
+// NewUDPInputConfig creates a new UDP input config with default values
 func NewUDPInputConfig(operatorID string) *UDPInputConfig {
 	return &UDPInputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, "udp_input"),

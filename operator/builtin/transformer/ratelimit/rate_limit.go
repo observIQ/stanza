@@ -14,6 +14,7 @@ func init() {
 	operator.Register("rate_limit", func() operator.Builder { return NewRateLimitConfig("") })
 }
 
+// NewRateLimitConfig creates a new rate limit config with default values
 func NewRateLimitConfig(operatorID string) *RateLimitConfig {
 	return &RateLimitConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "rate_limit"),

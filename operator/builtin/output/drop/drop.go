@@ -12,6 +12,7 @@ func init() {
 	operator.Register("drop_output", func() operator.Builder { return NewDropOutputConfig("") })
 }
 
+// NewDropOutputConfig creates a new drop output config with default values
 func NewDropOutputConfig(operatorID string) *DropOutputConfig {
 	return &DropOutputConfig{
 		OutputConfig: helper.NewOutputConfig(operatorID, "drop_output"),

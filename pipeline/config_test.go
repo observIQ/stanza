@@ -429,6 +429,7 @@ pipeline:
 	require.Len(t, configs, 3)
 
 	operators, err := config.buildOperators(configs, context)
+	require.NoError(t, err)
 	require.Len(t, operators, 3)
 
 	for _, operator := range operators {

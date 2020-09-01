@@ -60,6 +60,7 @@ const (
 	HTTP5xx = "5xx"
 )
 
+// NewSeverityParserConfig creates a new severity parser config
 func NewSeverityParserConfig() SeverityParserConfig {
 	return SeverityParserConfig{}
 }

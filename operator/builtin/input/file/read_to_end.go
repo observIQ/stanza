@@ -29,12 +29,6 @@ func ReadToEnd(
 	maxLogSize int,
 	encoding encoding.Encoding,
 ) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	default:
-	}
-
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -65,31 +59,7 @@ func ReadToEnd(
 	decodeBuffer := make([]byte, 16384)
 
 	fileName := filepath.Base(file.Name())
-	emit := func(msgBuf []byte) {
-		decoder.Reset()
-		var nDst int
-		for {
-			nDst, _, err = decoder.Transform(decodeBuffer, msgBuf, true)
-			if err != nil && err == transform.ErrShortDst {
-				decodeBuffer = make([]byte, len(decodeBuffer)*2)
-				continue
-			} else if err != nil {
-				inputOperator.Errorw("failed to transform encoding", zap.Error(err))
-				return
-			}
-			break
-		}
-
-		e, err := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
-		if err != nil {
-			inputOperator.Errorw("Failed to create entry", zap.Error(err))
-			return
-		}
-
-		e.Set(filePathField, path)
-		e.Set(fileNameField, fileName)
-		inputOperator.Write(ctx, e)
-	}
+	emit := newEmitFunc(ctx, inputOperator, decoder, decodeBuffer, filePathField, fileNameField, path, fileName)
 
 	// Iterate over the tokenized file, emitting entries as we go
 	for {
@@ -101,10 +71,8 @@ func ReadToEnd(
 
 		ok := scanner.Scan()
 		if !ok {
-			if err := scanner.Err(); err == bufio.ErrTooLong {
-				return errors.NewError("log entry too large", "increase max_log_size or ensure that multiline regex patterns terminate")
-			} else if err != nil {
-				return errors.Wrap(err, "scanner error")
+			if err := getScannerError(scanner); err != nil {
+				return err
 			}
 			break
 		}
@@ -130,5 +98,44 @@ func ReadToEnd(
 		messenger.SetOffset(scanner.Pos() + int64(n))
 	}
 
+	return nil
+}
+
+func newEmitFunc(ctx context.Context, inputOperator helper.InputOperator, decoder *encoding.Decoder, decodeBuffer []byte, filePathField entry.Field, fileNameField entry.Field, filePath string, fileName string) func([]byte) {
+	return func(msgBuf []byte) {
+		decoder.Reset()
+		var nDst int
+		var err error
+		for {
+			nDst, _, err = decoder.Transform(decodeBuffer, msgBuf, true)
+			if err != nil && err == transform.ErrShortDst {
+				decodeBuffer = make([]byte, len(decodeBuffer)*2)
+				continue
+			} else if err != nil {
+				inputOperator.Errorw("failed to transform encoding", zap.Error(err))
+				return
+			}
+			break
+		}
+
+		e, err := inputOperator.NewEntry(string(decodeBuffer[:nDst]))
+		if err != nil {
+			inputOperator.Errorw("Failed to create entry", zap.Error(err))
+			return
+		}
+
+		e.Set(filePathField, filePath)
+		e.Set(fileNameField, fileName)
+		inputOperator.Write(ctx, e)
+	}
+}
+
+func getScannerError(scanner *PositionalScanner) error {
+	err := scanner.Err()
+	if err == bufio.ErrTooLong {
+		return errors.NewError("log entry too large", "increase max_log_size or ensure that multiline regex patterns terminate")
+	} else if err != nil {
+		return errors.Wrap(err, "scanner error")
+	}
 	return nil
 }

@@ -14,6 +14,7 @@ func init() {
 	operator.Register("json_parser", func() operator.Builder { return NewJSONParserConfig("") })
 }
 
+// NewJSONParserConfig creates a new JSON parser config with default values
 func NewJSONParserConfig(operatorID string) *JSONParserConfig {
 	return &JSONParserConfig{
 		ParserConfig: helper.NewParserConfig(operatorID, "json_parser"),

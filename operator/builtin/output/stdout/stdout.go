@@ -19,6 +19,7 @@ func init() {
 	operator.Register("stdout", func() operator.Builder { return NewStdoutConfig("") })
 }
 
+// NewStdoutConfig creates a new stdout config with default values
 func NewStdoutConfig(operatorID string) *StdoutConfig {
 	return &StdoutConfig{
 		OutputConfig: helper.NewOutputConfig(operatorID, "stdout"),

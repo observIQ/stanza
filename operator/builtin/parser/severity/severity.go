@@ -13,6 +13,7 @@ func init() {
 	operator.Register("severity_parser", func() operator.Builder { return NewSeverityParserConfig("") })
 }
 
+// NewSeverityParserConfig creates a new severity parser config with default values
 func NewSeverityParserConfig(operatorID string) *SeverityParserConfig {
 	return &SeverityParserConfig{
 		TransformerConfig:    helper.NewTransformerConfig(operatorID, "severity_parser"),
