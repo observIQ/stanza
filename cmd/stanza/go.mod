@@ -13,6 +13,7 @@ require (
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/input/tcp v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/input/udp v0.0.0-00010101000000-000000000000
+	github.com/observiq/stanza/operator/builtin/input/windows v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/output/elastic v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/output/file v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.0.0-00010101000000-000000000000
@@ -47,6 +48,8 @@ replace github.com/observiq/stanza/operator/builtin/input/generate => ../../oper
 replace github.com/observiq/stanza/operator/builtin/input/journald => ../../operator/builtin/input/journald
 
 replace github.com/observiq/stanza/operator/builtin/input/k8sevent => ../../operator/builtin/input/k8sevent
+
+replace github.com/observiq/stanza/operator/builtin/input/windows => ../../operator/builtin/input/windows
 
 replace github.com/observiq/stanza/operator/builtin/input/tcp => ../../operator/builtin/input/tcp
 
