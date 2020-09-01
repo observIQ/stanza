@@ -22,8 +22,8 @@ type Config struct {
 	BufferBuilder
 }
 
-func NewConfig() *Config {
-	return &Config{
+func NewConfig() Config {
+	return Config{
 		Type: "memory",
 		BufferBuilder: &MemoryBufferConfig{
 			MaxEntries: 1 << 20,
