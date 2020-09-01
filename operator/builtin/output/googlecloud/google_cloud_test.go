@@ -219,9 +219,13 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 			select {
 			case req := <-received:
-				t.Log("entry received")
-				require.Equal(t, tc.expectedOutput, req)
-				t.Log("equal")
+				// Apparently there is occasionally an infinite loop in req.stat
+				// and testify freezes up trying to infinitely unpack it
+				// So instead, just compare the meaningful portions
+				require.Equal(t, tc.expectedOutput.LogName, req.LogName)
+				require.Equal(t, tc.expectedOutput.Labels, req.Labels)
+				require.Equal(t, tc.expectedOutput.Resource, req.Resource)
+				require.Equal(t, tc.expectedOutput.Entries, req.Entries)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for writeLogEntries request")
 			}
