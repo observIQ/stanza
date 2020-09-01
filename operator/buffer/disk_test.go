@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -165,7 +166,7 @@ func TestDiskBuffer(t *testing.T) {
 		t.Parallel()
 		rand.Seed(time.Now().Unix())
 		for i := 0; i < 10; i++ {
-			seed := int64(1115271166182353700)
+			seed := rand.Int63()
 			t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
 				t.Parallel()
 				r := rand.New(rand.NewSource(seed))
@@ -209,14 +210,13 @@ func BenchmarkDiskBuffer(b *testing.B) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		fmt.Printf("Benchmark: %d\n", b.N)
 		e := entry.New()
 		e.Record = "test log"
 		ctx := context.Background()
 		for i := 0; i < b.N; i++ {
 			panicOnErr(buffer.Add(ctx, e))
 		}
-		println(b.N)
-		println("finished writing")
 	}()
 
 	wg.Add(1)

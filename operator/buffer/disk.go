@@ -110,7 +110,7 @@ func (d *DiskBuffer) Open(path string) error {
 	// Once everything is compacted, we can safely reset all previously read, but
 	// unflushed entries to unread
 	d.metadata.unreadStartOffset = 0
-	d.metadata.unreadCount += int64(len(d.metadata.read))
+	d.incrementUnreadCount(int64(len(d.metadata.read)))
 	d.metadata.read = d.metadata.read[:0]
 	return d.metadata.Sync()
 }
@@ -208,7 +208,7 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 
 	// Return fast if there are no unread entries
 	if d.metadata.unreadCount == 0 {
-		return func() {}, 0, nil
+		return d.checkCompact, 0, nil
 	}
 
 	// Seek to the start of the range of unread entries
@@ -239,7 +239,7 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 
 	d.metadata.read = append(d.metadata.read, newRead...)
 	d.metadata.unreadStartOffset = entryStartOffset
-	d.metadata.unreadCount -= int64(readCount)
+	d.incrementUnreadCount(-int64(readCount))
 	markFlushed := func() {
 		d.Lock()
 		for _, entry := range newRead {
@@ -254,14 +254,18 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 }
 
 func (d *DiskBuffer) checkCompact() {
+	d.Lock()
 	switch {
 	case d.flushedBytes > d.maxBytes/2:
 		fallthrough
 	case time.Now().Sub(d.lastCompaction) > 5*time.Second:
+		d.Unlock()
 		err := d.Compact()
 		if err != nil {
 			panic(err) // TODO how to report this error back to caller?
 		}
+	default:
+		d.Unlock()
 	}
 }
 
@@ -450,12 +454,13 @@ func (d *DiskBuffer) deleteDeadRange() error {
 		return err
 	}
 
+	d.diskSizeSemaphore.Release(d.metadata.deadRangeLength)
+
 	err = d.metadata.setDeadRange(0, 0)
 	if err != nil {
 		return err
 	}
 
-	d.diskSizeSemaphore.Release(d.metadata.deadRangeLength)
 	return nil
 }
 
