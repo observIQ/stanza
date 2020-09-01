@@ -1,6 +1,6 @@
 // +build !windows
 
-package input
+package windows
 
 import (
 	"testing"

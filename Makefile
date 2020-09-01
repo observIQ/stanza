@@ -33,6 +33,11 @@ clean:
 	rm -fr ./artifacts
 	$(MAKE) for-all CMD="rm -f coverage.txt coverage.html"
 
+.PHONY: tidy
+tidy:
+	rm -fr ./artifacts
+	$(MAKE) for-all CMD="go mod tidy"
+
 .PHONY: listmod
 listmod:
 	@set -e; for dir in $(ALL_MODULES); do \

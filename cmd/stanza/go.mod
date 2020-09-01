@@ -3,10 +3,7 @@ module github.com/observiq/stanza/cmd/stanza
 go 1.14
 
 require (
-	github.com/elastic/go-elasticsearch/v7 v7.9.0 // indirect
-	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/kardianos/service v1.1.0
-	github.com/observiq/go-syslog/v3 v3.0.2 // indirect
 	github.com/observiq/stanza v0.9.14
 	github.com/observiq/stanza/operator/builtin/input/file v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/input/journald v0.0.0-00010101000000-000000000000
@@ -34,9 +31,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/zap v1.15.0
-	k8s.io/api v0.19.0 // indirect
-	k8s.io/klog v1.0.0 // indirect
-	k8s.io/utils v0.0.0-20200821003339-5e75c0163111 // indirect
 )
 
 replace github.com/observiq/stanza => ../../

@@ -11,6 +11,6 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/zap v1.15.0
 	gonum.org/v1/gonum v0.8.1
-	google.golang.org/api v0.30.0
+	google.golang.org/api v0.31.0
 	gopkg.in/yaml.v2 v2.3.0
 )
