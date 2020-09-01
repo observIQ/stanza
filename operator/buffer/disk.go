@@ -40,9 +40,8 @@ type DiskBuffer struct {
 	data *os.File
 	sync.Mutex
 
-	// atUnread indicates whether the file descriptor for data is currently seeked
-	// to the beginning of the unread entries
-	atUnread bool
+	// TODO
+	atEnd bool
 
 	// entryAdded is a channel that is notified on every time an entry is added.
 	// The integer sent down the channel is the new number of unread entries stored.
@@ -144,12 +143,8 @@ func (d *DiskBuffer) Add(ctx context.Context, newEntry *entry.Entry) error {
 	defer d.Unlock()
 
 	// Seek to end of the file if we're not there
-	if !d.atUnread {
-		_, err = d.data.Seek(0, 2)
-		if err != nil {
-			return err
-		}
-		d.atUnread = true
+	if err = d.seekToEnd(); err != nil {
+		return err
 	}
 
 	if _, err = d.data.Write(buf.Bytes()); err != nil {
@@ -212,11 +207,9 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 	}
 
 	// Seek to the start of the range of unread entries
-	_, err = d.data.Seek(d.metadata.unreadStartOffset, 0)
-	if err != nil {
+	if err = d.seekToUnread(); err != nil {
 		return nil, 0, fmt.Errorf("seek to unread: %s", err)
 	}
-	d.atUnread = false
 
 	readCount := min(len(dst), int(d.metadata.unreadCount))
 	newRead := make([]*readEntry, readCount)
@@ -323,88 +316,102 @@ func (d *DiskBuffer) Compact() error {
 		return fmt.Errorf("cannot compact the disk buffer before removing the dead range")
 	}
 
-	for i := 0; i < len(m.read); {
-		if m.read[i].flushed {
+	for start := 0; start < len(m.read); {
+		if m.read[start].flushed {
 			// Find the end index of the range of flushed entries
-			j := i + 1
-			for ; j < len(m.read); j++ {
-				if !m.read[j].flushed {
+			end := start + 1
+			for ; end < len(m.read); end++ {
+				if !m.read[end].flushed {
 					break
 				}
 			}
 
 			// Expand the dead range
-			rangeSize := onDiskSize(m.read[i:j])
-			m.deadRangeLength += rangeSize
-			d.flushedBytes -= rangeSize
-
-			// Update the effective offsets if the dead range is removed
-			for _, entry := range m.read[j:] {
-				entry.startOffset -= rangeSize
-			}
-
-			// Update the effective unreadStartOffset if the dead range is removed
-			m.unreadStartOffset -= rangeSize
-
-			// Delete the flushed range from metadata
-			m.read = append(m.read[:i], m.read[j:]...)
-
-			// Sync to disk
-			if err := d.metadata.Sync(); err != nil {
+			if err := d.markFlushedRangeDead(start, end); err != nil {
 				return err
 			}
 		} else {
 			// Find the end index of the range of unflushed entries
-			j := i + 1
-			for ; j < len(m.read); j++ {
-				if m.read[j].flushed {
+			end := start + 1
+			for ; end < len(m.read); end++ {
+				if m.read[end].flushed {
 					break
 				}
 			}
 
-			// If there is no dead range, no need to move unflushed entries
-			rangeSize := onDiskSize(m.read[i:j])
-			if m.deadRangeLength == 0 {
-				i = j
-				m.deadRangeStart += rangeSize
-				continue
-			}
-
-			// Slide the range left, syncing dead range after every chunk
-			for bytesMoved := 0; bytesMoved < int(rangeSize); {
-				remainingBytes := int(rangeSize) - bytesMoved
-				chunkSize := min(int(m.deadRangeLength), remainingBytes)
-
-				// Move the chunk to the beginning of the dead space
-				_, err := d.moveRange(
-					m.deadRangeStart,
-					m.deadRangeLength,
-					m.read[i].startOffset+int64(bytesMoved)+m.deadRangeLength,
-					int64(chunkSize),
-				)
-				if err != nil {
-					return err
-				}
-
-				// Update the offset of the dead space
-				m.deadRangeStart += int64(chunkSize)
-				bytesMoved += chunkSize
-
-				// Sync to disk all at once
-				err = d.metadata.Sync()
-				if err != nil {
-					return err
-				}
+			// Slide the unread range left, to the start of the dead range
+			if err := d.shiftUnreadRange(start, end); err != nil {
+				return err
 			}
 
 			// Update i
-			i = j
+			start = end
 		}
 
 	}
 
 	// Bubble the dead space through the unflushed entries, then truncate
 	return d.deleteDeadRange()
+}
+
+func (d *DiskBuffer) markFlushedRangeDead(start, end int) error {
+	m := d.metadata
+	// Expand the dead range
+	rangeSize := onDiskSize(m.read[start:end])
+	m.deadRangeLength += rangeSize
+	d.flushedBytes -= rangeSize
+
+	// Update the effective offsets if the dead range is removed
+	for _, entry := range m.read[end:] {
+		entry.startOffset -= rangeSize
+	}
+
+	// Update the effective unreadStartOffset if the dead range is removed
+	m.unreadStartOffset -= rangeSize
+
+	// Delete the flushed range from metadata
+	m.read = append(m.read[:start], m.read[end:]...)
+
+	// Sync to disk
+	return d.metadata.Sync()
+}
+
+func (d *DiskBuffer) shiftUnreadRange(start, end int) error {
+	m := d.metadata
+	// If there is no dead range, no need to move unflushed entries
+	rangeSize := onDiskSize(m.read[start:end])
+	if m.deadRangeLength == 0 {
+		m.deadRangeStart += rangeSize
+		return nil
+	}
+
+	// Slide the range left, syncing dead range after every chunk
+	for bytesMoved := 0; bytesMoved < int(rangeSize); {
+		remainingBytes := int(rangeSize) - bytesMoved
+		chunkSize := min(int(m.deadRangeLength), remainingBytes)
+
+		// Move the chunk to the beginning of the dead space
+		_, err := d.moveRange(
+			m.deadRangeStart,
+			m.deadRangeLength,
+			m.read[start].startOffset+int64(bytesMoved)+m.deadRangeLength,
+			int64(chunkSize),
+		)
+		if err != nil {
+			return err
+		}
+
+		// Update the offset of the dead space
+		m.deadRangeStart += int64(chunkSize)
+		bytesMoved += chunkSize
+
+		// Sync to disk all at once
+		if err = d.metadata.Sync(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // deleteDeadRange moves the dead range to the end of the file, chunk by chunk,
@@ -449,15 +456,13 @@ func (d *DiskBuffer) deleteDeadRange() error {
 	}
 
 	// Truncate the extra space at the end of the file
-	err = d.data.Truncate(info.Size() - d.metadata.deadRangeLength)
-	if err != nil {
+	if err = d.data.Truncate(info.Size() - d.metadata.deadRangeLength); err != nil {
 		return err
 	}
 
 	d.diskSizeSemaphore.Release(d.metadata.deadRangeLength)
 
-	err = d.metadata.setDeadRange(0, 0)
-	if err != nil {
+	if err = d.metadata.setDeadRange(0, 0); err != nil {
 		return err
 	}
 
@@ -480,11 +485,9 @@ func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, err
 	eof := false
 	for !eof {
 		// Seek to last read position
-		_, err := d.data.Seek(readPosition, 0)
-		if err != nil {
+		if err := d.seekTo(readPosition); err != nil {
 			return 0, err
 		}
-		d.atUnread = false
 
 		// Read a chunk
 		n, err := rd.Read(d.copyBuffer)
@@ -509,6 +512,37 @@ func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, err
 	return bytesRead, nil
 }
 
+// seekToEnd seeks the data file descriptor to the end of the
+// file, but only if we're not already at the end.
+func (d *DiskBuffer) seekToEnd() error {
+	if !d.atEnd {
+		if _, err := d.data.Seek(0, 2); err != nil {
+			return err
+		}
+		d.atEnd = true
+	}
+	return nil
+}
+
+// seekToUnread seeks the data file descriptor to the beginning
+// of the first unread message
+func (d *DiskBuffer) seekToUnread() error {
+	_, err := d.data.Seek(d.metadata.unreadStartOffset, 0)
+	d.atEnd = false
+	return err
+}
+
+// seekTo seeks the data file descriptor to the given offset.
+// This is used rather than (*os.File).Seek() because it also sets
+// atEnd correctly.
+func (d *DiskBuffer) seekTo(pos int64) error {
+	// Seek to last read position
+	_, err := d.data.Seek(pos, 0)
+	d.atEnd = false
+	return err
+}
+
+// min returns the minimum of two ints
 func min(first, second int) int {
 	m := first
 	if second < first {
