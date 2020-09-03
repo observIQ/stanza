@@ -17,7 +17,7 @@ The `google_cloud_output` operator will send entries to Google Cloud Logging.
 | `use_compression`  | `true`                | Whether to compress the log entry payloads with gzip before sending to Google Cloud                        |
 | `timeout`          | 10s                   | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out |
 | `buffer`           |                       | A [buffer](/docs/types/buffer.md) block indicating how to buffer entries before flushing                   |
-| `flusher`          |                       | A [flusher](/docs/types/flusher.md) block indicating how to buffer entries before flushing                 |
+| `flusher`          |                       | A [flusher](/docs/types/flusher.md) block configuring flushing behavior                                    |
 
 If both `credentials` and `credentials_file` are left empty, the agent will attempt to find
 [Application Default Credentials](https://cloud.google.com/docs/authentication/production) from the environment.
