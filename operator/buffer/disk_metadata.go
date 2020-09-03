@@ -45,11 +45,15 @@ type Metadata struct {
 }
 
 // OpenMetadata opens and parses the metadata
-func OpenMetadata(path string) (*Metadata, error) {
+func OpenMetadata(path string, sync bool) (*Metadata, error) {
 	m := &Metadata{}
 
 	var err error
-	if m.file, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0755); err != nil {
+	flags := os.O_CREATE | os.O_RDWR
+	if sync {
+		flags |= os.O_SYNC
+	}
+	if m.file, err = os.OpenFile(path, flags, 0755); err != nil {
 		return &Metadata{}, err
 	}
 

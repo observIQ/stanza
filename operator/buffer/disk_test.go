@@ -18,7 +18,7 @@ import (
 func openBuffer(t testing.TB) *DiskBuffer {
 	buffer := NewDiskBuffer(1 << 20)
 	dir := testutil.NewTempDir(t)
-	err := buffer.Open(dir)
+	err := buffer.Open(dir, false)
 	require.NoError(t, err)
 	t.Cleanup(func() { buffer.Close() })
 	return buffer
@@ -130,7 +130,7 @@ func TestDiskBuffer(t *testing.T) {
 		t.Parallel()
 		b := NewDiskBuffer(1 << 30)
 		dir := testutil.NewTempDir(t)
-		err := b.Open(dir)
+		err := b.Open(dir, false)
 		require.NoError(t, err)
 
 		writeN(t, b, 20, 0)
@@ -139,7 +139,7 @@ func TestDiskBuffer(t *testing.T) {
 		require.NoError(t, err)
 
 		b2 := NewDiskBuffer(1 << 30)
-		err = b2.Open(dir)
+		err = b2.Open(dir, false)
 		require.NoError(t, err)
 		readN(t, b2, 20, 0)
 	})
@@ -148,7 +148,7 @@ func TestDiskBuffer(t *testing.T) {
 		t.Parallel()
 		b := NewDiskBuffer(1 << 30)
 		dir := testutil.NewTempDir(t)
-		err := b.Open(dir)
+		err := b.Open(dir, false)
 		require.NoError(t, err)
 
 		writeN(t, b, 20, 0)
@@ -157,7 +157,7 @@ func TestDiskBuffer(t *testing.T) {
 		require.NoError(t, err)
 
 		b2 := NewDiskBuffer(1 << 30)
-		err = b2.Open(dir)
+		err = b2.Open(dir, false)
 		require.NoError(t, err)
 		readN(t, b2, 10, 10)
 	})
@@ -173,7 +173,7 @@ func TestDiskBuffer(t *testing.T) {
 
 				b := NewDiskBuffer(1 << 30)
 				dir := testutil.NewTempDir(t)
-				err := b.Open(dir)
+				err := b.Open(dir, false)
 				require.NoError(t, err)
 
 				writes := 0
@@ -204,32 +204,75 @@ func TestDiskBuffer(t *testing.T) {
 }
 
 func BenchmarkDiskBuffer(b *testing.B) {
-	buffer := openBuffer(b)
-	var wg sync.WaitGroup
+	b.Run("NoSync", func(b *testing.B) {
+		buffer := openBuffer(b)
+		var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Printf("Benchmark: %d\n", b.N)
-		e := entry.New()
-		e.Record = "test log"
-		ctx := context.Background()
-		for i := 0; i < b.N; i++ {
-			panicOnErr(buffer.Add(ctx, e))
-		}
-	}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fmt.Printf("Benchmark: %d\n", b.N)
+			e := entry.New()
+			e.Record = "test log"
+			ctx := context.Background()
+			for i := 0; i < b.N; i++ {
+				panicOnErr(buffer.Add(ctx, e))
+			}
+		}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		dst := make([]*entry.Entry, 1000)
-		for i := 0; i < b.N; {
-			flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
-			panicOnErr(err)
-			i += n
-			flush()
-		}
-	}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dst := make([]*entry.Entry, 1000)
+			ctx := context.Background()
+			for i := 0; i < b.N; {
+				ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+				flush, n, err := buffer.ReadWait(ctx, dst)
+				cancel()
+				panicOnErr(err)
+				i += n
+				flush()
+			}
+		}()
 
-	wg.Wait()
+		wg.Wait()
+	})
+
+	b.Run("Sync", func(b *testing.B) {
+		buffer := NewDiskBuffer(1 << 20)
+		dir := testutil.NewTempDir(b)
+		err := buffer.Open(dir, true)
+		require.NoError(b, err)
+		b.Cleanup(func() { buffer.Close() })
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fmt.Printf("Benchmark: %d\n", b.N)
+			e := entry.New()
+			e.Record = "test log"
+			ctx := context.Background()
+			for i := 0; i < b.N; i++ {
+				panicOnErr(buffer.Add(ctx, e))
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dst := make([]*entry.Entry, 1000)
+			ctx := context.Background()
+			for i := 0; i < b.N; {
+				ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+				flush, n, err := buffer.ReadWait(ctx, dst)
+				cancel()
+				panicOnErr(err)
+				i += n
+				flush()
+			}
+		}()
+
+		wg.Wait()
+	})
 }

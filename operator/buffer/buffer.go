@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
@@ -13,7 +12,7 @@ import (
 type Buffer interface {
 	Add(context.Context, *entry.Entry) error
 	Read([]*entry.Entry) (func(), int, error)
-	ReadWait([]*entry.Entry, <-chan time.Time) (func(), int, error)
+	ReadWait(context.Context, []*entry.Entry) (func(), int, error)
 	Close() error
 }
 

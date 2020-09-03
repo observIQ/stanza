@@ -31,6 +31,7 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 				BufferBuilder: &DiskBufferConfig{
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
+					Sync:    true,
 				},
 			},
 		},

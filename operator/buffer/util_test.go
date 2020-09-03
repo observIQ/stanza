@@ -37,7 +37,9 @@ func readN(t testing.TB, buffer Buffer, n, start int) func() {
 
 func readWaitN(t testing.TB, buffer Buffer, n, start int) func() {
 	entries := make([]*entry.Entry, n)
-	f, readCount, err := buffer.ReadWait(entries, time.After(time.Minute))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	f, readCount, err := buffer.ReadWait(ctx, entries)
 	require.NoError(t, err)
 	require.Equal(t, n, readCount)
 	for i := 0; i < n; i++ {

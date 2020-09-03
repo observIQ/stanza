@@ -20,18 +20,20 @@ type DiskBufferConfig struct {
 	// TODO make this configurable in human-readable terms
 	MaxSize int    `json:"max_size" yaml:"max_size"`
 	Path    string `json:"path" yaml:"path"`
+	Sync    bool   `json:"sync" yaml:"sync"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
 func NewDiskBufferConfig() *DiskBufferConfig {
 	return &DiskBufferConfig{
 		MaxSize: 1 << 32, // 4GiB
+		Sync:    true,
 	}
 }
 
 func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
 	b := NewDiskBuffer(c.MaxSize)
-	if err := b.Open(c.Path); err != nil {
+	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err
 	}
 	return b, nil
@@ -81,15 +83,19 @@ func NewDiskBuffer(maxDiskSize int) *DiskBuffer {
 }
 
 // Open opens the disk buffer files from a database directory
-func (d *DiskBuffer) Open(path string) error {
+func (d *DiskBuffer) Open(path string, sync bool) error {
 	var err error
 	dataPath := filepath.Join(path, "data")
-	if d.data, err = os.OpenFile(dataPath, os.O_CREATE|os.O_RDWR, 0755); err != nil {
+	flags := os.O_CREATE | os.O_RDWR
+	if sync {
+		flags |= os.O_SYNC
+	}
+	if d.data, err = os.OpenFile(dataPath, flags, 0755); err != nil {
 		return err
 	}
 
 	metadataPath := filepath.Join(path, "metadata")
-	if d.metadata, err = OpenMetadata(metadataPath); err != nil {
+	if d.metadata, err = OpenMetadata(metadataPath, sync); err != nil {
 		return err
 	}
 
@@ -178,10 +184,10 @@ func (d *DiskBuffer) addUnreadCount(i int64) {
 }
 
 // ReadWait reads entries from the buffer, waiting until either there are enough entries in the
-// buffer to fill dst, or an event is sent down the timeout channel. This amortizes the cost
-// of reading from the disk. It returns a function that, when called, marks the read entries as
-// flushed, the number of entries read, and an error.
-func (d *DiskBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (func(), int, error) {
+// buffer to fill dst or the context is cancelled. This amortizes the cost of reading from the
+// disk. It returns a function that, when called, marks the read entries as flushed, the
+// number of entries read, and an error.
+func (d *DiskBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (func(), int, error) {
 	d.readerLock.Lock()
 	defer d.readerLock.Unlock()
 
@@ -193,7 +199,7 @@ LOOP:
 			if n >= int64(len(dst)) {
 				break LOOP
 			}
-		case <-timeout:
+		case <-ctx.Done():
 			break LOOP
 		}
 	}
