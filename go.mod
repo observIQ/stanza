@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/antonmedv/expr v1.8.8
+	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/observiq/ctimefmt v1.0.0
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.6.1
