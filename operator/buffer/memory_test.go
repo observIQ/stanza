@@ -58,11 +58,11 @@ func TestMemoryBuffer(t *testing.T) {
 			b := newMemoryBuffer(t)
 			writeN(t, b, 12, 0)
 			dst := make([]*entry.Entry, 30)
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 			defer cancel()
 			_, n, err := b.ReadWait(ctx, dst)
 			require.NoError(t, err)
-			require.Equal(t, n, 12)
+			require.Equal(t, 12, n)
 		})
 	})
 
