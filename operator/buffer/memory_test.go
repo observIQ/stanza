@@ -131,6 +131,28 @@ func TestMemoryBuffer(t *testing.T) {
 		require.Equal(t, 0, n)
 	})
 
+	t.Run("WriteCloseRead", func(t *testing.T) {
+		t.Parallel()
+		bc := testutil.NewBuildContext(t)
+		b, err := NewMemoryBufferConfig().Build(bc, "test")
+		require.NoError(t, err)
+		writeN(t, b, 10, 0)
+		flushN(t, b, 5, 0)
+
+		// Close the buffer, writing to the database
+		require.NoError(t, b.Close())
+
+		// Reopen, and expect to be able to read 5 logs
+		b, err = NewMemoryBufferConfig().Build(bc, "test")
+		require.NoError(t, err)
+
+		readN(t, b, 5, 5)
+		dst := make([]*entry.Entry, 10)
+		_, n, err := b.Read(dst)
+		require.NoError(t, err)
+		require.Equal(t, 0, n)
+	})
+
 	t.Run("AddTimesOut", func(t *testing.T) {
 		t.Parallel()
 		cfg := MemoryBufferConfig{
