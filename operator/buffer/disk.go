@@ -16,11 +16,18 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+// DiskBufferConfig is a configuration struct for a DiskBuffer
 type DiskBufferConfig struct {
-	// TODO make this configurable in human-readable terms
-	MaxSize int    `json:"max_size" yaml:"max_size"`
-	Path    string `json:"path" yaml:"path"`
-	Sync    bool   `json:"sync" yaml:"sync"`
+	// MaxSize is the maximum size in bytes of the data file on disk
+	MaxSize int `json:"max_size" yaml:"max_size"`
+
+	// Path is a path to a directory which contains the data and metadata files
+	Path string `json:"path" yaml:"path"`
+
+	// Sync indicates whether to open the files with O_SYNC. If this is set to false,
+	// in cases like power failures or unclean shutdowns, logs may be lost or the
+	// database may become corrupted.
+	Sync bool `json:"sync" yaml:"sync"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
@@ -31,6 +38,7 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 	}
 }
 
+// Build creates a new Buffer from a DiskBufferConfig
 func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
 	b := NewDiskBuffer(c.MaxSize)
 	if err := b.Open(c.Path, c.Sync); err != nil {
@@ -39,6 +47,8 @@ func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer
 	return b, nil
 }
 
+// DiskBuffer is a buffer for storing entries on disk until they are flushed to their
+// final destination.
 type DiskBuffer struct {
 	// Metadata holds information about the current state of the buffered entries
 	metadata *Metadata
@@ -187,7 +197,7 @@ func (d *DiskBuffer) addUnreadCount(i int64) {
 // buffer to fill dst or the context is cancelled. This amortizes the cost of reading from the
 // disk. It returns a function that, when called, marks the read entries as flushed, the
 // number of entries read, and an error.
-func (d *DiskBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (func(), int, error) {
+func (d *DiskBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushFunc, int, error) {
 	d.readerLock.Lock()
 	defer d.readerLock.Unlock()
 
@@ -209,13 +219,13 @@ LOOP:
 
 // Read copies entries from the disk into the destination buffer. It returns a function that,
 // when called, marks the entries as flushed, the number of entries read, and an error.
-func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
+func (d *DiskBuffer) Read(dst []*entry.Entry) (f FlushFunc, i int, err error) {
 	d.Lock()
 	defer d.Unlock()
 
 	// Return fast if there are no unread entries
 	if d.metadata.unreadCount == 0 {
-		return d.checkCompact, 0, nil
+		return d.newFlushFunc(nil), 0, nil
 	}
 
 	// Seek to the start of the range of unread entries
@@ -262,33 +272,33 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f func(), i int, err error) {
 }
 
 // newFlushFunc returns a function that marks read entries as flushed
-func (d *DiskBuffer) newFlushFunc(newRead []*readEntry) func() {
-	return func() {
+func (d *DiskBuffer) newFlushFunc(newRead []*readEntry) FlushFunc {
+	return func() error {
 		d.Lock()
 		for _, entry := range newRead {
 			entry.flushed = true
 			d.flushedBytes += entry.length
 		}
 		d.Unlock()
-		d.checkCompact()
+		return d.checkCompact()
 	}
 }
 
 // checkCompact checks if a compaction should be performed, then kicks one off
-func (d *DiskBuffer) checkCompact() {
+func (d *DiskBuffer) checkCompact() error {
 	d.Lock()
 	switch {
 	case d.flushedBytes > d.maxBytes/2:
 		fallthrough
 	case time.Since(d.lastCompaction) > 5*time.Second:
 		d.Unlock()
-		err := d.Compact()
-		if err != nil {
-			panic(err) // TODO how to report this error back to caller?
+		if err := d.Compact(); err != nil {
+			return err
 		}
 	default:
 		d.Unlock()
 	}
+	return nil
 }
 
 // Compact removes all flushed entries from disk

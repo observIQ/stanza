@@ -120,37 +120,76 @@ func TestMemoryBuffer(t *testing.T) {
 		require.Equal(t, 10, n)
 	})
 
+	t.Run("ReadWaitTimesOut", func(t *testing.T) {
+		t.Parallel()
+		b := newMemoryBuffer(t)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+		dst := make([]*entry.Entry, 10)
+		_, n, err := b.ReadWait(ctx, dst)
+		require.NoError(t, err)
+		require.Equal(t, 0, n)
+	})
+
+	t.Run("AddTimesOut", func(t *testing.T) {
+		t.Parallel()
+		cfg := MemoryBufferConfig{
+			MaxEntries: 1,
+		}
+		b, err := cfg.Build(testutil.NewBuildContext(t), "test")
+		require.NoError(t, err)
+
+		// Add a first entry
+		err = b.Add(context.Background(), entry.New())
+		require.NoError(t, err)
+
+		// Second entry should block and be cancelled
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		err = b.Add(ctx, entry.New())
+		require.Error(t, err)
+		cancel()
+
+		// Read and flush
+		dst := make([]*entry.Entry, 1)
+		f, n, err := b.Read(dst)
+		require.NoError(t, err)
+		require.Equal(t, 1, n)
+		f()
+
+		// Now there should be space for another entry
+		err = b.Add(context.Background(), entry.New())
+		require.NoError(t, err)
+	})
+
 	t.Run("Write10kRandom", func(t *testing.T) {
 		t.Parallel()
 		rand.Seed(time.Now().Unix())
-		for i := 0; i < 10; i++ {
-			seed := rand.Int63()
-			t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
-				t.Parallel()
-				r := rand.New(rand.NewSource(seed))
+		seed := rand.Int63()
+		t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
+			t.Parallel()
+			r := rand.New(rand.NewSource(seed))
 
-				b := newMemoryBuffer(t)
+			b := newMemoryBuffer(t)
 
-				writes := 0
-				reads := 0
+			writes := 0
+			reads := 0
 
-				for i := 0; i < 10000; i++ {
-					j := r.Int() % 1000
-					switch {
-					case j < 900:
-						writeN(t, b, 1, writes)
-						writes++
-					default:
-						readCount := (writes - reads) / 2
-						f := readN(t, b, readCount, reads)
-						if j%2 == 0 {
-							f()
-						}
-						reads += readCount
+			for i := 0; i < 10000; i++ {
+				j := r.Int() % 1000
+				switch {
+				case j < 900:
+					writeN(t, b, 1, writes)
+					writes++
+				default:
+					readCount := (writes - reads) / 2
+					f := readN(t, b, readCount, reads)
+					if j%2 == 0 {
+						f()
 					}
+					reads += readCount
 				}
-			})
-		}
+			}
+		})
 	})
 
 	t.Run("CloseReadUnflushed", func(t *testing.T) {

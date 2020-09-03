@@ -107,9 +107,10 @@ func (f *Flusher) read(ctx context.Context) {
 			defer f.sem.Release(1)
 			defer f.putEntrySlice(entries)
 
-			err := f.flushWithRetry(ctx, entries[:n])
-			if err == nil {
-				markFlushed()
+			if err := f.flushWithRetry(ctx, entries[:n]); err == nil {
+				if err := markFlushed(); err != nil {
+					f.Errorw("Failed while marking entries flushed", zap.Error(err))
+				}
 			}
 		}()
 	}

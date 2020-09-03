@@ -15,16 +15,20 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+// MemoryBufferConfig holds the configuration for a memory buffer
 type MemoryBufferConfig struct {
 	MaxEntries int `json:"max_entries" yaml:"max_entries"`
 }
 
+// NewMemoryBufferConfig creates a new default MemoryBufferConfig
 func NewMemoryBufferConfig() *MemoryBufferConfig {
 	return &MemoryBufferConfig{
 		MaxEntries: 1 << 20,
 	}
 }
 
+// Build builds a MemoryBufferConfig into a Buffer, loading any entries that were previously unflushed
+// back into memory
 func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
 	mb := &MemoryBuffer{
 		db:       context.Database,
@@ -40,6 +44,9 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 	return mb, nil
 }
 
+// MemoryBuffer is a buffer that holds all entries in memory until Close() is called,
+// at which point it saves the entries into a database. It provides no guarantees about
+// lost entries if shut down uncleanly.
 type MemoryBuffer struct {
 	db          operator.Database
 	pluginID    string
@@ -50,20 +57,20 @@ type MemoryBuffer struct {
 	sem         *semaphore.Weighted
 }
 
+// Add inserts an entry into the memory database, blocking until there is space
 func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	if err := m.sem.Acquire(ctx, 1); err != nil {
 		return err
 	}
 
-	select {
-	case m.buf <- e:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	m.buf <- e
+	return nil
 }
 
-func (m *MemoryBuffer) Read(dst []*entry.Entry) (func(), int, error) {
+// Read reads entries until either there are no entries left in the buffer
+// or the destination slice is full. The returned function must be called
+// once the entries are flushed to remove them from the memory buffer.
+func (m *MemoryBuffer) Read(dst []*entry.Entry) (FlushFunc, int, error) {
 	inFlight := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -83,7 +90,10 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 	return m.newFlushFunc(inFlight[:i]), i, nil
 }
 
-func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (func(), int, error) {
+// ReadWait reads entries until either the destination slice is full, or the context passed to it
+// is cancelled. The returned function must be called once the entries are flushed to remove them
+// from the memory buffer
+func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushFunc, int, error) {
 	inFlightIDs := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -103,18 +113,24 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (func()
 	return m.newFlushFunc(inFlightIDs[:i]), i, nil
 }
 
-func (m *MemoryBuffer) newFlushFunc(ids []uint64) func() {
-	return func() {
+// newFlushFunc returns a function that will remove the entries identified by `ids` from the buffer
+func (m *MemoryBuffer) newFlushFunc(ids []uint64) FlushFunc {
+	return func() error {
 		m.inFlightMux.Lock()
 		for _, id := range ids {
 			delete(m.inFlight, id)
 		}
 		m.inFlightMux.Unlock()
 		m.sem.Release(int64(len(ids)))
+		return nil
 	}
 }
 
+// Close closes the memory buffer, saving all entries currently in the memory buffer to the
+// agent's database.
 func (m *MemoryBuffer) Close() error {
+	m.inFlightMux.Lock()
+	defer m.inFlightMux.Unlock()
 	return m.db.Update(func(tx *bbolt.Tx) error {
 		memBufBucket, err := tx.CreateBucketIfNotExists([]byte("memory_buffer"))
 		if err != nil {
@@ -158,6 +174,8 @@ func putKeyValue(b *bbolt.Bucket, k uint64, v *entry.Entry) error {
 	return b.Put(key[:], buf.Bytes())
 }
 
+// loadFromDB loads any entries saved to the database previously into the memory buffer,
+// allowing them to be flushed
 func (m *MemoryBuffer) loadFromDB() error {
 	return m.db.Update(func(tx *bbolt.Tx) error {
 		memBufBucket := tx.Bucket([]byte("memory_buffer"))
