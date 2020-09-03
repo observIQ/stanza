@@ -244,6 +244,7 @@ func TestDiskBuffer(t *testing.T) {
 func TestDiskBufferBuild(t *testing.T) {
 	t.Run("Default", func(t *testing.T) {
 		cfg := NewDiskBufferConfig()
+		cfg.Path = testutil.NewTempDir(t)
 		b, err := cfg.Build(testutil.NewBuildContext(t), "test")
 		require.NoError(t, err)
 		diskBuffer := b.(*DiskBuffer)
