@@ -75,7 +75,8 @@ type DiskBuffer struct {
 	// entryAdded channel at a time.
 	readerLock sync.Mutex
 
-	// diskSizeSemaphore
+	// diskSizeSemaphore is a semaphore that allows us to block once we've hit
+	// the max disk size.
 	diskSizeSemaphore *semaphore.Weighted
 
 	// copyBuffer is a pre-allocated byte slice that is used during compaction
