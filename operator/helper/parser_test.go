@@ -191,9 +191,10 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	testEntry.Set(entry.NewRecordField("severity"), "info")
+	err := testEntry.Set(entry.NewRecordField("severity"), "info")
+	require.NoError(t, err)
 
-	err := parser.ProcessWith(ctx, testEntry, parse)
+	err = parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "time parser: log entry does not have the expected parse_from field")
 
@@ -233,9 +234,10 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	testEntry.Set(entry.NewRecordField("timestamp"), "12:34PM")
+	err := testEntry.Set(entry.NewRecordField("timestamp"), "12:34PM")
+	require.NoError(t, err)
 
-	err := parser.ProcessWith(ctx, testEntry, parse)
+	err = parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "severity parser: log entry does not have the expected parse_from field")
 
@@ -301,8 +303,10 @@ func TestParserWithPreserve(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	testEntry.Set(parser.ParseFrom, "test-value")
-	err := parser.ProcessWith(ctx, testEntry, parse)
+	err := testEntry.Set(parser.ParseFrom, "test-value")
+	require.NoError(t, err)
+
+	err = parser.ProcessWith(ctx, testEntry, parse)
 	require.NoError(t, err)
 
 	actualValue, ok := testEntry.Get(parser.ParseFrom)
@@ -340,8 +344,9 @@ func TestParserWithoutPreserve(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	testEntry.Set(parser.ParseFrom, "test-value")
-	err := parser.ProcessWith(ctx, testEntry, parse)
+	err := testEntry.Set(parser.ParseFrom, "test-value")
+	require.NoError(t, err)
+	err = parser.ProcessWith(ctx, testEntry, parse)
 	require.NoError(t, err)
 
 	_, ok := testEntry.Get(parser.ParseFrom)

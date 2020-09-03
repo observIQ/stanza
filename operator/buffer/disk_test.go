@@ -123,7 +123,7 @@ func TestDiskBuffer(t *testing.T) {
 		readN(t, b, 2, 0)
 		flushN(t, b, 2, 2)
 		readN(t, b, 2, 4)
-		b.Compact()
+		require.NoError(t, b.Compact())
 	})
 
 	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
@@ -162,45 +162,98 @@ func TestDiskBuffer(t *testing.T) {
 		readN(t, b2, 10, 10)
 	})
 
-	t.Run("Write10kRandomFlushReadCompact", func(t *testing.T) {
+	t.Run("ReadWaitTimesOut", func(t *testing.T) {
 		t.Parallel()
-		rand.Seed(time.Now().Unix())
-		for i := 0; i < 10; i++ {
-			seed := rand.Int63()
-			t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
-				t.Parallel()
-				r := rand.New(rand.NewSource(seed))
-
-				b := NewDiskBuffer(1 << 30)
-				dir := testutil.NewTempDir(t)
-				err := b.Open(dir, false)
-				require.NoError(t, err)
-
-				writes := 0
-				reads := 0
-
-				for i := 0; i < 10000; i++ {
-					j := r.Int() % 1000
-					switch {
-					case j < 900:
-						writeN(t, b, 1, writes)
-						writes++
-					case j < 990:
-						readCount := (writes - reads) / 2
-						f := readN(t, b, readCount, reads)
-						if j%2 == 0 {
-							f()
-						}
-						reads += readCount
-					default:
-						err := b.Compact()
-						require.NoError(t, err)
-					}
-				}
-			})
-		}
+		b := openBuffer(t)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+		dst := make([]*entry.Entry, 10)
+		_, n, err := b.ReadWait(ctx, dst)
+		require.NoError(t, err)
+		require.Equal(t, 0, n)
 	})
 
+	t.Run("AddTimesOut", func(t *testing.T) {
+		t.Parallel()
+		b := NewDiskBuffer(100) // Enough space for 1, but not 2 entries
+		dir := testutil.NewTempDir(t)
+		err := b.Open(dir, false)
+		require.NoError(t, err)
+
+		// Add a first entry
+		err = b.Add(context.Background(), entry.New())
+		require.NoError(t, err)
+
+		// Second entry should block and be cancelled
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		err = b.Add(ctx, entry.New())
+		require.Error(t, err)
+		cancel()
+
+		// Read, flush, and compact
+		dst := make([]*entry.Entry, 1)
+		f, n, err := b.Read(dst)
+		require.NoError(t, err)
+		require.Equal(t, 1, n)
+		f()
+		require.NoError(t, b.Compact())
+
+		// Now there should be space for another entry
+		err = b.Add(context.Background(), entry.New())
+		require.NoError(t, err)
+	})
+
+	t.Run("Write1kRandomFlushReadCompact", func(t *testing.T) {
+		t.Parallel()
+		rand.Seed(time.Now().Unix())
+		seed := rand.Int63()
+		t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
+			t.Parallel()
+			r := rand.New(rand.NewSource(seed))
+
+			b := NewDiskBuffer(1 << 30)
+			dir := testutil.NewTempDir(t)
+			err := b.Open(dir, false)
+			require.NoError(t, err)
+
+			writes := 0
+			reads := 0
+
+			for i := 0; i < 1000; i++ {
+				j := r.Int() % 1000
+				switch {
+				case j < 900:
+					writeN(t, b, 1, writes)
+					writes++
+				case j < 990:
+					readCount := (writes - reads) / 2
+					f := readN(t, b, readCount, reads)
+					if j%2 == 0 {
+						f()
+					}
+					reads += readCount
+				default:
+					err := b.Compact()
+					require.NoError(t, err)
+				}
+			}
+		})
+	})
+}
+
+func TestDiskBufferBuild(t *testing.T) {
+	t.Run("Default", func(t *testing.T) {
+		cfg := NewDiskBufferConfig()
+		cfg.Path = testutil.NewTempDir(t)
+		b, err := cfg.Build(testutil.NewBuildContext(t), "test")
+		require.NoError(t, err)
+		diskBuffer := b.(*DiskBuffer)
+		require.Equal(t, diskBuffer.atEnd, false)
+		require.Len(t, diskBuffer.entryAdded, 1)
+		require.Equal(t, diskBuffer.maxBytes, int64(1<<32))
+		require.Equal(t, diskBuffer.flushedBytes, int64(0))
+		require.Len(t, diskBuffer.copyBuffer, 1<<16)
+	})
 }
 
 func BenchmarkDiskBuffer(b *testing.B) {

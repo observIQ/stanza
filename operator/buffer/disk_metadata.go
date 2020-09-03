@@ -8,6 +8,9 @@ import (
 	"os"
 )
 
+// Metadata is a representation of the on-disk metadata file. It contains
+// information about the layout, location, and flushed status of entries
+// stored in the data file
 type Metadata struct {
 	// File is a handle to the on-disk metadata store
 	//
@@ -20,8 +23,8 @@ type Metadata struct {
 	// - 8 byte ReadCount as LittleEndian int64
 	// - Repeated ReadCount times:
 	//     - 1 byte Flushed bool LittleEndian
-	//     - 8 byte Length as LittleEndian uint64
-	//     - 8 byte StartOffset as LittleEndian uint64
+	//     - 8 byte Length as LittleEndian int64
+	//     - 8 byte StartOffset as LittleEndian int64
 	file *os.File
 
 	// read is the collection of entries that have been read

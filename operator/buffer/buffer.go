@@ -11,8 +11,8 @@ import (
 
 type Buffer interface {
 	Add(context.Context, *entry.Entry) error
-	Read([]*entry.Entry) (func(), int, error)
-	ReadWait(context.Context, []*entry.Entry) (func(), int, error)
+	Read([]*entry.Entry) (FlushFunc, int, error)
+	ReadWait(context.Context, []*entry.Entry) (FlushFunc, int, error)
 	Close() error
 }
 
@@ -75,3 +75,5 @@ func (bc *Config) unmarshal(unmarshal func(interface{}) error) error {
 
 	return nil
 }
+
+type FlushFunc func() error

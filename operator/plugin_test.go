@@ -119,7 +119,6 @@ func TestPluginRegistryLoad(t *testing.T) {
 }
 
 func TestPluginMetadata(t *testing.T) {
-
 	testCases := []struct {
 		name      string
 		expectErr bool
@@ -359,7 +358,7 @@ parameters:
     label: Parameter
     description: The thing of the thing
     type: strings
-    default: 
+    default:
      - hello
 pipeline:
 `,
