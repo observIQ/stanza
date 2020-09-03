@@ -17,12 +17,14 @@ import (
 
 // MemoryBufferConfig holds the configuration for a memory buffer
 type MemoryBufferConfig struct {
-	MaxEntries int `json:"max_entries" yaml:"max_entries"`
+	Type       string `json:"type" yaml:"type"`
+	MaxEntries int    `json:"max_entries" yaml:"max_entries"`
 }
 
 // NewMemoryBufferConfig creates a new default MemoryBufferConfig
 func NewMemoryBufferConfig() *MemoryBufferConfig {
 	return &MemoryBufferConfig{
+		Type:       "memory",
 		MaxEntries: 1 << 20,
 	}
 }

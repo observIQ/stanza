@@ -21,8 +21,8 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte("type: memory\nmax_entries: 30\n"),
 			[]byte(`{"type": "memory", "max_entries": 30}`),
 			Config{
-				Type: "memory",
 				BufferBuilder: &MemoryBufferConfig{
+					Type:       "memory",
 					MaxEntries: 30,
 				},
 			},
@@ -33,8 +33,8 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte("type: disk\nmax_size: 1234\npath: /var/log/testpath\n"),
 			[]byte(`{"type": "disk", "max_size": 1234, "path": "/var/log/testpath"}`),
 			Config{
-				Type: "disk",
 				BufferBuilder: &DiskBufferConfig{
+					Type:    "disk",
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
 					Sync:    true,
@@ -47,8 +47,8 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte("type: invalid\n"),
 			[]byte(`{"type": "invalid"}`),
 			Config{
-				Type: "disk",
 				BufferBuilder: &DiskBufferConfig{
+					Type:    "disk",
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
 					Sync:    true,
@@ -61,8 +61,8 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte("type: !!float 123\n"),
 			[]byte(`{"type": 12}`),
 			Config{
-				Type: "disk",
 				BufferBuilder: &DiskBufferConfig{
+					Type:    "disk",
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
 					Sync:    true,
@@ -103,8 +103,8 @@ func TestBuffer(t *testing.T) {
 	t.Run("Default", func(t *testing.T) {
 		cfg := NewConfig()
 		expected := Config{
-			Type: "memory",
 			BufferBuilder: &MemoryBufferConfig{
+				Type:       "memory",
 				MaxEntries: 1 << 20,
 			},
 		}

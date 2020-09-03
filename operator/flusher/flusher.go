@@ -145,7 +145,7 @@ func (f *Flusher) read(ctx context.Context) {
 // it is safe to mark the entries in the buffer as flushed.
 func (f *Flusher) flushWithRetry(ctx context.Context, entries []*entry.Entry) error {
 	chunkID := atomic.AddUint64(&f.chunkIDCounter, 1)
-	b := backoff.NewExponentialBackOff()
+	b := newExponentialBackoff()
 	for {
 		err := f.flush(ctx, entries)
 		if err == nil {
@@ -173,3 +173,21 @@ func (f *Flusher) getEntrySlice() []*entry.Entry {
 func (f *Flusher) putEntrySlice(slice []*entry.Entry) {
 	f.entrySlicePool.Put(&slice)
 }
+<<<<<<< HEAD
+=======
+
+// newExponentialBackoff returns a default ExponentialBackOff
+func newExponentialBackoff() *backoff.ExponentialBackOff {
+	b := &backoff.ExponentialBackOff{
+		InitialInterval:     backoff.DefaultInitialInterval,
+		RandomizationFactor: backoff.DefaultRandomizationFactor,
+		Multiplier:          backoff.DefaultMultiplier,
+		MaxInterval:         10 * time.Minute,
+		MaxElapsedTime:      time.Duration(0),
+		Stop:                backoff.Stop,
+		Clock:               backoff.SystemClock,
+	}
+	b.Reset()
+	return b
+}
+>>>>>>> origin/disk-buffer

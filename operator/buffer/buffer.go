@@ -17,16 +17,12 @@ type Buffer interface {
 }
 
 type Config struct {
-	Type string `json:"type" yaml:"type"`
 	BufferBuilder
 }
 
 func NewConfig() Config {
 	return Config{
-		Type: "memory",
-		BufferBuilder: &MemoryBufferConfig{
-			MaxEntries: 1 << 20,
-		},
+		BufferBuilder: NewMemoryBufferConfig(),
 	}
 }
 
@@ -45,35 +41,22 @@ func (bc *Config) UnmarshalYAML(f func(interface{}) error) error {
 }
 
 func (bc *Config) unmarshal(unmarshal func(interface{}) error) error {
-	var typeStruct struct {
-		Type string
-	}
-	err := unmarshal(&typeStruct)
+	var m map[string]interface{}
+	err := unmarshal(&m)
 	if err != nil {
 		return err
 	}
-	bc.Type = typeStruct.Type
 
-	switch bc.Type {
+	switch m["type"] {
 	case "memory":
-		mbc := NewMemoryBufferConfig()
-		err := unmarshal(mbc)
-		if err != nil {
-			return err
-		}
-		bc.BufferBuilder = mbc
+		bc.BufferBuilder = NewMemoryBufferConfig()
+		return unmarshal(bc.BufferBuilder)
 	case "disk":
-		dbc := NewDiskBufferConfig()
-		err := unmarshal(dbc)
-		if err != nil {
-			return err
-		}
-		bc.BufferBuilder = dbc
+		bc.BufferBuilder = NewDiskBufferConfig()
+		return unmarshal(bc.BufferBuilder)
 	default:
-		return fmt.Errorf("unknown buffer type '%s'", bc.Type)
+		return fmt.Errorf("unknown buffer type '%s'", m["type"])
 	}
-
-	return nil
 }
 
 type FlushFunc func() error
