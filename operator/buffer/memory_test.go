@@ -44,6 +44,28 @@ func TestMemoryBuffer(t *testing.T) {
 		readN(t, b, 10, 10)
 	})
 
+	t.Run("CheckN", func(t *testing.T) {
+		t.Run("Read", func(t *testing.T) {
+			b := newMemoryBuffer(t)
+			writeN(t, b, 12, 0)
+			dst := make([]*entry.Entry, 30)
+			_, n, err := b.Read(dst)
+			require.NoError(t, err)
+			require.Equal(t, n, 12)
+		})
+
+		t.Run("ReadWait", func(t *testing.T) {
+			b := newMemoryBuffer(t)
+			writeN(t, b, 12, 0)
+			dst := make([]*entry.Entry, 30)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+			defer cancel()
+			_, n, err := b.ReadWait(ctx, dst)
+			require.NoError(t, err)
+			require.Equal(t, n, 12)
+		})
+	})
+
 	t.Run("SingleReadWaitMultipleWrites", func(t *testing.T) {
 		t.Parallel()
 		b := newMemoryBuffer(t)
@@ -173,8 +195,11 @@ func BenchmarkMemoryBuffer(b *testing.B) {
 	go func() {
 		defer wg.Done()
 		dst := make([]*entry.Entry, 1000)
+		ctx := context.Background()
 		for i := 0; i < b.N; {
-			flush, n, err := buffer.ReadWait(dst, time.After(50*time.Millisecond))
+			ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+			flush, n, err := buffer.ReadWait(ctx, dst)
+			cancel()
 			panicOnErr(err)
 			i += n
 			go func() {

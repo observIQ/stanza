@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
@@ -60,7 +59,7 @@ func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	case m.buf <- e:
 		return nil
 	case <-ctx.Done():
-		return fmt.Errorf("context cancelled")
+		return ctx.Err()
 	}
 }
 
@@ -84,7 +83,7 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (func(), int, error) {
 	return m.newFlushFunc(inFlight[:i]), i, nil
 }
 
-func (m *MemoryBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (func(), int, error) {
+func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (func(), int, error) {
 	inFlightIDs := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -96,7 +95,7 @@ func (m *MemoryBuffer) ReadWait(dst []*entry.Entry, timeout <-chan time.Time) (f
 			m.inFlight[id] = e
 			m.inFlightMux.Unlock()
 			inFlightIDs[i] = id
-		case <-timeout:
+		case <-ctx.Done():
 			return m.newFlushFunc(inFlightIDs[:i]), i, nil
 		}
 	}
@@ -133,21 +132,23 @@ func (m *MemoryBuffer) Close() error {
 			}
 		}
 
-		close(m.buf)
-		for e := range m.buf {
-			m.entryID++
-			if err := putKeyValue(b, m.entryID, e); err != nil {
-				return err
+		for {
+			select {
+			case e := <-m.buf:
+				m.entryID++
+				if err := putKeyValue(b, m.entryID, e); err != nil {
+					return err
+				}
+			default:
+				return nil
 			}
 		}
-
-		return nil
 	})
 }
 
 func putKeyValue(b *bbolt.Bucket, k uint64, v *entry.Entry) error {
 	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
+	enc := json.NewEncoder(&buf)
 	key := [8]byte{}
 
 	binary.LittleEndian.PutUint64(key[:], k)
@@ -174,7 +175,7 @@ func (m *MemoryBuffer) loadFromDB() error {
 				return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
 			}
 
-			dec := gob.NewDecoder(bytes.NewReader(v))
+			dec := json.NewDecoder(bytes.NewReader(v))
 			var e entry.Entry
 			if err := dec.Decode(&e); err != nil {
 				return err

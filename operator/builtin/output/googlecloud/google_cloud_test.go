@@ -33,7 +33,7 @@ type googleCloudTestCase struct {
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
-	cfg.BufferConfig.DelayThreshold = operator.Duration{Duration: time.Millisecond}
+	cfg.FlusherConfig.MaxWait = operator.Duration{Duration: 10 * time.Millisecond}
 	return cfg
 }
 
@@ -213,6 +213,8 @@ func TestGoogleCloudOutput(t *testing.T) {
 			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
 			require.NoError(t, err)
 			cloudOutput.(*GoogleCloudOutput).client = client
+			cloudOutput.(*GoogleCloudOutput).flusher.Start()
+			defer cloudOutput.(*GoogleCloudOutput).flusher.Stop()
 
 			err = cloudOutput.Process(context.Background(), tc.input)
 			require.NoError(t, err)
@@ -390,6 +392,7 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 
 	cfg := NewGoogleCloudOutputConfig(g.name)
 	cfg.ProjectID = "test_project_id"
+	cfg.FlusherConfig.MaxWait = operator.NewDuration(10 * time.Millisecond)
 	if g.configMod != nil {
 		g.configMod(cfg)
 	}
@@ -397,6 +400,8 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 	require.NoError(b, err)
 	op.(*GoogleCloudOutput).client = client
 	op.(*GoogleCloudOutput).timeout = 30 * time.Second
+	op.(*GoogleCloudOutput).flusher.Start()
+	defer op.(*GoogleCloudOutput).flusher.Stop()
 
 	b.ResetTimer()
 	var wg sync.WaitGroup
@@ -406,8 +411,6 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			op.Process(context.Background(), g.entry)
 		}
-		err = op.Stop()
-		require.NoError(b, err)
 	}()
 
 	wg.Add(1)
@@ -421,6 +424,8 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 	}()
 
 	wg.Wait()
+	err = op.Stop()
+	require.NoError(b, err)
 }
 
 func BenchmarkGoogleCloudOutput(b *testing.B) {
