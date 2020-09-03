@@ -14,12 +14,24 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+// Config holds the configuration to build a new flusher
 type Config struct {
-	MaxConcurrent   int               `json:"max_concurrent" yaml:"max_concurrent"`
-	MaxWait         operator.Duration `json:"max_wait" yaml:"max_wait"`
-	MaxChunkEntries int               `json:"max_chunk_entries" yaml:"max_chunk_entries"`
+	// MaxConcurrent is the maximum number of goroutines flushing entries concurrently.
+	// Defaults to 16.
+	MaxConcurrent int `json:"max_concurrent" yaml:"max_concurrent"`
+
+	// MaxWait is the maximum amount of time to wait for a full slice of entries
+	// before flushing the entries. Defaults to 1s.
+	MaxWait operator.Duration `json:"max_wait" yaml:"max_wait"`
+
+	// MaxChunkEntries is the maximum number of entries to flush at a time.
+	// Defaults to 1000.
+	MaxChunkEntries int `json:"max_chunk_entries" yaml:"max_chunk_entries"`
+
+	// TODO configurable retry
 }
 
+// NewConfig creates a new default flusher config
 func NewConfig() Config {
 	return Config{
 		MaxConcurrent: 16,
@@ -30,6 +42,7 @@ func NewConfig() Config {
 	}
 }
 
+// Build uses a Config to build a new Flusher
 func (c *Config) Build(buf buffer.Buffer, f FlushFunc, logger *zap.SugaredLogger) *Flusher {
 	return &Flusher{
 		buffer:        buf,
@@ -46,6 +59,8 @@ func (c *Config) Build(buf buffer.Buffer, f FlushFunc, logger *zap.SugaredLogger
 	}
 }
 
+// Flusher is used to flush entries from a buffer concurrently. It handles max concurrenty,
+// retry behavior, and cancellation.
 type Flusher struct {
 	buffer         buffer.Buffer
 	sem            *semaphore.Weighted
@@ -58,8 +73,10 @@ type Flusher struct {
 	*zap.SugaredLogger
 }
 
+// FlushFunc is a function that the flusher uses to flush a slice of entries
 type FlushFunc func(context.Context, []*entry.Entry) error
 
+// Start begins flushing
 func (f *Flusher) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
@@ -71,6 +88,7 @@ func (f *Flusher) Start() {
 	}()
 }
 
+// Stop cancels all the in-progress flushers and waits until they have returned
 func (f *Flusher) Stop() {
 	f.cancel()
 	f.wg.Wait()
@@ -83,6 +101,8 @@ func (f *Flusher) read(ctx context.Context) {
 			return
 		default:
 		}
+
+		// Fill a slice of entries
 		entries := f.getEntrySlice()
 		readCtx, cancel := context.WithTimeout(ctx, f.waitTime)
 		markFlushed, n, err := f.buffer.ReadWait(readCtx, entries)
@@ -91,16 +111,19 @@ func (f *Flusher) read(ctx context.Context) {
 			f.Errorw("Failed to read entries from buffer", zap.Error(err))
 		}
 
+		// If we've timed out, but have no entries, don't bother flushing them
 		if n == 0 {
 			continue
 		}
 
+		// Wait until we have free flusher goroutines
 		err = f.sem.Acquire(ctx, 1)
 		if err != nil {
 			// Context cancelled
 			return
 		}
 
+		// Start a new flusher goroutine
 		f.wg.Add(1)
 		go func() {
 			defer f.wg.Done()
