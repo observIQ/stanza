@@ -50,7 +50,6 @@ func TestLabelFieldGet(t *testing.T) {
 			require.Equal(t, tc.expected, val)
 		})
 	}
-
 }
 
 func TestLabelFieldDelete(t *testing.T) {
@@ -103,7 +102,6 @@ func TestLabelFieldDelete(t *testing.T) {
 			require.Equal(t, tc.expected, val)
 		})
 	}
-
 }
 
 func TestLabelFieldSet(t *testing.T) {
@@ -172,7 +170,6 @@ func TestLabelFieldSet(t *testing.T) {
 			require.Equal(t, tc.expected, entry.Labels)
 		})
 	}
-
 }
 
 func TestLabelFieldString(t *testing.T) {
@@ -198,5 +195,4 @@ func TestLabelFieldString(t *testing.T) {
 			require.Equal(t, tc.expected, tc.field.String())
 		})
 	}
-
 }
