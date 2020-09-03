@@ -280,7 +280,7 @@ func (d *DiskBuffer) checkCompact() {
 	switch {
 	case d.flushedBytes > d.maxBytes/2:
 		fallthrough
-	case time.Now().Sub(d.lastCompaction) > 5*time.Second:
+	case time.Since(d.lastCompaction) > 5*time.Second:
 		d.Unlock()
 		err := d.Compact()
 		if err != nil {
@@ -376,7 +376,6 @@ func (d *DiskBuffer) Compact() error {
 			// Update i
 			start = end
 		}
-
 	}
 
 	// Bubble the dead space through the unflushed entries, then truncate
@@ -535,7 +534,6 @@ func (d *DiskBuffer) moveRange(start1, length1, start2, length2 int64) (int, err
 			return 0, err
 		}
 		writePosition += int64(n)
-
 	}
 
 	return bytesRead, nil

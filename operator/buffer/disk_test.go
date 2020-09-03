@@ -123,7 +123,7 @@ func TestDiskBuffer(t *testing.T) {
 		readN(t, b, 2, 0)
 		flushN(t, b, 2, 2)
 		readN(t, b, 2, 4)
-		b.Compact()
+		require.NoError(t, b.Compact())
 	})
 
 	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
@@ -200,7 +200,6 @@ func TestDiskBuffer(t *testing.T) {
 			})
 		}
 	})
-
 }
 
 func BenchmarkDiskBuffer(b *testing.B) {

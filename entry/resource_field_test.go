@@ -50,7 +50,6 @@ func TestResourceFieldGet(t *testing.T) {
 			require.Equal(t, tc.expected, val)
 		})
 	}
-
 }
 
 func TestResourceFieldDelete(t *testing.T) {
@@ -103,7 +102,6 @@ func TestResourceFieldDelete(t *testing.T) {
 			require.Equal(t, tc.expected, val)
 		})
 	}
-
 }
 
 func TestResourceFieldSet(t *testing.T) {
@@ -172,7 +170,6 @@ func TestResourceFieldSet(t *testing.T) {
 			require.Equal(t, tc.expected, entry.Resource)
 		})
 	}
-
 }
 
 func TestResourceFieldString(t *testing.T) {
@@ -198,5 +195,4 @@ func TestResourceFieldString(t *testing.T) {
 			require.Equal(t, tc.expected, tc.field.String())
 		})
 	}
-
 }

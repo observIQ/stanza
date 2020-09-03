@@ -173,7 +173,6 @@ func TestMemoryBuffer(t *testing.T) {
 		readN(t, b2, 5, 0)
 		readN(t, b2, 10, 10)
 	})
-
 }
 
 func BenchmarkMemoryBuffer(b *testing.B) {

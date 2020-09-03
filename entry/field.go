@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+const (
+	labelsPrefix   = "$labels"
+	resourcePrefix = "$resource"
+	recordPrefix   = "$record"
+)
+
 // Field represents a potential field on an entry.
 // It is used to get, set, and delete values at this field.
 // It is deserialized from JSON dot notation.
@@ -49,17 +55,17 @@ func fieldFromString(s string) (Field, error) {
 	}
 
 	switch split[0] {
-	case "$labels":
+	case labelsPrefix:
 		if len(split) != 2 {
 			return Field{}, fmt.Errorf("labels cannot be nested")
 		}
 		return Field{LabelField{split[1]}}, nil
-	case "$resource":
+	case resourcePrefix:
 		if len(split) != 2 {
 			return Field{}, fmt.Errorf("resource fields cannot be nested")
 		}
 		return Field{ResourceField{split[1]}}, nil
-	case "$record", "$":
+	case recordPrefix, "$":
 		return Field{RecordField{split[1:]}}, nil
 	default:
 		return Field{RecordField{split}}, nil
@@ -127,12 +133,13 @@ func splitField(s string) ([]string, error) {
 			}
 			state = OUT_BRACKET
 		case OUT_BRACKET:
-			if c == '.' {
+			switch c {
+			case '.':
 				state = IN_UNBRACKETED_TOKEN
 				tokenStart = i + 1
-			} else if c == '[' {
+			case '[':
 				state = IN_BRACKET
-			} else {
+			default:
 				return nil, fmt.Errorf("bracketed access must be followed by a dot or another bracketed access")
 			}
 		case IN_UNBRACKETED_TOKEN:

@@ -48,20 +48,8 @@ func readWaitN(t testing.TB, buffer Buffer, n, start int) func() {
 	return f
 }
 
-func uncheckedReadN(t testing.TB, buffer Buffer, n int) func() {
-	entries := make([]*entry.Entry, n)
-	f, readCount, _ := buffer.Read(entries)
-	require.Equal(t, n, readCount)
-	return f
-}
-
 func flushN(t testing.TB, buffer Buffer, n, start int) {
 	f := readN(t, buffer, n, start)
-	f()
-}
-
-func uncheckedFlushN(t testing.TB, buffer Buffer, n int) {
-	f := uncheckedReadN(t, buffer, n)
 	f()
 }
 

@@ -100,7 +100,9 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 		entry.Delete(p.ParseFrom)
 	}
 
-	entry.Set(p.ParseTo, newValue)
+	if err := entry.Set(p.ParseTo, newValue); err != nil {
+		return p.HandleEntryError(ctx, entry, errors.Wrap(err, "set parse_to"))
+	}
 
 	var timeParseErr error
 	if p.TimeParser != nil {
