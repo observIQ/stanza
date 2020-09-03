@@ -87,7 +87,7 @@ func NewDiskBuffer(maxDiskSize int) *DiskBuffer {
 	return &DiskBuffer{
 		maxBytes:          int64(maxDiskSize),
 		entryAdded:        make(chan int64, 1),
-		copyBuffer:        make([]byte, 1<<16), // TODO benchmark different sizes
+		copyBuffer:        make([]byte, 1<<16),
 		diskSizeSemaphore: semaphore.NewWeighted(int64(maxDiskSize)),
 	}
 }
