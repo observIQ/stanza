@@ -1,10 +1,12 @@
 package entry
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func testRecord() map[string]interface{} {
@@ -159,6 +161,14 @@ func TestRecordFieldDelete(t *testing.T) {
 			nestedMap(),
 			true,
 		},
+		{
+			"InvalidNestedKey",
+			NewRecordField("simple_key", "missing"),
+			testRecord(),
+			testRecord(),
+			nil,
+			false,
+		},
 	}
 
 	for _, tc := range cases {
@@ -193,6 +203,13 @@ func TestRecordFieldSet(t *testing.T) {
 			"raw_value",
 			"new_value",
 			"new_value",
+		},
+		{
+			"OverwriteRawWithMap",
+			NewRecordField("embedded", "field"),
+			"raw_value",
+			"new_value",
+			map[string]interface{}{"embedded": map[string]interface{}{"field": "new_value"}},
 		},
 		{
 			"NewMapValue",
@@ -268,7 +285,70 @@ func TestRecordFieldParent(t *testing.T) {
 	})
 }
 
-func TestFieldChild(t *testing.T) {
+func TestRecordFieldChild(t *testing.T) {
 	field := RecordField{[]string{"parent"}}
 	require.Equal(t, RecordField{[]string{"parent", "child"}}, field.Child("child"))
+}
+
+func TestRecordFieldMerge(t *testing.T) {
+	entry := &Entry{}
+	entry.Record = "raw_value"
+	field := RecordField{[]string{"embedded"}}
+	values := map[string]interface{}{"new": "values"}
+	field.Merge(entry, values)
+	expected := map[string]interface{}{"embedded": values}
+	require.Equal(t, expected, entry.Record)
+}
+
+func TestRecordFieldMarshalJSON(t *testing.T) {
+	recordField := RecordField{Keys: []string{"test"}}
+	json, err := recordField.MarshalJSON()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`"test"`), json)
+}
+
+func TestRecordFieldUnmarshalJSON(t *testing.T) {
+	fieldString := []byte(`"test"`)
+	var f RecordField
+	err := json.Unmarshal(fieldString, &f)
+	require.NoError(t, err)
+	require.Equal(t, RecordField{Keys: []string{"test"}}, f)
+}
+
+func TestRecordFieldUnmarshalJSONFailure(t *testing.T) {
+	invalidField := []byte(`{"key":"value"}`)
+	var f RecordField
+	err := json.Unmarshal(invalidField, &f)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "the field is not a string: json")
+}
+
+func TestRecordFieldMarshalYAML(t *testing.T) {
+	recordField := RecordField{Keys: []string{"test"}}
+	yaml, err := recordField.MarshalYAML()
+	require.NoError(t, err)
+	require.Equal(t, "test", yaml)
+}
+
+func TestRecordFieldUnmarshalYAML(t *testing.T) {
+	invalidField := []byte("test")
+	var f RecordField
+	err := yaml.UnmarshalStrict(invalidField, &f)
+	require.NoError(t, err)
+	require.Equal(t, RecordField{Keys: []string{"test"}}, f)
+}
+
+func TestRecordFieldUnmarshalYAMLFailure(t *testing.T) {
+	invalidField := []byte(`{"key":"value"}`)
+	var f RecordField
+	err := yaml.UnmarshalStrict(invalidField, &f)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "the field is not a string: yaml")
+}
+
+func TestRecordFieldFromJSONDot(t *testing.T) {
+	jsonDot := "$.test"
+	recordField := fromJSONDot(jsonDot)
+	expectedField := RecordField{Keys: []string{"test"}}
+	require.Equal(t, expectedField, recordField)
 }

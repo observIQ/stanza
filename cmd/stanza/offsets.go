@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	agent "github.com/observiq/stanza/agent"
+	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
@@ -39,7 +39,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 		Short: "Clear persisted offsets from the database",
 		Args:  cobra.ArbitraryArgs,
 		Run: func(command *cobra.Command, args []string) {
-			db, err := agent.OpenDatabase(rootFlags.DatabaseFile)
+			db, err := operator.OpenDatabase(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 			defer db.Sync()
@@ -90,7 +90,7 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 		Short: "List operators with persisted offsets",
 		Args:  cobra.NoArgs,
 		Run: func(command *cobra.Command, args []string) {
-			db, err := agent.OpenDatabase(rootFlags.DatabaseFile)
+			db, err := operator.OpenDatabase(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 

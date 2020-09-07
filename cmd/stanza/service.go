@@ -23,14 +23,23 @@ func (a *AgentService) Start(s service.Service) error {
 	if err := a.agent.Start(); err != nil {
 		a.agent.Errorw("Failed to start stanza agent", zap.Any("error", err))
 		a.cancel()
+		return nil
 	}
+
+	a.agent.Info("Stanza agent started")
 	return nil
 }
 
 // Stop will stop the stanza agent.
 func (a *AgentService) Stop(s service.Service) error {
 	a.agent.Info("Stopping stanza agent")
-	a.agent.Stop()
+	if err := a.agent.Stop(); err != nil {
+		a.agent.Errorw("Failed to stop stanza agent gracefully", zap.Any("error", err))
+		a.cancel()
+		return nil
+	}
+
+	a.agent.Info("Stanza agent stopped")
 	a.cancel()
 	return nil
 }

@@ -59,7 +59,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	dotGraph, err := pipeline.MarshalDot()
+	dotGraph, err := pipeline.Render()
 	if err != nil {
 		logger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
 		os.Exit(1)

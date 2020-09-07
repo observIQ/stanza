@@ -67,7 +67,7 @@ func TestUnorderableToCycles(t *testing.T) {
 
 func TestPipeline(t *testing.T) {
 	t.Run("MultipleStart", func(t *testing.T) {
-		pipeline, err := NewPipeline([]operator.Operator{})
+		pipeline, err := NewDirectedPipeline([]operator.Operator{})
 		require.NoError(t, err)
 
 		err = pipeline.Start()
@@ -80,7 +80,7 @@ func TestPipeline(t *testing.T) {
 	})
 
 	t.Run("MultipleStop", func(t *testing.T) {
-		pipeline, err := NewPipeline([]operator.Operator{})
+		pipeline, err := NewDirectedPipeline([]operator.Operator{})
 		require.NoError(t, err)
 
 		err = pipeline.Start()
@@ -98,7 +98,7 @@ func TestPipeline(t *testing.T) {
 		operator2.On("SetOutputs", mock.Anything).Return(nil)
 		operator2.On("Outputs").Return(nil)
 
-		_, err := NewPipeline([]operator.Operator{operator1, operator2})
+		_, err := NewDirectedPipeline([]operator.Operator{operator1, operator2})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "already exists")
 	})
@@ -112,7 +112,7 @@ func TestPipeline(t *testing.T) {
 		operator2.On("SetOutputs", mock.Anything).Return(nil)
 		operator2.On("Outputs").Return([]operator.Operator{operator1})
 
-		_, err := NewPipeline([]operator.Operator{operator2})
+		_, err := NewDirectedPipeline([]operator.Operator{operator2})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "does not exist")
 	})
@@ -129,7 +129,7 @@ func TestPipeline(t *testing.T) {
 		operator2.On("SetOutputs", mock.Anything).Return(nil)
 		operator2.On("Outputs").Return([]operator.Operator{operator1})
 
-		_, err := NewPipeline([]operator.Operator{operator1, operator2})
+		_, err := NewDirectedPipeline([]operator.Operator{operator1, operator2})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "can not process")
 	})
@@ -168,7 +168,7 @@ func TestPipeline(t *testing.T) {
 		mockOperator3.On("Outputs").Return([]operator.Operator{mockOperator1})
 		mockOperator3.On("SetOutputs", mock.Anything).Return(nil)
 
-		_, err := NewPipeline([]operator.Operator{mockOperator1, mockOperator2, mockOperator3})
+		_, err := NewDirectedPipeline([]operator.Operator{mockOperator1, mockOperator2, mockOperator3})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "circular dependency")
 	})

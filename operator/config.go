@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
 
@@ -27,36 +26,6 @@ type BuildContext struct {
 	Database       Database
 	Parameters     map[string]interface{}
 	Logger         *zap.SugaredLogger
-}
-
-// Database is a database used to save offsets
-type Database interface {
-	Close() error
-	Sync() error
-	Update(func(*bbolt.Tx) error) error
-	View(func(*bbolt.Tx) error) error
-}
-
-// StubDatabase is an implementation of Database that
-// succeeds on all calls without persisting anything to disk.
-// This is used when --database is unspecified.
-type StubDatabase struct{}
-
-// Close will be ignored by the stub database
-func (d *StubDatabase) Close() error { return nil }
-
-// Sync will be ignored by the stub database
-func (d *StubDatabase) Sync() error { return nil }
-
-// Update will be ignored by the stub database
-func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
-
-// View will be ignored by the stub database
-func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error { return nil }
-
-// NewStubDatabase creates a new StubDatabase
-func NewStubDatabase() *StubDatabase {
-	return &StubDatabase{}
 }
 
 // registry is a global registry of operator types to operator builders.

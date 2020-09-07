@@ -14,7 +14,7 @@ import (
 type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
-func (c Config) BuildPipeline(context operator.BuildContext, defaultOutput operator.Operator) (*Pipeline, error) {
+func (c Config) BuildPipeline(context operator.BuildContext, defaultOutput operator.Operator) (*DirectedPipeline, error) {
 	operatorConfigs, err := c.buildOperatorConfigs(context.PluginRegistry)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func (c Config) BuildPipeline(context operator.BuildContext, defaultOutput opera
 		operators = append(operators, defaultOutput)
 	}
 
-	pipeline, err := NewPipeline(operators)
+	pipeline, err := NewDirectedPipeline(operators)
 	if err != nil {
 		return nil, err
 	}
