@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/observiq/stanza/database"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )
 
 func TestStubDatabase(t *testing.T) {
-	stub := &StubDatabase{}
+	stub := &database.StubDatabase{}
 
 	err := stub.Close()
 	require.NoError(t, err)

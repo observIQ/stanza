@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/observiq/stanza/database"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +24,7 @@ type Builder interface {
 // BuildContext supplies contextual resources when building an operator.
 type BuildContext struct {
 	PluginRegistry PluginRegistry
-	Database       Database
+	Database       database.Database
 	Parameters     map[string]interface{}
 	Logger         *zap.SugaredLogger
 }

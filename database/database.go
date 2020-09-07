@@ -1,6 +1,6 @@
 //go:generate mockery -name=^(Database)$ -output=../testutil -outpkg=testutil -case=snake
 
-package operator
+package database
 
 import (
 	"fmt"

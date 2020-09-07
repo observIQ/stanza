@@ -3,14 +3,14 @@ package agent
 import (
 	"sync"
 
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/pipeline"
 	"go.uber.org/zap"
 )
 
 // LogAgent is an entity that handles log monitoring.
 type LogAgent struct {
-	database operator.Database
+	database database.Database
 	pipeline pipeline.Pipeline
 
 	startOnce sync.Once

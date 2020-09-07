@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"go.uber.org/zap"
@@ -43,7 +44,7 @@ func (b *LogAgentBuilder) WithDefaultOutput(defaultOutput operator.Operator) *Lo
 
 // Build will build a new log agent using the values defined on the builder
 func (b *LogAgentBuilder) Build() (*LogAgent, error) {
-	database, err := operator.OpenDatabase(b.databaseFile)
+	db, err := database.OpenDatabase(b.databaseFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "open database")
 	}
@@ -56,7 +57,7 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 	buildContext := operator.BuildContext{
 		Logger:         b.logger,
 		PluginRegistry: registry,
-		Database:       database,
+		Database:       db,
 	}
 
 	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
@@ -66,7 +67,7 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 
 	return &LogAgent{
 		pipeline:      pipeline,
-		database:      database,
+		database:      db,
 		SugaredLogger: b.logger,
 	}, nil
 }
