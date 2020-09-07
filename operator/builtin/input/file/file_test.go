@@ -715,8 +715,8 @@ func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
 	case e := <-c:
 		require.Equal(t, expected, e.Record.(string))
-	case <-time.After(time.Second):
-		require.FailNow(t, "Timed out waiting for message")
+	case <-time.After(time.Minute):
+		require.FailNow(t, "Timed out waiting for message", expected)
 	}
 }
 
