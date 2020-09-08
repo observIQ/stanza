@@ -476,6 +476,7 @@ func TestFileSource_FileMovedWhileOff_BigFiles(t *testing.T) {
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, log1+"\n")
+	require.NoError(t, temp.Close())
 
 	// Start the source
 	require.NoError(t, source.Start())
