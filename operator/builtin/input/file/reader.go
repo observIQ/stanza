@@ -36,6 +36,16 @@ type FileReader struct {
 	*zap.SugaredLogger `json:"-"`
 }
 
+func NewFileReader(path string, f *InputOperator) *FileReader {
+	return &FileReader{
+		Path:          path,
+		fileInput:     f,
+		SugaredLogger: f.SugaredLogger.With("path", path),
+		decoder:       f.encoding.NewDecoder(),
+		decodeBuffer:  make([]byte, 1<<12),
+	}
+}
+
 // Initialize sets the starting offset and the initial fingerprint
 func (f *FileReader) Initialize(startAtBeginning bool) error {
 	file, err := os.Open(f.Path)

@@ -145,13 +145,7 @@ func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck b
 }
 
 func (f *InputOperator) newFileReader(path string, firstCheck bool) (*FileReader, error) {
-	newReader := &FileReader{
-		Path:          path,
-		fileInput:     f,
-		SugaredLogger: f.SugaredLogger.With("path", path),
-		decoder:       f.encoding.NewDecoder(),
-		decodeBuffer:  make([]byte, 1<<12),
-	}
+	newReader := NewFileReader(path, f)
 
 	startAtBeginning := !firstCheck || f.startAtBeginning
 	if err := newReader.Initialize(startAtBeginning); err != nil {
@@ -182,10 +176,19 @@ var knownFilesKey = "knownFiles"
 func (f *InputOperator) syncKnownFiles() {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
-	err := enc.Encode(f.knownFiles)
-	if err != nil {
+
+	// Encode the number of known files
+	if err := enc.Encode(len(f.knownFiles)); err != nil {
 		f.Errorw("Failed to encode known files", zap.Error(err))
 		return
+	}
+
+	// Encode each known file
+	for _, fileReader := range f.knownFiles {
+		if err := enc.Encode(fileReader); err != nil {
+			f.Errorw("Failed to encode known files", zap.Error(err))
+			return
+		}
 	}
 
 	f.persist.Set(knownFilesKey, buf.Bytes())
@@ -205,17 +208,21 @@ func (f *InputOperator) loadKnownFiles() error {
 	}
 
 	dec := json.NewDecoder(bytes.NewReader(encoded))
-	err = dec.Decode(&f.knownFiles)
-	if err != nil {
-		return err
+
+	// Decode the number of entries
+	var knownFileCount int
+	if err := dec.Decode(&knownFileCount); err != nil {
+		return fmt.Errorf("decoding file count: %w", err)
 	}
 
-	for path, knownFile := range f.knownFiles {
-		// TODO how to not duplicate this
-		knownFile.SugaredLogger = f.SugaredLogger.With("path", path)
-		knownFile.fileInput = f
-		knownFile.decodeBuffer = make([]byte, 1<<12)
-		knownFile.decoder = f.encoding.NewDecoder()
+	// Decode each of the known files
+	f.knownFiles = make(map[string]*FileReader)
+	for i := 0; i < knownFileCount; i++ {
+		newFileReader := NewFileReader("", f)
+		if err = dec.Decode(newFileReader); err != nil {
+			return err
+		}
+		f.knownFiles[newFileReader.Path] = newFileReader
 	}
 
 	return nil
