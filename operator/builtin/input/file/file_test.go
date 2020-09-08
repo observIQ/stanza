@@ -318,6 +318,38 @@ func TestFileSource_MultiFileSimple(t *testing.T) {
 	waitForMessages(t, logReceived, []string{"testlog1", "testlog2"})
 }
 
+func TestFileSource_MultiFileParallel(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
+
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	numFiles := 10
+	numMessages := 100
+
+	expected := make([]string, 0, numFiles*numMessages)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			expected = append(expected, getMessage(i, j))
+		}
+	}
+
+	for i := 0; i < numFiles; i++ {
+		temp := openTemp(t, tempDir)
+		go func(f int) {
+			for j := 0; j < numMessages; j++ {
+				writeString(t, temp, getMessage(f, j)+"\n")
+			}
+		}(i)
+	}
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	waitForMessages(t, logReceived, expected)
+}
+
 func TestFileSource_MoveFile(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Moving files while open is unsupported on Windows")
@@ -571,7 +603,7 @@ LOOP:
 			if len(receivedMessages) == len(expected) {
 				break LOOP
 			}
-		case <-time.After(time.Second):
+		case <-time.After(5 * time.Second):
 			require.FailNow(t, "Timed out waiting for expected messages")
 		}
 	}
