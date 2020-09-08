@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
@@ -34,7 +34,7 @@ func (b *bufferHandler) Logger() *zap.SugaredLogger {
 
 func TestBuffer(t *testing.T) {
 	config := NewConfig()
-	config.DelayThreshold = operator.Duration{
+	config.DelayThreshold = helper.Duration{
 		Duration: 100 * time.Millisecond,
 	}
 

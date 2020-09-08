@@ -14,6 +14,7 @@ import (
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func newTestFileSource(t *testing.T) (*InputOperator, chan *entry.Entry) {
 	})
 
 	cfg := NewInputConfig("testfile")
-	cfg.PollInterval = operator.Duration{Duration: 50 * time.Millisecond}
+	cfg.PollInterval = helper.Duration{Duration: 50 * time.Millisecond}
 	cfg.StartAt = "beginning"
 	cfg.Include = []string{"should-be-overwritten"}
 
@@ -50,7 +51,7 @@ func TestFileSource_Build(t *testing.T) {
 		cfg.OutputIDs = []string{"mock"}
 		cfg.Include = []string{"/var/log/testpath.*"}
 		cfg.Exclude = []string{"/var/log/testpath.ex*"}
-		cfg.PollInterval = operator.Duration{Duration: 10 * time.Millisecond}
+		cfg.PollInterval = helper.Duration{Duration: 10 * time.Millisecond}
 		return cfg
 	}
 

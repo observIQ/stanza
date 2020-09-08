@@ -25,9 +25,9 @@ func NewRateLimitConfig(operatorID string) *RateLimitConfig {
 type RateLimitConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
 
-	Rate     float64           `json:"rate,omitempty"     yaml:"rate,omitempty"`
-	Interval operator.Duration `json:"interval,omitempty" yaml:"interval,omitempty"`
-	Burst    uint              `json:"burst,omitempty"    yaml:"burst,omitempty"`
+	Rate     float64         `json:"rate,omitempty"     yaml:"rate,omitempty"`
+	Interval helper.Duration `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Burst    uint            `json:"burst,omitempty"    yaml:"burst,omitempty"`
 }
 
 // Build will build a rate limit operator.

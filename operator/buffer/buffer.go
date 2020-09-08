@@ -7,7 +7,7 @@ import (
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 )
 
 // Buffer is an entity that buffers log entries to an operator
@@ -23,7 +23,7 @@ type Buffer interface {
 func NewConfig() Config {
 	return Config{
 		BufferType:           "memory",
-		DelayThreshold:       operator.Duration{Duration: time.Second},
+		DelayThreshold:       helper.Duration{Duration: time.Second},
 		BundleCountThreshold: 10_000,
 		BundleByteThreshold:  4 * 1024 * 1024 * 1024,   // 4MB
 		BundleByteLimit:      4 * 1024 * 1024 * 1024,   // 4MB
@@ -35,14 +35,14 @@ func NewConfig() Config {
 
 // Config is the configuration of a buffer
 type Config struct {
-	BufferType           string            `json:"type,omitempty"                   yaml:"type,omitempty"`
-	DelayThreshold       operator.Duration `json:"delay_threshold,omitempty"        yaml:"delay_threshold,omitempty"`
-	BundleCountThreshold int               `json:"bundle_count_threshold,omitempty" yaml:"buffer_count_threshold,omitempty"`
-	BundleByteThreshold  int               `json:"bundle_byte_threshold,omitempty"  yaml:"bundle_byte_threshold,omitempty"`
-	BundleByteLimit      int               `json:"bundle_byte_limit,omitempty"      yaml:"bundle_byte_limit,omitempty"`
-	BufferedByteLimit    int               `json:"buffered_byte_limit,omitempty"    yaml:"buffered_byte_limit,omitempty"`
-	HandlerLimit         int               `json:"handler_limit,omitempty"          yaml:"handler_limit,omitempty"`
-	Retry                RetryConfig       `json:"retry,omitempty"                  yaml:"retry,omitempty"`
+	BufferType           string          `json:"type,omitempty"                   yaml:"type,omitempty"`
+	DelayThreshold       helper.Duration `json:"delay_threshold,omitempty"        yaml:"delay_threshold,omitempty"`
+	BundleCountThreshold int             `json:"bundle_count_threshold,omitempty" yaml:"buffer_count_threshold,omitempty"`
+	BundleByteThreshold  int             `json:"bundle_byte_threshold,omitempty"  yaml:"bundle_byte_threshold,omitempty"`
+	BundleByteLimit      int             `json:"bundle_byte_limit,omitempty"      yaml:"bundle_byte_limit,omitempty"`
+	BufferedByteLimit    int             `json:"buffered_byte_limit,omitempty"    yaml:"buffered_byte_limit,omitempty"`
+	HandlerLimit         int             `json:"handler_limit,omitempty"          yaml:"handler_limit,omitempty"`
+	Retry                RetryConfig     `json:"retry,omitempty"                  yaml:"retry,omitempty"`
 }
 
 // Build will build a buffer from the supplied configuration
@@ -61,18 +61,18 @@ func (config *Config) Build() (Buffer, error) {
 // NewRetryConfig creates a new retry config
 func NewRetryConfig() RetryConfig {
 	return RetryConfig{
-		InitialInterval:     operator.Duration{Duration: 500 * time.Millisecond},
+		InitialInterval:     helper.Duration{Duration: 500 * time.Millisecond},
 		RandomizationFactor: 0.5,
 		Multiplier:          1.5,
-		MaxInterval:         operator.Duration{Duration: 15 * time.Minute},
+		MaxInterval:         helper.Duration{Duration: 15 * time.Minute},
 	}
 }
 
 // RetryConfig is the configuration of an entity that will retry processing after an error
 type RetryConfig struct {
-	InitialInterval     operator.Duration `json:"initial_interval,omitempty"     yaml:"initial_interval,omitempty"`
-	RandomizationFactor float64           `json:"randomization_factor,omitempty" yaml:"randomization_factor,omitempty"`
-	Multiplier          float64           `json:"multiplier,omitempty"           yaml:"multiplier,omitempty"`
-	MaxInterval         operator.Duration `json:"max_interval,omitempty"         yaml:"max_interval,omitempty"`
-	MaxElapsedTime      operator.Duration `json:"max_elapsed_time,omitempty"     yaml:"max_elapsed_time,omitempty"`
+	InitialInterval     helper.Duration `json:"initial_interval,omitempty"     yaml:"initial_interval,omitempty"`
+	RandomizationFactor float64         `json:"randomization_factor,omitempty" yaml:"randomization_factor,omitempty"`
+	Multiplier          float64         `json:"multiplier,omitempty"           yaml:"multiplier,omitempty"`
+	MaxInterval         helper.Duration `json:"max_interval,omitempty"         yaml:"max_interval,omitempty"`
+	MaxElapsedTime      helper.Duration `json:"max_elapsed_time,omitempty"     yaml:"max_elapsed_time,omitempty"`
 }

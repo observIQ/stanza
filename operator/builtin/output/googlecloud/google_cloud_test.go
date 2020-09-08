@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
@@ -33,7 +33,7 @@ type googleCloudTestCase struct {
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
-	cfg.BufferConfig.DelayThreshold = operator.Duration{Duration: time.Millisecond}
+	cfg.BufferConfig.DelayThreshold = helper.Duration{Duration: time.Millisecond}
 	return cfg
 }
 

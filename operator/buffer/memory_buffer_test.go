@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -47,7 +47,7 @@ func newMockHandler(t *testing.T) *mockHandler {
 func TestMemoryBufferRetry(t *testing.T) {
 	t.Run("FailOnce", func(t *testing.T) {
 		cfg := NewConfig()
-		cfg.DelayThreshold = operator.Duration{Duration: 10 * time.Millisecond}
+		cfg.DelayThreshold = helper.Duration{Duration: 10 * time.Millisecond}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
 		handler := newMockHandler(t)
@@ -68,7 +68,7 @@ func TestMemoryBufferRetry(t *testing.T) {
 
 	t.Run("ContextCancelled", func(t *testing.T) {
 		cfg := NewConfig()
-		cfg.DelayThreshold = operator.Duration{Duration: 10 * time.Millisecond}
+		cfg.DelayThreshold = helper.Duration{Duration: 10 * time.Millisecond}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
 		handler := newMockHandler(t)
@@ -95,8 +95,8 @@ func TestMemoryBufferRetry(t *testing.T) {
 
 	t.Run("ExceededLimit", func(t *testing.T) {
 		cfg := NewConfig()
-		cfg.DelayThreshold = operator.Duration{Duration: 10 * time.Millisecond}
-		cfg.Retry.MaxElapsedTime = operator.Duration{Duration: time.Nanosecond}
+		cfg.DelayThreshold = helper.Duration{Duration: 10 * time.Millisecond}
+		cfg.Retry.MaxElapsedTime = helper.Duration{Duration: time.Nanosecond}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
 		handler := newMockHandler(t)
@@ -124,7 +124,7 @@ func TestMemoryBufferRetry(t *testing.T) {
 func TestMemoryBufferFlush(t *testing.T) {
 	t.Run("Simple", func(t *testing.T) {
 		cfg := NewConfig()
-		cfg.DelayThreshold = operator.Duration{Duration: 10 * time.Hour}
+		cfg.DelayThreshold = helper.Duration{Duration: 10 * time.Hour}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
 		handler := newMockHandler(t)
@@ -156,7 +156,7 @@ func TestMemoryBufferFlush(t *testing.T) {
 
 	t.Run("ContextCancelled", func(t *testing.T) {
 		cfg := NewConfig()
-		cfg.DelayThreshold = operator.Duration{Duration: 10 * time.Hour}
+		cfg.DelayThreshold = helper.Duration{Duration: 10 * time.Hour}
 		buffer, err := cfg.Build()
 		require.NoError(t, err)
 		handler := newMockHandler(t)
