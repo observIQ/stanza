@@ -47,7 +47,15 @@ func newTestFileSource(t *testing.T, cfgMod func(*InputConfig)) (*InputOperator,
 }
 
 func openTemp(t testing.TB, tempDir string) *os.File {
-	file, err := ioutil.TempFile(tempDir, "")
+	return openTempWithPattern(t, tempDir, "")
+}
+
+func reopenTemp(t testing.TB, name string) *os.File {
+	return openTempWithPattern(t, filepath.Dir(name), filepath.Base(name))
+}
+
+func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
+	file, err := ioutil.TempFile(tempDir, pattern)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = file.Close() })
 	return file
@@ -485,9 +493,13 @@ func TestFileSource_FileMovedWhileOff_BigFiles(t *testing.T) {
 
 	// Stop the source, then rename and write a new log
 	require.NoError(t, source.Stop())
-	writeString(t, temp, log2+"\n")
+
 	err := os.Rename(temp.Name(), fmt.Sprintf("%s2", temp.Name()))
 	require.NoError(t, err)
+
+	temp = reopenTemp(t, temp.Name())
+	require.NoError(t, err)
+	writeString(t, temp, log2+"\n")
 
 	// Expect the message written to the new log to come through
 	require.NoError(t, source.Start())
