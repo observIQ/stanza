@@ -54,11 +54,7 @@ func (f *InputOperator) Start() error {
 	}
 
 	// Start polling goroutine
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
-		f.runPoller(ctx)
-	}()
+	f.startPoller(ctx)
 
 	return nil
 }
@@ -73,19 +69,26 @@ func (f *InputOperator) Stop() error {
 	return nil
 }
 
-func (f *InputOperator) runPoller(ctx context.Context) {
-	globTicker := time.NewTicker(f.PollInterval)
-	defer globTicker.Stop()
+// startPoller kicks off a goroutine that will poll the filesystem
+// periodically, checking if there are new files or new logs in the
+// watched files
+func (f *InputOperator) startPoller(ctx context.Context) {
+	f.wg.Add(1)
+	go func() {
+		defer f.wg.Done()
+		globTicker := time.NewTicker(f.PollInterval)
+		defer globTicker.Stop()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-globTicker.C:
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-globTicker.C:
+			}
+
+			f.poll(ctx)
 		}
-
-		f.poll(ctx)
-	}
+	}()
 }
 
 func (f *InputOperator) poll(ctx context.Context) {
@@ -201,7 +204,9 @@ func (f *InputOperator) syncKnownFiles() {
 	}
 
 	f.persist.Set(knownFilesKey, buf.Bytes())
-	f.persist.Sync()
+	if err := f.persist.Sync(); err != nil {
+		f.Errorw("Failed to sync to database", zap.Error(err))
+	}
 }
 
 func (f *InputOperator) loadKnownFiles() error {

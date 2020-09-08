@@ -104,8 +104,9 @@ func (f *FileReader) ReadToEnd(ctx context.Context) {
 			break
 		}
 
-		// TODO if context is cancelled, we don't want to update offset
-		f.emit(ctx, scanner.Bytes())
+		if err := f.emit(ctx, scanner.Bytes()); err != nil {
+			f.Error("Failed to emit entry", zap.Error(err))
+		}
 		f.setOffset(scanner.Pos())
 	}
 
@@ -125,7 +126,9 @@ func (f *FileReader) ReadToEnd(ctx context.Context) {
 			f.Errorw("Failed reading trailing entry", zap.Error(err))
 			return
 		}
-		f.emit(ctx, msgBuf[:n])
+		if err := f.emit(ctx, msgBuf[:n]); err != nil {
+			f.Error("Failed to emit entry", zap.Error(err))
+		}
 		f.setOffset(scanner.Pos() + int64(n))
 	}
 }

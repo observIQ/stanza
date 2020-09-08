@@ -400,37 +400,23 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 func TestFileSource_OffsetsAfterRestart(t *testing.T) {
 	t.Parallel()
 	// Create a new source
-	fakeOutput := testutil.NewFakeOutput(t)
-	tempDir := testutil.NewTempDir(t)
-	cfg := newDefaultConfig(tempDir)
-	buildContext := testutil.NewBuildContext(t)
-	pg, err := cfg.Build(buildContext)
-	require.NoError(t, err)
-	err = pg.SetOutputs([]operator.Operator{fakeOutput})
-	require.NoError(t, err)
-	source1 := pg.(*InputOperator)
+	source, logReceived, tempDir := newTestFileSource(t, nil)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
 
 	// Start the source and expect a message
-	require.NoError(t, source1.Start())
-	waitForMessage(t, fakeOutput.Received, "testlog1")
+	require.NoError(t, source.Start())
+	waitForMessage(t, logReceived, "testlog1")
 
 	// Restart the source. Stop and build a new
 	// one to guarantee freshness
-	require.NoError(t, source1.Stop())
-	pg, err = cfg.Build(buildContext)
-	require.NoError(t, err)
-	err = pg.SetOutputs([]operator.Operator{fakeOutput})
-	require.NoError(t, err)
-	source2 := pg.(*InputOperator)
-
-	require.NoError(t, source2.Start())
+	require.NoError(t, source.Stop())
+	require.NoError(t, source.Start())
 
 	// Write a new log and expect only that log
 	writeString(t, temp1, "testlog2\n")
-	waitForMessage(t, fakeOutput.Received, "testlog2")
+	waitForMessage(t, logReceived, "testlog2")
 }
 
 func TestFileSource_OffsetsAfterRestart_BigFiles(t *testing.T) {
