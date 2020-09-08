@@ -1,7 +1,8 @@
 dev/*
 .DS_Store
 tmp/*
-coverage.txt
-coverage.html
+local/*
+**/coverage.txt
+**/coverage.html
 artifacts/*
 .vscode/*

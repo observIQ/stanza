@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/stanza/operator"
-	_ "github.com/observiq/stanza/operator/builtin"
-	"github.com/observiq/stanza/operator/builtin/output"
-	"github.com/observiq/stanza/operator/builtin/transformer"
+	_ "github.com/observiq/stanza/operator/builtin/input/generate"
+	"github.com/observiq/stanza/operator/builtin/output/drop"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -188,67 +187,6 @@ func (i invalidMarshaller) MarshalYAML() (interface{}, error) {
 	return nil, fmt.Errorf("failed")
 }
 
-func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
-	params := Params{
-		"id":     "noop",
-		"type":   "noop",
-		"output": "test",
-		"field":  invalidMarshaller{},
-	}
-	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to parse config map as yaml")
-}
-
-func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
-	params := Params{
-		"id":      "noop",
-		"type":    "noop",
-		"unknown": true,
-		"output":  "test_output",
-	}
-	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
-	require.Error(t, err)
-}
-
-func TestBuildBuiltinFromValidParams(t *testing.T) {
-	params := Params{
-		"id":     "noop",
-		"type":   "noop",
-		"output": "test_output",
-	}
-	configs, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
-
-	require.NoError(t, err)
-	require.Equal(t, 1, len(configs))
-	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
-	require.Equal(t, "test_namespace.noop", configs[0].ID())
-}
-
-func TestBuildPluginFromValidParams(t *testing.T) {
-	registry := operator.PluginRegistry{}
-	pluginTemplate := `
-pipeline:
-  - id: plugin_noop
-    type: noop
-    output: {{.output}}
-`
-	err := registry.Add("plugin", pluginTemplate)
-	require.NoError(t, err)
-
-	params := Params{
-		"id":     "plugin",
-		"type":   "plugin",
-		"output": "test_output",
-	}
-
-	configs, err := params.BuildConfigs(registry, "test_namespace", []string{})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(configs))
-	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
-	require.Equal(t, "test_namespace.plugin.plugin_noop", configs[0].ID())
-}
-
 func TestBuildValidPipeline(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	pluginTemplate := `
@@ -296,7 +234,7 @@ func TestBuildValidPipelineDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
@@ -324,7 +262,7 @@ func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
@@ -354,7 +292,7 @@ pipeline:
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
 	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
@@ -416,8 +354,9 @@ pipeline:
 func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	pipelineConfig := Config{
 		Params{
-			"id":     "tcp_input",
-			"type":   "tcp_input",
+			"id":     "generate_input",
+			"type":   "generate_input",
+			"number": 1,
 			"output": "drop_output",
 		},
 		Params{
@@ -429,7 +368,7 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	_, err := pipelineConfig.BuildPipeline(context, nil)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required parameter 'listen_address'")
+	require.Contains(t, err.Error(), "field number not found")
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {

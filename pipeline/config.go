@@ -128,15 +128,13 @@ func (p Params) TemplateOutput(namespace string, defaultOutput []string) string 
 	if len(outputs) == 0 {
 		outputs = defaultOutput
 	}
-	return fmt.Sprintf("[%s]", strings.Join(outputs[:], ", "))
+	return fmt.Sprintf("[%s]", strings.Join(outputs, ", "))
 }
 
 // NamespaceExclusions will return all ids to exclude from namespacing.
 func (p Params) NamespaceExclusions(namespace string) []string {
 	exclusions := []string{p.NamespacedID(namespace)}
-	for _, output := range p.NamespacedOutputs(namespace) {
-		exclusions = append(exclusions, output)
-	}
+	exclusions = append(exclusions, p.NamespacedOutputs(namespace)...)
 	return exclusions
 }
 

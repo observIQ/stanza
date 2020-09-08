@@ -9,7 +9,6 @@ import (
 
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
-	_ "github.com/observiq/stanza/operator/builtin" // register operators
 	"github.com/observiq/stanza/pipeline"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"

@@ -6,6 +6,14 @@ import (
 	"github.com/observiq/stanza/errors"
 )
 
+const (
+	stringType  = "string"
+	boolType    = "bool"
+	intType     = "int"
+	stringsType = "strings"
+	enumType    = "enum"
+)
+
 // PluginParameter is a basic description of a plugin's parameter.
 type PluginParameter struct {
 	Label       string
@@ -41,7 +49,7 @@ func (param PluginParameter) validate() error {
 
 func (param PluginParameter) validateType() error {
 	switch param.Type {
-	case "string", "int", "bool", "strings", "enum": // ok
+	case stringType, intType, boolType, stringsType, enumType: // ok
 	default:
 		return errors.NewError(
 			"invalid type for parameter",
@@ -53,14 +61,14 @@ func (param PluginParameter) validateType() error {
 
 func (param PluginParameter) validateValidValues() error {
 	switch param.Type {
-	case "string", "int", "bool", "strings":
+	case stringType, intType, boolType, stringsType:
 		if len(param.ValidValues) > 0 {
 			return errors.NewError(
 				fmt.Sprintf("valid_values is undefined for parameter of type '%s'", param.Type),
 				"remove 'valid_values' field or change type to 'enum'",
 			)
 		}
-	case "enum":
+	case enumType:
 		if len(param.ValidValues) == 0 {
 			return errors.NewError(
 				"parameter of type 'enum' must have 'valid_values' specified",
@@ -78,15 +86,15 @@ func (param PluginParameter) validateDefault() error {
 
 	// Validate that Default corresponds to Type
 	switch param.Type {
-	case "string":
+	case stringType:
 		return validateStringDefault(param)
-	case "int":
+	case intType:
 		return validateIntDefault(param)
-	case "bool":
+	case boolType:
 		return validateBoolDefault(param)
-	case "strings":
+	case stringsType:
 		return validateStringArrayDefault(param)
-	case "enum":
+	case enumType:
 		return validateEnumDefault(param)
 	default:
 		return errors.NewError(
