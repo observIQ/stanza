@@ -2,6 +2,7 @@ package json
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -15,6 +16,88 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
+
+func NewTestConfig(t *testing.T) (*operator.Config, error) {
+	json := `{
+		"type": "json_parser",
+		"id": "test_id",
+		"output": "test_output"
+	}`
+	config := &operator.Config{}
+	err := config.UnmarshalJSON([]byte(json))
+	return config, err
+}
+
+func NewTestParser(t *testing.T) (*JSONParser, error) {
+	config, err := NewTestConfig(t)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := testutil.NewBuildContext(t)
+	op, err := config.Build(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	parser, ok := op.(*JSONParser)
+	if !ok {
+		return nil, fmt.Errorf("operator is not a json parser")
+	}
+
+	return parser, nil
+}
+
+func TestJSONParserConfigBuild(t *testing.T) {
+	config, err := NewTestConfig(t)
+	require.NoError(t, err)
+
+	ctx := testutil.NewBuildContext(t)
+	parser, err := config.Build(ctx)
+	require.NoError(t, err)
+	require.IsType(t, &JSONParser{}, parser)
+}
+
+func TestJSONParserConfigBuildFailure(t *testing.T) {
+	config, err := NewTestConfig(t)
+	require.NoError(t, err)
+
+	parserConfig, ok := config.Builder.(*JSONParserConfig)
+	require.True(t, ok)
+
+	parserConfig.OnError = "invalid_on_error"
+	ctx := testutil.NewBuildContext(t)
+	_, err = config.Build(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid `on_error` field")
+}
+
+func TestJSONParserStringFailure(t *testing.T) {
+	parser, err := NewTestParser(t)
+	require.NoError(t, err)
+
+	_, err = parser.parse("invalid")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "error found in #1 byte")
+}
+
+func TestJSONParserByteFailure(t *testing.T) {
+	parser, err := NewTestParser(t)
+	require.NoError(t, err)
+
+	_, err = parser.parse([]byte("invalid"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "error found in #1 byte")
+}
+
+func TestJSONParserInvalidType(t *testing.T) {
+	parser, err := NewTestParser(t)
+	require.NoError(t, err)
+
+	_, err = parser.parse([]int{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "type []int cannot be parsed as JSON")
+}
 
 func NewFakeJSONOperator() (*JSONParser, *testutil.Operator) {
 	mock := testutil.Operator{}
