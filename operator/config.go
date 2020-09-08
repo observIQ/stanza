@@ -1,3 +1,5 @@
+//go:generate mockery --name=Builder --output=../testutil --outpkg=testutil --filename=operator_builder.go --structname=OperatorBuilder
+
 package operator
 
 import (

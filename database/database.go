@@ -1,4 +1,4 @@
-//go:generate mockery -name=^(Database)$ -output=../testutil -outpkg=testutil -case=snake
+//go:generate mockery --name=^(Database)$ --output=../testutil --outpkg=testutil --case=snake
 
 package database
 

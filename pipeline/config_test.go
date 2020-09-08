@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/observiq/stanza/operator"
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	"github.com/observiq/stanza/operator/builtin/output/drop"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	"github.com/observiq/stanza/testutil"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -501,4 +503,68 @@ func TestMultiRoundtripParams(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, marshalledYaml, marshalledYaml2)
 	}
+}
+
+func TestBuildPipelineWithFailingOperator(t *testing.T) {
+	ctx := testutil.NewBuildContext(t)
+
+	type invalidOperatorConfig struct {
+		OperatorType string `json:"type" yaml:"type"`
+		testutil.OperatorBuilder
+	}
+
+	newBuilder := func() operator.Builder {
+		config := &invalidOperatorConfig{}
+		config.On("Build", mock.Anything).Return(nil, fmt.Errorf("failed to build operator"))
+		config.On("SetNamespace", mock.Anything, mock.Anything).Return()
+		config.On("ID").Return("test_id")
+		config.On("Type").Return("invalid_operator")
+		return config
+	}
+
+	operator.Register("invalid_operator", newBuilder)
+	config := Config{
+		{"type": "invalid_operator"},
+	}
+	_, err := config.BuildPipeline(ctx, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to build operator")
+}
+
+func TestBuildPipelineWithInvalidParam(t *testing.T) {
+	ctx := testutil.NewBuildContext(t)
+	config := Config{
+		{"missing": "type"},
+	}
+	_, err := config.BuildPipeline(ctx, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing required `type` field")
+}
+
+type invalidYaml struct{}
+
+func (y invalidYaml) MarshalYAML() (interface{}, error) {
+	return nil, fmt.Errorf("invalid yaml")
+}
+
+func TestBuildAsBuiltinWithInvalidParam(t *testing.T) {
+	params := Params{
+		"field": invalidYaml{},
+	}
+	_, err := params.buildAsBuiltin("test_namespace")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to parse config map as yaml")
+}
+
+func TestUnmarshalParamsWithInvalidBytes(t *testing.T) {
+	bytes := []byte("string")
+	var params Params
+	err := yaml.Unmarshal(bytes, &params)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unmarshal errors")
+}
+
+func TestCleanValueWithUnknownType(t *testing.T) {
+	value := cleanValue(map[int]int{})
+	require.Equal(t, "map[]", value)
 }

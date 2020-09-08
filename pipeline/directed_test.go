@@ -1,12 +1,14 @@
 package pipeline
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
@@ -172,4 +174,109 @@ func TestPipeline(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "circular dependency")
 	})
+}
+
+func TestPipelineStartOrder(t *testing.T) {
+	var mock2Started bool
+	var mock3Started bool
+
+	mockOperator1 := testutil.NewMockOperator("operator1")
+	mockOperator2 := testutil.NewMockOperator("operator2")
+	mockOperator3 := testutil.NewMockOperator("operator3")
+
+	mockOperator1.On("Outputs").Return([]operator.Operator{mockOperator2})
+	mockOperator2.On("Outputs").Return([]operator.Operator{mockOperator3})
+	mockOperator3.On("Outputs").Return(nil)
+
+	mockOperator1.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator2.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator3.On("SetOutputs", mock.Anything).Return(nil)
+
+	mockOperator1.On("Logger", mock.Anything).Return(zap.NewNop().Sugar())
+	mockOperator2.On("Logger", mock.Anything).Return(zap.NewNop().Sugar())
+	mockOperator3.On("Logger", mock.Anything).Return(zap.NewNop().Sugar())
+
+	mockOperator1.On("Start").Return(fmt.Errorf("operator 1 failed to start"))
+	mockOperator2.On("Start").Run(func(mock.Arguments) { mock2Started = true }).Return(nil)
+	mockOperator3.On("Start").Run(func(mock.Arguments) { mock3Started = true }).Return(nil)
+
+	pipeline, err := NewDirectedPipeline([]operator.Operator{mockOperator1, mockOperator2, mockOperator3})
+	require.NoError(t, err)
+
+	err = pipeline.Start()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "operator 1 failed to start")
+	require.True(t, mock2Started)
+	require.True(t, mock3Started)
+}
+
+func TestPipelineStopOrder(t *testing.T) {
+	stopOrder := []int{}
+
+	mockOperator1 := testutil.NewMockOperator("operator1")
+	mockOperator2 := testutil.NewMockOperator("operator2")
+	mockOperator3 := testutil.NewMockOperator("operator3")
+
+	mockOperator1.On("Outputs").Return([]operator.Operator{mockOperator2})
+	mockOperator2.On("Outputs").Return([]operator.Operator{mockOperator3})
+	mockOperator3.On("Outputs").Return(nil)
+
+	mockOperator1.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator2.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator3.On("SetOutputs", mock.Anything).Return(nil)
+
+	mockOperator1.On("Logger", mock.Anything).Return(zap.NewNop().Sugar())
+	mockOperator2.On("Logger", mock.Anything).Return(zap.NewNop().Sugar())
+	mockOperator3.On("Logger", mock.Anything).Return(zap.NewNop().Sugar())
+
+	mockOperator1.On("Start").Return(nil)
+	mockOperator2.On("Start").Return(nil)
+	mockOperator3.On("Start").Return(nil)
+
+	mockOperator1.On("Stop").Run(func(mock.Arguments) { stopOrder = append(stopOrder, 1) }).Return(nil)
+	mockOperator2.On("Stop").Run(func(mock.Arguments) { stopOrder = append(stopOrder, 2) }).Return(nil)
+	mockOperator3.On("Stop").Run(func(mock.Arguments) { stopOrder = append(stopOrder, 3) }).Return(nil)
+
+	pipeline, err := NewDirectedPipeline([]operator.Operator{mockOperator1, mockOperator2, mockOperator3})
+	require.NoError(t, err)
+
+	err = pipeline.Start()
+	require.NoError(t, err)
+	require.True(t, pipeline.Running())
+
+	err = pipeline.Stop()
+	require.NoError(t, err)
+	require.False(t, pipeline.Running())
+	require.Equal(t, []int{1, 2, 3}, stopOrder)
+}
+
+func TestPipelineRender(t *testing.T) {
+	mockOperator1 := testutil.NewMockOperator("operator1")
+	mockOperator2 := testutil.NewMockOperator("operator2")
+	mockOperator3 := testutil.NewMockOperator("operator3")
+
+	mockOperator1.On("Outputs").Return([]operator.Operator{mockOperator2})
+	mockOperator2.On("Outputs").Return([]operator.Operator{mockOperator3})
+	mockOperator3.On("Outputs").Return(nil)
+
+	mockOperator1.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator2.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator3.On("SetOutputs", mock.Anything).Return(nil)
+
+	pipeline, err := NewDirectedPipeline([]operator.Operator{mockOperator1, mockOperator2, mockOperator3})
+	require.NoError(t, err)
+
+	dotGraph, err := pipeline.Render()
+	require.NoError(t, err)
+	expected := `strict digraph G {
+ // Node definitions.
+ operator1;
+ operator3;
+ operator2;
+
+ // Edge definitions.
+ operator1 -> operator2;
+ operator2 -> operator3;
+}`
+	require.Equal(t, expected, string(dotGraph))
 }
