@@ -30,7 +30,7 @@ type InputOperator struct {
 
 	persist helper.Persister
 
-	knownFiles       map[string]*FileReader
+	knownFiles       map[string]*Reader
 	startAtBeginning bool
 
 	fingerprintBytes int64
@@ -136,9 +136,9 @@ func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck b
 	// Check if we've seen this path before
 	reader, ok := f.knownFiles[path]
 	if !ok {
-		// If we haven't seen it, create a new FileReader
+		// If we haven't seen it, create a new Reader
 		var err error
-		reader, err = f.newFileReader(path, firstCheck)
+		reader, err = f.newReader(path, firstCheck)
 		if err != nil {
 			f.Errorw("Failed to create new reader", zap.Error(err))
 			return
@@ -154,8 +154,8 @@ func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck b
 	}()
 }
 
-func (f *InputOperator) newFileReader(path string, firstCheck bool) (*FileReader, error) {
-	newReader := NewFileReader(path, f)
+func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error) {
+	newReader := NewReader(path, f)
 
 	startAtBeginning := !firstCheck || f.startAtBeginning
 	if err := newReader.Initialize(startAtBeginning); err != nil {
@@ -198,7 +198,6 @@ func (f *InputOperator) syncKnownFiles() {
 		fileReader.Lock()
 		if err := enc.Encode(fileReader); err != nil {
 			f.Errorw("Failed to encode known files", zap.Error(err))
-			return
 		}
 		fileReader.Unlock()
 	}
@@ -217,7 +216,7 @@ func (f *InputOperator) loadKnownFiles() error {
 
 	encoded := f.persist.Get(knownFilesKey)
 	if encoded == nil {
-		f.knownFiles = make(map[string]*FileReader)
+		f.knownFiles = make(map[string]*Reader)
 		return nil
 	}
 
@@ -230,13 +229,13 @@ func (f *InputOperator) loadKnownFiles() error {
 	}
 
 	// Decode each of the known files
-	f.knownFiles = make(map[string]*FileReader)
+	f.knownFiles = make(map[string]*Reader)
 	for i := 0; i < knownFileCount; i++ {
-		newFileReader := NewFileReader("", f)
-		if err = dec.Decode(newFileReader); err != nil {
+		newReader := NewReader("", f)
+		if err = dec.Decode(newReader); err != nil {
 			return err
 		}
-		f.knownFiles[newFileReader.Path] = newFileReader
+		f.knownFiles[newReader.Path] = newReader
 	}
 
 	return nil

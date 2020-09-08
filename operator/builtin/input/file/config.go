@@ -126,7 +126,7 @@ func (c InputConfig) Build(context operator.BuildContext) (operator.Operator, er
 		encoding:         encoding,
 		firstCheck:       true,
 		cancel:           func() {},
-		knownFiles:       make(map[string]*FileReader),
+		knownFiles:       make(map[string]*Reader),
 		MaxLogSize:       c.MaxLogSize,
 	}
 

@@ -16,14 +16,15 @@ import (
 	"golang.org/x/text/transform"
 )
 
-type FileReader struct {
+// Reader manages a single file
+type Reader struct {
 	Path             string
 	Fingerprint      Fingerprint
 	LastSeenFileSize int64
 	Offset           int64
 
 	// This lock must be held any time an exported field
-	// on FileReader is written to, or any time it is read from
+	// on Reader is written to, or any time it is read from
 	// outside the ReadToEnd goroutine
 	sync.Mutex `json:"-"`
 
@@ -37,8 +38,9 @@ type FileReader struct {
 	*zap.SugaredLogger `json:"-"`
 }
 
-func NewFileReader(path string, f *InputOperator) *FileReader {
-	return &FileReader{
+// NewReader creates a new file reader
+func NewReader(path string, f *InputOperator) *Reader {
+	return &Reader{
 		Path:          path,
 		fileInput:     f,
 		SugaredLogger: f.SugaredLogger.With("path", path),
@@ -48,7 +50,7 @@ func NewFileReader(path string, f *InputOperator) *FileReader {
 }
 
 // Initialize sets the starting offset and the initial fingerprint
-func (f *FileReader) Initialize(startAtBeginning bool) error {
+func (f *Reader) Initialize(startAtBeginning bool) error {
 	file, err := os.Open(f.Path)
 	if err != nil {
 		return err
@@ -72,7 +74,8 @@ func (f *FileReader) Initialize(startAtBeginning bool) error {
 	return nil
 }
 
-func (f *FileReader) ReadToEnd(ctx context.Context) {
+// ReadToEnd will read until the end of the file
+func (f *Reader) ReadToEnd(ctx context.Context) {
 	// Exit early if we are already reading
 	if ok := f.setReading(); !ok {
 		return
@@ -134,7 +137,7 @@ func (f *FileReader) ReadToEnd(ctx context.Context) {
 	}
 }
 
-func (f *FileReader) openFile() (file *os.File, fileSizeHasChanged bool, err error) {
+func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) {
 	file, err = os.Open(f.Path)
 	if err != nil {
 		f.Errorw("Failed to open file", zap.Error(err))
@@ -147,7 +150,6 @@ func (f *FileReader) openFile() (file *os.File, fileSizeHasChanged bool, err err
 	}
 
 	f.Lock()
-	fileSizeHasChanged = false
 	if stat.Size() != f.LastSeenFileSize {
 		fileSizeHasChanged = true
 		f.LastSeenFileSize = stat.Size()
@@ -165,13 +167,13 @@ func (f *FileReader) openFile() (file *os.File, fileSizeHasChanged bool, err err
 	return
 }
 
-func (f *FileReader) setOffset(n int64) {
+func (f *Reader) setOffset(n int64) {
 	f.Lock()
 	f.Offset = n
 	f.Unlock()
 }
 
-func (f *FileReader) emit(ctx context.Context, msgBuf []byte) error {
+func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	f.decoder.Reset()
 	var nDst int
 	var err error
@@ -203,7 +205,7 @@ func (f *FileReader) emit(ctx context.Context, msgBuf []byte) error {
 
 // setReading sets readInProgress to true. The return value
 // indicates whether readInProgress was changed
-func (f *FileReader) setReading() bool {
+func (f *Reader) setReading() bool {
 	f.Lock()
 	defer f.Unlock()
 
@@ -217,16 +219,18 @@ func (f *FileReader) setReading() bool {
 
 // unsetReading sets readInProgress to true. The return value
 // indicates whether readInProgress was changed
-func (f *FileReader) unsetReading() {
+func (f *Reader) unsetReading() {
 	f.Lock()
 	defer f.Unlock()
 	f.readInProgress = false
 }
 
+// Fingerprint is used to identify a file
 type Fingerprint struct {
 	FirstBytes []byte
 }
 
+// Matches returns true if the fingerprints are the same
 func (f Fingerprint) Matches(old Fingerprint) bool {
 	return bytes.Equal(old.FirstBytes, f.FirstBytes[:len(old.FirstBytes)])
 }
