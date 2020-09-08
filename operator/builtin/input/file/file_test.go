@@ -407,6 +407,7 @@ func TestFileSource_OffsetsAfterRestart(t *testing.T) {
 
 	// Start the source and expect a message
 	require.NoError(t, source.Start())
+	defer source.Stop()
 	waitForMessage(t, logReceived, "testlog1")
 
 	// Restart the source. Stop and build a new

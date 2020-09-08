@@ -22,6 +22,11 @@ type FileReader struct {
 	LastSeenFileSize int64
 	Offset           int64
 
+	// This lock must be held any time an exported field
+	// on FileReader is written to, or any time it is read from
+	// outside the ReadToEnd goroutine
+	sync.Mutex `json:"-"`
+
 	fileInput *InputOperator
 
 	decoder      *encoding.Decoder
@@ -29,10 +34,6 @@ type FileReader struct {
 
 	readInProgress bool
 
-	// This lock must be held any time an exported field
-	// on FileReader is written to, or any time it is read from
-	// outside the ReadToEnd goroutine
-	sync.Mutex         `json:"-"`
 	*zap.SugaredLogger `json:"-"`
 }
 
