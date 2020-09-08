@@ -37,9 +37,8 @@ type InputOperator struct {
 
 	encoding encoding.Encoding
 
-	wg       *sync.WaitGroup
-	readerWg *sync.WaitGroup
-	cancel   context.CancelFunc
+	wg     *sync.WaitGroup
+	cancel context.CancelFunc
 }
 
 // Start will start the file monitoring process
@@ -47,47 +46,55 @@ func (f *InputOperator) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
 	f.wg = &sync.WaitGroup{}
-	f.readerWg = &sync.WaitGroup{}
 
 	// Load offsets from disk
 	if err := f.loadKnownFiles(); err != nil {
 		return fmt.Errorf("read known files from database: %s", err)
 	}
 
+	// Start polling goroutine
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
-
-		globTicker := time.NewTicker(f.PollInterval)
-		defer globTicker.Stop()
-
-		// All accesses to runningFiles and knownFiles should be done from
-		// this goroutine. That means that all private methods of FileInput
-		// are unsafe to call from multiple goroutines. Changes to these
-		// maps should be done through the fileUpdateChan.
-		firstCheck := true
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-globTicker.C:
-			}
-
-			f.syncKnownFiles()
-			// TODO clean unseen files from our list of known files. This grows unbound
-			// if the files rotate
-			matches := getMatches(f.Include, f.Exclude)
-			if firstCheck && len(matches) == 0 {
-				f.Warnw("no files match the configured include patterns", "include", f.Include)
-			}
-			for _, match := range matches {
-				f.checkPath(ctx, match, firstCheck)
-			}
-			firstCheck = false
-		}
+		f.pollForNewFiles(ctx)
 	}()
 
 	return nil
+}
+
+// Stop will stop the file monitoring process
+func (f *InputOperator) Stop() error {
+	f.cancel()
+	f.wg.Wait()
+	f.syncKnownFiles()
+	return nil
+}
+
+func (f *InputOperator) pollForNewFiles(ctx context.Context) {
+	globTicker := time.NewTicker(f.PollInterval)
+	defer globTicker.Stop()
+
+	firstCheck := true
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-globTicker.C:
+		}
+
+		f.syncKnownFiles()
+		// TODO clean unseen files from our list of known files. This grows unbound
+		// if the files rotate
+		matches := getMatches(f.Include, f.Exclude)
+		if firstCheck && len(matches) == 0 {
+			f.Warnw("no files match the configured include patterns", "include", f.Include)
+		}
+		for _, match := range matches {
+			f.checkPath(ctx, match, firstCheck)
+		}
+		firstCheck = false
+	}
+
 }
 
 func getMatches(includes, excludes []string) []string {
@@ -115,14 +122,6 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-// Stop will stop the file monitoring process
-func (f *InputOperator) Stop() error {
-	f.cancel()
-	f.wg.Wait()
-	f.syncKnownFiles()
-	return nil
-}
-
 func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck bool) {
 	// Check if we've seen this path before
 	reader, ok := f.knownFiles[path]
@@ -137,7 +136,7 @@ func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck b
 		f.knownFiles[path] = reader
 	}
 
-	// Read to end
+	// Read to the end of the file
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
