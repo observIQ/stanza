@@ -185,10 +185,12 @@ func (f *InputOperator) syncKnownFiles() {
 
 	// Encode each known file
 	for _, fileReader := range f.knownFiles {
+		fileReader.Lock()
 		if err := enc.Encode(fileReader); err != nil {
 			f.Errorw("Failed to encode known files", zap.Error(err))
 			return
 		}
+		fileReader.Unlock()
 	}
 
 	f.persist.Set(knownFilesKey, buf.Bytes())
