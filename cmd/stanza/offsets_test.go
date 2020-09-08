@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	agent "github.com/observiq/stanza/agent"
+	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/bbolt"
@@ -27,7 +27,7 @@ func TestOffsets(t *testing.T) {
 	stdout = buf
 
 	// add an offset to the database
-	db, err := agent.OpenDatabase(databasePath)
+	db, err := database.OpenDatabase(databasePath)
 	require.NoError(t, err)
 	db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(helper.OffsetsBucket)
