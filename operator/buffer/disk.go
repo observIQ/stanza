@@ -35,10 +35,7 @@ type DiskBufferConfig struct {
 // NewDiskBufferConfig creates a new default disk buffer config
 func NewDiskBufferConfig() *DiskBufferConfig {
 	return &DiskBufferConfig{
-<<<<<<< HEAD
-=======
 		Type:    "disk",
->>>>>>> origin/disk-buffer
 		MaxSize: 1 << 32, // 4GiB
 		Sync:    true,
 	}
@@ -46,12 +43,9 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 
 // Build creates a new Buffer from a DiskBufferConfig
 func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
-<<<<<<< HEAD
-=======
 	if c.Path == "" {
 		return nil, fmt.Errorf("missing required field 'path'")
 	}
->>>>>>> origin/disk-buffer
 	b := NewDiskBuffer(c.MaxSize)
 	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err

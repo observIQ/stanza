@@ -173,8 +173,6 @@ func (f *Flusher) getEntrySlice() []*entry.Entry {
 func (f *Flusher) putEntrySlice(slice []*entry.Entry) {
 	f.entrySlicePool.Put(&slice)
 }
-<<<<<<< HEAD
-=======
 
 // newExponentialBackoff returns a default ExponentialBackOff
 func newExponentialBackoff() *backoff.ExponentialBackOff {
@@ -190,4 +188,3 @@ func newExponentialBackoff() *backoff.ExponentialBackOff {
 	b.Reset()
 	return b
 }
->>>>>>> origin/disk-buffer
