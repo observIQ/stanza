@@ -11,6 +11,13 @@ type Duration struct {
 	time.Duration
 }
 
+// NewDuration creates a new duration from a time
+func NewDuration(t time.Duration) Duration {
+	return Duration{
+		Duration: t,
+	}
+}
+
 // Raw will return the raw duration, without modification
 func (d *Duration) Raw() time.Duration {
 	return d.Duration

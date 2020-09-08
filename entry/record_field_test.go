@@ -267,7 +267,7 @@ func TestRecordFieldSet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			entry := New()
 			entry.Record = tc.record
-			entry.Set(tc.field, tc.setTo)
+			require.NoError(t, entry.Set(tc.field, tc.setTo))
 			assert.Equal(t, tc.expectedVal, entry.Record)
 		})
 	}

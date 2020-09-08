@@ -1,109 +1,113 @@
 package buffer
 
 import (
-	"context"
 	"encoding/json"
-	"sync"
 	"testing"
-	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/helper"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 )
 
-type bufferHandler struct {
-	flushed []*entry.Entry
-	mux     sync.Mutex
-	notify  chan struct{}
-}
-
-func (b *bufferHandler) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
-	b.mux.Lock()
-	b.flushed = append(b.flushed, entries...)
-	b.mux.Unlock()
-	b.notify <- struct{}{}
-	return nil
-}
-
-func (b *bufferHandler) Logger() *zap.SugaredLogger {
-	return nil
-}
-
-func TestBuffer(t *testing.T) {
-	config := NewConfig()
-	config.DelayThreshold = helper.Duration{
-		Duration: 100 * time.Millisecond,
-	}
-
-	buf := NewMemoryBuffer(&config)
-	numEntries := 10000
-
-	bh := bufferHandler{
-		flushed: make([]*entry.Entry, 0),
-		notify:  make(chan struct{}),
-	}
-	buf.SetHandler(&bh)
-
-	for i := 0; i < numEntries; i++ {
-		err := buf.AddWait(context.Background(), entry.New(), 0)
-		require.NoError(t, err)
-	}
-
-	for {
-		select {
-		case <-bh.notify:
-			bh.mux.Lock()
-			if len(bh.flushed) == numEntries {
-				bh.mux.Unlock()
-				return
-			}
-			bh.mux.Unlock()
-		case <-time.After(time.Second):
-			require.FailNow(t, "timed out waiting for all entries to be flushed")
-		}
-	}
-}
-
-func TestBufferSerializationRoundtrip(t *testing.T) {
+func TestBufferUnmarshalYAML(t *testing.T) {
 	cases := []struct {
-		name   string
-		config Config
+		name        string
+		yaml        []byte
+		json        []byte
+		expected    Config
+		expectError bool
 	}{
 		{
-			"zeros",
-			Config{},
+			"SimpleMemory",
+			[]byte("type: memory\nmax_entries: 30\n"),
+			[]byte(`{"type": "memory", "max_entries": 30}`),
+			Config{
+				BufferBuilder: &MemoryBufferConfig{
+					Type:       "memory",
+					MaxEntries: 30,
+				},
+			},
+			false,
 		},
 		{
-			"defaults",
-			NewConfig(),
+			"SimpleDisk",
+			[]byte("type: disk\nmax_size: 1234\npath: /var/log/testpath\n"),
+			[]byte(`{"type": "disk", "max_size": 1234, "path": "/var/log/testpath"}`),
+			Config{
+				BufferBuilder: &DiskBufferConfig{
+					Type:    "disk",
+					MaxSize: 1234,
+					Path:    "/var/log/testpath",
+					Sync:    true,
+				},
+			},
+			false,
+		},
+		{
+			"UnknownType",
+			[]byte("type: invalid\n"),
+			[]byte(`{"type": "invalid"}`),
+			Config{
+				BufferBuilder: &DiskBufferConfig{
+					Type:    "disk",
+					MaxSize: 1234,
+					Path:    "/var/log/testpath",
+					Sync:    true,
+				},
+			},
+			true,
+		},
+		{
+			"InvalidType",
+			[]byte("type: !!float 123\n"),
+			[]byte(`{"type": 12}`),
+			Config{
+				BufferBuilder: &DiskBufferConfig{
+					Type:    "disk",
+					MaxSize: 1234,
+					Path:    "/var/log/testpath",
+					Sync:    true,
+				},
+			},
+			true,
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run("yaml "+tc.name, func(t *testing.T) {
-			cfgBytes, err := yaml.Marshal(tc.config)
-			require.NoError(t, err)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("YAML", func(t *testing.T) {
+				var b Config
+				err := yaml.Unmarshal(tc.yaml, &b)
+				if tc.expectError {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, tc.expected, b)
+			})
 
-			var cfg Config
-			err = yaml.UnmarshalStrict(cfgBytes, &cfg)
-			require.NoError(t, err)
-
-			require.Equal(t, tc.config, cfg)
-		})
-
-		t.Run("json "+tc.name, func(t *testing.T) {
-			tc := tc
-			cfgBytes, err := json.Marshal(tc.config)
-			require.NoError(t, err)
-
-			var cfg Config
-			err = json.Unmarshal(cfgBytes, &cfg)
-			require.NoError(t, err)
-
-			require.Equal(t, tc.config, cfg)
+			t.Run("JSON", func(t *testing.T) {
+				var b Config
+				err := json.Unmarshal(tc.json, &b)
+				if tc.expectError {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, tc.expected, b)
+			})
 		})
 	}
+}
+
+func TestBuffer(t *testing.T) {
+	t.Run("Default", func(t *testing.T) {
+		cfg := NewConfig()
+		expected := Config{
+			BufferBuilder: &MemoryBufferConfig{
+				Type:       "memory",
+				MaxEntries: 1 << 20,
+			},
+		}
+		require.Equal(t, expected, cfg)
+	})
 }

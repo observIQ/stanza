@@ -60,7 +60,7 @@ func (w *WriterOperator) Write(ctx context.Context, e *entry.Entry) {
 			_ = operator.Process(ctx, e)
 			return
 		}
-		operator.Process(ctx, e.Copy())
+		_ = operator.Process(ctx, e.Copy())
 	}
 }
 

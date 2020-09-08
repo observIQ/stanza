@@ -70,5 +70,4 @@ func TestOffsets(t *testing.T) {
 	err = offsetsList.Execute()
 	require.NoError(t, err)
 	require.Equal(t, "$.testoperatorid1\n", buf.String())
-
 }

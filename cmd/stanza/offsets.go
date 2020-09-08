@@ -42,7 +42,7 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 			db, err := database.OpenDatabase(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
-			defer db.Sync()
+			defer func() { _ = db.Sync() }()
 
 			if all {
 				if len(args) != 0 {
@@ -94,7 +94,7 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 			exitOnErr("Failed to open database", err)
 			defer db.Close()
 
-			db.View(func(tx *bbolt.Tx) error {
+			err = db.View(func(tx *bbolt.Tx) error {
 				offsetBucket := tx.Bucket(helper.OffsetsBucket)
 				if offsetBucket == nil {
 					return nil
@@ -105,7 +105,9 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 					return nil
 				})
 			})
-
+			if err != nil {
+				exitOnErr("Failed to read database", err)
+			}
 		},
 	}
 

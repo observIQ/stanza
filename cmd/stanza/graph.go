@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/observiq/stanza/agent"
+	"github.com/observiq/stanza/database"
 	pg "github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/plugin"
 	"github.com/spf13/cobra"
@@ -49,7 +50,8 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	}
 
 	buildContext := pg.BuildContext{
-		Logger: logger,
+		Database: database.NewStubDatabase(),
+		Logger:   logger,
 	}
 
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, pluginRegistry, nil)

@@ -197,7 +197,7 @@ func (f RecordField) MarshalYAML() (interface{}, error) {
 func fromJSONDot(value string) RecordField {
 	keys := strings.Split(value, ".")
 
-	if keys[0] == "$" || keys[0] == "$record" {
+	if keys[0] == "$" || keys[0] == recordPrefix {
 		keys = keys[1:]
 	}
 
@@ -207,7 +207,7 @@ func fromJSONDot(value string) RecordField {
 // toJSONDot returns the JSON dot notation for a field.
 func toJSONDot(field RecordField) string {
 	if field.isRoot() {
-		return "$record"
+		return recordPrefix
 	}
 
 	containsDots := false
@@ -219,7 +219,7 @@ func toJSONDot(field RecordField) string {
 
 	var b strings.Builder
 	if containsDots {
-		b.WriteString("$record")
+		b.WriteString(recordPrefix)
 		for _, key := range field.Keys {
 			b.WriteString(`['`)
 			b.WriteString(key)
@@ -232,7 +232,6 @@ func toJSONDot(field RecordField) string {
 			}
 			b.WriteString(key)
 		}
-
 	}
 
 	return b.String()

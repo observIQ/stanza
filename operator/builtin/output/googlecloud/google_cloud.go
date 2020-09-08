@@ -14,6 +14,7 @@ import (
 	"github.com/observiq/stanza/internal/version"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
@@ -33,6 +34,7 @@ func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 	return &GoogleCloudOutputConfig{
 		OutputConfig:   helper.NewOutputConfig(operatorID, "google_cloud_output"),
 		BufferConfig:   buffer.NewConfig(),
+		FlusherConfig:  flusher.NewConfig(),
 		Timeout:        helper.Duration{Duration: 30 * time.Second},
 		UseCompression: true,
 	}
@@ -41,7 +43,8 @@ func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 // GoogleCloudOutputConfig is the configuration of a google cloud output operator.
 type GoogleCloudOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
-	BufferConfig        buffer.Config `json:"buffer,omitempty" yaml:"buffer,omitempty"`
+	BufferConfig        buffer.Config  `json:"buffer,omitempty" yaml:"buffer,omitempty"`
+	FlusherConfig       flusher.Config `json:"flusher,omitempty" yaml:"flusher,omitempty"`
 
 	Credentials     string          `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
 	CredentialsFile string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
@@ -60,7 +63,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 		return nil, err
 	}
 
-	newBuffer, err := c.BufferConfig.Build()
+	newBuffer, err := c.BufferConfig.Build(buildContext, c.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +73,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 		credentials:     c.Credentials,
 		credentialsFile: c.CredentialsFile,
 		projectID:       c.ProjectID,
-		Buffer:          newBuffer,
+		buffer:          newBuffer,
 		logNameField:    c.LogNameField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
@@ -78,7 +81,8 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 		useCompression:  c.UseCompression,
 	}
 
-	newBuffer.SetHandler(googleCloudOutput)
+	newFlusher := c.FlusherConfig.Build(newBuffer, googleCloudOutput.ProcessMulti, outputOperator.SugaredLogger)
+	googleCloudOutput.flusher = newFlusher
 
 	return googleCloudOutput, nil
 }
@@ -86,7 +90,8 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 // GoogleCloudOutput is an operator that sends logs to google cloud logging.
 type GoogleCloudOutput struct {
 	helper.OutputOperator
-	buffer.Buffer
+	buffer  buffer.Buffer
+	flusher *flusher.Flusher
 
 	credentials     string
 	credentialsFile string
@@ -156,7 +161,13 @@ func (p *GoogleCloudOutput) Start() error {
 	// Test writing a log message
 	ctx, cancel = context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
-	return p.TestConnection(ctx)
+	err = p.TestConnection(ctx)
+	if err != nil {
+		return err
+	}
+
+	p.flusher.Start()
+	return nil
 }
 
 // TestConnection will attempt to send a test entry to google cloud logging
@@ -171,13 +182,15 @@ func (p *GoogleCloudOutput) TestConnection(ctx context.Context) error {
 
 // Stop will flush the google cloud logger and close the underlying connection
 func (p *GoogleCloudOutput) Stop() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	err := p.Buffer.Flush(ctx)
-	if err != nil {
-		p.Warnw("Failed to flush", zap.Error(err))
+	p.flusher.Stop()
+	if err := p.buffer.Close(); err != nil {
+		return err
 	}
 	return p.client.Close()
+}
+
+func (p *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
+	return p.buffer.Add(ctx, e)
 }
 
 // ProcessMulti will process multiple log entries and send them in batch to google cloud logging.
