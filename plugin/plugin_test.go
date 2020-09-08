@@ -1,4 +1,4 @@
-package operator
+package plugin
 
 import (
 	"io/ioutil"
@@ -7,6 +7,7 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/observiq/stanza/operator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,12 +24,8 @@ func NewTempDir(t *testing.T) string {
 	return tempDir
 }
 
-func TestPluginRegistry_LoadAll(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
-	})
+func TestNewRegistry(t *testing.T) {
+	tempDir := NewTempDir(t)
 
 	test1 := []byte(`
 id: my_generator
@@ -46,21 +43,31 @@ record:
   message2: {{ .message }}
 `)
 
-	err = ioutil.WriteFile(filepath.Join(tempDir, "test1.yaml"), test1, 0666)
+	err := ioutil.WriteFile(filepath.Join(tempDir, "test1.yaml"), test1, 0666)
 	require.NoError(t, err)
 	err = ioutil.WriteFile(filepath.Join(tempDir, "test2.yaml"), test2, 0666)
 	require.NoError(t, err)
 
-	pluginRegistry := PluginRegistry{}
-	err = pluginRegistry.LoadAll(tempDir, "*.yaml")
+	registry, err := NewPluginRegistry(tempDir)
 	require.NoError(t, err)
 
-	require.Equal(t, 2, len(pluginRegistry))
+	require.Equal(t, 2, len(registry))
+	require.True(t, registry.IsDefined("test1"))
+	require.True(t, registry.IsDefined("test2"))
 }
 
-func TestPluginRegistryRender(t *testing.T) {
+func TestNewRegistryFailure(t *testing.T) {
+	tempDir := NewTempDir(t)
+	err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.yaml"), []byte("pipeline:"), 0111)
+	require.NoError(t, err)
+
+	_, err = NewPluginRegistry(tempDir)
+	require.Error(t, err)
+}
+
+func TestRegistryRender(t *testing.T) {
 	t.Run("ErrorTypeDoesNotExist", func(t *testing.T) {
-		reg := PluginRegistry{}
+		reg := Registry{}
 		_, err := reg.Render("unknown", map[string]interface{}{})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "does not exist")
@@ -70,7 +77,7 @@ func TestPluginRegistryRender(t *testing.T) {
 		tmpl, err := template.New("plugintype").Parse(`{{ .panicker }}`)
 		require.NoError(t, err)
 
-		reg := PluginRegistry{
+		reg := Registry{
 			"plugintype": tmpl,
 		}
 		params := map[string]interface{}{
@@ -83,24 +90,24 @@ func TestPluginRegistryRender(t *testing.T) {
 	})
 }
 
-func TestPluginRegistryLoad(t *testing.T) {
+func TestRegistryLoad(t *testing.T) {
 	t.Run("LoadAllBadGlob", func(t *testing.T) {
-		reg := PluginRegistry{}
+		reg := Registry{}
 		err := reg.LoadAll("", `[]`)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "with glob pattern")
 	})
 
 	t.Run("AddDuplicate", func(t *testing.T) {
-		reg := PluginRegistry{}
-		Register("copy", func() Builder { return nil })
+		reg := Registry{}
+		operator.Register("copy", func() operator.Builder { return nil })
 		err := reg.Add("copy", "pipeline:\n")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "already exists")
 	})
 
 	t.Run("AddBadTemplate", func(t *testing.T) {
-		reg := PluginRegistry{}
+		reg := Registry{}
 		err := reg.Add("new", "{{ nofunc }")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "as a plugin template")
@@ -112,7 +119,7 @@ func TestPluginRegistryLoad(t *testing.T) {
 		err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
 		require.NoError(t, err)
 
-		reg := PluginRegistry{}
+		reg := Registry{}
 		err = reg.LoadAll(tempDir, "*.yaml")
 		require.Error(t, err)
 	})
@@ -615,7 +622,7 @@ pipeline:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			reg := PluginRegistry{}
+			reg := Registry{}
 			err := reg.Add(tc.name, tc.template)
 			require.NoError(t, err)
 			_, err = reg.Render(tc.name, map[string]interface{}{})
@@ -626,4 +633,14 @@ pipeline:
 			}
 		})
 	}
+}
+
+func TestDefaultPluginFuncWithValue(t *testing.T) {
+	result := defaultPluginFunc("default_value", "supplied_value")
+	require.Equal(t, "supplied_value", result)
+}
+
+func TestDefaultPluginFuncWithoutValue(t *testing.T) {
+	result := defaultPluginFunc("default_value", nil)
+	require.Equal(t, "default_value", result)
 }

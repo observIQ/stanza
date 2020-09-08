@@ -7,6 +7,7 @@ import (
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/plugin"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -14,8 +15,8 @@ import (
 type Config []Params
 
 // BuildPipeline will build a pipeline from the config.
-func (c Config) BuildPipeline(context operator.BuildContext, defaultOutput operator.Operator) (*DirectedPipeline, error) {
-	operatorConfigs, err := c.buildOperatorConfigs(context.PluginRegistry)
+func (c Config) BuildPipeline(context operator.BuildContext, pluginRegistry plugin.Registry, defaultOutput operator.Operator) (*DirectedPipeline, error) {
+	operatorConfigs, err := c.buildOperatorConfigs(pluginRegistry)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +38,7 @@ func (c Config) BuildPipeline(context operator.BuildContext, defaultOutput opera
 	return pipeline, nil
 }
 
-func (c Config) buildOperatorConfigs(pluginRegistry operator.PluginRegistry) ([]operator.Config, error) {
+func (c Config) buildOperatorConfigs(pluginRegistry plugin.Registry) ([]operator.Config, error) {
 	operatorConfigs := make([]operator.Config, 0, len(c))
 
 	for i, params := range c {
@@ -194,7 +195,7 @@ func (p Params) getStringArray(key string) []string {
 }
 
 // BuildConfigs will build operator configs from a params map.
-func (p Params) BuildConfigs(pluginRegistry operator.PluginRegistry, namespace string, defaultOutput []string) ([]operator.Config, error) {
+func (p Params) BuildConfigs(pluginRegistry plugin.Registry, namespace string, defaultOutput []string) ([]operator.Config, error) {
 	if operator.IsDefined(p.Type()) {
 		return p.buildAsBuiltin(namespace)
 	}
@@ -232,7 +233,7 @@ func (p Params) buildAsBuiltin(namespace string) ([]operator.Config, error) {
 }
 
 // buildPlugin will build a plugin config from a params map.
-func (p Params) buildPlugin(pluginRegistry operator.PluginRegistry, namespace string, defaultOutput []string) ([]operator.Config, error) {
+func (p Params) buildPlugin(pluginRegistry plugin.Registry, namespace string, defaultOutput []string) ([]operator.Config, error) {
 	templateParams := map[string]interface{}{}
 	for key, value := range p {
 		templateParams[key] = value

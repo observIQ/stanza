@@ -4,6 +4,7 @@ import (
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/plugin"
 	"go.uber.org/zap"
 )
 
@@ -49,18 +50,17 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		return nil, errors.Wrap(err, "open database")
 	}
 
-	registry, err := operator.NewPluginRegistry(b.pluginDir)
+	registry, err := plugin.NewPluginRegistry(b.pluginDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "load plugin registry")
 	}
 
 	buildContext := operator.BuildContext{
-		Logger:         b.logger,
-		PluginRegistry: registry,
-		Database:       db,
+		Logger:   b.logger,
+		Database: db,
 	}
 
-	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
+	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext, registry, b.defaultOutput)
 	if err != nil {
 		return nil, err
 	}

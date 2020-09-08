@@ -9,6 +9,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	"github.com/observiq/stanza/operator/builtin/output/drop"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
+	"github.com/observiq/stanza/plugin"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -201,7 +202,8 @@ pipeline:
         message: test
     output: {{.output}}
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	pipelineConfig := Config{
@@ -216,7 +218,7 @@ pipeline:
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context, nil)
+	_, err = pipelineConfig.BuildPipeline(context, registry, nil)
 	require.NoError(t, err)
 }
 
@@ -239,7 +241,7 @@ func TestBuildValidPipelineDefaultOutput(t *testing.T) {
 	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
-	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	pl, err := pipelineConfig.BuildPipeline(context, nil, defaultOutput)
 	require.NoError(t, err)
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.drop_it")))
 }
@@ -267,7 +269,7 @@ func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
 	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
-	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	pl, err := pipelineConfig.BuildPipeline(context, nil, defaultOutput)
 	require.NoError(t, err)
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.noop")))
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.noop"), createNodeID("$.drop_it")))
@@ -284,7 +286,8 @@ pipeline:
       record:
         message: test
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	pipelineConfig := Config{
@@ -297,7 +300,7 @@ pipeline:
 	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
-	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	pl, err := pipelineConfig.BuildPipeline(context, registry, defaultOutput)
 	require.NoError(t, err)
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.plugin.plugin_generate"), createNodeID("$.drop_it")))
 }
@@ -317,7 +320,7 @@ func TestBuildInvalidPipelineInvalidType(t *testing.T) {
 		},
 	}
 
-	_, err := pipelineConfig.BuildPipeline(context, nil)
+	_, err := pipelineConfig.BuildPipeline(context, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unsupported `type` for operator config")
 }
@@ -333,7 +336,8 @@ pipeline:
       message: test
     output: {{.output}}
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	pipelineConfig := Config{
@@ -348,7 +352,7 @@ pipeline:
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context, nil)
+	_, err = pipelineConfig.BuildPipeline(context, registry, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "build operator configs")
 }
@@ -368,7 +372,7 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	}
 
 	context := testutil.NewBuildContext(t)
-	_, err := pipelineConfig.BuildPipeline(context, nil)
+	_, err := pipelineConfig.BuildPipeline(context, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "field number not found")
 }
@@ -393,7 +397,7 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 	}
 
 	context := testutil.NewBuildContext(t)
-	_, err := pipelineConfig.BuildPipeline(context, nil)
+	_, err := pipelineConfig.BuildPipeline(context, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not exist")
 }
@@ -413,7 +417,8 @@ pipeline:
       record: test
     output: {{.output}}
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	config := Config{
@@ -427,7 +432,7 @@ pipeline:
 		},
 	}
 
-	configs, err := config.buildOperatorConfigs(context.PluginRegistry)
+	configs, err := config.buildOperatorConfigs(registry)
 	require.NoError(t, err)
 	require.Len(t, configs, 3)
 
@@ -526,7 +531,7 @@ func TestBuildPipelineWithFailingOperator(t *testing.T) {
 	config := Config{
 		{"type": "invalid_operator"},
 	}
-	_, err := config.BuildPipeline(ctx, nil)
+	_, err := config.BuildPipeline(ctx, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to build operator")
 }
@@ -536,7 +541,7 @@ func TestBuildPipelineWithInvalidParam(t *testing.T) {
 	config := Config{
 		{"missing": "type"},
 	}
-	_, err := config.BuildPipeline(ctx, nil)
+	_, err := config.BuildPipeline(ctx, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing required `type` field")
 }

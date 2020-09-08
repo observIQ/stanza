@@ -25,10 +25,9 @@ type Builder interface {
 
 // BuildContext supplies contextual resources when building an operator.
 type BuildContext struct {
-	PluginRegistry PluginRegistry
-	Database       database.Database
-	Parameters     map[string]interface{}
-	Logger         *zap.SugaredLogger
+	Database   database.Database
+	Parameters map[string]interface{}
+	Logger     *zap.SugaredLogger
 }
 
 // registry is a global registry of operator types to operator builders.
