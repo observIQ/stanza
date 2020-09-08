@@ -83,6 +83,7 @@ func (f *FileReader) ReadToEnd(ctx context.Context) {
 		f.Errorw("Failed opening file", zap.Error(err))
 		return
 	}
+	defer file.Close()
 
 	lr := io.LimitReader(file, f.LastSeenFileSize-f.Offset)
 	scanner := NewPositionalScanner(lr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
@@ -111,7 +112,7 @@ func (f *FileReader) ReadToEnd(ctx context.Context) {
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
 	atFileEnd := scanner.Pos() == f.LastSeenFileSize
-	if !atFileEnd && fileSizeHasChanged { // TODO why did we have scanner.Pos() == f.offset in here?
+	if !atFileEnd && !fileSizeHasChanged {
 		_, err := file.Seek(scanner.Pos(), 0)
 		if err != nil {
 			f.Errorw("Failed to seek for trailing entry", zap.Error(err))

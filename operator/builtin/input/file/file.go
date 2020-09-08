@@ -37,15 +37,16 @@ type InputOperator struct {
 
 	encoding encoding.Encoding
 
-	wg     *sync.WaitGroup
-	cancel context.CancelFunc
+	wg         sync.WaitGroup
+	firstCheck bool
+	cancel     context.CancelFunc
 }
 
 // Start will start the file monitoring process
 func (f *InputOperator) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
-	f.wg = &sync.WaitGroup{}
+	f.firstCheck = true
 
 	// Load offsets from disk
 	if err := f.loadKnownFiles(); err != nil {
@@ -56,7 +57,7 @@ func (f *InputOperator) Start() error {
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
-		f.pollForNewFiles(ctx)
+		f.runPoller(ctx)
 	}()
 
 	return nil
@@ -67,14 +68,15 @@ func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.syncKnownFiles()
+	f.knownFiles = nil
+	f.cancel = nil
 	return nil
 }
 
-func (f *InputOperator) pollForNewFiles(ctx context.Context) {
+func (f *InputOperator) runPoller(ctx context.Context) {
 	globTicker := time.NewTicker(f.PollInterval)
 	defer globTicker.Stop()
 
-	firstCheck := true
 	for {
 		select {
 		case <-ctx.Done():
@@ -82,18 +84,23 @@ func (f *InputOperator) pollForNewFiles(ctx context.Context) {
 		case <-globTicker.C:
 		}
 
-		f.syncKnownFiles()
-		// TODO clean unseen files from our list of known files. This grows unbound
-		// if the files rotate
-		matches := getMatches(f.Include, f.Exclude)
-		if firstCheck && len(matches) == 0 {
-			f.Warnw("no files match the configured include patterns", "include", f.Include)
-		}
-		for _, match := range matches {
-			f.checkPath(ctx, match, firstCheck)
-		}
-		firstCheck = false
+		f.poll(ctx)
 	}
+}
+
+func (f *InputOperator) poll(ctx context.Context) {
+	f.syncKnownFiles()
+	// TODO clean unseen files from our list of known files. This grows unbound
+	// if the files rotate
+	matches := getMatches(f.Include, f.Exclude)
+	if f.firstCheck && len(matches) == 0 {
+		f.Warnw("no files match the configured include patterns", "include", f.Include)
+	}
+	for _, match := range matches {
+		f.checkPath(ctx, match, f.firstCheck)
+	}
+
+	f.firstCheck = false
 
 }
 

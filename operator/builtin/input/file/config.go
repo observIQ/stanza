@@ -124,6 +124,9 @@ func (c InputConfig) Build(context operator.BuildContext) (operator.Operator, er
 		fingerprintBytes: 1000,
 		startAtBeginning: startAtBeginning,
 		encoding:         encoding,
+		firstCheck:       true,
+		cancel:           func() {},
+		knownFiles:       make(map[string]*FileReader),
 		MaxLogSize:       c.MaxLogSize,
 	}
 
