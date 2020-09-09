@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -336,9 +337,12 @@ func TestFileSource_MultiFileParallel_PreloadedFiles(t *testing.T) {
 		}
 	}
 
+	var wg sync.WaitGroup
 	for i := 0; i < numFiles; i++ {
 		temp := openTemp(t, tempDir)
+		wg.Add(1)
 		go func(tf *os.File, f int) {
+			defer wg.Done()
 			for j := 0; j < numMessages; j++ {
 				writeString(t, tf, getMessage(f, j)+"\n")
 			}
@@ -349,6 +353,7 @@ func TestFileSource_MultiFileParallel_PreloadedFiles(t *testing.T) {
 	defer source.Stop()
 
 	waitForMessages(t, logReceived, expected)
+	wg.Wait()
 }
 
 func TestFileSource_MultiFileParallel_LiveFiles(t *testing.T) {
@@ -376,8 +381,11 @@ func TestFileSource_MultiFileParallel_LiveFiles(t *testing.T) {
 		temps = append(temps, openTemp(t, tempDir))
 	}
 
+	var wg sync.WaitGroup
 	for i, temp := range temps {
+		wg.Add(1)
 		go func(tf *os.File, f int) {
+			defer wg.Done()
 			for j := 0; j < numMessages; j++ {
 				writeString(t, tf, getMessage(f, j)+"\n")
 			}
@@ -385,6 +393,7 @@ func TestFileSource_MultiFileParallel_LiveFiles(t *testing.T) {
 	}
 
 	waitForMessages(t, logReceived, expected)
+	wg.Wait()
 }
 
 func TestFileSource_MultiFileRotate(t *testing.T) {
@@ -415,8 +424,11 @@ func TestFileSource_MultiFileRotate(t *testing.T) {
 		temps = append(temps, openTemp(t, tempDir))
 	}
 
+	var wg sync.WaitGroup
 	for i, temp := range temps {
+		wg.Add(1)
 		go func(tf *os.File, f int) {
+			defer wg.Done()
 			for k := 0; k < numRotations; k++ {
 				for j := 0; j < numMessages; j++ {
 					writeString(t, tf, getMessage(f, k, j)+"\n")
@@ -430,6 +442,7 @@ func TestFileSource_MultiFileRotate(t *testing.T) {
 	}
 
 	waitForMessages(t, logReceived, expected)
+	wg.Wait()
 }
 
 func TestFileSource_MoveFile(t *testing.T) {
@@ -670,7 +683,7 @@ func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
 	case e := <-c:
 		require.Equal(t, expected, e.Record.(string))
-	case <-time.After(time.Minute):
+	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for message", expected)
 	}
 }
@@ -682,7 +695,7 @@ LOOP:
 		select {
 		case e := <-c:
 			receivedMessages = append(receivedMessages, e.Record.(string))
-		case <-time.After(200 * time.Millisecond):
+		case <-time.After(500 * time.Millisecond):
 			break LOOP
 		}
 	}

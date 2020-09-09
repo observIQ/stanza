@@ -59,12 +59,9 @@ func (f *Reader) Initialize(startAtBeginning bool) error {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 1000)
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("reading fingerprint bytes: %s", err)
+	if err := f.Fingerprint.Update(file); err != nil {
+		return fmt.Errorf("update fingerprint: %s", err)
 	}
-	f.Fingerprint.FirstBytes = buf[:n]
 
 	if !startAtBeginning {
 		info, err := file.Stat()
@@ -203,6 +200,16 @@ type Fingerprint struct {
 // Matches returns true if the fingerprints are the same
 func (f Fingerprint) Matches(old Fingerprint) bool {
 	return bytes.Equal(old.FirstBytes, f.FirstBytes[:len(old.FirstBytes)])
+}
+
+func (f *Fingerprint) Update(file *os.File) error {
+	buf := make([]byte, 1000)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("reading fingerprint bytes: %s", err)
+	}
+	f.FirstBytes = buf[:n]
+	return nil
 }
 
 func getScannerError(scanner *PositionalScanner) error {
