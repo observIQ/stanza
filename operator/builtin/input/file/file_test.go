@@ -562,14 +562,15 @@ func TestFileSource_MultiFileRotate(t *testing.T) {
 func TestFileSource_MultiFileRotateSlow(t *testing.T) {
 	t.Parallel()
 
-	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
-	fileName := func(f, k int) string { return fmt.Sprintf("file%d.rot%d.log", f, k) }
-
 	source, logReceived, tempDir := newTestFileSource(t, nil)
 	println(tempDir)
 
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
+	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
+
 	numFiles := 3
-	numMessages := 100
+	numMessages := 3
 	numRotations := 3
 
 	expected := make([]string, 0, numFiles*numMessages*numRotations)
@@ -584,29 +585,23 @@ func TestFileSource_MultiFileRotateSlow(t *testing.T) {
 	require.NoError(t, source.Start())
 	defer source.Stop()
 
-	temps := make([]*os.File, 0, numFiles)
-	for i := 0; i < numFiles; i++ {
-		newName := filepath.Join(tempDir, fileName(i, 0))
-		temps = append(temps, openFile(t, newName))
-	}
-
 	var wg sync.WaitGroup
-	for i, temp := range temps {
+	for fileNum := 0; fileNum < numFiles; fileNum++ {
 		wg.Add(1)
-		go func(tf *os.File, f int) {
+		go func(fileNum int) {
 			defer wg.Done()
-			for k := 0; k < numRotations; k++ {
-				for j := 0; j < numMessages; j++ {
-					writeString(t, tf, getMessage(f, k, j)+"\n")
+
+			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
+				file := openFile(t, baseFileName(fileNum))
+				for messageNum := 0; messageNum < numMessages; messageNum++ {
+					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
 					time.Sleep(20 * time.Millisecond)
 				}
 
-				require.NoError(t, tf.Close())
-				newName := filepath.Join(tempDir, fileName(f, k))
-				require.NoError(t, os.Rename(tf.Name(), newName))
-				tf = openFile(t, tf.Name())
+				file.Close()
+				require.NoError(t, os.Rename(baseFileName(fileNum), fileName(fileNum, rotationNum)))
 			}
-		}(temp, i)
+		}(fileNum)
 	}
 
 	waitForMessages(t, logReceived, expected)

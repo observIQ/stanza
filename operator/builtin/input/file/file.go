@@ -104,32 +104,29 @@ func (f *InputOperator) poll(ctx context.Context) {
 	}
 
 	// Populate the currentPollFiles
-	fmt.Printf("\n||||| NEW POLL |||||\nMatch Count: %d\n", len(matches))
+	println("\n===== POPULATING =====\n")
 	for _, match := range matches {
 		f.addPathToCurrent(ctx, match, f.firstCheck)
 	}
 	f.firstCheck = false
 
 	// Read all currentPollFiles to end
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
+	println("\n===== READING =====\n")
 	for _, reader := range f.currentPollFiles {
-		wg.Add(1)
-		go func(r *Reader) {
-			defer wg.Done()
-			r.ReadToEnd(ctx)
-		}(reader)
+		// wg.Add(1)
+		// go func(r *Reader) {
+		// defer wg.Done()
+		fmt.Printf("=== %s ===\n", filepath.Base(reader.Path))
+		reader.ReadToEnd(ctx)
+		// }(reader)
 	}
 
 	// Wait until all the reader goroutines are finished
-	wg.Wait()
+	// wg.Wait()
 
 	// This poll's currentPollFiles is next poll's lastPollFiles
 	f.lastPollFiles = f.currentPollFiles
-	fmt.Printf("\nPost-Poll Fingerprints:\n")
-	for _, reader := range f.lastPollFiles {
-		fmt.Printf("=== %s ===\n", filepath.Base(reader.Path))
-		fmt.Printf("%s", string(reader.Fingerprint.FirstBytes[:reader.Fingerprint.FingerprintLength]))
-	}
 	f.syncLastPollFiles()
 }
 
@@ -164,14 +161,13 @@ func getMatches(includes, excludes []string) []string {
 // from the last offset.
 func (f *InputOperator) addPathToCurrent(ctx context.Context, path string, firstCheck bool) {
 	// Check if we saw this path last time
-	if oldReader, ok := f.lastPollFiles[path]; ok {
-		fmt.Printf("  Rechecking file: %s\n", filepath.Base(path))
-		f.currentPollFiles[path] = oldReader.Copy()
-		return
-	}
+	// if oldReader, ok := f.lastPollFiles[path]; ok {
+	// 	fmt.Printf("  Rechecking file: %s\n", filepath.Base(path))
+	// 	f.currentPollFiles[path] = oldReader.Copy()
+	// 	return
+	// }
 
 	// If the path didn't exist last poll, create a new reader
-	fmt.Printf("  New file: %s\n", filepath.Base(path))
 	newReader, err := f.newReader(path, firstCheck)
 	if err != nil {
 		f.Errorw("Failed to create new reader", zap.Error(err))
@@ -179,14 +175,17 @@ func (f *InputOperator) addPathToCurrent(ctx context.Context, path string, first
 	}
 
 	// Check if the new path has the same fingerprint as an old path
+	fmt.Printf("\n== %s ==\n", filepath.Base(newReader.Path))
+	fmt.Printf("First bytes: %q\n", string(newReader.Fingerprint.FirstBytes))
 	for _, oldReader := range f.lastPollFiles {
 		if newReader.Fingerprint.Matches(oldReader.Fingerprint) {
-			fmt.Printf("  Detected file %s is a rename of %s\n", filepath.Base(path), filepath.Base(oldReader.Path))
+			fmt.Printf("    Matched: %q\n", string(oldReader.Fingerprint.FirstBytes))
 			// This file has been renamed or copied, so use the offsets from the old reader
 			newReader.Offset = oldReader.Offset
 			newReader.LastSeenFileSize = oldReader.LastSeenFileSize
 			break
 		}
+		fmt.Printf("             %q\n", string(oldReader.Fingerprint.FirstBytes))
 	}
 
 	f.currentPollFiles[path] = newReader
