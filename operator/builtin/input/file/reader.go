@@ -8,8 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
-	"time"
 
 	"github.com/observiq/stanza/errors"
 	"go.uber.org/zap"
@@ -21,21 +19,13 @@ import (
 type Reader struct {
 	Fingerprint      Fingerprint
 	LastSeenFileSize int64
-	LastSeenTime     time.Time
 	Offset           int64
 	Path             string
-
-	// This lock must be held any time an exported field
-	// on Reader is written to, or any time it is read from
-	// outside the ReadToEnd goroutine
-	sync.Mutex `json:"-"`
 
 	fileInput *InputOperator
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
-
-	readInProgress bool
 
 	*zap.SugaredLogger `json:"-"`
 }
@@ -51,12 +41,23 @@ func NewReader(path string, f *InputOperator) *Reader {
 	}
 }
 
+func (f *Reader) Copy() *Reader {
+	reader := NewReader(f.Path, f.fileInput)
+	fingerprint := make([]byte, len(f.Fingerprint.FirstBytes))
+	copy(fingerprint, f.Fingerprint.FirstBytes)
+	reader.Fingerprint.FirstBytes = fingerprint
+	reader.LastSeenFileSize = f.LastSeenFileSize
+	reader.Offset = f.Offset
+	return reader
+}
+
 // Initialize sets the starting offset and the initial fingerprint
 func (f *Reader) Initialize(startAtBeginning bool) error {
 	file, err := os.Open(f.Path)
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	buf := make([]byte, 1000)
 	n, err := file.Read(buf)
@@ -78,12 +79,6 @@ func (f *Reader) Initialize(startAtBeginning bool) error {
 
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
-	// Exit early if we are already reading
-	if ok := f.setReading(); !ok {
-		return
-	}
-	defer f.unsetReading()
-
 	file, fileSizeHasChanged, err := f.openFile()
 	if err != nil {
 		f.Errorw("Failed opening file", zap.Error(err))
@@ -142,7 +137,6 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) {
 	file, err = os.Open(f.Path)
 	if err != nil {
-		f.Errorw("Failed to open file", zap.Error(err))
 		return nil, false, fmt.Errorf("open file: %s", err)
 	}
 
@@ -151,7 +145,6 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 		return nil, false, fmt.Errorf("stat file: %s", err)
 	}
 
-	f.Lock()
 	if stat.Size() != f.LastSeenFileSize {
 		fileSizeHasChanged = true
 		f.LastSeenFileSize = stat.Size()
@@ -160,7 +153,6 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 		// The file has been truncated, so start from the beginning
 		f.Offset = 0
 	}
-	f.Unlock()
 
 	if _, err = file.Seek(f.Offset, 0); err != nil {
 		return nil, false, fmt.Errorf("seek file: %s", err)
@@ -170,9 +162,7 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 }
 
 func (f *Reader) setOffset(n int64) {
-	f.Lock()
 	f.Offset = n
-	f.Unlock()
 }
 
 func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
@@ -203,35 +193,6 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	}
 	f.fileInput.Write(ctx, e)
 	return nil
-}
-
-// updateLastSeen updates the LastSeenTime to now
-func (f *Reader) updateLastSeen() {
-	f.Lock()
-	f.LastSeenTime = time.Now()
-	f.Unlock()
-}
-
-// setReading sets readInProgress to true. The return value
-// indicates whether readInProgress was changed
-func (f *Reader) setReading() bool {
-	f.Lock()
-	defer f.Unlock()
-
-	if f.readInProgress {
-		return false
-	}
-
-	f.readInProgress = true
-	return true
-}
-
-// unsetReading sets readInProgress to true. The return value
-// indicates whether readInProgress was changed
-func (f *Reader) unsetReading() {
-	f.Lock()
-	defer f.Unlock()
-	f.readInProgress = false
 }
 
 // Fingerprint is used to identify a file

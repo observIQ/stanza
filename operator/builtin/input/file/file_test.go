@@ -219,22 +219,6 @@ func TestFileSource_ReadExistingLogs(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog2")
 }
 
-// RemovesOldReaders tests that poll removes any readers
-// that are older than a day
-func TestFileSource_RemoveOldReaders(t *testing.T) {
-	t.Parallel()
-	source, _, _ := newTestFileSource(t, nil)
-
-	source.knownFiles["testpath"] = &Reader{
-		LastSeenTime: time.Now().Add(-48 * time.Hour),
-		Path:         "testpath",
-	}
-
-	source.poll(context.Background())
-
-	require.Len(t, source.knownFiles, 0)
-}
-
 // ReadNewLogs tests that, after starting, if a new file is created
 // all the entries in that file are read from the beginning
 func TestFileSource_ReadNewLogs(t *testing.T) {
@@ -698,11 +682,8 @@ LOOP:
 		select {
 		case e := <-c:
 			receivedMessages = append(receivedMessages, e.Record.(string))
-			if len(receivedMessages) == len(expected) {
-				break LOOP
-			}
-		case <-time.After(time.Second):
-			require.FailNow(t, "Timed out waiting for expected messages")
+		case <-time.After(200 * time.Millisecond):
+			break LOOP
 		}
 	}
 
@@ -841,6 +822,7 @@ func BenchmarkFileInput(b *testing.B) {
 			require.NoError(b, err)
 
 			err = fileOperator.Start()
+			defer fileOperator.Stop()
 			require.NoError(b, err)
 
 			file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)

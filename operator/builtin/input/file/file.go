@@ -30,7 +30,8 @@ type InputOperator struct {
 
 	persist helper.Persister
 
-	knownFiles       map[string]*Reader
+	lastPollFiles    map[string]*Reader
+	currentPollFiles map[string]*Reader
 	startAtBeginning bool
 
 	fingerprintBytes int64
@@ -38,6 +39,7 @@ type InputOperator struct {
 	encoding encoding.Encoding
 
 	wg         sync.WaitGroup
+	readerWg   sync.WaitGroup
 	firstCheck bool
 	cancel     context.CancelFunc
 }
@@ -49,7 +51,7 @@ func (f *InputOperator) Start() error {
 	f.firstCheck = true
 
 	// Load offsets from disk
-	if err := f.loadKnownFiles(); err != nil {
+	if err := f.loadLastPollFiles(); err != nil {
 		return fmt.Errorf("read known files from database: %s", err)
 	}
 
@@ -63,8 +65,9 @@ func (f *InputOperator) Start() error {
 func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
-	f.syncKnownFiles()
-	f.knownFiles = nil
+	f.syncLastPollFiles()
+	f.lastPollFiles = nil
+	f.currentPollFiles = nil
 	f.cancel = nil
 	return nil
 }
@@ -92,18 +95,34 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 }
 
 func (f *InputOperator) poll(ctx context.Context) {
-	f.removeOldReaders()
-	f.syncKnownFiles()
+	f.currentPollFiles = make(map[string]*Reader)
 
+	// Get the list of paths on disk
 	matches := getMatches(f.Include, f.Exclude)
 	if f.firstCheck && len(matches) == 0 {
 		f.Warnw("no files match the configured include patterns", "include", f.Include)
 	}
+
+	// Populate the currentPollFiles
 	for _, match := range matches {
 		f.checkPath(ctx, match, f.firstCheck)
 	}
-
 	f.firstCheck = false
+
+	// Read all currentPollFiles to end
+	var wg sync.WaitGroup
+	for _, reader := range f.currentPollFiles {
+		wg.Add(1)
+		go func(r *Reader) {
+			defer wg.Done()
+			r.ReadToEnd(ctx)
+		}(reader)
+	}
+
+	wg.Wait()
+
+	f.lastPollFiles = f.currentPollFiles
+	f.syncLastPollFiles()
 }
 
 func getMatches(includes, excludes []string) []string {
@@ -132,27 +151,30 @@ func getMatches(includes, excludes []string) []string {
 }
 
 func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck bool) {
-	// Check if we've seen this path before
-	reader, ok := f.knownFiles[path]
-	if !ok {
-		// If we haven't seen it, create a new Reader
-		var err error
-		reader, err = f.newReader(path, firstCheck)
-		if err != nil {
-			f.Errorw("Failed to create new reader", zap.Error(err))
-			return
-		}
-		f.knownFiles[path] = reader
+	// Check if we saw this path last time
+	if oldReader, ok := f.lastPollFiles[path]; ok {
+		f.currentPollFiles[path] = oldReader.Copy()
+		return
 	}
 
-	reader.updateLastSeen()
+	// If the path didn't exist last poll, create a new reader
+	newReader, err := f.newReader(path, firstCheck)
+	if err != nil {
+		f.Errorw("Failed to create new reader", zap.Error(err))
+		return
+	}
 
-	// Read to the end of the file
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
-		reader.ReadToEnd(ctx)
-	}()
+	// Check if the new path has the same fingerprint as an old path
+	for _, oldReader := range f.lastPollFiles {
+		if newReader.Fingerprint.Matches(oldReader.Fingerprint) {
+			// This file has been renamed or copied, so use the offsets from the old reader
+			newReader.Offset = oldReader.Offset
+			newReader.LastSeenFileSize = oldReader.LastSeenFileSize
+			break
+		}
+	}
+
+	f.currentPollFiles[path] = newReader
 }
 
 func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error) {
@@ -163,55 +185,26 @@ func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error)
 		return nil, err
 	}
 
-	// Check that this isn't a file we know about that has been moved or rotated
-	for oldPath, oldReader := range f.knownFiles {
-		oldReader.Lock()
-		if newReader.Fingerprint.Matches(oldReader.Fingerprint) {
-			// This file has been renamed or copied, so use the offsets from the old reader
-			newReader.Offset = oldReader.Offset
-			newReader.LastSeenFileSize = oldReader.LastSeenFileSize
-			newReader.LastSeenTime = oldReader.LastSeenTime
-			delete(f.knownFiles, oldPath)
-			oldReader.Unlock()
-			break
-		}
-		oldReader.Unlock()
-	}
-
-	f.knownFiles[path] = newReader
 	return newReader, nil
-}
-
-// removeOldReaders deletes all readers whose file hasn't been seen in over an hour
-func (f *InputOperator) removeOldReaders() {
-	for path, reader := range f.knownFiles {
-		reader.Lock()
-		if time.Since(reader.LastSeenTime) > time.Hour {
-			delete(f.knownFiles, path)
-		}
-		reader.Unlock()
-	}
 }
 
 var knownFilesKey = "knownFiles"
 
-func (f *InputOperator) syncKnownFiles() {
+func (f *InputOperator) syncLastPollFiles() {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 
 	// Encode the number of known files
-	if err := enc.Encode(len(f.knownFiles)); err != nil {
+	if err := enc.Encode(len(f.lastPollFiles)); err != nil {
 		f.Errorw("Failed to encode known files", zap.Error(err))
 		return
 	}
 
 	// Encode each known file
-	for _, fileReader := range f.knownFiles {
-		fileReader.Lock()
+	for _, fileReader := range f.lastPollFiles {
 		if err := enc.Encode(fileReader); err != nil {
 			f.Errorw("Failed to encode known files", zap.Error(err))
 		}
-		fileReader.Unlock()
 	}
 
 	f.persist.Set(knownFilesKey, buf.Bytes())
@@ -220,7 +213,7 @@ func (f *InputOperator) syncKnownFiles() {
 	}
 }
 
-func (f *InputOperator) loadKnownFiles() error {
+func (f *InputOperator) loadLastPollFiles() error {
 	err := f.persist.Load()
 	if err != nil {
 		return err
@@ -228,7 +221,7 @@ func (f *InputOperator) loadKnownFiles() error {
 
 	encoded := f.persist.Get(knownFilesKey)
 	if encoded == nil {
-		f.knownFiles = make(map[string]*Reader)
+		f.lastPollFiles = make(map[string]*Reader)
 		return nil
 	}
 
@@ -241,13 +234,13 @@ func (f *InputOperator) loadKnownFiles() error {
 	}
 
 	// Decode each of the known files
-	f.knownFiles = make(map[string]*Reader)
+	f.lastPollFiles = make(map[string]*Reader)
 	for i := 0; i < knownFileCount; i++ {
 		newReader := NewReader("", f)
 		if err = dec.Decode(newReader); err != nil {
 			return err
 		}
-		f.knownFiles[newReader.Path] = newReader
+		f.lastPollFiles[newReader.Path] = newReader
 	}
 
 	return nil
