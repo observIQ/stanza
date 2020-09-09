@@ -13,6 +13,7 @@ import (
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 )
@@ -32,7 +33,8 @@ func NewElasticOutputConfig(operatorID string) *ElasticOutputConfig {
 // ElasticOutputConfig is the configuration of an elasticsearch output operator.
 type ElasticOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
-	BufferConfig        buffer.Config `json:"buffer" yaml:"buffer"`
+	BufferConfig        buffer.Config  `json:"buffer" yaml:"buffer"`
+	FlusherConfig       flusher.Config `json:"flusher" yaml:"flusher"`
 
 	Addresses  []string     `json:"addresses"             yaml:"addresses,flow"`
 	Username   string       `json:"username"              yaml:"username"`
@@ -67,20 +69,20 @@ func (c ElasticOutputConfig) Build(context operator.BuildContext) (operator.Oper
 		)
 	}
 
-	buffer, err := c.BufferConfig.Build()
+	buffer, err := c.BufferConfig.Build(context, c.ID())
 	if err != nil {
 		return nil, err
 	}
 
 	elasticOutput := &ElasticOutput{
 		OutputOperator: outputOperator,
-		Buffer:         buffer,
+		buffer:         buffer,
 		client:         client,
 		indexField:     c.IndexField,
 		idField:        c.IDField,
 	}
 
-	buffer.SetHandler(elasticOutput)
+	elasticOutput.flusher = c.FlusherConfig.Build(buffer, elasticOutput.ProcessMulti, elasticOutput.SugaredLogger)
 
 	return elasticOutput, nil
 }
@@ -88,11 +90,29 @@ func (c ElasticOutputConfig) Build(context operator.BuildContext) (operator.Oper
 // ElasticOutput is an operator that sends entries to elasticsearch.
 type ElasticOutput struct {
 	helper.OutputOperator
-	buffer.Buffer
+	buffer  buffer.Buffer
+	flusher *flusher.Flusher
 
 	client     *elasticsearch.Client
 	indexField *entry.Field
 	idField    *entry.Field
+}
+
+// Start signals to the ElasticOutput to begin flushing
+func (e *ElasticOutput) Start() error {
+	e.flusher.Start()
+	return nil
+}
+
+// Stop tells the ElasticOutput to stop gracefully
+func (e *ElasticOutput) Stop() error {
+	e.flusher.Stop()
+	return e.buffer.Close()
+}
+
+// Process adds an entry to the outputs buffer
+func (e *ElasticOutput) Process(ctx context.Context, entry *entry.Entry) error {
+	return e.buffer.Add(ctx, entry)
 }
 
 // ProcessMulti will send entries to elasticsearch.
