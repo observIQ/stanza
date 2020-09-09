@@ -219,6 +219,22 @@ func TestFileSource_ReadExistingLogs(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog2")
 }
 
+// RemovesOldReaders tests that poll removes any readers
+// that are older than a day
+func TestFileSource_RemoveOldReaders(t *testing.T) {
+	t.Parallel()
+	source, _, _ := newTestFileSource(t, nil)
+
+	source.knownFiles["testpath"] = &Reader{
+		LastSeenTime: time.Now().Add(-48 * time.Hour),
+		Path:         "testpath",
+	}
+
+	source.poll(context.Background())
+
+	require.Len(t, source.knownFiles, 0)
+}
+
 // ReadNewLogs tests that, after starting, if a new file is created
 // all the entries in that file are read from the beginning
 func TestFileSource_ReadNewLogs(t *testing.T) {

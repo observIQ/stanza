@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/observiq/stanza/errors"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ type Reader struct {
 	Path             string
 	Fingerprint      Fingerprint
 	LastSeenFileSize int64
+	LastSeenTime     time.Time
 	Offset           int64
 
 	// This lock must be held any time an exported field
@@ -205,6 +207,13 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	f.Unlock()
 	f.fileInput.Write(ctx, e)
 	return nil
+}
+
+// updateLastSeen updates the LastSeenTime to now
+func (f *Reader) updateLastSeen() {
+	f.Lock()
+	f.LastSeenTime = time.Now()
+	f.Unlock()
 }
 
 // setReading sets readInProgress to true. The return value

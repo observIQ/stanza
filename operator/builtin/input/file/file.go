@@ -92,9 +92,9 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 }
 
 func (f *InputOperator) poll(ctx context.Context) {
+	f.removeOldReaders()
 	f.syncKnownFiles()
-	// TODO clean unseen files from our list of known files. This grows unbound
-	// if the files rotate
+
 	matches := getMatches(f.Include, f.Exclude)
 	if f.firstCheck && len(matches) == 0 {
 		f.Warnw("no files match the configured include patterns", "include", f.Include)
@@ -104,7 +104,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 	}
 
 	f.firstCheck = false
-
 }
 
 func getMatches(includes, excludes []string) []string {
@@ -146,6 +145,8 @@ func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck b
 		f.knownFiles[path] = reader
 	}
 
+	reader.updateLastSeen()
+
 	// Read to the end of the file
 	f.wg.Add(1)
 	go func() {
@@ -179,6 +180,17 @@ func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error)
 
 	f.knownFiles[path] = newReader
 	return newReader, nil
+}
+
+// removeOldReaders deletes all readers whose file hasn't been seen in over an hour
+func (f *InputOperator) removeOldReaders() {
+	for path, reader := range f.knownFiles {
+		reader.Lock()
+		if time.Since(reader.LastSeenTime) > time.Hour {
+			delete(f.knownFiles, path)
+		}
+		reader.Unlock()
+	}
 }
 
 var knownFilesKey = "knownFiles"
