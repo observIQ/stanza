@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
@@ -33,7 +33,7 @@ type googleCloudTestCase struct {
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
-	cfg.FlusherConfig.MaxWait = operator.Duration{Duration: 10 * time.Millisecond}
+	cfg.FlusherConfig.MaxWait = helper.Duration{Duration: 10 * time.Millisecond}
 	return cfg
 }
 
@@ -392,7 +392,7 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 
 	cfg := NewGoogleCloudOutputConfig(g.name)
 	cfg.ProjectID = "test_project_id"
-	cfg.FlusherConfig.MaxWait = operator.NewDuration(10 * time.Millisecond)
+	cfg.FlusherConfig.MaxWait = helper.NewDuration(10 * time.Millisecond)
 	if g.configMod != nil {
 		g.configMod(cfg)
 	}

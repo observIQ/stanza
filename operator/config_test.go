@@ -8,22 +8,6 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func TestStubDatabase(t *testing.T) {
-	stub := &StubDatabase{}
-
-	err := stub.Close()
-	require.NoError(t, err)
-
-	err = stub.Sync()
-	require.NoError(t, err)
-
-	err = stub.Update(nil)
-	require.NoError(t, err)
-
-	err = stub.View(nil)
-	require.NoError(t, err)
-}
-
 type FakeBuilder struct {
 	OperatorID   string   `json:"id" yaml:"id"`
 	OperatorType string   `json:"type" yaml:"type"`
@@ -36,10 +20,19 @@ func (f *FakeBuilder) ID() string                                   { return "pl
 func (f *FakeBuilder) Type() string                                 { return "plugin" }
 
 func TestUnmarshalJSONErrors(t *testing.T) {
+	t.Run("ValidJSON", func(t *testing.T) {
+		Register("fake_operator", func() Builder { return &FakeBuilder{} })
+		raw := `{"type":"fake_operator"}`
+		cfg := &Config{}
+		err := cfg.UnmarshalJSON([]byte(raw))
+		require.NoError(t, err)
+		require.IsType(t, &FakeBuilder{}, cfg.Builder)
+	})
+
 	t.Run("InvalidJSON", func(t *testing.T) {
 		raw := `{}}`
-		var cfg Config
-		err := json.Unmarshal([]byte(raw), &cfg)
+		cfg := &Config{}
+		err := cfg.UnmarshalJSON([]byte(raw))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid")
 	})
@@ -85,6 +78,15 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalYAMLErrors(t *testing.T) {
+	t.Run("ValidYAML", func(t *testing.T) {
+		Register("fake_operator", func() Builder { return &FakeBuilder{} })	
+		raw := `type: fake_operator`
+		var cfg Config
+		err := yaml.Unmarshal([]byte(raw), &cfg)
+		require.NoError(t, err)
+		require.IsType(t, &FakeBuilder{}, cfg.Builder)
+	})
+
 	t.Run("InvalidYAML", func(t *testing.T) {
 		raw := `-- - \n||\\`
 		var cfg Config
@@ -140,3 +142,9 @@ func TestMarshalYAML(t *testing.T) {
 	expected := "id: plugin\ntype: plugin\narray:\n- test\n"
 	require.Equal(t, expected, string(out))
 }
+
+func TestIsDefined(t *testing.T) {
+	Register("fake_operator", func() Builder { return &FakeBuilder{} })
+	require.True(t, IsDefined("fake_operator"))
+}
+

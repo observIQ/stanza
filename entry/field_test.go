@@ -42,6 +42,14 @@ func TestFieldUnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestFieldUnmarshalJSONFailure(t *testing.T) {
+	invalidField := []byte(`{"key":"value"}`)
+	var f Field
+	err := json.Unmarshal(invalidField, &f)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot unmarshal object into Go value of type string")
+}
+
 func TestFieldMarshalJSON(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -112,6 +120,14 @@ func TestFieldUnmarshalYAML(t *testing.T) {
 			require.Equal(t, tc.expected, f)
 		})
 	}
+}
+
+func TestFieldUnmarshalYAMLFailure(t *testing.T) {
+	invalidField := []byte(`invalid: field`)
+	var f Field
+	err := yaml.UnmarshalStrict(invalidField, &f)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot unmarshal !!map into string")
 }
 
 func TestFieldMarshalYAML(t *testing.T) {
@@ -207,6 +223,9 @@ func TestSplitField(t *testing.T) {
 		{"BracketAtEnd", `$record[`, nil, true},
 		{"SingleQuoteAtEnd", `$record['`, nil, true},
 		{"DoubleQuoteAtEnd", `$record["`, nil, true},
+		{"BracketMissingQuotes", `$record[test]`, nil, true},
+		{"CharacterBetweenBracketAndQuote", `$record["test"a]`, nil, true},
+		{"CharacterOutsideBracket", `$record["test"]a`, nil, true},
 	}
 
 	for _, tc := range cases {
@@ -221,4 +240,22 @@ func TestSplitField(t *testing.T) {
 			require.Equal(t, tc.output, s)
 		})
 	}
+}
+
+func TestFieldFromStringInvalidSplit(t *testing.T) {
+	_, err := fieldFromString("$resource[test]")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "splitting field")
+}
+
+func TestFieldFromStringWithResource(t *testing.T) {
+	field, err := fieldFromString(`$resource["test"]`)
+	require.NoError(t, err)
+	require.Equal(t, "$resource.test", field.String())
+}
+
+func TestFieldFromStringWithInvalidResource(t *testing.T) {
+	_, err := fieldFromString(`$resource["test"]["key"]`)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "resource fields cannot be nested")
 }

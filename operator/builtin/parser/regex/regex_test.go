@@ -2,6 +2,7 @@ package regex
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"testing"
 
@@ -12,6 +13,80 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func NewTestConfig(t *testing.T, regex string) (*operator.Config, error) {
+	json := `{
+		"type": "regex_parser",
+		"id": "test_id",
+		"regex": "%s",
+		"output": "test_output"
+	}`
+	json = fmt.Sprintf(json, regex)
+	config := &operator.Config{}
+	err := config.UnmarshalJSON([]byte(json))
+	return config, err
+}
+
+func NewTestParser(t *testing.T, regex string) (*RegexParser, error) {
+	config, err := NewTestConfig(t, regex)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := testutil.NewBuildContext(t)
+	op, err := config.Build(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	parser, ok := op.(*RegexParser)
+	if !ok {
+		return nil, fmt.Errorf("operator is not a regex parser")
+	}
+
+	return parser, nil
+}
+
+func TestRegexParserBuildFailure(t *testing.T) {
+	config, err := NewTestConfig(t, "^(?P<key>test)")
+	require.NoError(t, err)
+
+	parserConfig, ok := config.Builder.(*RegexParserConfig)
+	require.True(t, ok)
+
+	parserConfig.OnError = "invalid_on_error"
+	ctx := testutil.NewBuildContext(t)
+	_, err = config.Build(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid `on_error` field")
+}
+
+func TestRegexParserStringFailure(t *testing.T) {
+	parser, err := NewTestParser(t, "^(?P<key>test)")
+	require.NoError(t, err)
+
+	_, err = parser.parse("invalid")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "regex pattern does not match")
+}
+
+func TestRegexParserByteFailure(t *testing.T) {
+	parser, err := NewTestParser(t, "^(?P<key>test)")
+	require.NoError(t, err)
+
+	_, err = parser.parse([]byte("invalid"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "regex pattern does not match")
+}
+
+func TestRegexParserInvalidType(t *testing.T) {
+	parser, err := NewTestParser(t, "^(?P<key>test)")
+	require.NoError(t, err)
+
+	_, err = parser.parse([]int{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "type '[]int' cannot be parsed as regex")
+}
 
 func newFakeRegexParser() (*RegexParser, *testutil.Operator) {
 	mockOperator := testutil.Operator{}

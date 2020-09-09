@@ -3,7 +3,7 @@ package helper
 import (
 	"sync"
 
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/database"
 	"go.etcd.io/bbolt"
 )
 
@@ -18,13 +18,13 @@ type Persister interface {
 // ScopedBBoltPersister is a persister that uses a database for the backend
 type ScopedBBoltPersister struct {
 	scope    []byte
-	db       operator.Database
+	db       database.Database
 	cache    map[string][]byte
 	cacheMux sync.Mutex
 }
 
 // NewScopedDBPersister returns a new ScopedBBoltPersister
-func NewScopedDBPersister(db operator.Database, scope string) *ScopedBBoltPersister {
+func NewScopedDBPersister(db database.Database, scope string) *ScopedBBoltPersister {
 	return &ScopedBBoltPersister{
 		scope: []byte(scope),
 		db:    db,
