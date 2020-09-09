@@ -146,10 +146,58 @@ func TestFileSource_Build(t *testing.T) {
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {},
 		},
+		{
+			"InvalidEncoding",
+			func(f *InputConfig) {
+				f.Encoding = "UTF-3233"
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"LineStartAndEnd",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
+					LineStartPattern: ".*",
+					LineEndPattern:   ".*",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"NoLineStartOrEnd",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"InvalidLineStartRegex",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
+					LineStartPattern: "(",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"InvalidLineEndRegex",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
+					LineEndPattern: "(",
+				}
+			},
+			require.Error,
+			nil,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
 			t.Parallel()
 			cfg := basicConfig()
 			tc.modifyBaseConfig(cfg)
@@ -302,6 +350,36 @@ func TestFileSource_StartAtEndNewFile(t *testing.T) {
 	source.poll(context.Background())
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
+}
+
+// NoNewline tests that an entry will still be sent eventually
+// even if the file doesn't end in a newline
+func TestFileSource_NoNewline(t *testing.T) {
+	t.Parallel()
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\ntestlog2")
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
+}
+
+func TestFileSource_DecodeBufferIsResized(t *testing.T) {
+	t.Parallel()
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	temp := openTemp(t, tempDir)
+	expected := stringWithLength(1<<12 + 1)
+	writeString(t, temp, expected+"\n")
+
+	waitForMessage(t, logReceived, expected)
 }
 
 func TestFileSource_MultiFileSimple(t *testing.T) {
