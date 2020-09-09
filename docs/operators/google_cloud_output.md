@@ -16,6 +16,8 @@ The `google_cloud_output` operator will send entries to Google Cloud Logging.
 | `span_id_field`    |                       | A [field](/docs/types/field.md) for the span_id on the log entry                                           |
 | `use_compression`  | `true`                | Whether to compress the log entry payloads with gzip before sending to Google Cloud                        |
 | `timeout`          | 10s                   | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out |
+| `buffer`           |                       | A [buffer](/docs/types/buffer.md) block indicating how to buffer entries before flushing                   |
+| `flusher`          |                       | A [flusher](/docs/types/flusher.md) block configuring flushing behavior                                    |
 
 If both `credentials` and `credentials_file` are left empty, the agent will attempt to find
 [Application Default Credentials](https://cloud.google.com/docs/authentication/production) from the environment.
@@ -29,4 +31,18 @@ Configuration:
 - type: google_cloud_output
   project_id: sample_project
   credentials_file: /tmp/credentials.json
+```
+
+#### Configuration with non-default buffer and flusher params
+
+Configuration:
+```yaml
+- type: google_cloud_output
+  project_id: sample_project
+  credentials_file: /tmp/credentials.json
+  buffer:
+    type: disk
+    path: /tmp/stanza_buffer
+  flusher:
+    max_concurrent: 8
 ```

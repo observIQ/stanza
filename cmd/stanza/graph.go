@@ -49,6 +49,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	}
 
 	buildContext := pg.BuildContext{
+		Database:       operator.NewStubDatabase(),
 		PluginRegistry: pluginRegistry,
 		Logger:         logger,
 	}
