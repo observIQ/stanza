@@ -1,6 +1,6 @@
 # Buffers
 
-Buffers are what are used to temporarily store log entries until they can be flushed to their final destination.
+Buffers are used to temporarily store log entries until they can be flushed to their final destination.
 
 There are two types of buffers: `memory` buffers and `disk` buffers.
 

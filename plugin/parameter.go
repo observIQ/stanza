@@ -1,4 +1,4 @@
-package operator
+package plugin
 
 import (
 	"fmt"
@@ -14,8 +14,8 @@ const (
 	enumType    = "enum"
 )
 
-// PluginParameter is a basic description of a plugin's parameter.
-type PluginParameter struct {
+// Parameter is a basic description of a plugin's parameter.
+type Parameter struct {
 	Label       string
 	Description string
 	Required    bool
@@ -24,7 +24,7 @@ type PluginParameter struct {
 	Default     interface{} // Must be valid according to Type & ValidValues
 }
 
-func (param PluginParameter) validate() error {
+func (param Parameter) validate() error {
 	if param.Required && param.Default != nil {
 		return errors.NewError(
 			"required parameter cannot have a default value",
@@ -47,7 +47,7 @@ func (param PluginParameter) validate() error {
 	return nil
 }
 
-func (param PluginParameter) validateType() error {
+func (param Parameter) validateType() error {
 	switch param.Type {
 	case stringType, intType, boolType, stringsType, enumType: // ok
 	default:
@@ -59,7 +59,7 @@ func (param PluginParameter) validateType() error {
 	return nil
 }
 
-func (param PluginParameter) validateValidValues() error {
+func (param Parameter) validateValidValues() error {
 	switch param.Type {
 	case stringType, intType, boolType, stringsType:
 		if len(param.ValidValues) > 0 {
@@ -79,7 +79,7 @@ func (param PluginParameter) validateValidValues() error {
 	return nil
 }
 
-func (param PluginParameter) validateDefault() error {
+func (param Parameter) validateDefault() error {
 	if param.Default == nil {
 		return nil
 	}
@@ -104,7 +104,7 @@ func (param PluginParameter) validateDefault() error {
 	}
 }
 
-func validateStringDefault(param PluginParameter) error {
+func validateStringDefault(param Parameter) error {
 	if _, ok := param.Default.(string); !ok {
 		return errors.NewError(
 			"default value for a parameter of type 'string' must be a string",
@@ -114,7 +114,7 @@ func validateStringDefault(param PluginParameter) error {
 	return nil
 }
 
-func validateIntDefault(param PluginParameter) error {
+func validateIntDefault(param Parameter) error {
 	switch param.Default.(type) {
 	case int, int32, int64:
 		return nil
@@ -126,7 +126,7 @@ func validateIntDefault(param PluginParameter) error {
 	}
 }
 
-func validateBoolDefault(param PluginParameter) error {
+func validateBoolDefault(param Parameter) error {
 	if _, ok := param.Default.(bool); !ok {
 		return errors.NewError(
 			"default value for a parameter of type 'bool' must be a boolean",
@@ -136,7 +136,7 @@ func validateBoolDefault(param PluginParameter) error {
 	return nil
 }
 
-func validateStringArrayDefault(param PluginParameter) error {
+func validateStringArrayDefault(param Parameter) error {
 	defaultList, ok := param.Default.([]interface{})
 	if !ok {
 		return errors.NewError(
@@ -155,7 +155,7 @@ func validateStringArrayDefault(param PluginParameter) error {
 	return nil
 }
 
-func validateEnumDefault(param PluginParameter) error {
+func validateEnumDefault(param Parameter) error {
 	def, ok := param.Default.(string)
 	if !ok {
 		return errors.NewError(

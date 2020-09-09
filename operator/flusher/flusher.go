@@ -8,8 +8,8 @@ import (
 
 	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
@@ -22,7 +22,7 @@ type Config struct {
 
 	// MaxWait is the maximum amount of time to wait for a full slice of entries
 	// before flushing the entries. Defaults to 1s.
-	MaxWait operator.Duration `json:"max_wait" yaml:"max_wait"`
+	MaxWait helper.Duration `json:"max_wait" yaml:"max_wait"`
 
 	// MaxChunkEntries is the maximum number of entries to flush at a time.
 	// Defaults to 1000.
@@ -35,7 +35,7 @@ type Config struct {
 func NewConfig() Config {
 	return Config{
 		MaxConcurrent: 16,
-		MaxWait: operator.Duration{
+		MaxWait: helper.Duration{
 			Duration: time.Second,
 		},
 		MaxChunkEntries: 1000,

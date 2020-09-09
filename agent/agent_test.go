@@ -1,9 +1,7 @@
 package agent
 
 import (
-	"os"
-	"path/filepath"
-	"runtime"
+	"fmt"
 	"testing"
 
 	"github.com/observiq/stanza/testutil"
@@ -11,44 +9,87 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestNewLogAgent(t *testing.T) {
-	mockCfg := Config{}
-	mockLogger := zap.NewNop().Sugar()
-	mockPluginDir := "/some/path/plugins"
-	mockDatabaseFile := ""
-	agent, err := NewBuilder(&mockCfg, mockLogger).
-		WithPluginDir(mockPluginDir).
-		WithDatabaseFile(mockDatabaseFile).
-		Build()
-	require.NoError(t, err)
+func TestStartAgentSuccess(t *testing.T) {
+	logger := zap.NewNop().Sugar()
+	pipeline := &testutil.Pipeline{}
+	pipeline.On("Start").Return(nil)
 
-	require.Equal(t, mockLogger, agent.SugaredLogger)
+	agent := LogAgent{
+		SugaredLogger: logger,
+		pipeline:      pipeline,
+	}
+	err := agent.Start()
+	require.NoError(t, err)
+	pipeline.AssertCalled(t, "Start")
 }
 
-func TestOpenDatabase(t *testing.T) {
-	t.Run("Simple", func(t *testing.T) {
-		tempDir := testutil.NewTempDir(t)
-		db, err := OpenDatabase(filepath.Join(tempDir, "test.db"))
-		require.NoError(t, err)
-		require.NotNil(t, db)
-	})
+func TestStartAgentFailure(t *testing.T) {
+	logger := zap.NewNop().Sugar()
+	pipeline := &testutil.Pipeline{}
+	failure := fmt.Errorf("failed to start pipeline")
+	pipeline.On("Start").Return(failure)
 
-	t.Run("NonexistantPathIsCreated", func(t *testing.T) {
-		tempDir := testutil.NewTempDir(t)
-		db, err := OpenDatabase(filepath.Join(tempDir, "nonexistdir", "test.db"))
-		require.NoError(t, err)
-		require.NotNil(t, db)
-	})
+	agent := LogAgent{
+		SugaredLogger: logger,
+		pipeline:      pipeline,
+	}
+	err := agent.Start()
+	require.Error(t, err, failure)
+	pipeline.AssertCalled(t, "Start")
+}
 
-	t.Run("BadPermissions", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Windows does not have the same kind of file permissions")
-		}
-		tempDir := testutil.NewTempDir(t)
-		err := os.MkdirAll(filepath.Join(tempDir, "badperms"), 0666)
-		require.NoError(t, err)
-		db, err := OpenDatabase(filepath.Join(tempDir, "badperms", "nonexistdir", "test.db"))
-		require.Error(t, err)
-		require.Nil(t, db)
-	})
+func TestStopAgentSuccess(t *testing.T) {
+	logger := zap.NewNop().Sugar()
+	pipeline := &testutil.Pipeline{}
+	pipeline.On("Stop").Return(nil)
+	database := &testutil.Database{}
+	database.On("Close").Return(nil)
+
+	agent := LogAgent{
+		SugaredLogger: logger,
+		pipeline:      pipeline,
+		database:      database,
+	}
+	err := agent.Stop()
+	require.NoError(t, err)
+	pipeline.AssertCalled(t, "Stop")
+	database.AssertCalled(t, "Close")
+}
+
+func TestStopAgentPipelineFailure(t *testing.T) {
+	logger := zap.NewNop().Sugar()
+	pipeline := &testutil.Pipeline{}
+	failure := fmt.Errorf("failed to start pipeline")
+	pipeline.On("Stop").Return(failure)
+	database := &testutil.Database{}
+	database.On("Close").Return(nil)
+
+	agent := LogAgent{
+		SugaredLogger: logger,
+		pipeline:      pipeline,
+		database:      database,
+	}
+	err := agent.Stop()
+	require.Error(t, err, failure)
+	pipeline.AssertCalled(t, "Stop")
+	database.AssertNotCalled(t, "Close")
+}
+
+func TestStopAgentDatabaseFailure(t *testing.T) {
+	logger := zap.NewNop().Sugar()
+	pipeline := &testutil.Pipeline{}
+	pipeline.On("Stop").Return(nil)
+	database := &testutil.Database{}
+	failure := fmt.Errorf("failed to close database")
+	database.On("Close").Return(failure)
+
+	agent := LogAgent{
+		SugaredLogger: logger,
+		pipeline:      pipeline,
+		database:      database,
+	}
+	err := agent.Stop()
+	require.Error(t, err, failure)
+	pipeline.AssertCalled(t, "Stop")
+	database.AssertCalled(t, "Close")
 }

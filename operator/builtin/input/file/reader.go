@@ -138,7 +138,9 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 }
 
 func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) {
+	f.Lock()
 	file, err = os.Open(f.Path)
+	f.Unlock()
 	if err != nil {
 		f.Errorw("Failed to open file", zap.Error(err))
 		return nil, false, fmt.Errorf("open file: %s", err)
@@ -193,12 +195,14 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 		return fmt.Errorf("create entry: %s", err)
 	}
 
+	f.Lock()
 	if err := e.Set(f.fileInput.FilePathField, f.Path); err != nil {
 		return err
 	}
 	if err := e.Set(f.fileInput.FileNameField, filepath.Base(f.Path)); err != nil {
 		return err
 	}
+	f.Unlock()
 	f.fileInput.Write(ctx, e)
 	return nil
 }

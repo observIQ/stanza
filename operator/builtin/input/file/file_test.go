@@ -15,13 +15,14 @@ import (
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func newDefaultConfig(tempDir string) *InputConfig {
 	cfg := NewInputConfig("testfile")
-	cfg.PollInterval = operator.Duration{Duration: 50 * time.Millisecond}
+	cfg.PollInterval = helper.Duration{Duration: 50 * time.Millisecond}
 	cfg.StartAt = "beginning"
 	cfg.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 	cfg.OutputIDs = []string{"fake"}
@@ -75,7 +76,7 @@ func TestFileSource_Build(t *testing.T) {
 		cfg.OutputIDs = []string{"fake"}
 		cfg.Include = []string{"/var/log/testpath.*"}
 		cfg.Exclude = []string{"/var/log/testpath.ex*"}
-		cfg.PollInterval = operator.Duration{Duration: 10 * time.Millisecond}
+		cfg.PollInterval = helper.Duration{Duration: 10 * time.Millisecond}
 		return cfg
 	}
 
@@ -367,13 +368,13 @@ func TestFileSource_MultiFileParallel_LiveFiles(t *testing.T) {
 		}
 	}
 
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
 	temps := make([]*os.File, 0, numFiles)
 	for i := 0; i < numFiles; i++ {
 		temps = append(temps, openTemp(t, tempDir))
 	}
-
-	require.NoError(t, source.Start())
-	defer source.Stop()
 
 	for i, temp := range temps {
 		go func(tf *os.File, f int) {
@@ -406,13 +407,13 @@ func TestFileSource_MultiFileRotate(t *testing.T) {
 		}
 	}
 
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
 	temps := make([]*os.File, 0, numFiles)
 	for i := 0; i < numFiles; i++ {
 		temps = append(temps, openTemp(t, tempDir))
 	}
-
-	require.NoError(t, source.Start())
-	defer source.Stop()
 
 	for i, temp := range temps {
 		go func(tf *os.File, f int) {

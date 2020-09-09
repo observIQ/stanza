@@ -8,6 +8,7 @@ import (
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/plugin"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -66,7 +67,7 @@ pipeline:
 	tmpl, err := template.New("my_generator").Parse(templateText)
 	require.NoError(t, err)
 
-	registry := operator.PluginRegistry{
+	registry := plugin.Registry{
 		"sample": tmpl,
 	}
 
@@ -76,7 +77,7 @@ pipeline:
 	config, err := registry.Render("sample", params)
 	require.NoError(t, err)
 
-	expectedConfig := operator.PluginConfig{
+	expectedConfig := plugin.Plugin{
 		Pipeline: []operator.Config{
 			{
 				Builder: &GenerateInputConfig{

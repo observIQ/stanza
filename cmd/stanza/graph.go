@@ -4,8 +4,9 @@ import (
 	"os"
 
 	"github.com/observiq/stanza/agent"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/database"
 	pg "github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -43,24 +44,23 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	pluginRegistry, err := operator.NewPluginRegistry(flags.PluginDir)
+	pluginRegistry, err := plugin.NewPluginRegistry(flags.PluginDir)
 	if err != nil {
 		logger.Errorw("Failed to load plugin registry", zap.Any("error", err))
 	}
 
 	buildContext := pg.BuildContext{
-		Database:       operator.NewStubDatabase(),
-		PluginRegistry: pluginRegistry,
-		Logger:         logger,
+		Database: database.NewStubDatabase(),
+		Logger:   logger,
 	}
 
-	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
+	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, pluginRegistry, nil)
 	if err != nil {
 		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
 		os.Exit(1)
 	}
 
-	dotGraph, err := pipeline.MarshalDot()
+	dotGraph, err := pipeline.Render()
 	if err != nil {
 		logger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
 		os.Exit(1)

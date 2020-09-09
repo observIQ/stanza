@@ -32,10 +32,7 @@ func (e AgentError) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	}
 
 	if len(e.Details) != 0 {
-		err := encoder.AddObject("details", e.Details)
-		if err != nil {
-			return err
-		}
+		_ = encoder.AddObject("details", e.Details)
 	}
 
 	return nil

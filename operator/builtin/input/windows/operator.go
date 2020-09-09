@@ -19,10 +19,10 @@ func init() {
 // EventLogConfig is the configuration of a windows event log operator.
 type EventLogConfig struct {
 	helper.InputConfig `yaml:",inline"`
-	Channel            string            `json:"channel" yaml:"channel"`
-	MaxReads           int               `json:"max_reads,omitempty" yaml:"max_reads,omitempty"`
-	StartAt            string            `json:"start_at,omitempty" yaml:"start_at,omitempty"`
-	PollInterval       operator.Duration `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
+	Channel            string          `json:"channel" yaml:"channel"`
+	MaxReads           int             `json:"max_reads,omitempty" yaml:"max_reads,omitempty"`
+	StartAt            string          `json:"start_at,omitempty" yaml:"start_at,omitempty"`
+	PollInterval       helper.Duration `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 }
 
 // Build will build a windows event log operator.
@@ -64,7 +64,7 @@ func NewDefaultConfig() operator.Builder {
 		InputConfig: helper.NewInputConfig("", "windows_eventlog_input"),
 		MaxReads:    100,
 		StartAt:     "end",
-		PollInterval: operator.Duration{
+		PollInterval: helper.Duration{
 			Duration: 1 * time.Second,
 		},
 	}
@@ -79,7 +79,7 @@ type EventLogInput struct {
 	channel      string
 	maxReads     int
 	startAt      string
-	pollInterval operator.Duration
+	pollInterval helper.Duration
 	offsets      helper.Persister
 	cancel       context.CancelFunc
 	wg           *sync.WaitGroup

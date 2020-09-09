@@ -84,7 +84,7 @@ func (f RecordField) Set(entry *Entry, value interface{}) error {
 	for i, key := range f.Keys {
 		if i == len(f.Keys)-1 {
 			currentMap[key] = value
-			return nil
+			break
 		}
 		currentMap = f.getNestedMap(currentMap, key)
 	}
@@ -122,12 +122,12 @@ func (f RecordField) Delete(entry *Entry) (interface{}, bool) {
 	for i, key := range f.Keys {
 		currentMap, ok := currentValue.(map[string]interface{})
 		if !ok {
-			return nil, false
+			break
 		}
 
 		currentValue, ok = currentMap[key]
 		if !ok {
-			return nil, false
+			break
 		}
 
 		if i == len(f.Keys)-1 {

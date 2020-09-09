@@ -24,18 +24,18 @@ func NewK8sMetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfi
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "k8s_metadata_decorator"),
 		PodNameField:      entry.NewResourceField("k8s.pod.name"),
 		NamespaceField:    entry.NewResourceField("k8s.namespace.name"),
-		CacheTTL:          operator.Duration{Duration: 10 * time.Minute},
-		Timeout:           operator.Duration{Duration: 10 * time.Second},
+		CacheTTL:          helper.Duration{Duration: 10 * time.Minute},
+		Timeout:           helper.Duration{Duration: 10 * time.Second},
 	}
 }
 
 // K8sMetadataDecoratorConfig is the configuration of k8s_metadata_decorator operator
 type K8sMetadataDecoratorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
-	PodNameField             entry.Field       `json:"pod_name_field,omitempty"  yaml:"pod_name_field,omitempty"`
-	NamespaceField           entry.Field       `json:"namespace_field,omitempty" yaml:"namespace_field,omitempty"`
-	CacheTTL                 operator.Duration `json:"cache_ttl,omitempty"       yaml:"cache_ttl,omitempty"`
-	Timeout                  operator.Duration `json:"timeout,omitempty"         yaml:"timeout,omitempty"`
+	PodNameField             entry.Field     `json:"pod_name_field,omitempty"  yaml:"pod_name_field,omitempty"`
+	NamespaceField           entry.Field     `json:"namespace_field,omitempty" yaml:"namespace_field,omitempty"`
+	CacheTTL                 helper.Duration `json:"cache_ttl,omitempty"       yaml:"cache_ttl,omitempty"`
+	Timeout                  helper.Duration `json:"timeout,omitempty"         yaml:"timeout,omitempty"`
 }
 
 // Build will build a k8s_metadata_decorator operator from the supplied configuration
