@@ -191,3 +191,44 @@ func TestFieldFromString(t *testing.T) {
 		})
 	}
 }
+
+func TestAddLabel(t *testing.T) {
+	entry := Entry{}
+	entry.AddLabel("label", "value")
+	expected := map[string]string{"label": "value"}
+	require.Equal(t, expected, entry.Labels)
+}
+
+func TestAddResourceKey(t *testing.T) {
+	entry := Entry{}
+	entry.AddResourceKey("key", "value")
+	expected := map[string]string{"key": "value"}
+	require.Equal(t, expected, entry.Resource)
+}
+
+func TestReadToInterfaceMapWithMissingField(t *testing.T) {
+	entry := Entry{}
+	field := NewLabelField("label")
+	dest := map[string]interface{}{}
+	err := entry.readToInterfaceMap(field, &dest)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "can not be read as a map[string]interface{}")
+}
+
+func TestReadToStringMapWithMissingField(t *testing.T) {
+	entry := Entry{}
+	field := NewLabelField("label")
+	dest := map[string]string{}
+	err := entry.readToStringMap(field, &dest)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "can not be read as a map[string]string")
+}
+
+func TestReadToInterfaceMissingField(t *testing.T) {
+	entry := Entry{}
+	field := NewLabelField("label")
+	var dest interface{}
+	err := entry.readToInterface(field, &dest)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "can not be read as a interface{}")
+}

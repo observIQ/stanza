@@ -1,10 +1,12 @@
+//go:generate mockery --name=Builder --output=../testutil --outpkg=testutil --filename=operator_builder.go --structname=OperatorBuilder
+
 package operator
 
 import (
 	"encoding/json"
 	"fmt"
 
-	"go.etcd.io/bbolt"
+	"github.com/observiq/stanza/database"
 	"go.uber.org/zap"
 )
 
@@ -23,40 +25,9 @@ type Builder interface {
 
 // BuildContext supplies contextual resources when building an operator.
 type BuildContext struct {
-	PluginRegistry PluginRegistry
-	Database       Database
-	Parameters     map[string]interface{}
-	Logger         *zap.SugaredLogger
-}
-
-// Database is a database used to save offsets
-type Database interface {
-	Close() error
-	Sync() error
-	Update(func(*bbolt.Tx) error) error
-	View(func(*bbolt.Tx) error) error
-}
-
-// StubDatabase is an implementation of Database that
-// succeeds on all calls without persisting anything to disk.
-// This is used when --database is unspecified.
-type StubDatabase struct{}
-
-// Close will be ignored by the stub database
-func (d *StubDatabase) Close() error { return nil }
-
-// Sync will be ignored by the stub database
-func (d *StubDatabase) Sync() error { return nil }
-
-// Update will be ignored by the stub database
-func (d *StubDatabase) Update(func(tx *bbolt.Tx) error) error { return nil }
-
-// View will be ignored by the stub database
-func (d *StubDatabase) View(func(tx *bbolt.Tx) error) error { return nil }
-
-// NewStubDatabase creates a new StubDatabase
-func NewStubDatabase() *StubDatabase {
-	return &StubDatabase{}
+	Database   database.Database
+	Parameters map[string]interface{}
+	Logger     *zap.SugaredLogger
 }
 
 // registry is a global registry of operator types to operator builders.

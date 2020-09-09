@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +31,7 @@ func TestFlusher(t *testing.T) {
 	}
 
 	flusherCfg := NewConfig()
-	flusherCfg.MaxWait = operator.Duration{
+	flusherCfg.MaxWait = helper.Duration{
 		Duration: 10 * time.Millisecond,
 	}
 	flusher := flusherCfg.Build(buf, flushFunc, nil)
