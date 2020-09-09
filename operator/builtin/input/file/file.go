@@ -164,18 +164,18 @@ func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error)
 	}
 
 	// Check that this isn't a file we know about that has been moved or rotated
-	for oldPath, reader := range f.knownFiles {
-		reader.Lock()
-		if newReader.Fingerprint.Matches(reader.Fingerprint) {
-			// This file has been renamed, so update the path on the
-			// old reader and use that instead
-			reader.Path = path
-			newReader = reader
+	for oldPath, oldReader := range f.knownFiles {
+		oldReader.Lock()
+		if newReader.Fingerprint.Matches(oldReader.Fingerprint) {
+			// This file has been renamed or copied, so use the offsets from the old reader
+			newReader.Offset = oldReader.Offset
+			newReader.LastSeenFileSize = oldReader.LastSeenFileSize
+			newReader.LastSeenTime = oldReader.LastSeenTime
 			delete(f.knownFiles, oldPath)
-			reader.Unlock()
+			oldReader.Unlock()
 			break
 		}
-		reader.Unlock()
+		oldReader.Unlock()
 	}
 
 	f.knownFiles[path] = newReader
