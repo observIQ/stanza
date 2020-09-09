@@ -150,6 +150,9 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 	if stat.Size() < f.Offset {
 		// The file has been truncated, so start from the beginning
 		f.Offset = 0
+		if err := f.Fingerprint.Update(file); err != nil {
+			return nil, false, fmt.Errorf("update fingerprint: %s", err)
+		}
 	}
 
 	if _, err = file.Seek(f.Offset, 0); err != nil {
