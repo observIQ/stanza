@@ -318,7 +318,7 @@ func TestFileSource_MultiFileSimple(t *testing.T) {
 	waitForMessages(t, logReceived, []string{"testlog1", "testlog2"})
 }
 
-func TestFileSource_MultiFileParallel(t *testing.T) {
+func TestFileSource_MultiFileParallel_PreloadedFiles(t *testing.T) {
 	t.Parallel()
 
 	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
@@ -337,15 +337,96 @@ func TestFileSource_MultiFileParallel(t *testing.T) {
 
 	for i := 0; i < numFiles; i++ {
 		temp := openTemp(t, tempDir)
-		go func(f int) {
+		go func(tf *os.File, f int) {
 			for j := 0; j < numMessages; j++ {
-				writeString(t, temp, getMessage(f, j)+"\n")
+				writeString(t, tf, getMessage(f, j)+"\n")
 			}
-		}(i)
+		}(temp, i)
 	}
 
 	require.NoError(t, source.Start())
 	defer source.Stop()
+
+	waitForMessages(t, logReceived, expected)
+}
+
+func TestFileSource_MultiFileParallel_LiveFiles(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
+
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	numFiles := 10
+	numMessages := 100
+
+	expected := make([]string, 0, numFiles*numMessages)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			expected = append(expected, getMessage(i, j))
+		}
+	}
+
+	temps := make([]*os.File, 0, numFiles)
+	for i := 0; i < numFiles; i++ {
+		temps = append(temps, openTemp(t, tempDir))
+	}
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	for i, temp := range temps {
+		go func(tf *os.File, f int) {
+			for j := 0; j < numMessages; j++ {
+				writeString(t, tf, getMessage(f, j)+"\n")
+			}
+		}(temp, i)
+	}
+
+	waitForMessages(t, logReceived, expected)
+}
+
+func TestFileSource_MultiFileRotate(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	numFiles := 3
+	numMessages := 3
+	numRotations := 3
+
+	expected := make([]string, 0, numFiles*numMessages*numRotations)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			for k := 0; k < numRotations; k++ {
+				expected = append(expected, getMessage(i, k, j))
+			}
+		}
+	}
+
+	temps := make([]*os.File, 0, numFiles)
+	for i := 0; i < numFiles; i++ {
+		temps = append(temps, openTemp(t, tempDir))
+	}
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	for i, temp := range temps {
+		go func(tf *os.File, f int) {
+			for k := 0; k < numRotations; k++ {
+				for j := 0; j < numMessages; j++ {
+					writeString(t, tf, getMessage(f, k, j)+"\n")
+				}
+
+				require.NoError(t, tf.Close())
+				require.NoError(t, os.Rename(tf.Name(), fmt.Sprintf("%s.%d", tf.Name(), k)))
+				tf = reopenTemp(t, tf.Name())
+			}
+		}(temp, i)
+	}
 
 	waitForMessages(t, logReceived, expected)
 }
@@ -603,7 +684,7 @@ LOOP:
 			if len(receivedMessages) == len(expected) {
 				break LOOP
 			}
-		case <-time.After(5 * time.Second):
+		case <-time.After(time.Second):
 			require.FailNow(t, "Timed out waiting for expected messages")
 		}
 	}
