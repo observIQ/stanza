@@ -368,6 +368,21 @@ func TestFileSource_NoNewline(t *testing.T) {
 	waitForMessage(t, logReceived, "testlog2")
 }
 
+// SkipEmpty tests that the any empty lines are skipped
+func TestFileSource_SkipEmpty(t *testing.T) {
+	t.Parallel()
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\n\ntestlog2\n")
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
+}
+
 func TestFileSource_DecodeBufferIsResized(t *testing.T) {
 	t.Parallel()
 	source, logReceived, tempDir := newTestFileSource(t, nil)

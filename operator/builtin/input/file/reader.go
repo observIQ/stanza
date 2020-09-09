@@ -163,6 +163,11 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 }
 
 func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
+	// Skip the entry if it's empty
+	if len(msgBuf) == 0 {
+		return nil
+	}
+
 	f.decoder.Reset()
 	var nDst int
 	var err error
