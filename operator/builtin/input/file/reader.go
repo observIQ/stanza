@@ -41,6 +41,7 @@ func NewReader(path string, f *InputOperator) *Reader {
 	}
 }
 
+// Copy creates a deep copy of a Reader
 func (f *Reader) Copy() *Reader {
 	reader := NewReader(f.Path, f.fileInput)
 	fingerprint := make([]byte, len(f.Fingerprint.FirstBytes))

@@ -72,9 +72,8 @@ func (f *InputOperator) Stop() error {
 	return nil
 }
 
-// startPoller kicks off a goroutine that will poll the filesystem
-// periodically, checking if there are new files or new logs in the
-// watched files
+// startPoller kicks off a goroutine that will poll the filesystem periodically,
+// checking if there are new files or new logs in the watched files
 func (f *InputOperator) startPoller(ctx context.Context) {
 	f.wg.Add(1)
 	go func() {
@@ -94,6 +93,7 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 	}()
 }
 
+// poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
 	f.currentPollFiles = make(map[string]*Reader)
 
@@ -105,7 +105,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 
 	// Populate the currentPollFiles
 	for _, match := range matches {
-		f.checkPath(ctx, match, f.firstCheck)
+		f.addPathToCurrent(ctx, match, f.firstCheck)
 	}
 	f.firstCheck = false
 
@@ -119,12 +119,15 @@ func (f *InputOperator) poll(ctx context.Context) {
 		}(reader)
 	}
 
+	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
+	// This poll's currentPollFiles is next poll's lastPollFiles
 	f.lastPollFiles = f.currentPollFiles
 	f.syncLastPollFiles()
 }
 
+// getMatches gets a list of paths given an array of glob patterns to include and exclude
 func getMatches(includes, excludes []string) []string {
 	all := make([]string, 0, len(includes))
 	for _, include := range includes {
@@ -150,7 +153,10 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck bool) {
+// addPathToCurrent creates a reader for the current path and adds it to currentPollFiles.
+// If the path has been read before, it will detect that and create the new reader starting
+// from the last offset.
+func (f *InputOperator) addPathToCurrent(ctx context.Context, path string, firstCheck bool) {
 	// Check if we saw this path last time
 	if oldReader, ok := f.lastPollFiles[path]; ok {
 		f.currentPollFiles[path] = oldReader.Copy()
@@ -177,6 +183,7 @@ func (f *InputOperator) checkPath(ctx context.Context, path string, firstCheck b
 	f.currentPollFiles[path] = newReader
 }
 
+// newReader creates a new reader and initializes it
 func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error) {
 	newReader := NewReader(path, f)
 
@@ -190,6 +197,7 @@ func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error)
 
 var knownFilesKey = "knownFiles"
 
+// syncLastPollFiles syncs the most recent set of files to the database
 func (f *InputOperator) syncLastPollFiles() {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -213,6 +221,7 @@ func (f *InputOperator) syncLastPollFiles() {
 	}
 }
 
+// syncLastPollFiles loads the most recent set of files to the database
 func (f *InputOperator) loadLastPollFiles() error {
 	err := f.persist.Load()
 	if err != nil {
