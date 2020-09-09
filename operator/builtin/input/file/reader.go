@@ -106,7 +106,7 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 		if err := f.emit(ctx, scanner.Bytes()); err != nil {
 			f.Error("Failed to emit entry", zap.Error(err))
 		}
-		f.setOffset(scanner.Pos())
+		f.Offset = scanner.Pos()
 	}
 
 	// If we're not at the end of the file, and we haven't
@@ -128,7 +128,7 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 		if err := f.emit(ctx, msgBuf[:n]); err != nil {
 			f.Error("Failed to emit entry", zap.Error(err))
 		}
-		f.setOffset(scanner.Pos() + int64(n))
+		f.Offset = scanner.Pos() + int64(n)
 	}
 }
 
@@ -157,10 +157,6 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 	}
 
 	return
-}
-
-func (f *Reader) setOffset(n int64) {
-	f.Offset = n
 }
 
 func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
