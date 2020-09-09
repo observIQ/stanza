@@ -48,6 +48,13 @@ func newTestFileSource(t *testing.T, cfgMod func(*InputConfig)) (*InputOperator,
 	return pg.(*InputOperator), fakeOutput.Received, tempDir
 }
 
+func openFile(t testing.TB, path string) *os.File {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0777)
+	require.NoError(t, err)
+	// t.Cleanup(func() { _ = file.Close() })
+	return file
+}
+
 func openTemp(t testing.TB, tempDir string) *os.File {
 	return openTempWithPattern(t, tempDir, "")
 }
@@ -59,7 +66,7 @@ func reopenTemp(t testing.TB, name string) *os.File {
 func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
 	file, err := ioutil.TempFile(tempDir, pattern)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = file.Close() })
+	// t.Cleanup(func() { _ = file.Close() })
 	return file
 }
 
@@ -301,7 +308,6 @@ func TestFileSource_ReadExistingAndNewLogs(t *testing.T) {
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1\n")
 	source.poll(context.Background())
-	defer source.Stop()
 	waitForMessage(t, logReceived, "testlog1")
 
 	// Write a second entry, and expect that entry to come through
@@ -324,7 +330,6 @@ func TestFileSource_StartAtEnd(t *testing.T) {
 
 	// Expect no entries on the first poll
 	source.poll(context.Background())
-	defer source.Stop()
 	expectNoMessages(t, logReceived)
 
 	// Expect any new entries after the first poll
@@ -342,7 +347,6 @@ func TestFileSource_StartAtEndNewFile(t *testing.T) {
 	source.startAtBeginning = false
 
 	source.poll(context.Background())
-	defer source.Stop()
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1\ntestlog2\n")
@@ -381,6 +385,23 @@ func TestFileSource_SkipEmpty(t *testing.T) {
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
+}
+
+// SplitWrite tests a line written in two writes
+// close together still is read as a single entry
+func TestFileSource_SplitWrite(t *testing.T) {
+	t.Parallel()
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1")
+
+	source.poll(context.Background())
+
+	writeString(t, temp, "testlog2\n")
+
+	source.poll(context.Background())
+	waitForMessage(t, logReceived, "testlog1testlog2")
 }
 
 func TestFileSource_DecodeBufferIsResized(t *testing.T) {
@@ -538,6 +559,60 @@ func TestFileSource_MultiFileRotate(t *testing.T) {
 	wg.Wait()
 }
 
+func TestFileSource_MultiFileRotateSlow(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+	fileName := func(f, k int) string { return fmt.Sprintf("file%d.rot%d.log", f, k) }
+
+	source, logReceived, tempDir := newTestFileSource(t, nil)
+	println(tempDir)
+
+	numFiles := 3
+	numMessages := 100
+	numRotations := 3
+
+	expected := make([]string, 0, numFiles*numMessages*numRotations)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			for k := 0; k < numRotations; k++ {
+				expected = append(expected, getMessage(i, k, j))
+			}
+		}
+	}
+
+	require.NoError(t, source.Start())
+	defer source.Stop()
+
+	temps := make([]*os.File, 0, numFiles)
+	for i := 0; i < numFiles; i++ {
+		newName := filepath.Join(tempDir, fileName(i, 0))
+		temps = append(temps, openFile(t, newName))
+	}
+
+	var wg sync.WaitGroup
+	for i, temp := range temps {
+		wg.Add(1)
+		go func(tf *os.File, f int) {
+			defer wg.Done()
+			for k := 0; k < numRotations; k++ {
+				for j := 0; j < numMessages; j++ {
+					writeString(t, tf, getMessage(f, k, j)+"\n")
+					time.Sleep(20 * time.Millisecond)
+				}
+
+				require.NoError(t, tf.Close())
+				newName := filepath.Join(tempDir, fileName(f, k))
+				require.NoError(t, os.Rename(tf.Name(), newName))
+				tf = openFile(t, tf.Name())
+			}
+		}(temp, i)
+	}
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
 func TestFileSource_MoveFile(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Moving files while open is unsupported on Windows")
@@ -550,7 +625,6 @@ func TestFileSource_MoveFile(t *testing.T) {
 	temp1.Close()
 
 	source.poll(context.Background())
-	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 
@@ -573,7 +647,6 @@ func TestFileSource_TruncateThenWrite(t *testing.T) {
 	writeString(t, temp1, "testlog1\ntestlog2\n")
 
 	source.poll(context.Background())
-	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
@@ -599,7 +672,6 @@ func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
 	writeString(t, temp1, "testlog1\ntestlog2\n")
 
 	source.poll(context.Background())
-	defer source.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
@@ -751,6 +823,21 @@ func TestFileSource_ManyLogsDelivered(t *testing.T) {
 		waitForMessage(t, logReceived, message)
 	}
 	expectNoMessages(t, logReceived)
+}
+
+func TestFileReader_FingerprintUpdated(t *testing.T) {
+	t.Parallel()
+	source, _, tempDir := newTestFileSource(t, nil)
+
+	temp := openTemp(t, tempDir)
+	reader, err := source.newReader(temp.Name(), false)
+	require.NoError(t, err)
+
+	writeString(t, temp, "testlog1\n")
+	reader.ReadToEnd(context.Background())
+	var expected [1000]byte
+	copy(expected[:], []byte("testlog1\n"))
+	require.Equal(t, expected, reader.Fingerprint.FirstBytes)
 }
 
 func stringWithLength(length int) string {

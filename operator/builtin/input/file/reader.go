@@ -33,20 +33,18 @@ type Reader struct {
 // NewReader creates a new file reader
 func NewReader(path string, f *InputOperator) *Reader {
 	return &Reader{
-		Path:          path,
-		fileInput:     f,
-		SugaredLogger: f.SugaredLogger.With("path", path),
-		decoder:       f.encoding.NewDecoder(),
-		decodeBuffer:  make([]byte, 1<<12),
+		Path:      path,
+		fileInput: f, SugaredLogger: f.SugaredLogger.With("path", path),
+		decoder:      f.encoding.NewDecoder(),
+		decodeBuffer: make([]byte, 1<<12),
 	}
 }
 
 // Copy creates a deep copy of a Reader
 func (f *Reader) Copy() *Reader {
 	reader := NewReader(f.Path, f.fileInput)
-	fingerprint := make([]byte, len(f.Fingerprint.FirstBytes))
-	copy(fingerprint, f.Fingerprint.FirstBytes)
-	reader.Fingerprint.FirstBytes = fingerprint
+	copy(reader.Fingerprint.FirstBytes[:], f.Fingerprint.FirstBytes[:f.Fingerprint.FingerprintLength])
+	reader.Fingerprint.FingerprintLength = f.Fingerprint.FingerprintLength
 	reader.LastSeenFileSize = f.LastSeenFileSize
 	reader.Offset = f.Offset
 	return reader
@@ -84,8 +82,10 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 	}
 	defer file.Close()
 
+	fmt.Printf("Reading %d from %s\n", f.LastSeenFileSize-f.Offset, filepath.Base(f.Path))
 	lr := io.LimitReader(file, f.LastSeenFileSize-f.Offset)
-	scanner := NewPositionalScanner(lr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
+	fr := NewFingerprintUpdatingReader(lr, f.Offset, &f.Fingerprint)
+	scanner := NewPositionalScanner(fr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
 
 	// Iterate over the tokenized file, emitting entries as we go
 	for {
@@ -111,7 +111,7 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
-	atFileEnd := scanner.Pos() == f.LastSeenFileSize
+	atFileEnd := f.Offset == f.LastSeenFileSize
 	if !atFileEnd && !fileSizeHasChanged {
 		_, err := file.Seek(scanner.Pos(), 0)
 		if err != nil {
@@ -150,9 +150,6 @@ func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) 
 	if stat.Size() < f.Offset {
 		// The file has been truncated, so start from the beginning
 		f.Offset = 0
-		if err := f.Fingerprint.Update(file); err != nil {
-			return nil, false, fmt.Errorf("update fingerprint: %s", err)
-		}
 	}
 
 	if _, err = file.Seek(f.Offset, 0); err != nil {
@@ -181,6 +178,7 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 		}
 		break
 	}
+	fmt.Printf("Emitting '%s'\n", string(f.decodeBuffer[:nDst]))
 
 	e, err := f.fileInput.NewEntry(string(f.decodeBuffer[:nDst]))
 	if err != nil {
@@ -197,26 +195,6 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	return nil
 }
 
-// Fingerprint is used to identify a file
-type Fingerprint struct {
-	FirstBytes []byte
-}
-
-// Matches returns true if the fingerprints are the same
-func (f Fingerprint) Matches(old Fingerprint) bool {
-	return bytes.Equal(old.FirstBytes, f.FirstBytes[:len(old.FirstBytes)])
-}
-
-func (f *Fingerprint) Update(file *os.File) error {
-	buf := make([]byte, 1000)
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("reading fingerprint bytes: %s", err)
-	}
-	f.FirstBytes = buf[:n]
-	return nil
-}
-
 func getScannerError(scanner *PositionalScanner) error {
 	err := scanner.Err()
 	if err == bufio.ErrTooLong {
@@ -225,4 +203,59 @@ func getScannerError(scanner *PositionalScanner) error {
 		return errors.Wrap(err, "scanner error")
 	}
 	return nil
+}
+
+func NewFingerprintUpdatingReader(r io.Reader, offset int64, f *Fingerprint) *FingerprintUpdatingReader {
+	return &FingerprintUpdatingReader{
+		fingerprint: f,
+		reader:      r,
+		offset:      offset,
+	}
+}
+
+type FingerprintUpdatingReader struct {
+	fingerprint *Fingerprint
+	reader      io.Reader
+	offset      int64
+}
+
+func (f *FingerprintUpdatingReader) Read(dst []byte) (int, error) {
+	if f.fingerprint.FingerprintLength >= 1000 {
+		return f.reader.Read(dst)
+	}
+	n, err := f.reader.Read(dst)
+	copied := copy(f.fingerprint.FirstBytes[f.offset:], dst[:n])
+	fmt.Printf("Before: %d\n", f.fingerprint.FingerprintLength)
+	f.fingerprint.FingerprintLength += copied
+	fmt.Printf("After: %d\n", f.fingerprint.FingerprintLength)
+	f.offset += int64(n)
+	return n, err
+}
+
+// Fingerprint is used to identify a file
+type Fingerprint struct {
+	FirstBytes        []byte
+	FingerprintLength int
+}
+
+// Matches returns true if the fingerprints are the same
+func (f Fingerprint) Matches(old Fingerprint) bool {
+	n := min(f.FingerprintLength, old.FingerprintLength)
+	return bytes.Equal(old.FirstBytes[:n], f.FirstBytes[:n])
+}
+
+func (f *Fingerprint) Update(file *os.File) error {
+	n, err := file.Read(f.FirstBytes[:])
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("reading fingerprint bytes: %s", err)
+	}
+	f.FingerprintLength = n
+	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
