@@ -51,7 +51,7 @@ func newTestFileSource(t *testing.T, cfgMod func(*InputConfig)) (*InputOperator,
 func openFile(t testing.TB, path string) *os.File {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0777)
 	require.NoError(t, err)
-	// t.Cleanup(func() { _ = file.Close() })
+	t.Cleanup(func() { _ = file.Close() })
 	return file
 }
 
@@ -66,7 +66,7 @@ func reopenTemp(t testing.TB, name string) *os.File {
 func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
 	file, err := ioutil.TempFile(tempDir, pattern)
 	require.NoError(t, err)
-	// t.Cleanup(func() { _ = file.Close() })
+	t.Cleanup(func() { _ = file.Close() })
 	return file
 }
 
@@ -563,7 +563,6 @@ func TestFileSource_MultiFileRotateSlow(t *testing.T) {
 	t.Parallel()
 
 	source, logReceived, tempDir := newTestFileSource(t, nil)
-	println(tempDir)
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
 	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
@@ -822,17 +821,20 @@ func TestFileSource_ManyLogsDelivered(t *testing.T) {
 
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
-	source, _, tempDir := newTestFileSource(t, nil)
+	source, logReceived, tempDir := newTestFileSource(t, nil)
 
 	temp := openTemp(t, tempDir)
-	reader, err := source.newReader(temp.Name(), false)
+	tempCopy := openFile(t, temp.Name())
+	fp, err := NewFingerprint(temp)
+	require.NoError(t, err)
+	reader, err := NewReader(temp.Name(), source, tempCopy, fp)
 	require.NoError(t, err)
 
 	writeString(t, temp, "testlog1\n")
+	reader.LastSeenFileSize = 9
 	reader.ReadToEnd(context.Background())
-	var expected [1000]byte
-	copy(expected[:], []byte("testlog1\n"))
-	require.Equal(t, expected, reader.Fingerprint.FirstBytes)
+	waitForMessage(t, logReceived, "testlog1")
+	require.Equal(t, []byte("testlog1\n"), reader.Fingerprint.FirstBytes)
 }
 
 func stringWithLength(length int) string {

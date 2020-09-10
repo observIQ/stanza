@@ -20,12 +20,14 @@ var duplicates = sync.Map{}
 
 // Reader manages a single file
 type Reader struct {
-	Fingerprint      Fingerprint
+	Fingerprint      *Fingerprint
 	LastSeenFileSize int64
 	Offset           int64
 	Path             string
 
-	fileInput *InputOperator
+	fileInput          *InputOperator
+	file               *os.File
+	fileSizeHasChanged bool
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
@@ -34,43 +36,47 @@ type Reader struct {
 }
 
 // NewReader creates a new file reader
-func NewReader(path string, f *InputOperator) *Reader {
-	return &Reader{
-		Fingerprint: Fingerprint{
-			FirstBytes: make([]byte, 0, 1000),
-		},
-		Path:      path,
-		fileInput: f, SugaredLogger: f.SugaredLogger.With("path", path),
-		decoder:      f.encoding.NewDecoder(),
-		decodeBuffer: make([]byte, 1<<12),
+func NewReader(path string, f *InputOperator, file *os.File, fp *Fingerprint) (*Reader, error) {
+	r := &Reader{
+		Fingerprint:   fp,
+		file:          file,
+		Path:          path,
+		fileInput:     f,
+		SugaredLogger: f.SugaredLogger.With("path", path),
+		decoder:       f.encoding.NewDecoder(),
+		decodeBuffer:  make([]byte, 1<<12),
 	}
+	if err := r.initialize(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // Copy creates a deep copy of a Reader
-func (f *Reader) Copy() *Reader {
-	reader := NewReader(f.Path, f.fileInput)
-	fingerprint := make([]byte, 1000)
-	n := copy(fingerprint, f.Fingerprint.FirstBytes)
-	f.Fingerprint.FirstBytes = fingerprint[:n]
+func (f *Reader) Copy(file *os.File) (*Reader, error) {
+	buf := make([]byte, 1000)
+	n := copy(buf, f.Fingerprint.FirstBytes)
+	fp := &Fingerprint{
+		FirstBytes: buf[:n],
+	}
+	// TODO fingerprint.copy()
+	reader, err := NewReader(f.Path, f.fileInput, file, fp)
+	if err != nil {
+		return nil, err
+	}
+
 	reader.LastSeenFileSize = f.LastSeenFileSize
 	reader.Offset = f.Offset
-	return reader
+	if err := reader.initialize(); err != nil {
+		return nil, err
+	}
+	return reader, nil
 }
 
-// Initialize sets the starting offset and the initial fingerprint
-func (f *Reader) Initialize(startAtBeginning bool) error {
-	file, err := os.Open(f.Path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if err := f.Fingerprint.Update(file); err != nil {
-		return fmt.Errorf("update fingerprint: %s", err)
-	}
-
+// InitializeOffset sets the starting offset
+func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 	if !startAtBeginning {
-		info, err := file.Stat()
+		info, err := f.file.Stat()
 		if err != nil {
 			return fmt.Errorf("stat: %s", err)
 		}
@@ -80,17 +86,37 @@ func (f *Reader) Initialize(startAtBeginning bool) error {
 	return nil
 }
 
+func (f *Reader) initialize() error {
+	if f.file == nil {
+		return nil
+	}
+	stat, err := f.file.Stat()
+	if err != nil {
+		return fmt.Errorf("stat file: %s", err)
+	}
+
+	f.fileSizeHasChanged = false
+	if stat.Size() != f.LastSeenFileSize {
+		f.fileSizeHasChanged = true
+		f.LastSeenFileSize = stat.Size()
+	}
+
+	if stat.Size() < f.Offset {
+		// The file has been truncated, so start from the beginning
+		f.Offset = 0
+	}
+
+	return nil
+}
+
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
-	file, fileSizeHasChanged, err := f.openFile()
+	// lr := io.LimitReader(f.file, f.LastSeenFileSize-f.Offset)
+	_, err := f.file.Seek(f.Offset, 0)
 	if err != nil {
-		f.Errorw("Failed opening file", zap.Error(err))
-		return
+		f.Errorw("Failed to seek", zap.Error(err))
 	}
-	defer file.Close()
-
-	lr := io.LimitReader(file, f.LastSeenFileSize-f.Offset)
-	fr := NewFingerprintUpdatingReader(lr, f.Offset, &f.Fingerprint)
+	fr := NewFingerprintUpdatingReader(f.file, f.Offset, f.Fingerprint)
 	scanner := NewPositionalScanner(fr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
 
 	// Iterate over the tokenized file, emitting entries as we go
@@ -117,51 +143,28 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
-	atFileEnd := f.Offset == f.LastSeenFileSize
-	if !atFileEnd && !fileSizeHasChanged {
-		_, err := file.Seek(scanner.Pos(), 0)
-		if err != nil {
-			f.Errorw("Failed to seek for trailing entry", zap.Error(err))
-			return
-		}
+	// atFileEnd := f.Offset == f.LastSeenFileSize
+	// if !atFileEnd && !f.fileSizeHasChanged {
+	// 	_, err := f.file.Seek(scanner.Pos(), 0)
+	// 	if err != nil {
+	// 		f.Errorw("Failed to seek for trailing entry", zap.Error(err))
+	// 		return
+	// 	}
 
-		msgBuf := make([]byte, f.LastSeenFileSize-scanner.Pos())
-		n, err := file.Read(msgBuf)
-		if err != nil {
-			f.Errorw("Failed reading trailing entry", zap.Error(err))
-			return
-		}
-		if err := f.emit(ctx, msgBuf[:n]); err != nil {
-			f.Error("Failed to emit entry", zap.Error(err))
-		}
-		f.Offset = scanner.Pos() + int64(n)
-	}
+	// 	msgBuf := make([]byte, f.LastSeenFileSize-scanner.Pos())
+	// 	n, err := f.file.Read(msgBuf)
+	// 	if err != nil {
+	// 		f.Errorw("Failed reading trailing entry", zap.Error(err))
+	// 		return
+	// 	}
+	// 	if err := f.emit(ctx, msgBuf[:n]); err != nil {
+	// 		f.Error("Failed to emit entry", zap.Error(err))
+	// 	}
+	// 	f.Offset = scanner.Pos() + int64(n)
+	// }
 }
 
 func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) {
-	file, err = os.Open(f.Path)
-	if err != nil {
-		return nil, false, fmt.Errorf("open file: %s", err)
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, false, fmt.Errorf("stat file: %s", err)
-	}
-
-	if stat.Size() != f.LastSeenFileSize {
-		fileSizeHasChanged = true
-		f.LastSeenFileSize = stat.Size()
-	}
-	if stat.Size() < f.Offset {
-		// The file has been truncated, so start from the beginning
-		f.Offset = 0
-	}
-
-	if _, err = file.Seek(f.Offset, 0); err != nil {
-		return nil, false, fmt.Errorf("seek file: %s", err)
-	}
-
 	return
 }
 
@@ -186,8 +189,10 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	}
 
 	msg := string(f.decodeBuffer[:nDst])
-	if _, ok := duplicates.LoadOrStore(msg, struct{}{}); ok {
+	cp, _ := f.Copy(f.file)
+	if previous, ok := duplicates.LoadOrStore(msg, cp); ok {
 		fmt.Printf("DUPLICATE: %s\n", msg)
+		_ = previous
 	}
 
 	e, err := f.fileInput.NewEntry(string(f.decodeBuffer[:nDst]))
@@ -235,9 +240,7 @@ func (f *FingerprintUpdatingReader) Read(dst []byte) (int, error) {
 	}
 	n, err := f.reader.Read(dst)
 	appendCount := min0(n, 1000-int(f.offset))
-	fmt.Printf("Before: %q\n", f.fingerprint.FirstBytes)
 	f.fingerprint.FirstBytes = append(f.fingerprint.FirstBytes[:f.offset], dst[:appendCount]...)
-	fmt.Printf("After:  %q\n", f.fingerprint.FirstBytes)
 	f.offset += int64(n)
 	return n, err
 }
@@ -247,8 +250,19 @@ type Fingerprint struct {
 	FirstBytes []byte
 }
 
+func NewFingerprint(file *os.File) (*Fingerprint, error) {
+	buf := make([]byte, 1000)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("reading fingerprint bytes: %s", err)
+	}
+	return &Fingerprint{
+		FirstBytes: buf[:n],
+	}, nil
+}
+
 // Matches returns true if the fingerprints are the same
-func (f Fingerprint) Matches(old Fingerprint) bool {
+func (f Fingerprint) Matches(old *Fingerprint) bool {
 	l0 := len(old.FirstBytes)
 	if l0 == 0 {
 		return false
@@ -258,16 +272,6 @@ func (f Fingerprint) Matches(old Fingerprint) bool {
 		return false
 	}
 	return bytes.Equal(old.FirstBytes[:l0], f.FirstBytes[:l0])
-}
-
-func (f *Fingerprint) Update(file *os.File) error {
-	buf := make([]byte, 1000)
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("reading fingerprint bytes: %s", err)
-	}
-	f.FirstBytes = buf[:n]
-	return nil
 }
 
 func min0(a, b int) int {
