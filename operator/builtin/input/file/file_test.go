@@ -72,19 +72,20 @@ func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
 	return file
 }
 
-func setLoggerRotation(t testing.TB, tempDir string, maxLines int) {
+func getRotatingLogger(t testing.TB, tempDir string, maxLines int, copyTruncate bool) *log.Logger {
 	file, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
-	_ = file.Close() // will be managed by rotator
+	require.NoError(t, file.Close()) // will be managed by rotator
 
 	rotator := nanojack.Logger{
-		Filename: file.Name(),
-		MaxLines: maxLines,
+		Filename:     file.Name(),
+		MaxLines:     maxLines,
+		CopyTruncate: copyTruncate,
 	}
 
-	log.SetOutput(&rotator)
-
 	t.Cleanup(func() { _ = rotator.Close() })
+
+	return log.New(&rotator, "", 0)
 }
 
 func writeString(t testing.TB, file *os.File, s string) {
@@ -680,14 +681,14 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	wg.Wait()
 }
 
-func TestRapidRotate(t *testing.T) {
+func TestRapidRotate_MoveCreate(t *testing.T) {
 	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
 
 	numMessages := 1000
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	setLoggerRotation(t, tempDir, 10)
+	logger := getRotatingLogger(t, tempDir, 10, false)
 
 	expected := make([]string, 0, numMessages)
 
@@ -699,8 +700,34 @@ func TestRapidRotate(t *testing.T) {
 	defer operator.Stop()
 
 	for _, message := range expected {
-		log.Writer().Write([]byte(message + "\n"))
+		logger.Writer().Write([]byte(message + "\n"))
 		time.Sleep(200 * time.Microsecond)
+	}
+
+	waitForMessages(t, logReceived, expected)
+}
+
+func TestRapidRotate_CopyTruncate(t *testing.T) {
+	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
+
+	numMessages := 100
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	logger := getRotatingLogger(t, tempDir, 10, true)
+
+	expected := make([]string, 0, numMessages)
+
+	for i := 0; i < numMessages; i++ {
+		expected = append(expected, getMessage(i))
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	for _, message := range expected {
+		logger.Writer().Write([]byte(message + "\n"))
+		time.Sleep(time.Millisecond)
 	}
 
 	waitForMessages(t, logReceived, expected)
