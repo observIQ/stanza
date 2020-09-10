@@ -66,7 +66,6 @@ func (f *InputOperator) Start() error {
 func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
-	f.syncLastPollFiles()
 	f.knownFiles = nil
 	f.currentPollFiles = nil
 	f.cancel = nil
@@ -104,7 +103,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 		f.Warnw("no files match the configured include patterns", "include", f.Include)
 	}
 
-	// Populate the currentPollFiles
 	// Open the files first to minimize the time between listing and opening
 	files := make([]*os.File, 0, len(matches))
 	for _, path := range matches {
@@ -116,16 +114,20 @@ func (f *InputOperator) poll(ctx context.Context) {
 		files = append(files, file)
 	}
 
+	readers := make([]*Reader, 0, len(files))
 	for _, file := range files {
-		if err := f.addFileToCurrent(ctx, file, f.firstCheck); err != nil {
+		reader, err := f.newReader(ctx, file, f.firstCheck)
+		if err != nil {
 			f.Errorw("Failed to add path", zap.Error(err))
+			continue
 		}
+		readers = append(readers, reader)
 	}
 	f.firstCheck = false
 
 	// Read all currentPollFiles to end
 	var wg sync.WaitGroup
-	for _, reader := range f.currentPollFiles {
+	for _, reader := range readers {
 		wg.Add(1)
 		go func(r *Reader) {
 			defer wg.Done()
@@ -136,13 +138,13 @@ func (f *InputOperator) poll(ctx context.Context) {
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	f.rotateCurrent()
+	f.saveCurrent(readers)
 	f.syncLastPollFiles()
 }
 
-func (f *InputOperator) rotateCurrent() {
+func (f *InputOperator) saveCurrent(readers []*Reader) {
 	// Rotate current into old
-	for _, reader := range f.currentPollFiles {
+	for _, reader := range readers {
 		reader.file.Close()
 		f.knownFiles = append(f.knownFiles, reader)
 	}
@@ -181,11 +183,11 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-func (f *InputOperator) addFileToCurrent(ctx context.Context, file *os.File, firstCheck bool) error {
+func (f *InputOperator) newReader(ctx context.Context, file *os.File, firstCheck bool) (*Reader, error) {
 	// Get the fingerprint of the file
 	fp, err := NewFingerprint(file)
 	if err != nil {
-		return fmt.Errorf("create fingerprint: %s", err)
+		return nil, fmt.Errorf("create fingerprint: %s", err)
 	}
 
 	// Check if the new path has the same fingerprint as an old path
@@ -196,25 +198,23 @@ func (f *InputOperator) addFileToCurrent(ctx context.Context, file *os.File, fir
 			// This file has been renamed or copied, so use the offsets from the old reader
 			newReader, err := oldReader.Copy(file)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			newReader.Path = file.Name()
-			f.currentPollFiles[file.Name()] = newReader
-			return nil
+			return newReader, nil
 		}
 	}
 
 	// If we don't match any previously known files, create a new reader from scratch
 	newReader, err := NewReader(file.Name(), f, file, fp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	startAtBeginning := !firstCheck || f.startAtBeginning
 	if err := newReader.InitializeOffset(startAtBeginning); err != nil {
-		return fmt.Errorf("initialize offset: %s", err)
+		return nil, fmt.Errorf("initialize offset: %s", err)
 	}
-	f.currentPollFiles[file.Name()] = newReader
-	return nil
+	return newReader, nil
 }
 
 const knownFilesKey = "knownFiles"
