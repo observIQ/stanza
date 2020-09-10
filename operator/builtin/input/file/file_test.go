@@ -710,7 +710,7 @@ func TestRapidRotate_MoveCreate(t *testing.T) {
 func TestRapidRotate_CopyTruncate(t *testing.T) {
 	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
 
-	numMessages := 100
+	numMessages := 1000
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
