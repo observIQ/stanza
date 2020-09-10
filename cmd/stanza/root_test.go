@@ -23,9 +23,7 @@ func TestRoot(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 
-	input := []byte(`log1
-log2
-log3`)
+	input := []byte("log1\nlog2\nlog3\n")
 	err = ioutil.WriteFile(filepath.Join(tempDir, "input.log"), input, 0666)
 	require.NoError(t, err)
 
