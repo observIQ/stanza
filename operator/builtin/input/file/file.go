@@ -144,10 +144,6 @@ func (f *InputOperator) rotateCurrent() {
 	// Rotate current into old
 	for path, reader := range f.currentPollFiles {
 		reader.file.Close()
-		// if old, ok := f.knownFiles[path]; ok {
-		// 	// Save the old reader under a random path so we still have the fingerprint
-		// 	f.knownFiles[strconv.Itoa(rand.Int())] = old
-		// }
 		f.knownFiles[path] = reader
 	}
 
