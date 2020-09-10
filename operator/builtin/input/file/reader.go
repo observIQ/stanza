@@ -23,8 +23,9 @@ type Reader struct {
 	Offset       int64
 	Path         string
 
-	fileInput *InputOperator
-	file      *os.File
+	generation int
+	fileInput  *InputOperator
+	file       *os.File
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte

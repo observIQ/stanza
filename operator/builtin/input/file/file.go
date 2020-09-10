@@ -150,10 +150,13 @@ func (f *InputOperator) saveCurrent(readers []*Reader) {
 	}
 
 	// Clear out old readers
-	for i, reader := range f.knownFiles {
-		if time.Since(reader.LastSeenTime) > time.Minute {
+	for i := 0; i < len(f.knownFiles); {
+		reader := f.knownFiles[i]
+		if reader.generation >= 3 {
 			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
 		}
+		reader.generation++
+		i++
 	}
 }
 
