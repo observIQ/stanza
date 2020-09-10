@@ -627,7 +627,7 @@ func TestMultiFileRotateSlow(t *testing.T) {
 func TestRapidRotate(t *testing.T) {
 	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
 
-	numMessages := 100
+	numMessages := 1000
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
@@ -644,9 +644,6 @@ func TestRapidRotate(t *testing.T) {
 
 	for _, message := range expected {
 		log.Writer().Write([]byte(message + "\n"))
-		// Sleep between writes so we aren't rotating more than once per millisecond,
-		// otherwise the rotated files will have the same timestamps
-		time.Sleep(time.Millisecond)
 	}
 
 	waitForMessages(t, logReceived, expected)
@@ -878,7 +875,6 @@ func TestFileReader_FingerprintUpdated(t *testing.T) {
 	require.NoError(t, err)
 
 	writeString(t, temp, "testlog1\n")
-	reader.LastSeenFileSize = 9
 	reader.ReadToEnd(context.Background())
 	waitForMessage(t, logReceived, "testlog1")
 	require.Equal(t, []byte("testlog1\n"), reader.Fingerprint.FirstBytes)

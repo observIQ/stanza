@@ -31,7 +31,7 @@ type InputOperator struct {
 
 	persist helper.Persister
 
-	knownFiles       map[string]*Reader
+	knownFiles       []*Reader
 	currentPollFiles map[string]*Reader
 	startAtBeginning bool
 
@@ -142,15 +142,15 @@ func (f *InputOperator) poll(ctx context.Context) {
 
 func (f *InputOperator) rotateCurrent() {
 	// Rotate current into old
-	for path, reader := range f.currentPollFiles {
+	for _, reader := range f.currentPollFiles {
 		reader.file.Close()
-		f.knownFiles[path] = reader
+		f.knownFiles = append(f.knownFiles, reader)
 	}
 
 	// Clear out old readers
-	for path, reader := range f.knownFiles {
-		if time.Since(reader.LastSeenTime) > time.Hour {
-			delete(f.knownFiles, path)
+	for i, reader := range f.knownFiles {
+		if time.Since(reader.LastSeenTime) > time.Minute {
+			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
 		}
 	}
 }
@@ -189,7 +189,9 @@ func (f *InputOperator) addFileToCurrent(ctx context.Context, file *os.File, fir
 	}
 
 	// Check if the new path has the same fingerprint as an old path
-	for _, oldReader := range f.knownFiles {
+	// Iterate backwards to get newest first
+	for i := len(f.knownFiles) - 1; i >= 0; i-- {
+		oldReader := f.knownFiles[i]
 		if fp.Matches(oldReader.Fingerprint) {
 			// This file has been renamed or copied, so use the offsets from the old reader
 			newReader, err := oldReader.Copy(file)
@@ -250,7 +252,7 @@ func (f *InputOperator) loadLastPollFiles() error {
 
 	encoded := f.persist.Get(knownFilesKey)
 	if encoded == nil {
-		f.knownFiles = make(map[string]*Reader)
+		f.knownFiles = make([]*Reader, 0, 10)
 		return nil
 	}
 
@@ -263,7 +265,7 @@ func (f *InputOperator) loadLastPollFiles() error {
 	}
 
 	// Decode each of the known files
-	f.knownFiles = make(map[string]*Reader)
+	f.knownFiles = make([]*Reader, 0, knownFileCount)
 	for i := 0; i < knownFileCount; i++ {
 		newReader, err := NewReader("", f, nil, nil)
 		if err != nil {
@@ -272,7 +274,7 @@ func (f *InputOperator) loadLastPollFiles() error {
 		if err = dec.Decode(newReader); err != nil {
 			return err
 		}
-		f.knownFiles[newReader.Path] = newReader
+		f.knownFiles = append(f.knownFiles, newReader)
 	}
 
 	return nil

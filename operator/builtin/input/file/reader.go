@@ -18,15 +18,13 @@ import (
 
 // Reader manages a single file
 type Reader struct {
-	Fingerprint      *Fingerprint
-	LastSeenFileSize int64
-	LastSeenTime     time.Time
-	Offset           int64
-	Path             string
+	Fingerprint  *Fingerprint
+	LastSeenTime time.Time
+	Offset       int64
+	Path         string
 
-	fileInput       *InputOperator
-	file            *os.File
-	fileSizeChanged bool
+	fileInput *InputOperator
+	file      *os.File
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
@@ -59,7 +57,6 @@ func (f *Reader) Copy(file *os.File) (*Reader, error) {
 		return nil, err
 	}
 
-	reader.LastSeenFileSize = f.LastSeenFileSize
 	reader.Offset = f.Offset
 	if err := reader.initialize(); err != nil {
 		return nil, err
@@ -88,12 +85,6 @@ func (f *Reader) initialize() error {
 	if err != nil {
 		return fmt.Errorf("stat file: %s", err)
 	}
-
-	f.fileSizeChanged = false
-	if f.LastSeenFileSize < stat.Size() {
-		f.fileSizeChanged = true
-	}
-	f.LastSeenFileSize = stat.Size()
 
 	if stat.Size() < f.Offset {
 		// The file has been truncated, so start from the beginning
@@ -136,32 +127,39 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
-	beforeFileEnd := f.Offset <= f.LastSeenFileSize
-	if beforeFileEnd && !f.fileSizeChanged {
-		f.readTrailingEntry(ctx)
-	}
+	// beforeFileEnd := f.Offset <= f.LastSeenFileSize
+	// if beforeFileEnd && !f.fileSizeChanged {
+	// 	f.readTrailingEntry(ctx)
+	// }
 }
 
 // readTrailingEntry reads the remainder of the file ()
-func (f *Reader) readTrailingEntry(ctx context.Context) {
-	_, err := f.file.Seek(f.Offset, 0)
-	if err != nil {
-		f.Errorw("Failed to seek for trailing entry", zap.Error(err))
-		return
-	}
+// func (f *Reader) readTrailingEntry(ctx context.Context) {
+// 	_, err := f.file.Seek(f.Offset, 0)
+// 	if err != nil {
+// 		f.Errorw("Failed to seek for trailing entry", zap.Error(err))
+// 		return
+// 	}
 
-	msgBuf := make([]byte, f.LastSeenFileSize-f.Offset)
-	n, err := f.file.Read(msgBuf)
-	if err != nil {
-		f.Errorw("Failed reading trailing entry", zap.Error(err))
-		return
-	}
-	if err := f.emit(ctx, msgBuf[:n]); err != nil {
-		f.Error("Failed to emit entry", zap.Error(err))
-	}
-	f.Offset += int64(n)
+// 	msgBuf := make([]byte, f.LastSeenFileSize-f.Offset)
+// 	n, err := f.file.Read(msgBuf)
+// 	if err != nil {
+// 		f.Errorw("Failed reading trailing entry", zap.Error(err))
+// 		return
+// 	}
 
-}
+// 	// Update the fingerprint
+// 	if f.Offset < 1000 {
+// 		appendCount := min0(n, 1000-int(f.Offset))
+// 		f.Fingerprint.FirstBytes = append(f.Fingerprint.FirstBytes[:f.Offset], msgBuf[:appendCount]...)
+// 	}
+
+// 	if err := f.emit(ctx, msgBuf[:n]); err != nil {
+// 		f.Error("Failed to emit entry", zap.Error(err))
+// 	}
+// 	f.Offset += int64(n)
+
+// }
 
 func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	// Skip the entry if it's empty
