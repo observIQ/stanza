@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/observiq/stanza/errors"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ var duplicates = sync.Map{}
 type Reader struct {
 	Fingerprint      *Fingerprint
 	LastSeenFileSize int64
+	LastSeenTime     time.Time
 	Offset           int64
 	Path             string
 
@@ -39,6 +41,7 @@ type Reader struct {
 func NewReader(path string, f *InputOperator, file *os.File, fp *Fingerprint) (*Reader, error) {
 	r := &Reader{
 		Fingerprint:   fp,
+		LastSeenTime:  time.Now(),
 		file:          file,
 		Path:          path,
 		fileInput:     f,
@@ -191,9 +194,12 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	msg := string(f.decodeBuffer[:nDst])
 	cp, _ := f.Copy(f.file)
 	if previous, ok := duplicates.LoadOrStore(msg, cp); ok {
-		fmt.Printf("DUPLICATE: %s\n", msg)
+		println("\nDUPLICATE")
+		fmt.Printf("Previous Path: %s\n", filepath.Base(previous.(*Reader).Path))
+		fmt.Printf("Current Path: %s\n", filepath.Base(f.Path))
 		_ = previous
 	}
+	fmt.Printf("Emitting: %q, from: %s, offset: %d, fp: %q\n", msg, filepath.Base(f.Path), f.Offset, string(f.Fingerprint.FirstBytes))
 
 	e, err := f.fileInput.NewEntry(string(f.decodeBuffer[:nDst]))
 	if err != nil {
