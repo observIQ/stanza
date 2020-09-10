@@ -182,21 +182,10 @@ func getMatches(includes, excludes []string) []string {
 }
 
 func (f *InputOperator) addFileToCurrent(ctx context.Context, file *os.File, firstCheck bool) error {
+	// Get the fingerprint of the file
 	fp, err := NewFingerprint(file)
 	if err != nil {
 		return fmt.Errorf("create fingerprint: %s", err)
-	}
-
-	// Try shortcutting fingerprint check by looking up the old reader by path
-	if oldReader, ok := f.knownFiles[file.Name()]; ok {
-		if fp.Matches(oldReader.Fingerprint) {
-			newReader, err := oldReader.Copy(file)
-			if err != nil {
-				return err
-			}
-			f.currentPollFiles[file.Name()] = newReader
-			return nil
-		}
 	}
 
 	// Check if the new path has the same fingerprint as an old path

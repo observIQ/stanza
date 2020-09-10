@@ -356,7 +356,7 @@ func TestStartAtEnd(t *testing.T) {
 }
 
 // StartAtEndNewFile tests that when `start_at` is configured to `end`,
-// a file created after the source has been started is read from the
+// a file created after the operator has been started is read from the
 // beginning
 func TestStartAtEndNewFile(t *testing.T) {
 	t.Parallel()
@@ -406,18 +406,18 @@ func TestSkipEmpty(t *testing.T) {
 
 // SplitWrite tests a line written in two writes
 // close together still is read as a single entry
-func TestFileSource_SplitWrite(t *testing.T) {
+func TestSplitWrite(t *testing.T) {
 	t.Parallel()
-	source, logReceived, tempDir := newTestFileSource(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1")
 
-	source.poll(context.Background())
+	operator.poll(context.Background())
 
 	writeString(t, temp, "testlog2\n")
 
-	source.poll(context.Background())
+	operator.poll(context.Background())
 	waitForMessage(t, logReceived, "testlog1testlog2")
 }
 
@@ -576,10 +576,10 @@ func TestMultiFileRotate(t *testing.T) {
 	wg.Wait()
 }
 
-func TestFileSource_MultiFileRotateSlow(t *testing.T) {
+func TestMultiFileRotateSlow(t *testing.T) {
 	t.Parallel()
 
-	source, logReceived, tempDir := newTestFileSource(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
 	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
@@ -598,8 +598,8 @@ func TestFileSource_MultiFileRotateSlow(t *testing.T) {
 		}
 	}
 
-	require.NoError(t, source.Start())
-	defer source.Stop()
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
 	var wg sync.WaitGroup
 	for fileNum := 0; fileNum < numFiles; fileNum++ {
@@ -642,8 +642,11 @@ func TestRapidRotate(t *testing.T) {
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
 
-	for i := 0; i < numMessages; i++ {
-		log.Writer().Write([]byte(getMessage(i) + "\n"))
+	for _, message := range expected {
+		log.Writer().Write([]byte(message + "\n"))
+		// Sleep between writes so we aren't rotating more than once per millisecond,
+		// otherwise the rotated files will have the same timestamps
+		time.Sleep(time.Millisecond)
 	}
 
 	waitForMessages(t, logReceived, expected)
@@ -734,17 +737,16 @@ func TestCopyTruncateWriteBoth(t *testing.T) {
 	waitForMessages(t, logReceived, []string{"testlog3", "testlog4"})
 }
 
-// OffsetsAfterRestart tests that a source is able to load
+// OffsetsAfterRestart tests that a operator is able to load
 // its offsets after a restart
 func TestOffsetsAfterRestart(t *testing.T) {
 	t.Parallel()
-	// Create a new source
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
 
-	// Start the source and expect a message
+	// Start the operator and expect a message
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
 	waitForMessage(t, logReceived, "testlog1")
@@ -769,12 +771,12 @@ func TestOffsetsAfterRestart_BigFiles(t *testing.T) {
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, log1+"\n")
 
-	// Start the source
+	// Start the operator
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
 
-	// Restart the source
+	// Restart the operator
 	require.NoError(t, operator.Stop())
 	require.NoError(t, operator.Start())
 
@@ -792,16 +794,16 @@ func TestOffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, log1+"\n")
 
-	// Start the source and expect the first message
+	// Start the operator and expect the first message
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
 
-	// Stop the source and write a new message
+	// Stop the operator and write a new message
 	require.NoError(t, operator.Stop())
 	writeString(t, temp, log2+"\n")
 
-	// Start the source and expect the message
+	// Start the operator and expect the message
 	require.NoError(t, operator.Start())
 	waitForMessage(t, logReceived, log2)
 }
@@ -817,7 +819,7 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	writeString(t, temp, log1+"\n")
 	require.NoError(t, temp.Close())
 
-	// Start the source
+	// Start the operator
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
@@ -847,7 +849,7 @@ func TestManyLogsDelivered(t *testing.T) {
 		expectedMessages = append(expectedMessages, strconv.Itoa(i))
 	}
 
-	// Start the source
+	// Start the operator
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
 
@@ -866,13 +868,13 @@ func TestManyLogsDelivered(t *testing.T) {
 
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
-	source, logReceived, tempDir := newTestFileSource(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	temp := openTemp(t, tempDir)
 	tempCopy := openFile(t, temp.Name())
 	fp, err := NewFingerprint(temp)
 	require.NoError(t, err)
-	reader, err := NewReader(temp.Name(), source, tempCopy, fp)
+	reader, err := NewReader(temp.Name(), operator, tempCopy, fp)
 	require.NoError(t, err)
 
 	writeString(t, temp, "testlog1\n")
