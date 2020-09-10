@@ -72,7 +72,7 @@ func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
 	return file
 }
 
-func getRotatingLogger(t testing.TB, tempDir string, maxLines int, copyTruncate bool) *log.Logger {
+func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, copyTruncate bool) *log.Logger {
 	file, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
 	require.NoError(t, file.Close()) // will be managed by rotator
@@ -80,6 +80,7 @@ func getRotatingLogger(t testing.TB, tempDir string, maxLines int, copyTruncate 
 	rotator := nanojack.Logger{
 		Filename:     file.Name(),
 		MaxLines:     maxLines,
+		MaxBackups:   maxBackups,
 		CopyTruncate: copyTruncate,
 	}
 
@@ -682,13 +683,16 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 }
 
 func TestRapidRotate_MoveCreate(t *testing.T) {
-	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
+	t.Parallel()
+	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
 
-	numMessages := 1000
+	numMessages := 300
+	maxLinesPerFile := 50
+	maxBackupFiles := 5
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	logger := getRotatingLogger(t, tempDir, 10, false)
+	logger := getRotatingLogger(t, tempDir, maxLinesPerFile, maxBackupFiles, false)
 
 	expected := make([]string, 0, numMessages)
 
@@ -701,20 +705,23 @@ func TestRapidRotate_MoveCreate(t *testing.T) {
 
 	for _, message := range expected {
 		logger.Writer().Write([]byte(message + "\n"))
-		time.Sleep(200 * time.Microsecond)
+		time.Sleep(100 * time.Microsecond)
 	}
 
 	waitForMessages(t, logReceived, expected)
 }
 
 func TestRapidRotate_CopyTruncate(t *testing.T) {
-	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
+	t.Parallel()
+	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
 
-	numMessages := 1000
+	numMessages := 300
+	maxLinesPerFile := 50
+	maxBackupFiles := 5
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	logger := getRotatingLogger(t, tempDir, 10, true)
+	logger := getRotatingLogger(t, tempDir, maxLinesPerFile, maxBackupFiles, true)
 
 	expected := make([]string, 0, numMessages)
 
@@ -727,7 +734,7 @@ func TestRapidRotate_CopyTruncate(t *testing.T) {
 
 	for _, message := range expected {
 		logger.Writer().Write([]byte(message + "\n"))
-		time.Sleep(time.Millisecond)
+		time.Sleep(100 * time.Microsecond)
 	}
 
 	waitForMessages(t, logReceived, expected)
