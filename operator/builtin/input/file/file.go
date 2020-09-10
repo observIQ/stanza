@@ -106,8 +106,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 
 	// Populate the currentPollFiles
 	// Open the files first to minimize the time between listing and opening
-	println("\n=== POPULATING ===\n")
-	fmt.Printf("Matches: %d\n", len(matches))
 	files := make([]*os.File, 0, len(matches))
 	for _, path := range matches {
 		file, err := os.Open(path)
@@ -118,7 +116,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 		files = append(files, file)
 	}
 
-	println("\n=== SEARCHING ===\n")
 	for _, file := range files {
 		if err := f.addFileToCurrent(ctx, file, f.firstCheck); err != nil {
 			f.Errorw("Failed to add path", zap.Error(err))
@@ -126,7 +123,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 	}
 	f.firstCheck = false
 
-	println("\n=== READING ===\n")
 	// Read all currentPollFiles to end
 	var wg sync.WaitGroup
 	for _, reader := range f.currentPollFiles {
@@ -148,6 +144,10 @@ func (f *InputOperator) rotateCurrent() {
 	// Rotate current into old
 	for path, reader := range f.currentPollFiles {
 		reader.file.Close()
+		// if old, ok := f.knownFiles[path]; ok {
+		// 	// Save the old reader under a random path so we still have the fingerprint
+		// 	f.knownFiles[strconv.Itoa(rand.Int())] = old
+		// }
 		f.knownFiles[path] = reader
 	}
 
@@ -191,11 +191,9 @@ func (f *InputOperator) addFileToCurrent(ctx context.Context, file *os.File, fir
 		return fmt.Errorf("create fingerprint: %s", err)
 	}
 
-	fmt.Printf("Fingerprint: %q\n", string(fp.FirstBytes))
 	// Try shortcutting fingerprint check by looking up the old reader by path
 	if oldReader, ok := f.knownFiles[file.Name()]; ok {
 		if fp.Matches(oldReader.Fingerprint) {
-			// fmt.Printf("Pathmatch:   %q\n", string(oldReader.Fingerprint.FirstBytes))
 			newReader, err := oldReader.Copy(file)
 			if err != nil {
 				return err
@@ -203,13 +201,11 @@ func (f *InputOperator) addFileToCurrent(ctx context.Context, file *os.File, fir
 			f.currentPollFiles[file.Name()] = newReader
 			return nil
 		}
-		println("***Path matched, but fingerprint didn't")
 	}
 
 	// Check if the new path has the same fingerprint as an old path
 	for _, oldReader := range f.knownFiles {
 		if fp.Matches(oldReader.Fingerprint) {
-			fmt.Printf("Matched:     %q\n", string(oldReader.Fingerprint.FirstBytes))
 			// This file has been renamed or copied, so use the offsets from the old reader
 			newReader, err := oldReader.Copy(file)
 			if err != nil {

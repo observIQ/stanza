@@ -568,9 +568,9 @@ func TestFileSource_MultiFileRotateSlow(t *testing.T) {
 	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
 	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
 
-	numFiles := 1
+	numFiles := 3
 	numMessages := 3
-	numRotations := 10
+	numRotations := 3
 
 	expected := make([]string, 0, numFiles*numMessages*numRotations)
 	for i := 0; i < numFiles; i++ {
@@ -594,7 +594,7 @@ func TestFileSource_MultiFileRotateSlow(t *testing.T) {
 				file := openFile(t, baseFileName(fileNum))
 				for messageNum := 0; messageNum < numMessages; messageNum++ {
 					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
-					time.Sleep(20 * time.Millisecond)
+					time.Sleep(5 * time.Millisecond)
 				}
 
 				file.Close()

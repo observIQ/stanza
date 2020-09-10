@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/observiq/stanza/errors"
@@ -16,8 +15,6 @@ import (
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
-
-var duplicates = sync.Map{}
 
 // Reader manages a single file
 type Reader struct {
@@ -27,9 +24,9 @@ type Reader struct {
 	Offset           int64
 	Path             string
 
-	fileInput          *InputOperator
-	file               *os.File
-	fileSizeHasChanged bool
+	fileInput       *InputOperator
+	file            *os.File
+	fileSizeChanged bool
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
@@ -57,13 +54,7 @@ func NewReader(path string, f *InputOperator, file *os.File, fp *Fingerprint) (*
 
 // Copy creates a deep copy of a Reader
 func (f *Reader) Copy(file *os.File) (*Reader, error) {
-	buf := make([]byte, 1000)
-	n := copy(buf, f.Fingerprint.FirstBytes)
-	fp := &Fingerprint{
-		FirstBytes: buf[:n],
-	}
-	// TODO fingerprint.copy()
-	reader, err := NewReader(f.Path, f.fileInput, file, fp)
+	reader, err := NewReader(f.Path, f.fileInput, file, f.Fingerprint.Copy())
 	if err != nil {
 		return nil, err
 	}
@@ -98,11 +89,11 @@ func (f *Reader) initialize() error {
 		return fmt.Errorf("stat file: %s", err)
 	}
 
-	f.fileSizeHasChanged = false
-	if stat.Size() != f.LastSeenFileSize {
-		f.fileSizeHasChanged = true
-		f.LastSeenFileSize = stat.Size()
+	f.fileSizeChanged = false
+	if f.LastSeenFileSize < stat.Size() {
+		f.fileSizeChanged = true
 	}
+	f.LastSeenFileSize = stat.Size()
 
 	if stat.Size() < f.Offset {
 		// The file has been truncated, so start from the beginning
@@ -114,7 +105,6 @@ func (f *Reader) initialize() error {
 
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
-	// lr := io.LimitReader(f.file, f.LastSeenFileSize-f.Offset)
 	_, err := f.file.Seek(f.Offset, 0)
 	if err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
@@ -146,29 +136,31 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 
 	// If we're not at the end of the file, and we haven't
 	// advanced since last cycle, read the rest of the file as an entry
-	// atFileEnd := f.Offset == f.LastSeenFileSize
-	// if !atFileEnd && !f.fileSizeHasChanged {
-	// 	_, err := f.file.Seek(scanner.Pos(), 0)
-	// 	if err != nil {
-	// 		f.Errorw("Failed to seek for trailing entry", zap.Error(err))
-	// 		return
-	// 	}
-
-	// 	msgBuf := make([]byte, f.LastSeenFileSize-scanner.Pos())
-	// 	n, err := f.file.Read(msgBuf)
-	// 	if err != nil {
-	// 		f.Errorw("Failed reading trailing entry", zap.Error(err))
-	// 		return
-	// 	}
-	// 	if err := f.emit(ctx, msgBuf[:n]); err != nil {
-	// 		f.Error("Failed to emit entry", zap.Error(err))
-	// 	}
-	// 	f.Offset = scanner.Pos() + int64(n)
-	// }
+	beforeFileEnd := f.Offset <= f.LastSeenFileSize
+	if beforeFileEnd && !f.fileSizeChanged {
+		f.readTrailingEntry(ctx)
+	}
 }
 
-func (f *Reader) openFile() (file *os.File, fileSizeHasChanged bool, err error) {
-	return
+// readTrailingEntry reads the remainder of the file ()
+func (f *Reader) readTrailingEntry(ctx context.Context) {
+	_, err := f.file.Seek(f.Offset, 0)
+	if err != nil {
+		f.Errorw("Failed to seek for trailing entry", zap.Error(err))
+		return
+	}
+
+	msgBuf := make([]byte, f.LastSeenFileSize-f.Offset)
+	n, err := f.file.Read(msgBuf)
+	if err != nil {
+		f.Errorw("Failed reading trailing entry", zap.Error(err))
+		return
+	}
+	if err := f.emit(ctx, msgBuf[:n]); err != nil {
+		f.Error("Failed to emit entry", zap.Error(err))
+	}
+	f.Offset += int64(n)
+
 }
 
 func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
@@ -190,16 +182,6 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 		}
 		break
 	}
-
-	msg := string(f.decodeBuffer[:nDst])
-	cp, _ := f.Copy(f.file)
-	if previous, ok := duplicates.LoadOrStore(msg, cp); ok {
-		println("\nDUPLICATE")
-		fmt.Printf("Previous Path: %s\n", filepath.Base(previous.(*Reader).Path))
-		fmt.Printf("Current Path: %s\n", filepath.Base(f.Path))
-		_ = previous
-	}
-	fmt.Printf("Emitting: %q, from: %s, offset: %d, fp: %q\n", msg, filepath.Base(f.Path), f.Offset, string(f.Fingerprint.FirstBytes))
 
 	e, err := f.fileInput.NewEntry(string(f.decodeBuffer[:nDst]))
 	if err != nil {
@@ -254,6 +236,14 @@ func (f *FingerprintUpdatingReader) Read(dst []byte) (int, error) {
 // Fingerprint is used to identify a file
 type Fingerprint struct {
 	FirstBytes []byte
+}
+
+func (f Fingerprint) Copy() *Fingerprint {
+	buf := make([]byte, 1000)
+	n := copy(buf, f.FirstBytes)
+	return &Fingerprint{
+		FirstBytes: buf[:n],
+	}
 }
 
 func NewFingerprint(file *os.File) (*Fingerprint, error) {
