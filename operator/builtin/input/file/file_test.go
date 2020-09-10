@@ -625,6 +625,58 @@ func TestMultiFileRotateSlow(t *testing.T) {
 	wg.Wait()
 }
 
+func TestMultiCopyTruncateSlow(t *testing.T) {
+	t.Parallel()
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
+	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
+
+	numFiles := 3
+	numMessages := 3
+	numRotations := 3
+
+	expected := make([]string, 0, numFiles*numMessages*numRotations)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			for k := 0; k < numRotations; k++ {
+				expected = append(expected, getMessage(i, k, j))
+			}
+		}
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	var wg sync.WaitGroup
+	for fileNum := 0; fileNum < numFiles; fileNum++ {
+		wg.Add(1)
+		go func(fileNum int) {
+			defer wg.Done()
+
+			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
+				file := openFile(t, baseFileName(fileNum))
+				for messageNum := 0; messageNum < numMessages; messageNum++ {
+					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					time.Sleep(5 * time.Millisecond)
+				}
+
+				file.Seek(0, 0)
+				dst := openFile(t, fileName(fileNum, rotationNum))
+				io.Copy(dst, file)
+				dst.Close()
+				file.Truncate(0)
+				file.Seek(0, 0)
+			}
+		}(fileNum)
+	}
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
 func TestRapidRotate(t *testing.T) {
 	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
 
