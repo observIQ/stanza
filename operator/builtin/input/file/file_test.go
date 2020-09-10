@@ -663,12 +663,15 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 					time.Sleep(5 * time.Millisecond)
 				}
 
-				file.Seek(0, 0)
+				_, err := file.Seek(0, 0)
+				require.NoError(t, err)
 				dst := openFile(t, fileName(fileNum, rotationNum))
-				io.Copy(dst, file)
-				dst.Close()
-				file.Truncate(0)
-				file.Seek(0, 0)
+				_, err = io.Copy(dst, file)
+				require.NoError(t, err)
+				require.NoError(t, dst.Close())
+				require.NoError(t, file.Truncate(0))
+				_, err = file.Seek(0, 0)
+				require.NoError(t, err)
 			}
 		}(fileNum)
 	}
