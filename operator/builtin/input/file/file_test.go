@@ -645,6 +645,7 @@ func TestRapidRotate(t *testing.T) {
 
 	for _, message := range expected {
 		log.Writer().Write([]byte(message + "\n"))
+		time.Sleep(200 * time.Microsecond)
 	}
 
 	waitForMessages(t, logReceived, expected)

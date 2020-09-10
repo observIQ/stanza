@@ -191,18 +191,13 @@ func (f *InputOperator) newReader(ctx context.Context, file *os.File, firstCheck
 	}
 
 	// Check if the new path has the same fingerprint as an old path
-	// Iterate backwards to get newest first
-	for i := len(f.knownFiles) - 1; i >= 0; i-- {
-		oldReader := f.knownFiles[i]
-		if fp.Matches(oldReader.Fingerprint) {
-			// This file has been renamed or copied, so use the offsets from the old reader
-			newReader, err := oldReader.Copy(file)
-			if err != nil {
-				return nil, err
-			}
-			newReader.Path = file.Name()
-			return newReader, nil
+	if oldReader, ok := f.findFingerprintMatch(fp); ok {
+		newReader, err := oldReader.Copy(file)
+		if err != nil {
+			return nil, err
 		}
+		newReader.Path = file.Name()
+		return newReader, nil
 	}
 
 	// If we don't match any previously known files, create a new reader from scratch
@@ -215,6 +210,17 @@ func (f *InputOperator) newReader(ctx context.Context, file *os.File, firstCheck
 		return nil, fmt.Errorf("initialize offset: %s", err)
 	}
 	return newReader, nil
+}
+
+func (f *InputOperator) findFingerprintMatch(fp *Fingerprint) (*Reader, bool) {
+	// Iterate backwards to match newest first
+	for i := len(f.knownFiles) - 1; i >= 0; i-- {
+		oldReader := f.knownFiles[i]
+		if fp.Matches(oldReader.Fingerprint) {
+			return oldReader, true
+		}
+	}
+	return nil, false
 }
 
 const knownFilesKey = "knownFiles"
