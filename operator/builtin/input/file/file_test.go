@@ -587,7 +587,7 @@ func TestMultiFileRotateSlow(t *testing.T) {
 	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
 
 	numFiles := 3
-	numMessages := 3
+	numMessages := 30
 	numRotations := 3
 
 	expected := make([]string, 0, numFiles*numMessages*numRotations)
@@ -635,7 +635,7 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
 
 	numFiles := 3
-	numMessages := 3
+	numMessages := 30
 	numRotations := 3
 
 	expected := make([]string, 0, numFiles*numMessages*numRotations)
