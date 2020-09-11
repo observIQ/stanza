@@ -708,12 +708,12 @@ func TestRapidRotate_MoveCreate(t *testing.T) {
 }
 
 func TestRapidRotate_CopyTruncate(t *testing.T) {
-	t.Skip()
 	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
 
 	numMessages := 1000
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	println(tempDir)
 
 	logger := getRotatingLogger(t, tempDir, 10, true)
 
