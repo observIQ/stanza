@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -30,8 +31,7 @@ type InputOperator struct {
 
 	persist helper.Persister
 
-	lastPollFiles    map[string]*Reader
-	currentPollFiles map[string]*Reader
+	knownFiles       []*Reader
 	startAtBeginning bool
 
 	fingerprintBytes int64
@@ -65,9 +65,7 @@ func (f *InputOperator) Start() error {
 func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
-	f.syncLastPollFiles()
-	f.lastPollFiles = nil
-	f.currentPollFiles = nil
+	f.knownFiles = nil
 	f.cancel = nil
 	return nil
 }
@@ -95,7 +93,6 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
-	f.currentPollFiles = make(map[string]*Reader)
 
 	// Get the list of paths on disk
 	matches := getMatches(f.Include, f.Exclude)
@@ -103,15 +100,32 @@ func (f *InputOperator) poll(ctx context.Context) {
 		f.Warnw("no files match the configured include patterns", "include", f.Include)
 	}
 
-	// Populate the currentPollFiles
-	for _, match := range matches {
-		f.addPathToCurrent(ctx, match, f.firstCheck)
+	// Open the files first to minimize the time between listing and opening
+	files := make([]*os.File, 0, len(matches))
+	for _, path := range matches {
+		file, err := os.Open(path)
+		if err != nil {
+			f.Errorw("Failed to open file", zap.Error(err))
+			continue
+		}
+		files = append(files, file)
+	}
+
+	readers := make([]*Reader, 0, len(files))
+
+	for _, file := range files {
+		reader, err := f.newReader(ctx, file, f.firstCheck)
+		if err != nil {
+			file.Close()
+			f.Errorw("Failed to add path", zap.Error(err))
+			continue
+		}
+		readers = append(readers, reader)
 	}
 	f.firstCheck = false
 
-	// Read all currentPollFiles to end
 	var wg sync.WaitGroup
-	for _, reader := range f.currentPollFiles {
+	for _, reader := range readers {
 		wg.Add(1)
 		go func(r *Reader) {
 			defer wg.Done()
@@ -122,9 +136,26 @@ func (f *InputOperator) poll(ctx context.Context) {
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	// This poll's currentPollFiles is next poll's lastPollFiles
-	f.lastPollFiles = f.currentPollFiles
+	f.saveCurrent(readers)
 	f.syncLastPollFiles()
+}
+
+func (f *InputOperator) saveCurrent(readers []*Reader) {
+	// Rotate current into old
+	for _, reader := range readers {
+		reader.file.Close()
+		f.knownFiles = append(f.knownFiles, reader)
+	}
+
+	// Clear out old readers
+	for i := 0; i < len(f.knownFiles); {
+		reader := f.knownFiles[i]
+		if reader.generation >= 3 {
+			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
+		}
+		reader.generation++
+		i++
+	}
 }
 
 // getMatches gets a list of paths given an array of glob patterns to include and exclude
@@ -153,49 +184,47 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-// addPathToCurrent creates a reader for the current path and adds it to currentPollFiles.
-// If the path has been read before, it will detect that and create the new reader starting
-// from the last offset.
-func (f *InputOperator) addPathToCurrent(ctx context.Context, path string, firstCheck bool) {
-	// Check if we saw this path last time
-	if oldReader, ok := f.lastPollFiles[path]; ok {
-		f.currentPollFiles[path] = oldReader.Copy()
-		return
-	}
-
-	// If the path didn't exist last poll, create a new reader
-	newReader, err := f.newReader(path, firstCheck)
+func (f *InputOperator) newReader(ctx context.Context, file *os.File, firstCheck bool) (*Reader, error) {
+	// Get the fingerprint of the file
+	fp, err := NewFingerprint(file)
 	if err != nil {
-		f.Errorw("Failed to create new reader", zap.Error(err))
-		return
+		return nil, fmt.Errorf("create fingerprint: %s", err)
 	}
 
 	// Check if the new path has the same fingerprint as an old path
-	for _, oldReader := range f.lastPollFiles {
-		if newReader.Fingerprint.Matches(oldReader.Fingerprint) {
-			// This file has been renamed or copied, so use the offsets from the old reader
-			newReader.Offset = oldReader.Offset
-			newReader.LastSeenFileSize = oldReader.LastSeenFileSize
-			break
+	if oldReader, ok := f.findFingerprintMatch(fp); ok {
+		newReader, err := oldReader.Copy(file)
+		if err != nil {
+			return nil, err
 		}
+		newReader.Path = file.Name()
+		return newReader, nil
 	}
 
-	f.currentPollFiles[path] = newReader
-}
-
-// newReader creates a new reader and initializes it
-func (f *InputOperator) newReader(path string, firstCheck bool) (*Reader, error) {
-	newReader := NewReader(path, f)
-
-	startAtBeginning := !firstCheck || f.startAtBeginning
-	if err := newReader.Initialize(startAtBeginning); err != nil {
+	// If we don't match any previously known files, create a new reader from scratch
+	newReader, err := NewReader(file.Name(), f, file, fp)
+	if err != nil {
 		return nil, err
 	}
-
+	startAtBeginning := !firstCheck || f.startAtBeginning
+	if err := newReader.InitializeOffset(startAtBeginning); err != nil {
+		return nil, fmt.Errorf("initialize offset: %s", err)
+	}
 	return newReader, nil
 }
 
-var knownFilesKey = "knownFiles"
+func (f *InputOperator) findFingerprintMatch(fp *Fingerprint) (*Reader, bool) {
+	// Iterate backwards to match newest first
+	for i := len(f.knownFiles) - 1; i >= 0; i-- {
+		oldReader := f.knownFiles[i]
+		if fp.Matches(oldReader.Fingerprint) {
+			return oldReader, true
+		}
+	}
+	return nil, false
+}
+
+const knownFilesKey = "knownFiles"
 
 // syncLastPollFiles syncs the most recent set of files to the database
 func (f *InputOperator) syncLastPollFiles() {
@@ -203,13 +232,13 @@ func (f *InputOperator) syncLastPollFiles() {
 	enc := json.NewEncoder(&buf)
 
 	// Encode the number of known files
-	if err := enc.Encode(len(f.lastPollFiles)); err != nil {
+	if err := enc.Encode(len(f.knownFiles)); err != nil {
 		f.Errorw("Failed to encode known files", zap.Error(err))
 		return
 	}
 
 	// Encode each known file
-	for _, fileReader := range f.lastPollFiles {
+	for _, fileReader := range f.knownFiles {
 		if err := enc.Encode(fileReader); err != nil {
 			f.Errorw("Failed to encode known files", zap.Error(err))
 		}
@@ -230,7 +259,7 @@ func (f *InputOperator) loadLastPollFiles() error {
 
 	encoded := f.persist.Get(knownFilesKey)
 	if encoded == nil {
-		f.lastPollFiles = make(map[string]*Reader)
+		f.knownFiles = make([]*Reader, 0, 10)
 		return nil
 	}
 
@@ -243,13 +272,16 @@ func (f *InputOperator) loadLastPollFiles() error {
 	}
 
 	// Decode each of the known files
-	f.lastPollFiles = make(map[string]*Reader)
+	f.knownFiles = make([]*Reader, 0, knownFileCount)
 	for i := 0; i < knownFileCount; i++ {
-		newReader := NewReader("", f)
+		newReader, err := NewReader("", f, nil, nil)
+		if err != nil {
+			return err
+		}
 		if err = dec.Decode(newReader); err != nil {
 			return err
 		}
-		f.lastPollFiles[newReader.Path] = newReader
+		f.knownFiles = append(f.knownFiles, newReader)
 	}
 
 	return nil
