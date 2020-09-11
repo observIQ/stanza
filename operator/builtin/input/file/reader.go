@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/observiq/stanza/errors"
 	"go.uber.org/zap"
@@ -18,14 +17,13 @@ import (
 
 // Reader manages a single file
 type Reader struct {
-	Fingerprint  *Fingerprint
-	LastSeenTime time.Time
-	Offset       int64
-	Path         string
+	Fingerprint *Fingerprint
+	Offset      int64
+	Path        string
 
-	generation int
-	fileInput  *InputOperator
-	file       *os.File
+	generation    int
+	fileInput     *InputOperator
+	file          *os.File
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
@@ -37,7 +35,6 @@ type Reader struct {
 func NewReader(path string, f *InputOperator, file *os.File, fp *Fingerprint) (*Reader, error) {
 	r := &Reader{
 		Fingerprint:   fp,
-		LastSeenTime:  time.Now(),
 		file:          file,
 		Path:          path,
 		fileInput:     f,

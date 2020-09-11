@@ -32,7 +32,6 @@ type InputOperator struct {
 	persist helper.Persister
 
 	knownFiles       []*Reader
-	currentPollFiles map[string]*Reader
 	startAtBeginning bool
 
 	fingerprintBytes int64
@@ -67,7 +66,6 @@ func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.knownFiles = nil
-	f.currentPollFiles = nil
 	f.cancel = nil
 	return nil
 }
@@ -95,7 +93,6 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
-	f.currentPollFiles = make(map[string]*Reader)
 
 	// Get the list of paths on disk
 	matches := getMatches(f.Include, f.Exclude)
@@ -115,9 +112,11 @@ func (f *InputOperator) poll(ctx context.Context) {
 	}
 
 	readers := make([]*Reader, 0, len(files))
+
 	for _, file := range files {
 		reader, err := f.newReader(ctx, file, f.firstCheck)
 		if err != nil {
+			file.Close()
 			f.Errorw("Failed to add path", zap.Error(err))
 			continue
 		}
@@ -125,7 +124,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 	}
 	f.firstCheck = false
 
-	// Read all currentPollFiles to end
 	var wg sync.WaitGroup
 	for _, reader := range readers {
 		wg.Add(1)
