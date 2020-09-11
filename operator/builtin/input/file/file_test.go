@@ -684,7 +684,7 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 
 func TestRotation(t *testing.T) {
 
-	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
+	getMessage := func(m int) string { return fmt.Sprintf("this is a log with the number %4d", m) }
 
 	type rotateCase struct {
 		name            string
@@ -701,9 +701,8 @@ func TestRotation(t *testing.T) {
 	maxLines := []int{1, 10, 100}
 	maxBackups := []int{0, 1, 5}
 	writeSleeps := []time.Duration{
-		time.Microsecond,
-		10 * time.Microsecond,
 		100 * time.Microsecond,
+		time.Millisecond,
 	}
 
 	for _, m := range numMessages {
@@ -712,7 +711,7 @@ func TestRotation(t *testing.T) {
 				for _, s := range writeSleeps {
 					for _, ct := range []bool{true, false} {
 						cases = append(cases, rotateCase{
-							name:            fmt.Sprintf("M%d/L%d/B%d/%s/%t", m, l, b, s, ct),
+							name:            fmt.Sprintf("%d,%d,%d,%s,%t", m, l, b, s, ct),
 							numMessages:     m,
 							maxLinesPerFile: l,
 							maxBackupFiles:  b,
@@ -727,7 +726,6 @@ func TestRotation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			operator, logReceived, tempDir := newTestFileOperator(t, nil)
 			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, tc.copyTruncate)
 			expected := make([]string, 0, tc.numMessages)
@@ -744,9 +742,27 @@ func TestRotation(t *testing.T) {
 				time.Sleep(tc.writeSleep)
 			}
 
-			waitForMessagesSoft(t, logReceived, expected)
+			receivedMessages := make([]string, 0, tc.numMessages)
+		LOOP:
+			for {
+				select {
+				case e := <-logReceived:
+					receivedMessages = append(receivedMessages, e.Record.(string))
+				case <-time.After(100 * time.Millisecond):
+					break LOOP
+				}
+			}
+
+			if len(expected) == len(receivedMessages) {
+				fmt.Println(fmt.Sprintf("passed,%s", tc.name))
+			} else {
+				fmt.Println(fmt.Sprintf("failed,%s", tc.name))
+			}
+			// require.ElementsMatch(t, expected, receivedMessages)
 		})
+
 	}
+	require.False(t, true)
 }
 
 func TestMoveFile(t *testing.T) {
@@ -1020,22 +1036,6 @@ LOOP:
 		}
 	}
 
-	require.ElementsMatch(t, expected, receivedMessages)
-}
-
-func waitForMessagesSoft(t *testing.T, c chan *entry.Entry, expected []string) {
-	receivedMessages := make([]string, 0, 100)
-LOOP:
-	for {
-		select {
-		case e := <-c:
-			receivedMessages = append(receivedMessages, e.Record.(string))
-		case <-time.After(time.Second):
-			break LOOP
-		}
-	}
-
-	require.Equal(t, len(expected), len(receivedMessages))
 	require.ElementsMatch(t, expected, receivedMessages)
 }
 
