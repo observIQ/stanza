@@ -682,62 +682,71 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	wg.Wait()
 }
 
-func TestRapidRotate_MoveCreate(t *testing.T) {
-	t.Parallel()
+func TestRotation(t *testing.T) {
+
 	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
 
-	numMessages := 300
-	maxLinesPerFile := 50
-	maxBackupFiles := 5
-
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
-
-	logger := getRotatingLogger(t, tempDir, maxLinesPerFile, maxBackupFiles, false)
-
-	expected := make([]string, 0, numMessages)
-
-	for i := 0; i < numMessages; i++ {
-		expected = append(expected, getMessage(i))
+	type rotateCase struct {
+		name            string
+		numMessages     int
+		maxLinesPerFile int
+		maxBackupFiles  int
+		writeSleep      time.Duration
+		copyTruncate    bool
 	}
 
-	require.NoError(t, operator.Start())
-	defer operator.Stop()
+	cases := []rotateCase{}
 
-	for _, message := range expected {
-		logger.Writer().Write([]byte(message + "\n"))
-		time.Sleep(100 * time.Microsecond)
+	numMessages := []int{1, 2, 10, 11, 100, 101, 1000, 1001}
+	maxLines := []int{1, 10, 100}
+	maxBackups := []int{0, 1, 5}
+	writeSleeps := []time.Duration{
+		time.Microsecond,
+		10 * time.Microsecond,
+		100 * time.Microsecond,
 	}
 
-	waitForMessages(t, logReceived, expected)
-}
-
-func TestRapidRotate_CopyTruncate(t *testing.T) {
-	t.Skip()
-	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
-
-	numMessages := 300
-	maxLinesPerFile := 50
-	maxBackupFiles := 5
-
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
-
-	logger := getRotatingLogger(t, tempDir, maxLinesPerFile, maxBackupFiles, true)
-
-	expected := make([]string, 0, numMessages)
-
-	for i := 0; i < numMessages; i++ {
-		expected = append(expected, getMessage(i))
+	for _, m := range numMessages {
+		for _, l := range maxLines {
+			for _, b := range maxBackups {
+				for _, s := range writeSleeps {
+					for _, ct := range []bool{true, false} {
+						cases = append(cases, rotateCase{
+							name:            fmt.Sprintf("M%d/L%d/B%d/%s/%t", m, l, b, s, ct),
+							numMessages:     m,
+							maxLinesPerFile: l,
+							maxBackupFiles:  b,
+							writeSleep:      s,
+							copyTruncate:    ct,
+						})
+					}
+				}
+			}
+		}
 	}
 
-	require.NoError(t, operator.Start())
-	defer operator.Stop()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			operator, logReceived, tempDir := newTestFileOperator(t, nil)
+			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, tc.copyTruncate)
+			expected := make([]string, 0, tc.numMessages)
 
-	for _, message := range expected {
-		logger.Writer().Write([]byte(message + "\n"))
-		time.Sleep(100 * time.Microsecond)
+			for i := 0; i < tc.numMessages; i++ {
+				expected = append(expected, getMessage(i))
+			}
+
+			require.NoError(t, operator.Start())
+			defer operator.Stop()
+
+			for _, message := range expected {
+				logger.Writer().Write([]byte(message + "\n"))
+				time.Sleep(tc.writeSleep)
+			}
+
+			waitForMessagesSoft(t, logReceived, expected)
+		})
 	}
-
-	waitForMessages(t, logReceived, expected)
 }
 
 func TestMoveFile(t *testing.T) {
@@ -1006,12 +1015,27 @@ LOOP:
 		select {
 		case e := <-c:
 			receivedMessages = append(receivedMessages, e.Record.(string))
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(time.Second):
 			break LOOP
 		}
 	}
 
 	require.ElementsMatch(t, expected, receivedMessages)
+}
+
+func waitForMessagesSoft(t *testing.T, c chan *entry.Entry, expected []string) {
+	receivedMessages := make([]string, 0, 100)
+LOOP:
+	for {
+		select {
+		case e := <-c:
+			receivedMessages = append(receivedMessages, e.Record.(string))
+		case <-time.After(time.Second):
+			break LOOP
+		}
+	}
+
+	return require.Equal(t, len(expected), len(receivedMessages))
 }
 
 func expectNoMessages(t *testing.T, c chan *entry.Entry) {
