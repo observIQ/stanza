@@ -177,7 +177,7 @@ jobs:
         default: 60s
       profile:
         type: boolean
-        default: true
+        default: false
       image:
         type: string
         default: centos-7-v20200603

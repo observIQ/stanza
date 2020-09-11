@@ -712,7 +712,7 @@ func TestRapidRotate_MoveCreate(t *testing.T) {
 }
 
 func TestRapidRotate_CopyTruncate(t *testing.T) {
-	t.Parallel()
+	t.Skip()
 	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
 
 	numMessages := 300
