@@ -1,56 +1,108 @@
 package file
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/observiq/nanojack"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestFileSource(t *testing.T) (*InputOperator, chan *entry.Entry) {
-	mockOutput := testutil.NewMockOperator("output")
-	receivedEntries := make(chan *entry.Entry, 1000)
-	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		receivedEntries <- args.Get(1).(*entry.Entry)
-	})
-
+func newDefaultConfig(tempDir string) *InputConfig {
 	cfg := NewInputConfig("testfile")
-	cfg.PollInterval = operator.Duration{Duration: 50 * time.Millisecond}
+	cfg.PollInterval = helper.Duration{Duration: 50 * time.Millisecond}
 	cfg.StartAt = "beginning"
-	cfg.Include = []string{"should-be-overwritten"}
+	cfg.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	cfg.OutputIDs = []string{"fake"}
+	return cfg
+}
 
+func newTestFileOperator(t *testing.T, cfgMod func(*InputConfig)) (*InputOperator, chan *entry.Entry, string) {
+	fakeOutput := testutil.NewFakeOutput(t)
+	tempDir := testutil.NewTempDir(t)
+
+	cfg := newDefaultConfig(tempDir)
+	if cfgMod != nil {
+		cfgMod(cfg)
+	}
 	pg, err := cfg.Build(testutil.NewBuildContext(t))
 	if err != nil {
 		t.Fatalf("Error building operator: %s", err)
 	}
-	source := pg.(*InputOperator)
-	source.OutputOperators = []operator.Operator{mockOutput}
+	err = pg.SetOutputs([]operator.Operator{fakeOutput})
+	require.NoError(t, err)
 
-	return source, receivedEntries
+	return pg.(*InputOperator), fakeOutput.Received, tempDir
 }
 
-func TestFileSource_Build(t *testing.T) {
+func openFile(t testing.TB, path string) *os.File {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0777)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = file.Close() })
+	return file
+}
+
+func openTemp(t testing.TB, tempDir string) *os.File {
+	return openTempWithPattern(t, tempDir, "")
+}
+
+func reopenTemp(t testing.TB, name string) *os.File {
+	return openTempWithPattern(t, filepath.Dir(name), filepath.Base(name))
+}
+
+func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
+	file, err := ioutil.TempFile(tempDir, pattern)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = file.Close() })
+	return file
+}
+
+func getRotatingLogger(t testing.TB, tempDir string, maxLines int, copyTruncate bool) *log.Logger {
+	file, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	require.NoError(t, file.Close()) // will be managed by rotator
+
+	rotator := nanojack.Logger{
+		Filename:     file.Name(),
+		MaxLines:     maxLines,
+		CopyTruncate: copyTruncate,
+	}
+
+	t.Cleanup(func() { _ = rotator.Close() })
+
+	return log.New(&rotator, "", 0)
+}
+
+func writeString(t testing.TB, file *os.File, s string) {
+	_, err := file.WriteString(s)
+	require.NoError(t, err)
+}
+
+func TestBuild(t *testing.T) {
 	t.Parallel()
-	mockOutput := testutil.NewMockOperator("mock")
+	fakeOutput := testutil.NewMockOperator("fake")
 
 	basicConfig := func() *InputConfig {
 		cfg := NewInputConfig("testfile")
-		cfg.OutputIDs = []string{"mock"}
+		cfg.OutputIDs = []string{"fake"}
 		cfg.Include = []string{"/var/log/testpath.*"}
 		cfg.Exclude = []string{"/var/log/testpath.ex*"}
-		cfg.PollInterval = operator.Duration{Duration: 10 * time.Millisecond}
+		cfg.PollInterval = helper.Duration{Duration: 10 * time.Millisecond}
 		return cfg
 	}
 
@@ -65,7 +117,7 @@ func TestFileSource_Build(t *testing.T) {
 			func(f *InputConfig) { return },
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {
-				require.Equal(t, f.OutputOperators[0], mockOutput)
+				require.Equal(t, f.OutputOperators[0], fakeOutput)
 				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.FilePathField, entry.NewNilField())
 				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
@@ -119,10 +171,59 @@ func TestFileSource_Build(t *testing.T) {
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {},
 		},
+		{
+			"InvalidEncoding",
+			func(f *InputConfig) {
+				f.Encoding = "UTF-3233"
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"LineStartAndEnd",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
+					LineStartPattern: ".*",
+					LineEndPattern:   ".*",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"NoLineStartOrEnd",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"InvalidLineStartRegex",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
+					LineStartPattern: "(",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"InvalidLineEndRegex",
+			func(f *InputConfig) {
+				f.Multiline = &MultilineConfig{
+					LineEndPattern: "(",
+				}
+			},
+			require.Error,
+			nil,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			t.Parallel()
 			cfg := basicConfig()
 			tc.modifyBaseConfig(cfg)
 
@@ -132,7 +233,7 @@ func TestFileSource_Build(t *testing.T) {
 				return
 			}
 
-			err = plg.SetOutputs([]operator.Operator{mockOutput})
+			err = plg.SetOutputs([]operator.Operator{fakeOutput})
 			require.NoError(t, err)
 
 			fileInput := plg.(*InputOperator)
@@ -141,542 +242,688 @@ func TestFileSource_Build(t *testing.T) {
 	}
 }
 
-func TestFileSource_CleanStop(t *testing.T) {
+func TestCleanStop(t *testing.T) {
 	t.Parallel()
 	t.Skip(`Skipping due to goroutine leak in opencensus.
 See this issue for details: https://github.com/census-instrumentation/opencensus-go/issues/1191#issuecomment-610440163`)
 	// defer goleak.VerifyNone(t)
 
-	source, _ := newTestFileSource(t)
-
-	tempDir := testutil.NewTempDir(t)
-
-	tempFile, err := ioutil.TempFile(tempDir, "")
+	operator, _, tempDir := newTestFileOperator(t, nil)
+	_ = openTemp(t, tempDir)
+	err := operator.Start()
 	require.NoError(t, err)
-
-	source.Include = []string{tempFile.Name()}
-
-	err = source.Start()
-	require.NoError(t, err)
-	source.Stop()
+	operator.Stop()
 }
 
-func TestFileSource_AddFields(t *testing.T) {
+// AddFields tests that the `file_name` and `file_path` fields are included
+// when IncludeFileName and IncludeFilePath are set to true
+func TestAddFileFields(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-	source.FilePathField = entry.NewLabelField("path")
-	source.FileNameField = entry.NewLabelField("file_name")
+	operator, logReceived, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+		cfg.IncludeFileName = true
+		cfg.IncludeFilePath = true
+	})
 
 	// Create a file, then start
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog\n")
 
-	_, err = temp.WriteString("testlog\n")
-	require.NoError(t, err)
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	select {
-	case e := <-logReceived:
-		require.Equal(t, filepath.Base(temp.Name()), e.Labels["file_name"])
-		require.Equal(t, temp.Name(), e.Labels["path"])
-	case <-time.After(time.Second):
-		require.FailNow(t, "Timed out waiting for message")
-	}
+	e := waitForOne(t, logReceived)
+	require.Equal(t, filepath.Base(temp.Name()), e.Labels["file_name"])
+	require.Equal(t, temp.Name(), e.Labels["file_path"])
 }
 
-func TestFileSource_ReadExistingLogs(t *testing.T) {
+// ReadExistingLogs tests that, when starting from beginning, we
+// read all the lines that are already there
+func TestReadExistingLogs(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	// Create a file, then start
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\ntestlog2\n")
 
-	_, err = temp.WriteString("testlog\n")
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	waitForMessage(t, logReceived, "testlog")
-}
-
-func TestFileSource_IncludeFile(t *testing.T) {
-	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-	source.FileNameField = entry.NewLabelField("file_name")
-	source.FilePathField = entry.NewLabelField("file_path")
-
-	// Create a file, then start
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
-
-	_, err = temp.WriteString("testlog\n")
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	select {
-	case e := <-logReceived:
-		require.Equal(t, e.Labels["file_name"], filepath.Base(temp.Name()))
-		require.Equal(t, e.Labels["file_path"], temp.Name())
-	case <-time.After(time.Second):
-		require.FailNow(t, "Timed out waiting for message")
-	}
-}
-
-func TestFileSource_ReadNewLogs(t *testing.T) {
-	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	// Start first, then create a new file
-	err := source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
-
-	_, err = temp.WriteString("testlog\n")
-	require.NoError(t, err)
-
-	waitForMessage(t, logReceived, "testlog")
-}
-
-func TestFileSource_ReadExistingAndNewLogs(t *testing.T) {
-	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
-
-	_, err = temp.WriteString("testlog1\n")
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	_, err = temp.WriteString("testlog2\n")
-	require.NoError(t, err)
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
 }
 
-func TestFileSource_StartAtEnd(t *testing.T) {
+// ReadNewLogs tests that, after starting, if a new file is created
+// all the entries in that file are read from the beginning
+func TestReadNewLogs(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-	source.startAtBeginning = false
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
+	// Poll once so we know this isn't a new file
+	operator.poll(context.Background())
+	defer operator.Stop()
 
-	_, err = temp.WriteString("testlog1\n")
-	require.NoError(t, err)
+	// Create a new file
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog\n")
 
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	// Poll a second time after the file has been created
+	operator.poll(context.Background())
 
-	// Wait until file has been read the first time
-	time.Sleep(200 * time.Millisecond)
+	// Expect the message to come through
+	waitForMessage(t, logReceived, "testlog")
+}
 
-	_, err = temp.WriteString("testlog2\n")
-	require.NoError(t, err)
-	temp.Close()
+// ReadExistingAndNewLogs tests that, on startup, if start_at
+// is set to `beginning`, we read the logs that are there, and
+// we read any additional logs that are written after startup
+func TestReadExistingAndNewLogs(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
+	// Start with a file with an entry in it, and expect that entry
+	// to come through when we poll for the first time
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\n")
+	operator.poll(context.Background())
+	waitForMessage(t, logReceived, "testlog1")
+
+	// Write a second entry, and expect that entry to come through
+	// as well
+	writeString(t, temp, "testlog2\n")
+	operator.poll(context.Background())
 	waitForMessage(t, logReceived, "testlog2")
 }
 
-func TestFileSource_StartAtEndNewFile(t *testing.T) {
+// StartAtEnd tests that when `start_at` is configured to `end`,
+// we don't read any entries that were in the file before startup
+func TestStartAtEnd(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-	source.startAtBeginning = false
+	operator, logReceived, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+		cfg.StartAt = "end"
+	})
 
-	err := source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\n")
 
-	// Wait for the first check to complete
-	time.Sleep(200 * time.Millisecond)
+	// Expect no entries on the first poll
+	operator.poll(context.Background())
+	expectNoMessages(t, logReceived)
 
-	temp, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp.Close()
+	// Expect any new entries after the first poll
+	writeString(t, temp, "testlog2\n")
+	operator.poll(context.Background())
+	waitForMessage(t, logReceived, "testlog2")
+}
 
-	_, err = temp.WriteString("testlog1\ntestlog2\n")
-	require.NoError(t, err)
+// StartAtEndNewFile tests that when `start_at` is configured to `end`,
+// a file created after the operator has been started is read from the
+// beginning
+func TestStartAtEndNewFile(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator.startAtBeginning = false
+
+	operator.poll(context.Background())
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\ntestlog2\n")
+
+	operator.poll(context.Background())
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
+}
+
+// NoNewline tests that an entry will still be sent eventually
+// even if the file doesn't end in a newline
+func TestNoNewline(t *testing.T) {
+	t.Parallel()
+	t.Skip()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\ntestlog2")
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
 }
 
-func TestFileSource_MultiFileSimple(t *testing.T) {
+// SkipEmpty tests that the any empty lines are skipped
+func TestSkipEmpty(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	temp2, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1\n\ntestlog2\n")
 
-	_, err = temp1.WriteString("testlog1\n")
-	require.NoError(t, err)
-	_, err = temp2.WriteString("testlog2\n")
-	require.NoError(t, err)
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	waitForMessage(t, logReceived, "testlog1")
+	waitForMessage(t, logReceived, "testlog2")
+}
+
+// SplitWrite tests a line written in two writes
+// close together still is read as a single entry
+func TestSplitWrite(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, "testlog1")
+
+	operator.poll(context.Background())
+
+	writeString(t, temp, "testlog2\n")
+
+	operator.poll(context.Background())
+	waitForMessage(t, logReceived, "testlog1testlog2")
+}
+
+func TestDecodeBufferIsResized(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	temp := openTemp(t, tempDir)
+	expected := stringWithLength(1<<12 + 1)
+	writeString(t, temp, expected+"\n")
+
+	waitForMessage(t, logReceived, expected)
+}
+
+func TestMultiFileSimple(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	temp1 := openTemp(t, tempDir)
+	temp2 := openTemp(t, tempDir)
+
+	writeString(t, temp1, "testlog1\n")
+	writeString(t, temp2, "testlog2\n")
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
 	waitForMessages(t, logReceived, []string{"testlog1", "testlog2"})
 }
 
-func TestFileSource_MoveFile(t *testing.T) {
+func TestMultiFileParallel_PreloadedFiles(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	numFiles := 10
+	numMessages := 100
+
+	expected := make([]string, 0, numFiles*numMessages)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			expected = append(expected, getMessage(i, j))
+		}
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < numFiles; i++ {
+		temp := openTemp(t, tempDir)
+		wg.Add(1)
+		go func(tf *os.File, f int) {
+			defer wg.Done()
+			for j := 0; j < numMessages; j++ {
+				writeString(t, tf, getMessage(f, j)+"\n")
+			}
+		}(temp, i)
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
+func TestMultiFileParallel_LiveFiles(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	numFiles := 10
+	numMessages := 100
+
+	expected := make([]string, 0, numFiles*numMessages)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			expected = append(expected, getMessage(i, j))
+		}
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	temps := make([]*os.File, 0, numFiles)
+	for i := 0; i < numFiles; i++ {
+		temps = append(temps, openTemp(t, tempDir))
+	}
+
+	var wg sync.WaitGroup
+	for i, temp := range temps {
+		wg.Add(1)
+		go func(tf *os.File, f int) {
+			defer wg.Done()
+			for j := 0; j < numMessages; j++ {
+				writeString(t, tf, getMessage(f, j)+"\n")
+			}
+		}(temp, i)
+	}
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
+func TestMultiFileRotate(t *testing.T) {
+	t.Parallel()
+
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	numFiles := 3
+	numMessages := 3
+	numRotations := 3
+
+	expected := make([]string, 0, numFiles*numMessages*numRotations)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			for k := 0; k < numRotations; k++ {
+				expected = append(expected, getMessage(i, k, j))
+			}
+		}
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	temps := make([]*os.File, 0, numFiles)
+	for i := 0; i < numFiles; i++ {
+		temps = append(temps, openTemp(t, tempDir))
+	}
+
+	var wg sync.WaitGroup
+	for i, temp := range temps {
+		wg.Add(1)
+		go func(tf *os.File, f int) {
+			defer wg.Done()
+			for k := 0; k < numRotations; k++ {
+				for j := 0; j < numMessages; j++ {
+					writeString(t, tf, getMessage(f, k, j)+"\n")
+				}
+
+				require.NoError(t, tf.Close())
+				require.NoError(t, os.Rename(tf.Name(), fmt.Sprintf("%s.%d", tf.Name(), k)))
+				tf = reopenTemp(t, tf.Name())
+			}
+		}(temp, i)
+	}
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
+func TestMultiFileRotateSlow(t *testing.T) {
+	t.Parallel()
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
+	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
+
+	numFiles := 3
+	numMessages := 30
+	numRotations := 3
+
+	expected := make([]string, 0, numFiles*numMessages*numRotations)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			for k := 0; k < numRotations; k++ {
+				expected = append(expected, getMessage(i, k, j))
+			}
+		}
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	var wg sync.WaitGroup
+	for fileNum := 0; fileNum < numFiles; fileNum++ {
+		wg.Add(1)
+		go func(fileNum int) {
+			defer wg.Done()
+
+			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
+				file := openFile(t, baseFileName(fileNum))
+				for messageNum := 0; messageNum < numMessages; messageNum++ {
+					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					time.Sleep(5 * time.Millisecond)
+				}
+
+				file.Close()
+				require.NoError(t, os.Rename(baseFileName(fileNum), fileName(fileNum, rotationNum)))
+			}
+		}(fileNum)
+	}
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
+func TestMultiCopyTruncateSlow(t *testing.T) {
+	t.Parallel()
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
+	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
+	baseFileName := func(f int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.log", f)) }
+
+	numFiles := 3
+	numMessages := 30
+	numRotations := 3
+
+	expected := make([]string, 0, numFiles*numMessages*numRotations)
+	for i := 0; i < numFiles; i++ {
+		for j := 0; j < numMessages; j++ {
+			for k := 0; k < numRotations; k++ {
+				expected = append(expected, getMessage(i, k, j))
+			}
+		}
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	var wg sync.WaitGroup
+	for fileNum := 0; fileNum < numFiles; fileNum++ {
+		wg.Add(1)
+		go func(fileNum int) {
+			defer wg.Done()
+
+			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
+				file := openFile(t, baseFileName(fileNum))
+				for messageNum := 0; messageNum < numMessages; messageNum++ {
+					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					time.Sleep(5 * time.Millisecond)
+				}
+
+				_, err := file.Seek(0, 0)
+				require.NoError(t, err)
+				dst := openFile(t, fileName(fileNum, rotationNum))
+				_, err = io.Copy(dst, file)
+				require.NoError(t, err)
+				require.NoError(t, dst.Close())
+				require.NoError(t, file.Truncate(0))
+				_, err = file.Seek(0, 0)
+				require.NoError(t, err)
+			}
+		}(fileNum)
+	}
+
+	waitForMessages(t, logReceived, expected)
+	wg.Wait()
+}
+
+func TestRapidRotate_MoveCreate(t *testing.T) {
+	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
+
+	numMessages := 1000
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	logger := getRotatingLogger(t, tempDir, 10, false)
+
+	expected := make([]string, 0, numMessages)
+
+	for i := 0; i < numMessages; i++ {
+		expected = append(expected, getMessage(i))
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	for _, message := range expected {
+		logger.Writer().Write([]byte(message + "\n"))
+		time.Sleep(200 * time.Microsecond)
+	}
+
+	waitForMessages(t, logReceived, expected)
+}
+
+func TestRapidRotate_CopyTruncate(t *testing.T) {
+	t.Skip()
+	getMessage := func(m int) string { return fmt.Sprintf("message %d", m) }
+
+	numMessages := 1000
+
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	logger := getRotatingLogger(t, tempDir, 10, true)
+
+	expected := make([]string, 0, numMessages)
+
+	for i := 0; i < numMessages; i++ {
+		expected = append(expected, getMessage(i))
+	}
+
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+
+	for _, message := range expected {
+		logger.Writer().Write([]byte(message + "\n"))
+		time.Sleep(time.Millisecond)
+	}
+
+	waitForMessages(t, logReceived, expected)
+}
+
+func TestMoveFile(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Moving files while open is unsupported on Windows")
 	}
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-
-	_, err = temp1.WriteString("testlog1\n")
-	require.NoError(t, err)
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, "testlog1\n")
 	temp1.Close()
 
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	operator.poll(context.Background())
+	defer operator.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
-	time.Sleep(200 * time.Millisecond)
 
-	i := 0
-	for {
-		err = os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
-		if err != nil {
-			if i < 3 {
-				t.Error(err)
-				i++
-				time.Sleep(10 * time.Millisecond)
-				continue
-			} else {
-				require.NoError(t, err)
-			}
-		}
+	// Wait until all goroutines are finished before renaming
+	operator.wg.Wait()
+	err := os.Rename(temp1.Name(), fmt.Sprintf("%s.2", temp1.Name()))
+	require.NoError(t, err)
 
-		break
-	}
-
+	operator.poll(context.Background())
 	expectNoMessages(t, logReceived)
 }
 
-func TestFileSource_TruncateThenWrite(t *testing.T) {
+// TruncateThenWrite tests that, after a file has been truncated,
+// any new writes are picked up
+func TestTruncateThenWrite(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, "testlog1\ntestlog2\n")
 
-	_, err = temp1.WriteString("testlog1\n")
-	require.NoError(t, err)
-	_, err = temp1.WriteString("testlog2\n")
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	operator.poll(context.Background())
+	defer operator.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
 
-	err = temp1.Truncate(0)
-	require.NoError(t, err)
+	require.NoError(t, temp1.Truncate(0))
 	temp1.Seek(0, 0)
 
-	_, err = temp1.WriteString("testlog3\n")
-	require.NoError(t, err)
-
+	writeString(t, temp1, "testlog3\n")
+	operator.poll(context.Background())
 	waitForMessage(t, logReceived, "testlog3")
 	expectNoMessages(t, logReceived)
 }
 
-func TestFileSource_CopyTruncateWriteBoth(t *testing.T) {
+// CopyTruncateWriteBoth tests that when a file is copied
+// with unread logs on the end, then the original is truncated,
+// we get the unread logs on the copy as well as any new logs
+// written to the truncated file
+func TestCopyTruncateWriteBoth(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp1.Close()
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, "testlog1\ntestlog2\n")
 
-	_, err = temp1.WriteString("testlog1\n")
-	require.NoError(t, err)
-	_, err = temp1.WriteString("testlog2\n")
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	operator.poll(context.Background())
+	defer operator.Stop()
 
 	waitForMessage(t, logReceived, "testlog1")
 	waitForMessage(t, logReceived, "testlog2")
+	operator.wg.Wait() // wait for all goroutines to finish
 
-	time.Sleep(50 * time.Millisecond)
-
-	temp2, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-	defer temp2.Close()
-
-	_, err = io.Copy(temp1, temp2)
+	// Copy the first file to a new file, and add another log
+	temp2 := openTemp(t, tempDir)
+	_, err := io.Copy(temp2, temp1)
 	require.NoError(t, err)
 
 	// Truncate original file
-	err = temp1.Truncate(0)
+	require.NoError(t, temp1.Truncate(0))
 	temp1.Seek(0, 0)
-	require.NoError(t, err)
 
 	// Write to original and new file
-	_, err = temp1.WriteString("testlog3\n")
-	require.NoError(t, err)
+	writeString(t, temp2, "testlog3\n")
+	writeString(t, temp1, "testlog4\n")
 
-	waitForMessage(t, logReceived, "testlog3")
-
-	_, err = temp2.WriteString("testlog4\n")
-	require.NoError(t, err)
-
-	waitForMessage(t, logReceived, "testlog4")
+	// Expect both messages to come through
+	operator.poll(context.Background())
+	waitForMessages(t, logReceived, []string{"testlog3", "testlog4"})
 }
 
-func TestFileSource_OffsetsAfterRestart(t *testing.T) {
+// OffsetsAfterRestart tests that a operator is able to load
+// its offsets after a restart
+func TestOffsetsAfterRestart(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, "testlog1\n")
 
-	// Write to a file
-	_, err = temp1.WriteString("testlog1\n")
-	require.NoError(t, err)
-
-	// Start the source
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
+	// Start the operator and expect a message
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 	waitForMessage(t, logReceived, "testlog1")
 
-	// Restart the source
-	err = source.Stop()
-	require.NoError(t, err)
-	err = source.Start()
-	require.NoError(t, err)
+	// Restart the operator. Stop and build a new
+	// one to guarantee freshness
+	require.NoError(t, operator.Stop())
+	require.NoError(t, operator.Start())
 
-	// Write a new log
-	_, err = temp1.WriteString("testlog2\n")
-	require.NoError(t, err)
-
+	// Write a new log and expect only that log
+	writeString(t, temp1, "testlog2\n")
 	waitForMessage(t, logReceived, "testlog2")
 }
 
-func TestFileSource_OffsetsAfterRestart_BigFiles(t *testing.T) {
+func TestOffsetsAfterRestart_BigFiles(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	log1 := stringWithLength(2000)
+	log2 := stringWithLength(2000)
+
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, log1+"\n")
+
+	// Start the operator
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+	waitForMessage(t, logReceived, log1)
+
+	// Restart the operator
+	require.NoError(t, operator.Stop())
+	require.NoError(t, operator.Start())
+
+	writeString(t, temp1, log2+"\n")
+	waitForMessage(t, logReceived, log2)
+}
+
+func TestOffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	log1 := stringWithLength(2000)
+	log2 := stringWithLength(2000)
+
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, log1+"\n")
+
+	// Start the operator and expect the first message
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
+	waitForMessage(t, logReceived, log1)
+
+	// Stop the operator and write a new message
+	require.NoError(t, operator.Stop())
+	writeString(t, temp, log2+"\n")
+
+	// Start the operator and expect the message
+	require.NoError(t, operator.Start())
+	waitForMessage(t, logReceived, log2)
+}
+
+func TestFileMovedWhileOff_BigFiles(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	log1 := stringWithLength(1000)
 	log2 := stringWithLength(1000)
 
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
+	temp := openTemp(t, tempDir)
+	writeString(t, temp, log1+"\n")
+	require.NoError(t, temp.Close())
 
-	// Write to a file
-	_, err = temp1.WriteString(log1 + "\n")
-	require.NoError(t, err)
-
-	// Start the source
-	err = source.Start()
-	require.NoError(t, err)
-
+	// Start the operator
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
 
-	// Restart the source
-	err = source.Stop()
-	require.NoError(t, err)
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	// Stop the operator, then rename and write a new log
+	require.NoError(t, operator.Stop())
 
-	_, err = temp1.WriteString(log2 + "\n")
+	err := os.Rename(temp.Name(), fmt.Sprintf("%s2", temp.Name()))
 	require.NoError(t, err)
 
+	temp = reopenTemp(t, temp.Name())
+	require.NoError(t, err)
+	writeString(t, temp, log2+"\n")
+
+	// Expect the message written to the new log to come through
+	require.NoError(t, operator.Start())
 	waitForMessage(t, logReceived, log2)
 }
 
-func TestFileSource_OffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
+func TestManyLogsDelivered(t *testing.T) {
 	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	log1 := stringWithLength(1000)
-	log2 := stringWithLength(1000)
-
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-
-	// Write to a file
-	_, err = temp1.WriteString(log1 + "\n")
-	require.NoError(t, err)
-
-	// Start the source
-	err = source.Start()
-	require.NoError(t, err)
-
-	waitForMessage(t, logReceived, log1)
-
-	// Restart the source
-	err = source.Stop()
-	require.NoError(t, err)
-
-	_, err = temp1.WriteString(log2 + "\n")
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	waitForMessage(t, logReceived, log2)
-}
-
-func TestFileSource_FileMovedWhileOff_BigFiles(t *testing.T) {
-	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	log1 := stringWithLength(1000)
-	log2 := stringWithLength(1000)
-
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-
-	// Write to a file
-	_, err = temp1.WriteString(log1 + "\n")
-	require.NoError(t, err)
-
-	// Start the source
-	err = source.Start()
-	require.NoError(t, err)
-
-	waitForMessage(t, logReceived, log1)
-
-	// Stop the source, then rename and write a new log
-	err = source.Stop()
-	require.NoError(t, err)
-
-	_, err = temp1.WriteString(log2 + "\n")
-	require.NoError(t, err)
-	temp1.Close()
-
-	err = os.Rename(temp1.Name(), fmt.Sprintf("%s2", temp1.Name()))
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	waitForMessage(t, logReceived, log2)
-}
-
-func TestFileSource_FileMovedWhileOff_SmallFiles(t *testing.T) {
-	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	log1 := stringWithLength(10)
-	log2 := stringWithLength(10)
-
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
-
-	// Write to a file
-	_, err = temp1.WriteString(log1 + "\n")
-	require.NoError(t, err)
-
-	// Start the source
-	err = source.Start()
-	require.NoError(t, err)
-
-	waitForMessage(t, logReceived, log1)
-	time.Sleep(50 * time.Millisecond)
-
-	// Restart the source
-	err = source.Stop()
-	require.NoError(t, err)
-
-	_, err = temp1.WriteString(log2 + "\n")
-	require.NoError(t, err)
-	temp1.Close()
-
-	err = os.Rename(temp1.Name(), fmt.Sprintf("%s2", temp1.Name()))
-	require.NoError(t, err)
-
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
-
-	waitForMessage(t, logReceived, log2)
-}
-
-func TestFileSource_ManyLogsDelivered(t *testing.T) {
-	t.Parallel()
-	source, logReceived := newTestFileSource(t)
-	tempDir := testutil.NewTempDir(t)
-	source.Include = []string{fmt.Sprintf("%s/*", tempDir)}
-
-	temp1, err := ioutil.TempFile(tempDir, "")
-	require.NoError(t, err)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
 
 	count := 1000
 	expectedMessages := make([]string, 0, count)
@@ -684,22 +931,38 @@ func TestFileSource_ManyLogsDelivered(t *testing.T) {
 		expectedMessages = append(expectedMessages, strconv.Itoa(i))
 	}
 
-	// Start the source
-	err = source.Start()
-	require.NoError(t, err)
-	defer source.Stop()
+	// Start the operator
+	require.NoError(t, operator.Start())
+	defer operator.Stop()
 
 	// Write lots of logs
+	temp := openTemp(t, tempDir)
 	for _, message := range expectedMessages {
-		temp1.WriteString(message + "\n")
+		temp.WriteString(message + "\n")
 	}
 
-	// Expect each of them to come through
+	// Expect each of them to come through once
 	for _, message := range expectedMessages {
 		waitForMessage(t, logReceived, message)
 	}
-
 	expectNoMessages(t, logReceived)
+}
+
+func TestFileReader_FingerprintUpdated(t *testing.T) {
+	t.Parallel()
+	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+
+	temp := openTemp(t, tempDir)
+	tempCopy := openFile(t, temp.Name())
+	fp, err := NewFingerprint(temp)
+	require.NoError(t, err)
+	reader, err := NewReader(temp.Name(), operator, tempCopy, fp)
+	require.NoError(t, err)
+
+	writeString(t, temp, "testlog1\n")
+	reader.ReadToEnd(context.Background())
+	waitForMessage(t, logReceived, "testlog1")
+	require.Equal(t, []byte("testlog1\n"), reader.Fingerprint.FirstBytes)
 }
 
 func stringWithLength(length int) string {
@@ -711,12 +974,22 @@ func stringWithLength(length int) string {
 	return string(b)
 }
 
+func waitForOne(t *testing.T, c chan *entry.Entry) *entry.Entry {
+	select {
+	case e := <-c:
+		return e
+	case <-time.After(time.Minute):
+		require.FailNow(t, "Timed out waiting for message")
+		return nil
+	}
+}
+
 func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
 	case e := <-c:
 		require.Equal(t, expected, e.Record.(string))
 	case <-time.After(time.Second):
-		require.FailNow(t, "Timed out waiting for message")
+		require.FailNow(t, "Timed out waiting for message", expected)
 	}
 }
 
@@ -727,11 +1000,8 @@ LOOP:
 		select {
 		case e := <-c:
 			receivedMessages = append(receivedMessages, e.Record.(string))
-			if len(receivedMessages) == len(expected) {
-				break LOOP
-			}
-		case <-time.After(time.Second):
-			require.FailNow(t, "Timed out waiting for expected messages")
+		case <-time.After(500 * time.Millisecond):
+			break LOOP
 		}
 	}
 
@@ -806,22 +1076,18 @@ func TestEncodings(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir := testutil.NewTempDir(t)
-			path := filepath.Join(tempDir, "in.log")
-			err := ioutil.WriteFile(path, tc.contents, 0777)
+			t.Parallel()
+			operator, receivedEntries, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+				cfg.Encoding = tc.encoding
+			})
+
+			// Popualte the file
+			temp := openTemp(t, tempDir)
+			_, err := temp.Write(tc.contents)
 			require.NoError(t, err)
 
-			source, receivedEntries := newTestFileSource(t)
-			source.Include = []string{path}
-			source.encoding, err = lookupEncoding(tc.encoding)
-			require.NoError(t, err)
-			source.SplitFunc, err = NewNewlineSplitFunc(source.encoding)
-			require.NoError(t, err)
-			require.NotNil(t, source.encoding)
-
-			err = source.Start()
-			require.NoError(t, err)
-			defer source.Stop()
+			require.NoError(t, operator.Start())
+			defer operator.Stop()
 
 			for _, expected := range tc.expected {
 				select {
@@ -874,6 +1140,7 @@ func BenchmarkFileInput(b *testing.B) {
 			require.NoError(b, err)
 
 			err = fileOperator.Start()
+			defer fileOperator.Stop()
 			require.NoError(b, err)
 
 			file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)

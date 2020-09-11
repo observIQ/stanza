@@ -35,7 +35,7 @@ func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 		OutputConfig:   helper.NewOutputConfig(operatorID, "google_cloud_output"),
 		BufferConfig:   buffer.NewConfig(),
 		FlusherConfig:  flusher.NewConfig(),
-		Timeout:        operator.Duration{Duration: 30 * time.Second},
+		Timeout:        helper.Duration{Duration: 30 * time.Second},
 		UseCompression: true,
 	}
 }
@@ -43,17 +43,16 @@ func NewGoogleCloudOutputConfig(operatorID string) *GoogleCloudOutputConfig {
 // GoogleCloudOutputConfig is the configuration of a google cloud output operator.
 type GoogleCloudOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
-	BufferConfig        buffer.Config  `json:"buffer,omitempty" yaml:"buffer,omitempty"`
-	FlusherConfig       flusher.Config `json:"flusher,omitempty" yaml:"flusher,omitempty"`
-
-	Credentials     string            `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
-	CredentialsFile string            `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
-	ProjectID       string            `json:"project_id"                 yaml:"project_id"`
-	LogNameField    *entry.Field      `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
-	TraceField      *entry.Field      `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
-	SpanIDField     *entry.Field      `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
-	Timeout         operator.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
-	UseCompression  bool              `json:"use_compression,omitempty"  yaml:"use_compression,omitempty"`
+	BufferConfig        buffer.Config   `json:"buffer,omitempty" yaml:"buffer,omitempty"`
+	FlusherConfig       flusher.Config  `json:"flusher,omitempty" yaml:"flusher,omitempty"`
+	Credentials         string          `json:"credentials,omitempty"      yaml:"credentials,omitempty"`
+	CredentialsFile     string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
+	ProjectID           string          `json:"project_id"                 yaml:"project_id"`
+	LogNameField        *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
+	TraceField          *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
+	SpanIDField         *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
+	Timeout             helper.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
+	UseCompression      bool            `json:"use_compression,omitempty"  yaml:"use_compression,omitempty"`
 }
 
 // Build will build a google cloud output operator.

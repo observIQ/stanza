@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/observiq/stanza/operator"
-	_ "github.com/observiq/stanza/operator/builtin"
-	"github.com/observiq/stanza/operator/builtin/output"
-	"github.com/observiq/stanza/operator/builtin/transformer"
+	_ "github.com/observiq/stanza/operator/builtin/input/generate"
+	"github.com/observiq/stanza/operator/builtin/output/drop"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
+	"github.com/observiq/stanza/plugin"
 	"github.com/observiq/stanza/testutil"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -188,67 +190,6 @@ func (i invalidMarshaller) MarshalYAML() (interface{}, error) {
 	return nil, fmt.Errorf("failed")
 }
 
-func TestBuildBuiltinFromParamsWithUnsupportedYaml(t *testing.T) {
-	params := Params{
-		"id":     "noop",
-		"type":   "noop",
-		"output": "test",
-		"field":  invalidMarshaller{},
-	}
-	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to parse config map as yaml")
-}
-
-func TestBuildBuiltinFromParamsWithUnknownField(t *testing.T) {
-	params := Params{
-		"id":      "noop",
-		"type":    "noop",
-		"unknown": true,
-		"output":  "test_output",
-	}
-	_, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
-	require.Error(t, err)
-}
-
-func TestBuildBuiltinFromValidParams(t *testing.T) {
-	params := Params{
-		"id":     "noop",
-		"type":   "noop",
-		"output": "test_output",
-	}
-	configs, err := params.BuildConfigs(operator.PluginRegistry{}, "test_namespace", []string{})
-
-	require.NoError(t, err)
-	require.Equal(t, 1, len(configs))
-	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
-	require.Equal(t, "test_namespace.noop", configs[0].ID())
-}
-
-func TestBuildPluginFromValidParams(t *testing.T) {
-	registry := operator.PluginRegistry{}
-	pluginTemplate := `
-pipeline:
-  - id: plugin_noop
-    type: noop
-    output: {{.output}}
-`
-	err := registry.Add("plugin", pluginTemplate)
-	require.NoError(t, err)
-
-	params := Params{
-		"id":     "plugin",
-		"type":   "plugin",
-		"output": "test_output",
-	}
-
-	configs, err := params.BuildConfigs(registry, "test_namespace", []string{})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(configs))
-	require.IsType(t, &transformer.NoopOperatorConfig{}, configs[0].Builder)
-	require.Equal(t, "test_namespace.plugin.plugin_noop", configs[0].ID())
-}
-
 func TestBuildValidPipeline(t *testing.T) {
 	context := testutil.NewBuildContext(t)
 	pluginTemplate := `
@@ -261,7 +202,8 @@ pipeline:
         message: test
     output: {{.output}}
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	pipelineConfig := Config{
@@ -276,7 +218,7 @@ pipeline:
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context, nil)
+	_, err = pipelineConfig.BuildPipeline(context, registry, nil)
 	require.NoError(t, err)
 }
 
@@ -296,10 +238,10 @@ func TestBuildValidPipelineDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
-	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	pl, err := pipelineConfig.BuildPipeline(context, nil, defaultOutput)
 	require.NoError(t, err)
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.drop_it")))
 }
@@ -324,10 +266,10 @@ func TestBuildValidPipelineNextOutputAndDefaultOutput(t *testing.T) {
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
-	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	pl, err := pipelineConfig.BuildPipeline(context, nil, defaultOutput)
 	require.NoError(t, err)
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.generate_input"), createNodeID("$.noop")))
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.noop"), createNodeID("$.drop_it")))
@@ -344,7 +286,8 @@ pipeline:
       record:
         message: test
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	pipelineConfig := Config{
@@ -354,10 +297,10 @@ pipeline:
 		},
 	}
 
-	defaultOutput, err := output.NewDropOutputConfig("$.drop_it").Build(context)
+	defaultOutput, err := drop.NewDropOutputConfig("$.drop_it").Build(context)
 	require.NoError(t, err)
 
-	pl, err := pipelineConfig.BuildPipeline(context, defaultOutput)
+	pl, err := pipelineConfig.BuildPipeline(context, registry, defaultOutput)
 	require.NoError(t, err)
 	require.True(t, pl.Graph.HasEdgeFromTo(createNodeID("$.plugin.plugin_generate"), createNodeID("$.drop_it")))
 }
@@ -377,7 +320,7 @@ func TestBuildInvalidPipelineInvalidType(t *testing.T) {
 		},
 	}
 
-	_, err := pipelineConfig.BuildPipeline(context, nil)
+	_, err := pipelineConfig.BuildPipeline(context, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unsupported `type` for operator config")
 }
@@ -393,7 +336,8 @@ pipeline:
       message: test
     output: {{.output}}
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	pipelineConfig := Config{
@@ -408,7 +352,7 @@ pipeline:
 		},
 	}
 
-	_, err = pipelineConfig.BuildPipeline(context, nil)
+	_, err = pipelineConfig.BuildPipeline(context, registry, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "build operator configs")
 }
@@ -416,8 +360,9 @@ pipeline:
 func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	pipelineConfig := Config{
 		Params{
-			"id":     "tcp_input",
-			"type":   "tcp_input",
+			"id":     "generate_input",
+			"type":   "generate_input",
+			"number": 1,
 			"output": "drop_output",
 		},
 		Params{
@@ -427,9 +372,9 @@ func TestBuildInvalidPipelineInvalidOperator(t *testing.T) {
 	}
 
 	context := testutil.NewBuildContext(t)
-	_, err := pipelineConfig.BuildPipeline(context, nil)
+	_, err := pipelineConfig.BuildPipeline(context, nil, nil)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing required parameter 'listen_address'")
+	require.Contains(t, err.Error(), "field number not found")
 }
 
 func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
@@ -452,7 +397,7 @@ func TestBuildInvalidPipelineInvalidGraph(t *testing.T) {
 	}
 
 	context := testutil.NewBuildContext(t)
-	_, err := pipelineConfig.BuildPipeline(context, nil)
+	_, err := pipelineConfig.BuildPipeline(context, nil, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not exist")
 }
@@ -472,7 +417,8 @@ pipeline:
       record: test
     output: {{.output}}
 `
-	err := context.PluginRegistry.Add("plugin", pluginTemplate)
+	registry := plugin.Registry{}
+	err := registry.Add("plugin", pluginTemplate)
 	require.NoError(t, err)
 
 	config := Config{
@@ -486,7 +432,7 @@ pipeline:
 		},
 	}
 
-	configs, err := config.buildOperatorConfigs(context.PluginRegistry)
+	configs, err := config.buildOperatorConfigs(registry)
 	require.NoError(t, err)
 	require.Len(t, configs, 3)
 
@@ -562,4 +508,68 @@ func TestMultiRoundtripParams(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, marshalledYaml, marshalledYaml2)
 	}
+}
+
+func TestBuildPipelineWithFailingOperator(t *testing.T) {
+	ctx := testutil.NewBuildContext(t)
+
+	type invalidOperatorConfig struct {
+		OperatorType string `json:"type" yaml:"type"`
+		testutil.OperatorBuilder
+	}
+
+	newBuilder := func() operator.Builder {
+		config := &invalidOperatorConfig{}
+		config.On("Build", mock.Anything).Return(nil, fmt.Errorf("failed to build operator"))
+		config.On("SetNamespace", mock.Anything, mock.Anything).Return()
+		config.On("ID").Return("test_id")
+		config.On("Type").Return("invalid_operator")
+		return config
+	}
+
+	operator.Register("invalid_operator", newBuilder)
+	config := Config{
+		{"type": "invalid_operator"},
+	}
+	_, err := config.BuildPipeline(ctx, nil, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to build operator")
+}
+
+func TestBuildPipelineWithInvalidParam(t *testing.T) {
+	ctx := testutil.NewBuildContext(t)
+	config := Config{
+		{"missing": "type"},
+	}
+	_, err := config.BuildPipeline(ctx, nil, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing required `type` field")
+}
+
+type invalidYaml struct{}
+
+func (y invalidYaml) MarshalYAML() (interface{}, error) {
+	return nil, fmt.Errorf("invalid yaml")
+}
+
+func TestBuildAsBuiltinWithInvalidParam(t *testing.T) {
+	params := Params{
+		"field": invalidYaml{},
+	}
+	_, err := params.buildAsBuiltin("test_namespace")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to parse config map as yaml")
+}
+
+func TestUnmarshalParamsWithInvalidBytes(t *testing.T) {
+	bytes := []byte("string")
+	var params Params
+	err := yaml.Unmarshal(bytes, &params)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unmarshal errors")
+}
+
+func TestCleanValueWithUnknownType(t *testing.T) {
+	value := cleanValue(map[int]int{})
+	require.Equal(t, "map[]", value)
 }

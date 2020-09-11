@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Split buffers into buffers and flushers for better modularity
 - New memory buffer design for a uniform interface between disk and memory buffers
+- Most operators are now dedicated modules, so that they may be imported individually
 
 ## [0.9.14] - 2020-08-31
 ### Fixed

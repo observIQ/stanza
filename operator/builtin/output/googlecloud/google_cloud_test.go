@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
@@ -33,7 +33,7 @@ type googleCloudTestCase struct {
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
-	cfg.FlusherConfig.MaxWait = operator.Duration{Duration: 10 * time.Millisecond}
+	cfg.FlusherConfig.MaxWait = helper.Duration{Duration: 10 * time.Millisecond}
 	return cfg
 }
 
@@ -212,7 +212,6 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
 			require.NoError(t, err)
-
 			cloudOutput.(*GoogleCloudOutput).client = client
 			cloudOutput.(*GoogleCloudOutput).flusher.Start()
 			defer cloudOutput.(*GoogleCloudOutput).flusher.Stop()
@@ -222,7 +221,13 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 			select {
 			case req := <-received:
-				require.Equal(t, tc.expectedOutput, req)
+				// Apparently there is occasionally an infinite loop in req.stat
+				// and testify freezes up trying to infinitely unpack it
+				// So instead, just compare the meaningful portions
+				require.Equal(t, tc.expectedOutput.LogName, req.LogName)
+				require.Equal(t, tc.expectedOutput.Labels, req.Labels)
+				require.Equal(t, tc.expectedOutput.Resource, req.Resource)
+				require.Equal(t, tc.expectedOutput.Entries, req.Entries)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for writeLogEntries request")
 			}
@@ -387,7 +392,7 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 
 	cfg := NewGoogleCloudOutputConfig(g.name)
 	cfg.ProjectID = "test_project_id"
-	cfg.FlusherConfig.MaxWait = operator.NewDuration(10 * time.Millisecond)
+	cfg.FlusherConfig.MaxWait = helper.NewDuration(10 * time.Millisecond)
 	if g.configMod != nil {
 		g.configMod(cfg)
 	}

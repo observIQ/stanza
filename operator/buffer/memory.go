@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
 	"go.etcd.io/bbolt"
@@ -50,7 +51,7 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 // at which point it saves the entries into a database. It provides no guarantees about
 // lost entries if shut down uncleanly.
 type MemoryBuffer struct {
-	db          operator.Database
+	db          database.Database
 	pluginID    string
 	buf         chan *entry.Entry
 	inFlight    map[uint64]*entry.Entry
