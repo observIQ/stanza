@@ -1035,7 +1035,8 @@ LOOP:
 		}
 	}
 
-	return require.Equal(t, len(expected), len(receivedMessages))
+	require.Equal(t, len(expected), len(receivedMessages))
+	require.ElementsMatch(t, expected, receivedMessages)
 }
 
 func expectNoMessages(t *testing.T, c chan *entry.Entry) {
