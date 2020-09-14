@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.10.0] - 2020-09-11
 ### Added
-- Disk buffer for output operators
+- Disk buffer for output operators ([PR109](https://github.com/observIQ/stanza/pull/109))
 ### Changed
-- Split buffers into buffers and flushers for better modularity
-- New memory buffer design for a uniform interface between disk and memory buffers
-- Most operators are now dedicated modules, so that they may be imported individually
+- Split buffers into buffers and flushers for better modularity ([PR109](https://github.com/observIQ/stanza/pull/109))
+- New memory buffer design for a uniform interface between disk and memory buffers ([PR109](https://github.com/observIQ/stanza/pull/109))
+- Most operators are now dedicated modules, so that they may be imported individually ([PR108](https://github.com/observIQ/stanza/pull/108))
 
 ## [0.9.14] - 2020-08-31
 ### Fixed
