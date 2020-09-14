@@ -32,8 +32,12 @@ func newDefaultConfig(tempDir string) *InputConfig {
 	return cfg
 }
 
-func newTestFileOperator(t *testing.T, cfgMod func(*InputConfig)) (*InputOperator, chan *entry.Entry, string) {
+func newTestFileOperator(t *testing.T, cfgMod func(*InputConfig), outMod func(*testutil.FakeOutput)) (*InputOperator, chan *entry.Entry, string) {
 	fakeOutput := testutil.NewFakeOutput(t)
+	if outMod != nil {
+		outMod(fakeOutput)
+	}
+
 	tempDir := testutil.NewTempDir(t)
 
 	cfg := newDefaultConfig(tempDir)
@@ -249,7 +253,7 @@ func TestCleanStop(t *testing.T) {
 See this issue for details: https://github.com/census-instrumentation/opencensus-go/issues/1191#issuecomment-610440163`)
 	// defer goleak.VerifyNone(t)
 
-	operator, _, tempDir := newTestFileOperator(t, nil)
+	operator, _, tempDir := newTestFileOperator(t, nil, nil)
 	_ = openTemp(t, tempDir)
 	err := operator.Start()
 	require.NoError(t, err)
@@ -263,7 +267,7 @@ func TestAddFileFields(t *testing.T) {
 	operator, logReceived, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
 		cfg.IncludeFileName = true
 		cfg.IncludeFilePath = true
-	})
+	}, nil)
 
 	// Create a file, then start
 	temp := openTemp(t, tempDir)
@@ -281,7 +285,7 @@ func TestAddFileFields(t *testing.T) {
 // read all the lines that are already there
 func TestReadExistingLogs(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	// Create a file, then start
 	temp := openTemp(t, tempDir)
@@ -298,7 +302,7 @@ func TestReadExistingLogs(t *testing.T) {
 // all the entries in that file are read from the beginning
 func TestReadNewLogs(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	// Poll once so we know this isn't a new file
 	operator.poll(context.Background())
@@ -320,7 +324,7 @@ func TestReadNewLogs(t *testing.T) {
 // we read any additional logs that are written after startup
 func TestReadExistingAndNewLogs(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	// Start with a file with an entry in it, and expect that entry
 	// to come through when we poll for the first time
@@ -342,7 +346,7 @@ func TestStartAtEnd(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
 		cfg.StartAt = "end"
-	})
+	}, nil)
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1\n")
@@ -362,7 +366,7 @@ func TestStartAtEnd(t *testing.T) {
 // beginning
 func TestStartAtEndNewFile(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 	operator.startAtBeginning = false
 
 	operator.poll(context.Background())
@@ -380,7 +384,7 @@ func TestStartAtEndNewFile(t *testing.T) {
 func TestNoNewline(t *testing.T) {
 	t.Parallel()
 	t.Skip()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1\ntestlog2")
@@ -395,7 +399,7 @@ func TestNoNewline(t *testing.T) {
 // SkipEmpty tests that the any empty lines are skipped
 func TestSkipEmpty(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1\n\ntestlog2\n")
@@ -411,7 +415,7 @@ func TestSkipEmpty(t *testing.T) {
 // close together still is read as a single entry
 func TestSplitWrite(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1")
@@ -426,7 +430,7 @@ func TestSplitWrite(t *testing.T) {
 
 func TestDecodeBufferIsResized(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	require.NoError(t, operator.Start())
 	defer operator.Stop()
@@ -440,7 +444,7 @@ func TestDecodeBufferIsResized(t *testing.T) {
 
 func TestMultiFileSimple(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp1 := openTemp(t, tempDir)
 	temp2 := openTemp(t, tempDir)
@@ -459,7 +463,7 @@ func TestMultiFileParallel_PreloadedFiles(t *testing.T) {
 
 	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
 
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	numFiles := 10
 	numMessages := 100
@@ -495,7 +499,7 @@ func TestMultiFileParallel_LiveFiles(t *testing.T) {
 
 	getMessage := func(f, m int) string { return fmt.Sprintf("file %d, message %d", f, m) }
 
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	numFiles := 10
 	numMessages := 100
@@ -535,7 +539,7 @@ func TestMultiFileRotate(t *testing.T) {
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
 
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	numFiles := 3
 	numMessages := 3
@@ -582,7 +586,7 @@ func TestMultiFileRotate(t *testing.T) {
 func TestMultiFileRotateSlow(t *testing.T) {
 	t.Parallel()
 
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
 	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
@@ -630,7 +634,7 @@ func TestMultiFileRotateSlow(t *testing.T) {
 func TestMultiCopyTruncateSlow(t *testing.T) {
 	t.Parallel()
 
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
 	fileName := func(f, k int) string { return filepath.Join(tempDir, fmt.Sprintf("file%d.rot%d.log", f, k)) }
@@ -683,43 +687,74 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 }
 
 func TestRotation(t *testing.T) {
-
-	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
+	getMessage := func(m int) string { return fmt.Sprintf("this is a log entry with the number %4d", m) }
 
 	type rotateCase struct {
 		name            string
 		numMessages     int
 		maxLinesPerFile int
 		maxBackupFiles  int
-		writeSleep      time.Duration
+		writeInterval   time.Duration
+		pollInterval    time.Duration
 		copyTruncate    bool
+		ephemeralLines  bool
 	}
+
+	numMessages := []int{10, 100}
+	maxLines := []int{3, 30}
+	maxBackups := []int{5}
+	writeIntervals := []time.Duration{time.Microsecond, 100 * time.Microsecond}
+	pollIntervals := []time.Duration{10 * time.Millisecond, 100 * time.Millisecond}
 
 	cases := []rotateCase{}
+	for _, nm := range numMessages {
+		for _, ml := range maxLines {
+			for _, mb := range maxBackups {
+				for _, wi := range writeIntervals {
+					for _, pi := range pollIntervals {
+						for _, ct := range []bool{true, false} {
+							/*
+								When log files are rotated at extreme speeds, it is possible to miss some log entries.
+								This can happen when an individual log entry is written and deleted within the duration
+								of a single poll interval. For example, consider the following scenario:
+									- A log file may have up to 9 backups (10 total log files)
+									- Each log file may contain up to 10 entries
+									- Log entries are written at an interval of 10 microseconds
+									- Polling interval is set to 100ms
+								In this scenario, it a log entry that is written will only exist on disk for about 1 ms.
+								A polling interval of 100ms will most likely never produce a chance to read the log file.
 
-	numMessages := []int{1, 10, 100, 1000}
-	maxLines := []int{1, 10, 100, 1000}
-	maxBackups := []int{1, 10, 100}
-	writeSleeps := []time.Duration{
-		10 * time.Microsecond,
-		100 * time.Microsecond,
-		time.Millisecond,
-		10 * time.Millisecond,
-	}
+								In production settings, this consideration is not very likely to be a problem, but it is
+								easy to encounter the issue in tests, and difficult to deterministically simulate edge cases.
+								However, the above understanding does allow for some consistent expectations.
+									1) Cases that do not require deletion of old log entries should always pass.
+									2) Cases where the polling interval is sufficiently rapid should always pass.
+									3) When neither 1 nor 2 is true, there may be missing entries, but still no duplicates.
+							*/
 
-	for _, m := range numMessages {
-		for _, l := range maxLines {
-			for _, b := range maxBackups {
-				for _, s := range writeSleeps {
-					for _, ct := range []bool{true, false} {
-						cases = append(cases, rotateCase{
-							name:            fmt.Sprintf("%d,%d,%d,%s,%t", m, l, b, s, ct),
-							numMessages:     m,
-							maxLinesPerFile: l,
-							maxBackupFiles:  b,
-							writeSleep:      s,
-							copyTruncate:    ct,
-						})
+							// primary + backups
+							maxLinesInAllFiles := ml + ml*mb
+
+							// Will the test write enough lines to result in deletion of oldest backups?
+							maxBackupsExceeded := nm > maxLinesInAllFiles
+
+							// last line written in primary file will exist for l*b more writes
+							minTimeToLive := time.Duration(int(wi) * ml * mb)
+
+							// can a line be written and then rotated to deletion before ever observed?
+							ephemeralLines := maxBackupsExceeded && pi > minTimeToLive
+
+							cases = append(cases, rotateCase{
+								name:            fmt.Sprintf("%d/%d/%d/%d/%d/%t/%t", nm, ml, mb, wi.Microseconds(), pi.Microseconds(), ct, ephemeralLines),
+								numMessages:     nm,
+								maxLinesPerFile: ml,
+								maxBackupFiles:  mb,
+								writeInterval:   wi,
+								pollInterval:    pi,
+								copyTruncate:    ct,
+								ephemeralLines:  ephemeralLines,
+							})
+						}
 					}
 				}
 			}
@@ -728,11 +763,17 @@ func TestRotation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			operator, logReceived, tempDir := newTestFileOperator(t, nil)
+			operator, logReceived, tempDir := newTestFileOperator(t,
+				func(cfg *InputConfig) {
+					cfg.PollInterval = helper.Duration{tc.pollInterval}
+				},
+				func(out *testutil.FakeOutput) {
+					out.Received = make(chan *entry.Entry, tc.numMessages)
+				},
+			)
 			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, tc.copyTruncate)
-			expected := make([]string, 0, tc.numMessages)
 
+			expected := make([]string, 0, tc.numMessages)
 			for i := 0; i < tc.numMessages; i++ {
 				expected = append(expected, getMessage(i))
 			}
@@ -742,31 +783,27 @@ func TestRotation(t *testing.T) {
 
 			for _, message := range expected {
 				logger.Writer().Write([]byte(message + "\n"))
-				time.Sleep(tc.writeSleep)
+				time.Sleep(tc.writeInterval)
 			}
 
-			receivedMessages := make([]string, 0, tc.numMessages)
+			received := make([]string, 0, tc.numMessages)
 		LOOP:
 			for {
 				select {
 				case e := <-logReceived:
-					receivedMessages = append(receivedMessages, e.Record.(string))
-				case <-time.After(100 * time.Millisecond):
+					received = append(received, e.Record.(string))
+				case <-time.After(2 * (tc.writeInterval + tc.pollInterval)):
 					break LOOP
 				}
 			}
 
-			diff := len(expected) - len(receivedMessages)
-			if diff == 0 {
-				fmt.Println(fmt.Sprintf("passed,%s,%d", tc.name, diff))
+			if tc.ephemeralLines {
+				require.Subset(t, expected, received)
 			} else {
-				fmt.Println(fmt.Sprintf("failed,%s,%d", tc.name, diff))
+				require.ElementsMatch(t, expected, received)
 			}
-			// require.ElementsMatch(t, expected, receivedMessages)
 		})
-
 	}
-	require.False(t, true)
 }
 
 func TestMoveFile(t *testing.T) {
@@ -774,7 +811,7 @@ func TestMoveFile(t *testing.T) {
 		t.Skip("Moving files while open is unsupported on Windows")
 	}
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
@@ -798,7 +835,7 @@ func TestMoveFile(t *testing.T) {
 // any new writes are picked up
 func TestTruncateThenWrite(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\ntestlog2\n")
@@ -824,7 +861,7 @@ func TestTruncateThenWrite(t *testing.T) {
 // written to the truncated file
 func TestCopyTruncateWriteBoth(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\ntestlog2\n")
@@ -858,7 +895,7 @@ func TestCopyTruncateWriteBoth(t *testing.T) {
 // its offsets after a restart
 func TestOffsetsAfterRestart(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
@@ -880,7 +917,7 @@ func TestOffsetsAfterRestart(t *testing.T) {
 
 func TestOffsetsAfterRestart_BigFiles(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	log1 := stringWithLength(2000)
 	log2 := stringWithLength(2000)
@@ -903,7 +940,7 @@ func TestOffsetsAfterRestart_BigFiles(t *testing.T) {
 
 func TestOffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	log1 := stringWithLength(2000)
 	log2 := stringWithLength(2000)
@@ -927,7 +964,7 @@ func TestOffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 
 func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	log1 := stringWithLength(1000)
 	log2 := stringWithLength(1000)
@@ -958,7 +995,7 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 
 func TestManyLogsDelivered(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	count := 1000
 	expectedMessages := make([]string, 0, count)
@@ -985,7 +1022,7 @@ func TestManyLogsDelivered(t *testing.T) {
 
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
-	operator, logReceived, tempDir := newTestFileOperator(t, nil)
+	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp := openTemp(t, tempDir)
 	tempCopy := openFile(t, temp.Name())
@@ -1114,7 +1151,7 @@ func TestEncodings(t *testing.T) {
 			t.Parallel()
 			operator, receivedEntries, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
 				cfg.Encoding = tc.encoding
-			})
+			}, nil)
 
 			// Popualte the file
 			temp := openTemp(t, tempDir)
