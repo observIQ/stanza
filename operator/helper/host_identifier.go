@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -91,7 +92,7 @@ func getIP() (string, error) {
 			continue
 		}
 		if len(addrs) > 0 {
-			ip = addrs[0].String()
+			ip = strings.Split(addrs[0].String(), "/")[0]
 		}
 	}
 
