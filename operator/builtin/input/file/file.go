@@ -111,17 +111,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 		files = append(files, file)
 	}
 
-	readers := make([]*Reader, 0, len(files))
-
-	for _, file := range files {
-		reader, err := f.newReader(ctx, file, f.firstCheck)
-		if err != nil {
-			file.Close()
-			f.Errorw("Failed to add path", zap.Error(err))
-			continue
-		}
-		readers = append(readers, reader)
-	}
+	readers := f.makeReaders(files)
 	f.firstCheck = false
 
 	var wg sync.WaitGroup
@@ -136,26 +126,13 @@ func (f *InputOperator) poll(ctx context.Context) {
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
+	// Close all files
+	for _, file := range files {
+		file.Close()
+	}
+
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
-}
-
-func (f *InputOperator) saveCurrent(readers []*Reader) {
-	// Rotate current into old
-	for _, reader := range readers {
-		reader.file.Close()
-		f.knownFiles = append(f.knownFiles, reader)
-	}
-
-	// Clear out old readers
-	for i := 0; i < len(f.knownFiles); {
-		reader := f.knownFiles[i]
-		if reader.generation >= 3 {
-			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
-		}
-		reader.generation++
-		i++
-	}
 }
 
 // getMatches gets a list of paths given an array of glob patterns to include and exclude
@@ -184,13 +161,81 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-func (f *InputOperator) newReader(ctx context.Context, file *os.File, firstCheck bool) (*Reader, error) {
-	// Get the fingerprint of the file
-	fp, err := NewFingerprint(file)
-	if err != nil {
-		return nil, fmt.Errorf("create fingerprint: %s", err)
+func (f *InputOperator) makeReaders(files []*os.File) []*Reader {
+	// Get fingerprints for each file
+	fps := make([]*Fingerprint, 0, len(files))
+	for _, file := range files {
+		fp, err := NewFingerprint(file)
+		if err != nil {
+			f.Errorw("Failed creating fingerprint", zap.Error(err))
+			continue
+		}
+		fps = append(fps, fp)
 	}
 
+	// Make a copy of the files so we don't modify the original
+	filesCopy := make([]*os.File, len(files))
+	copy(filesCopy, files)
+
+	// Exclude any empty fingerprints or duplicate fingerprints to avoid doubling up on copy-truncate files
+OUTER:
+	for i := 0; i < len(fps); {
+		fp := fps[i]
+		if len(fp.FirstBytes) == 0 {
+			// Empty file, don't read it until we can compare its fingerprint
+			fps = append(fps[:i], fps[i+1:]...)
+			filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
+
+		}
+
+		for j := 0; j < len(fps); j++ {
+			if i == j {
+				// Skip checking itself
+				continue
+			}
+
+			fp2 := fps[j]
+			if fp.Matches(fp2) || fp2.Matches(fp) {
+				// Exclude
+				fps = append(fps[:i], fps[i+1:]...)
+				filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
+				continue OUTER
+			}
+		}
+		i++
+	}
+
+	readers := make([]*Reader, 0, len(fps))
+	for i := 0; i < len(fps); i++ {
+		reader, err := f.newReader(filesCopy[i], fps[i], f.firstCheck)
+		if err != nil {
+			f.Errorw("Failed to create reader", zap.Error(err))
+			continue
+		}
+		readers = append(readers, reader)
+	}
+
+	return readers
+}
+
+func (f *InputOperator) saveCurrent(readers []*Reader) {
+	// Rotate current into old
+	for _, reader := range readers {
+		f.knownFiles = append(f.knownFiles, reader)
+	}
+
+	// Clear out old readers
+	for i := 0; i < len(f.knownFiles); {
+		reader := f.knownFiles[i]
+		if reader.generation >= 3 {
+			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
+		}
+		reader.generation++
+		i++
+	}
+}
+
+func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
 	// Check if the new path has the same fingerprint as an old path
 	if oldReader, ok := f.findFingerprintMatch(fp); ok {
 		newReader, err := oldReader.Copy(file)

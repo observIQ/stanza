@@ -684,7 +684,7 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 
 func TestRotation(t *testing.T) {
 
-	getMessage := func(m int) string { return fmt.Sprintf("this is a log with the number %4d", m) }
+	getMessage := func(m int) string { return fmt.Sprintf("this is a log message with the number %4d", m) }
 
 	type rotateCase struct {
 		name            string
@@ -697,12 +697,14 @@ func TestRotation(t *testing.T) {
 
 	cases := []rotateCase{}
 
-	numMessages := []int{1, 2, 10, 11, 100, 101, 1000, 1001}
-	maxLines := []int{1, 10, 100}
-	maxBackups := []int{0, 1, 5}
+	numMessages := []int{1, 10, 100, 1000}
+	maxLines := []int{1, 10, 100, 1000}
+	maxBackups := []int{1, 10, 100}
 	writeSleeps := []time.Duration{
+		10 * time.Microsecond,
 		100 * time.Microsecond,
 		time.Millisecond,
+		10 * time.Millisecond,
 	}
 
 	for _, m := range numMessages {
@@ -726,6 +728,7 @@ func TestRotation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			operator, logReceived, tempDir := newTestFileOperator(t, nil)
 			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, tc.copyTruncate)
 			expected := make([]string, 0, tc.numMessages)
@@ -753,10 +756,11 @@ func TestRotation(t *testing.T) {
 				}
 			}
 
-			if len(expected) == len(receivedMessages) {
-				fmt.Println(fmt.Sprintf("passed,%s", tc.name))
+			diff := len(expected) - len(receivedMessages)
+			if diff == 0 {
+				fmt.Println(fmt.Sprintf("passed,%s,%d", tc.name, diff))
 			} else {
-				fmt.Println(fmt.Sprintf("failed,%s", tc.name))
+				fmt.Println(fmt.Sprintf("failed,%s,%d", tc.name, diff))
 			}
 			// require.ElementsMatch(t, expected, receivedMessages)
 		})
