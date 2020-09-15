@@ -27,14 +27,19 @@ func init() {
 // NewK8sEventsConfig creates a default K8sEventsConfig
 func NewK8sEventsConfig(operatorID string) *K8sEventsConfig {
 	return &K8sEventsConfig{
-		InputConfig: helper.NewInputConfig(operatorID, "k8s_event_input"),
+		InputConfig:        helper.NewInputConfig(operatorID, "k8s_event_input"),
+		Namespaces:         []string{},
+		DiscoverNamespaces: false,
+		DiscoveryInterval:  helper.Duration{Duration: time.Minute * 1},
 	}
 }
 
 // K8sEventsConfig is the configuration of K8sEvents operator
 type K8sEventsConfig struct {
 	helper.InputConfig `yaml:",inline"`
-	Namespaces         []string
+	Namespaces         []string        `json:"namespaces" yaml:"namespaces"`
+	DiscoverNamespaces bool            `json:"discover_namespaces" yaml:"discover_namespaces"`
+	DiscoveryInterval  helper.Duration `json:"discovery_interval yaml:"discovery_interval"`
 }
 
 // Build will build a k8s_event_input operator from the supplied configuration
@@ -44,17 +49,25 @@ func (c K8sEventsConfig) Build(context operator.BuildContext) (operator.Operator
 		return nil, errors.Wrap(err, "build transformer")
 	}
 
+	if len(c.Namespaces) == 0 && !c.DiscoverNamespaces {
+		return nil, fmt.Errorf("`namespaces` must be specified or `discover_namespaces` enabled")
+	}
+
 	return &K8sEvents{
-		InputOperator: input,
-		namespaces:    c.Namespaces,
+		InputOperator:      input,
+		namespaces:         c.Namespaces,
+		discoverNamespaces: c.DiscoverNamespaces,
+		discoveryInterval:  c.DiscoveryInterval,
 	}, nil
 }
 
 // K8sEvents is an operator for generating logs from k8s events
 type K8sEvents struct {
 	helper.InputOperator
-	client     corev1.CoreV1Interface
-	namespaces []string
+	client             corev1.CoreV1Interface
+	discoverNamespaces bool
+	discoveryInterval  helper.Duration
+	namespaces         []string
 
 	cancel func()
 	wg     sync.WaitGroup
@@ -81,23 +94,13 @@ func (k *K8sEvents) Start() error {
 		return errors.Wrap(err, "build client")
 	}
 
-	// Get all namespaces if left empty
-	if len(k.namespaces) == 0 {
-		k.namespaces, err = listNamespaces(ctx, k.client)
-		if err != nil {
-			return errors.Wrap(err, "list namespaces")
-		}
-	}
-
-	// Test connection
-	testWatcher, err := k.client.Events(k.namespaces[0]).Watch(ctx, metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("test connection: list events for namespace '%s': %s", k.namespaces[0], err)
-	}
-	testWatcher.Stop()
-
 	for _, ns := range k.namespaces {
 		k.startWatchingNamespace(ctx, ns)
+	}
+
+	// Find and watch namespaces if in discovery mode
+	if k.discoverNamespaces {
+		k.startFindingNamespaces(ctx, k.client)
 	}
 
 	return nil
@@ -125,6 +128,36 @@ func listNamespaces(ctx context.Context, client corev1.CoreV1Interface) ([]strin
 	return namespaces, nil
 }
 
+// startFindingNamespaces creates a goroutine that looks for namespaces to watch
+func (k *K8sEvents) startFindingNamespaces(ctx context.Context, client corev1.CoreV1Interface) {
+	k.wg.Add(1)
+	go func() {
+		defer k.wg.Done()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(k.discoveryInterval.Duration):
+				namespaces, err := listNamespaces(ctx, client)
+				if err != nil {
+					k.Errorf("failed to list namespaces: %s", err)
+					continue
+				}
+
+				for _, namespace := range namespaces {
+					if k.hasNamespace(namespace) {
+						continue
+					}
+
+					k.namespaces = append(k.namespaces, namespace)
+					k.startWatchingNamespace(ctx, namespace)
+				}
+			}
+		}
+	}()
+}
+
 // startWatchingNamespace creates a goroutine that watches the events for a
 // specific namespace
 func (k *K8sEvents) startWatchingNamespace(ctx context.Context, ns string) {
@@ -150,6 +183,16 @@ func (k *K8sEvents) startWatchingNamespace(ctx context.Context, ns string) {
 			k.consumeWatchEvents(ctx, watcher.ResultChan())
 		}
 	}()
+}
+
+// hasNamespace returns a boolean indicating if the namespace is being watched.
+func (k *K8sEvents) hasNamespace(namespace string) bool {
+	for _, n := range k.namespaces {
+		if n == namespace {
+			return true
+		}
+	}
+	return false
 }
 
 // consumeWatchEvents will read events from the watcher channel until the channel is closed

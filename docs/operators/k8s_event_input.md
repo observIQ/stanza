@@ -5,14 +5,16 @@ Kubernetes API, and currently requires that Stanza is running inside a Kubernete
 
 ### Configuration Fields
 
-| Field        | Default           | Description                                                                                      |
-| ---          | ---               | ---                                                                                              |
-| `id`         | `k8s_event_input` | A unique identifier for the operator                                                             |
-| `output`     | Next in pipeline  | The connected operator(s) that will receive all outbound entries                                 |
-| `namespaces` | All namespaces    | An array of namespaces to collect events from. If unset, defaults to all namespaces.             |
-| `write_to`   | $                 | The record [field](/docs/types/field.md) written to when creating a new log entry                |
-| `labels`     | {}                | A map of `key: value` labels to add to the entry's labels                                        |
-| `resource`   | {}                | A map of `key: value` labels to add to the entry's resource                                      |
+| Field                 | Default           | Description                                                                                      |
+| ---                   | ---               | ---                                                                                              |
+| `id`                  | `k8s_event_input` | A unique identifier for the operator                                                             |
+| `output`              | Next in pipeline  | The connected operator(s) that will receive all outbound entries                                 |
+| `namespaces`          | All namespaces    | An array of namespaces to collect events from.                                                   |
+| `discover_namespaces` | `false`           | If true, the operator will regularly poll for new namespaces to include                          |
+| `discovery_interval ` | `1m`              | The interval at which the operator searches for new namespaces to follow                         |
+| `write_to`            | $                 | The record [field](/docs/types/field.md) written to when creating a new log entry                |
+| `labels`              | {}                | A map of `key: value` labels to add to the entry's labels                                        |
+| `resource`            | {}                | A map of `key: value` labels to add to the entry's resource                                      |
  
 ### Example Configurations
 
