@@ -94,6 +94,23 @@ func (k *K8sEvents) Start() error {
 		return errors.Wrap(err, "build client")
 	}
 
+	if k.discoverNamespaces {
+		namespaces, err := listNamespaces(ctx, k.client)
+		if err != nil {
+			return errors.Wrap(err, "initial namespace discovery")
+		}
+		k.namespaces = append(k.namespaces, namespaces...)
+	}
+
+	// Test connection
+	if len(k.namespaces) > 0 {
+		testWatcher, err := k.client.Events(k.namespaces[0]).Watch(ctx, metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("test connection failed: list events for namespace '%s': %s", k.namespaces[0], err)
+		}
+		testWatcher.Stop()
+	}
+
 	for _, ns := range k.namespaces {
 		k.startWatchingNamespace(ctx, ns)
 	}
