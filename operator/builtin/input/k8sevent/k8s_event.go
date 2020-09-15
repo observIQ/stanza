@@ -68,8 +68,9 @@ type K8sEvents struct {
 	discoveryInterval  helper.Duration
 	namespaces         []string
 
-	cancel func()
-	wg     sync.WaitGroup
+	cancel       func()
+	wg           sync.WaitGroup
+	namespaceMux sync.Mutex
 }
 
 // Start implements the operator.Operator interface
@@ -101,7 +102,7 @@ func (k *K8sEvents) Start() error {
 
 		for _, namespace := range namespaces {
 			if !k.hasNamespace(namespace) {
-				k.namespaces = append(k.namespaces, namespace)
+				k.addNamespace(namespace)
 			}
 		}
 	}
@@ -171,7 +172,7 @@ func (k *K8sEvents) startFindingNamespaces(ctx context.Context, client corev1.Co
 						continue
 					}
 
-					k.namespaces = append(k.namespaces, namespace)
+					k.addNamespace(namespace)
 					k.startWatchingNamespace(ctx, namespace)
 				}
 			}
@@ -204,8 +205,18 @@ func (k *K8sEvents) startWatchingNamespace(ctx context.Context, ns string) {
 	}()
 }
 
+// addNamespace will add a namespace.
+func (k *K8sEvents) addNamespace(namespace string) {
+	k.namespaceMux.Lock()
+	k.namespaces = append(k.namespaces, namespace)
+	k.namespaceMux.Unlock()
+}
+
 // hasNamespace returns a boolean indicating if the namespace is being watched.
 func (k *K8sEvents) hasNamespace(namespace string) bool {
+	k.namespaceMux.Lock()
+	defer k.namespaceMux.Unlock()
+
 	for _, n := range k.namespaces {
 		if n == namespace {
 			return true
@@ -216,11 +227,13 @@ func (k *K8sEvents) hasNamespace(namespace string) bool {
 
 // removeNamespace removes a namespace.
 func (k *K8sEvents) removeNamespace(namespace string) {
+	k.namespaceMux.Lock()
+	defer k.namespaceMux.Unlock()
+
 	for i, n := range k.namespaces {
 		if n != namespace {
 			continue
 		}
-
 		k.namespaces = append(k.namespaces[:i], k.namespaces[i+1:]...)
 		break
 	}
