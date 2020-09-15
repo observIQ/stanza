@@ -816,7 +816,7 @@ func TestRotation(t *testing.T) {
 
 			expected := make([]string, 0, tc.totalLines)
 			for i := 0; i < tc.totalLines; i++ {
-				expected = append(expected, fmt.Sprintf("this is a log entry with the number %3d", i))
+				expected = append(expected, fmt.Sprintf("this is a fifty char log entry with the number %3d", i))
 			}
 
 			require.NoError(t, operator.Start())
@@ -833,7 +833,7 @@ func TestRotation(t *testing.T) {
 				select {
 				case e := <-logReceived:
 					received = append(received, e.Record.(string))
-				case <-time.After(2 * (tc.writeInterval + tc.pollInterval)):
+				case <-time.After(250 * time.Millisecond):
 					break LOOP
 				}
 			}
