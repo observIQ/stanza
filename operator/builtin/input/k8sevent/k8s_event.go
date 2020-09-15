@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
@@ -186,21 +185,19 @@ func (k *K8sEvents) startWatchingNamespace(ctx context.Context, ns string) {
 	k.wg.Add(1)
 	go func() {
 		defer k.wg.Done()
-
-		b := backoff.NewExponentialBackOff()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(b.NextBackOff()):
+			default:
 			}
 
 			watcher, err := k.client.Events(ns).Watch(ctx, metav1.ListOptions{})
 			if err != nil {
 				k.Errorw("Failed to start watcher", zap.Error(err))
-				continue
+				k.removeNamespace(ns)
+				return
 			}
-			b.Reset()
 
 			k.consumeWatchEvents(ctx, watcher.ResultChan())
 		}
@@ -215,6 +212,18 @@ func (k *K8sEvents) hasNamespace(namespace string) bool {
 		}
 	}
 	return false
+}
+
+// removeNamespace removes a namespace.
+func (k *K8sEvents) removeNamespace(namespace string) {
+	for i, n := range k.namespaces {
+		if n != namespace {
+			continue
+		}
+
+		k.namespaces = append(k.namespaces[:i], k.namespaces[i+1:]...)
+		break
+	}
 }
 
 // consumeWatchEvents will read events from the watcher channel until the channel is closed
