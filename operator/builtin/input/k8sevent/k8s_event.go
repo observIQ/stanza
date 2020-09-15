@@ -29,7 +29,7 @@ func NewK8sEventsConfig(operatorID string) *K8sEventsConfig {
 	return &K8sEventsConfig{
 		InputConfig:        helper.NewInputConfig(operatorID, "k8s_event_input"),
 		Namespaces:         []string{},
-		DiscoverNamespaces: false,
+		DiscoverNamespaces: true,
 		DiscoveryInterval:  helper.Duration{Duration: time.Minute * 1},
 	}
 }
@@ -39,7 +39,7 @@ type K8sEventsConfig struct {
 	helper.InputConfig `yaml:",inline"`
 	Namespaces         []string        `json:"namespaces" yaml:"namespaces"`
 	DiscoverNamespaces bool            `json:"discover_namespaces" yaml:"discover_namespaces"`
-	DiscoveryInterval  helper.Duration `json:"discovery_interval yaml:"discovery_interval"`
+	DiscoveryInterval  helper.Duration `json:"discovery_interval" yaml:"discovery_interval"`
 }
 
 // Build will build a k8s_event_input operator from the supplied configuration
