@@ -686,96 +686,137 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	wg.Wait()
 }
 
+/*
+	When log files are rotated at extreme speeds, it is possible to miss some log entries.
+	This can happen when an individual log entry is written and deleted within the duration
+	of a single poll interval. For example, consider the following scenario:
+		- A log file may have up to 9 backups (10 total log files)
+		- Each log file may contain up to 10 entries
+		- Log entries are written at an interval of 10µs
+		- Log files are polled at an interval of 100ms
+	In this scenario, a log entry that is written may only exist on disk for about 1ms.
+	A polling interval of 100ms will most likely never produce a chance to read the log file.
+
+	In production settings, this consideration is not very likely to be a problem, but it is
+	easy to encounter the issue in tests, and difficult to deterministically simulate edge cases.
+	However, the above understanding does allow for some consistent expectations.
+		1) Cases that do not require deletion of old log entries should always pass.
+		2) Cases where the polling interval is sufficiently rapid should always pass.
+		3) When neither 1 nor 2 is true, there may be missing entries, but still no duplicates.
+
+	The following method is provided largely as documentation of how this is expected to behave.
+	In practice, timing is largely dependent on the responsiveness of system calls.
+*/
+func (rt rotationTest) expectEphemeralLines() bool {
+	// primary + backups
+	maxLinesInAllFiles := rt.maxLinesPerFile + rt.maxLinesPerFile*rt.maxBackupFiles
+
+	// Will the test write enough lines to result in deletion of oldest backups?
+	maxBackupsExceeded := rt.totalLines > maxLinesInAllFiles
+
+	// last line written in primary file will exist for l*b more writes
+	minTimeToLive := time.Duration(int(rt.writeInterval) * rt.maxLinesPerFile * rt.maxBackupFiles)
+
+	// can a line be written and then rotated to deletion before ever observed?
+	return maxBackupsExceeded && rt.pollInterval > minTimeToLive
+}
+
+type rotationTest struct {
+	name            string
+	totalLines      int
+	maxLinesPerFile int
+	maxBackupFiles  int
+	writeInterval   time.Duration
+	pollInterval    time.Duration
+	ephemeralLines  bool
+}
+
 func TestRotation(t *testing.T) {
-	getMessage := func(m int) string { return fmt.Sprintf("this is a log entry with the number %4d", m) }
 
-	type rotateCase struct {
-		name            string
-		numMessages     int
-		maxLinesPerFile int
-		maxBackupFiles  int
-		writeInterval   time.Duration
-		pollInterval    time.Duration
-		copyTruncate    bool
-		ephemeralLines  bool
+	cases := []rotationTest{
+		{
+			name:            "Fast/NoRotation",
+			totalLines:      10,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   time.Microsecond,
+			pollInterval:    20 * time.Millisecond,
+		},
+		{
+			name:            "Fast/NoDeletion",
+			totalLines:      20,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   time.Microsecond,
+			pollInterval:    20 * time.Millisecond,
+		},
+		{
+			name:            "Fast/Deletion",
+			totalLines:      30,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   time.Microsecond,
+			pollInterval:    20 * time.Millisecond,
+			ephemeralLines:  true,
+		},
+		{
+			name:            "Fast/Deletion/ExceedFingerprint",
+			totalLines:      300,
+			maxLinesPerFile: 100,
+			maxBackupFiles:  1,
+			writeInterval:   time.Microsecond,
+			pollInterval:    20 * time.Millisecond,
+			ephemeralLines:  true,
+		},
+		{
+			name:            "Slow/NoRotation",
+			totalLines:      10,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
+		},
+		{
+			name:            "Slow/NoDeletion",
+			totalLines:      20,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
+		},
+		{
+			name:            "Slow/Deletion",
+			totalLines:      30,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
+		},
+		{
+			name:            "Slow/Deletion/ExceedFingerprint",
+			totalLines:      300,
+			maxLinesPerFile: 100,
+			maxBackupFiles:  1,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
+		},
 	}
 
-	numMessages := []int{10, 100}
-	maxLines := []int{3, 30}
-	maxBackups := []int{5}
-	writeIntervals := []time.Duration{time.Microsecond, 100 * time.Microsecond}
-	pollIntervals := []time.Duration{10 * time.Millisecond, 100 * time.Millisecond}
-
-	cases := []rotateCase{}
-	for _, nm := range numMessages {
-		for _, ml := range maxLines {
-			for _, mb := range maxBackups {
-				for _, wi := range writeIntervals {
-					for _, pi := range pollIntervals {
-						for _, ct := range []bool{true, false} {
-							/*
-								When log files are rotated at extreme speeds, it is possible to miss some log entries.
-								This can happen when an individual log entry is written and deleted within the duration
-								of a single poll interval. For example, consider the following scenario:
-									- A log file may have up to 9 backups (10 total log files)
-									- Each log file may contain up to 10 entries
-									- Log entries are written at an interval of 10 microseconds
-									- Polling interval is set to 100ms
-								In this scenario, it a log entry that is written will only exist on disk for about 1 ms.
-								A polling interval of 100ms will most likely never produce a chance to read the log file.
-
-								In production settings, this consideration is not very likely to be a problem, but it is
-								easy to encounter the issue in tests, and difficult to deterministically simulate edge cases.
-								However, the above understanding does allow for some consistent expectations.
-									1) Cases that do not require deletion of old log entries should always pass.
-									2) Cases where the polling interval is sufficiently rapid should always pass.
-									3) When neither 1 nor 2 is true, there may be missing entries, but still no duplicates.
-							*/
-
-							// primary + backups
-							maxLinesInAllFiles := ml + ml*mb
-
-							// Will the test write enough lines to result in deletion of oldest backups?
-							maxBackupsExceeded := nm > maxLinesInAllFiles
-
-							// last line written in primary file will exist for l*b more writes
-							minTimeToLive := time.Duration(int(wi) * ml * mb)
-
-							// can a line be written and then rotated to deletion before ever observed?
-							ephemeralLines := maxBackupsExceeded && pi > minTimeToLive
-
-							cases = append(cases, rotateCase{
-								name:            fmt.Sprintf("%d/%d/%d/%d/%d/%t/%t", nm, ml, mb, wi.Microseconds(), pi.Microseconds(), ct, ephemeralLines),
-								numMessages:     nm,
-								maxLinesPerFile: ml,
-								maxBackupFiles:  mb,
-								writeInterval:   wi,
-								pollInterval:    pi,
-								copyTruncate:    ct,
-								ephemeralLines:  ephemeralLines,
-							})
-						}
-					}
-				}
-			}
-		}
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	testRun := func(tc rotationTest, copyTruncate bool) func(t *testing.T) {
+		return func(t *testing.T) {
 			operator, logReceived, tempDir := newTestFileOperator(t,
 				func(cfg *InputConfig) {
 					cfg.PollInterval = helper.Duration{tc.pollInterval}
 				},
 				func(out *testutil.FakeOutput) {
-					out.Received = make(chan *entry.Entry, tc.numMessages)
+					out.Received = make(chan *entry.Entry, tc.totalLines)
 				},
 			)
-			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, tc.copyTruncate)
+			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate)
 
-			expected := make([]string, 0, tc.numMessages)
-			for i := 0; i < tc.numMessages; i++ {
-				expected = append(expected, getMessage(i))
+			expected := make([]string, 0, tc.totalLines)
+			for i := 0; i < tc.totalLines; i++ {
+				expected = append(expected, fmt.Sprintf("this is a log entry with the number %3d", i))
 			}
 
 			require.NoError(t, operator.Start())
@@ -786,7 +827,7 @@ func TestRotation(t *testing.T) {
 				time.Sleep(tc.writeInterval)
 			}
 
-			received := make([]string, 0, tc.numMessages)
+			received := make([]string, 0, tc.totalLines)
 		LOOP:
 			for {
 				select {
@@ -798,11 +839,20 @@ func TestRotation(t *testing.T) {
 			}
 
 			if tc.ephemeralLines {
+				if !tc.expectEphemeralLines() {
+					// This is helpful for test development, and ensures the sample computation is used
+					t.Logf("Potentially unstable ephemerality expectation for test: %s", tc.name)
+				}
 				require.Subset(t, expected, received)
 			} else {
 				require.ElementsMatch(t, expected, received)
 			}
-		})
+		}
+	}
+
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("%s/MoveCreate", tc.name), testRun(tc, false))
+		t.Run(fmt.Sprintf("%s/CopyTruncate", tc.name), testRun(tc, false))
 	}
 }
 
