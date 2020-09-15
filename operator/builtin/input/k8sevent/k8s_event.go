@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
@@ -27,14 +26,19 @@ func init() {
 // NewK8sEventsConfig creates a default K8sEventsConfig
 func NewK8sEventsConfig(operatorID string) *K8sEventsConfig {
 	return &K8sEventsConfig{
-		InputConfig: helper.NewInputConfig(operatorID, "k8s_event_input"),
+		InputConfig:        helper.NewInputConfig(operatorID, "k8s_event_input"),
+		Namespaces:         []string{},
+		DiscoverNamespaces: true,
+		DiscoveryInterval:  helper.Duration{Duration: time.Minute * 1},
 	}
 }
 
 // K8sEventsConfig is the configuration of K8sEvents operator
 type K8sEventsConfig struct {
 	helper.InputConfig `yaml:",inline"`
-	Namespaces         []string
+	Namespaces         []string        `json:"namespaces" yaml:"namespaces"`
+	DiscoverNamespaces bool            `json:"discover_namespaces" yaml:"discover_namespaces"`
+	DiscoveryInterval  helper.Duration `json:"discovery_interval" yaml:"discovery_interval"`
 }
 
 // Build will build a k8s_event_input operator from the supplied configuration
@@ -44,20 +48,29 @@ func (c K8sEventsConfig) Build(context operator.BuildContext) (operator.Operator
 		return nil, errors.Wrap(err, "build transformer")
 	}
 
+	if len(c.Namespaces) == 0 && !c.DiscoverNamespaces {
+		return nil, fmt.Errorf("`namespaces` must be specified or `discover_namespaces` enabled")
+	}
+
 	return &K8sEvents{
-		InputOperator: input,
-		namespaces:    c.Namespaces,
+		InputOperator:      input,
+		namespaces:         c.Namespaces,
+		discoverNamespaces: c.DiscoverNamespaces,
+		discoveryInterval:  c.DiscoveryInterval,
 	}, nil
 }
 
 // K8sEvents is an operator for generating logs from k8s events
 type K8sEvents struct {
 	helper.InputOperator
-	client     corev1.CoreV1Interface
-	namespaces []string
+	client             corev1.CoreV1Interface
+	discoverNamespaces bool
+	discoveryInterval  helper.Duration
+	namespaces         []string
 
-	cancel func()
-	wg     sync.WaitGroup
+	cancel       func()
+	wg           sync.WaitGroup
+	namespaceMux sync.Mutex
 }
 
 // Start implements the operator.Operator interface
@@ -81,23 +94,35 @@ func (k *K8sEvents) Start() error {
 		return errors.Wrap(err, "build client")
 	}
 
-	// Get all namespaces if left empty
-	if len(k.namespaces) == 0 {
-		k.namespaces, err = listNamespaces(ctx, k.client)
+	if k.discoverNamespaces {
+		namespaces, err := listNamespaces(ctx, k.client)
 		if err != nil {
-			return errors.Wrap(err, "list namespaces")
+			return errors.Wrap(err, "initial namespace discovery")
+		}
+
+		for _, namespace := range namespaces {
+			if !k.hasNamespace(namespace) {
+				k.addNamespace(namespace)
+			}
 		}
 	}
 
 	// Test connection
-	testWatcher, err := k.client.Events(k.namespaces[0]).Watch(ctx, metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("test connection: list events for namespace '%s': %s", k.namespaces[0], err)
+	if len(k.namespaces) > 0 {
+		testWatcher, err := k.client.Events(k.namespaces[0]).Watch(ctx, metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("test connection failed: list events for namespace '%s': %s", k.namespaces[0], err)
+		}
+		testWatcher.Stop()
 	}
-	testWatcher.Stop()
 
 	for _, ns := range k.namespaces {
 		k.startWatchingNamespace(ctx, ns)
+	}
+
+	// Find and watch namespaces if in discovery mode
+	if k.discoverNamespaces {
+		k.startFindingNamespaces(ctx, k.client)
 	}
 
 	return nil
@@ -125,31 +150,93 @@ func listNamespaces(ctx context.Context, client corev1.CoreV1Interface) ([]strin
 	return namespaces, nil
 }
 
+// startFindingNamespaces creates a goroutine that looks for namespaces to watch
+func (k *K8sEvents) startFindingNamespaces(ctx context.Context, client corev1.CoreV1Interface) {
+	k.wg.Add(1)
+	go func() {
+		defer k.wg.Done()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(k.discoveryInterval.Duration):
+				namespaces, err := listNamespaces(ctx, client)
+				if err != nil {
+					k.Errorf("failed to list namespaces: %s", err)
+					continue
+				}
+
+				for _, namespace := range namespaces {
+					if k.hasNamespace(namespace) {
+						continue
+					}
+
+					k.addNamespace(namespace)
+					k.startWatchingNamespace(ctx, namespace)
+				}
+			}
+		}
+	}()
+}
+
 // startWatchingNamespace creates a goroutine that watches the events for a
 // specific namespace
 func (k *K8sEvents) startWatchingNamespace(ctx context.Context, ns string) {
 	k.wg.Add(1)
 	go func() {
 		defer k.wg.Done()
-
-		b := backoff.NewExponentialBackOff()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(b.NextBackOff()):
+			default:
 			}
 
 			watcher, err := k.client.Events(ns).Watch(ctx, metav1.ListOptions{})
 			if err != nil {
 				k.Errorw("Failed to start watcher", zap.Error(err))
-				continue
+				k.removeNamespace(ns)
+				return
 			}
-			b.Reset()
 
 			k.consumeWatchEvents(ctx, watcher.ResultChan())
 		}
 	}()
+}
+
+// addNamespace will add a namespace.
+func (k *K8sEvents) addNamespace(namespace string) {
+	k.namespaceMux.Lock()
+	k.namespaces = append(k.namespaces, namespace)
+	k.namespaceMux.Unlock()
+}
+
+// hasNamespace returns a boolean indicating if the namespace is being watched.
+func (k *K8sEvents) hasNamespace(namespace string) bool {
+	k.namespaceMux.Lock()
+	defer k.namespaceMux.Unlock()
+
+	for _, n := range k.namespaces {
+		if n == namespace {
+			return true
+		}
+	}
+	return false
+}
+
+// removeNamespace removes a namespace.
+func (k *K8sEvents) removeNamespace(namespace string) {
+	k.namespaceMux.Lock()
+	defer k.namespaceMux.Unlock()
+
+	for i, n := range k.namespaces {
+		if n != namespace {
+			continue
+		}
+		k.namespaces = append(k.namespaces[:i], k.namespaces[i+1:]...)
+		break
+	}
 }
 
 // consumeWatchEvents will read events from the watcher channel until the channel is closed
