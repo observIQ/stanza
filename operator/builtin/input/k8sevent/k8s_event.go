@@ -99,7 +99,12 @@ func (k *K8sEvents) Start() error {
 		if err != nil {
 			return errors.Wrap(err, "initial namespace discovery")
 		}
-		k.namespaces = append(k.namespaces, namespaces...)
+
+		for _, namespace := range namespaces {
+			if !k.hasNamespace(namespace) {
+				k.namespaces = append(k.namespaces, namespace)
+			}
+		}
 	}
 
 	// Test connection
