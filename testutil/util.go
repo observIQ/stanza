@@ -20,9 +20,9 @@ func NewTempDir(t testing.TB) string {
 		t.FailNow()
 	}
 
-	// t.Cleanup(func() {
-	// 	os.RemoveAll(tempDir)
-	// })
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
 
 	return tempDir
 }
