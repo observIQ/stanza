@@ -686,6 +686,16 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	wg.Wait()
 }
 
+type rotationTest struct {
+	name            string
+	totalLines      int
+	maxLinesPerFile int
+	maxBackupFiles  int
+	writeInterval   time.Duration
+	pollInterval    time.Duration
+	ephemeralLines  bool
+}
+
 /*
 	When log files are rotated at extreme speeds, it is possible to miss some log entries.
 	This can happen when an individual log entry is written and deleted within the duration
@@ -721,14 +731,52 @@ func (rt rotationTest) expectEphemeralLines() bool {
 	return maxBackupsExceeded && rt.pollInterval > minTimeToLive
 }
 
-type rotationTest struct {
-	name            string
-	totalLines      int
-	maxLinesPerFile int
-	maxBackupFiles  int
-	writeInterval   time.Duration
-	pollInterval    time.Duration
-	ephemeralLines  bool
+func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		operator, logReceived, tempDir := newTestFileOperator(t,
+			func(cfg *InputConfig) {
+				cfg.PollInterval = helper.Duration{tc.pollInterval}
+			},
+			func(out *testutil.FakeOutput) {
+				out.Received = make(chan *entry.Entry, tc.totalLines)
+			},
+		)
+		logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate)
+
+		expected := make([]string, 0, tc.totalLines)
+		for i := 0; i < tc.totalLines; i++ {
+			expected = append(expected, fmt.Sprintf("this is a fifty char log entry with the number %3d", i))
+		}
+
+		require.NoError(t, operator.Start())
+		defer operator.Stop()
+
+		for _, message := range expected {
+			logger.Writer().Write([]byte(message + "\n"))
+			time.Sleep(tc.writeInterval)
+		}
+
+		received := make([]string, 0, tc.totalLines)
+	LOOP:
+		for {
+			select {
+			case e := <-logReceived:
+				received = append(received, e.Record.(string))
+			case <-time.After(100 * time.Millisecond):
+				break LOOP
+			}
+		}
+
+		if tc.ephemeralLines {
+			if !tc.expectEphemeralLines() {
+				// This is helpful for test development, and ensures the sample computation is used
+				t.Logf("Potentially unstable ephemerality expectation for test: %s", tc.name)
+			}
+			require.Subset(t, expected, received)
+		} else {
+			require.ElementsMatch(t, expected, received)
+		}
+	}
 }
 
 func TestRotation(t *testing.T) {
@@ -802,57 +850,9 @@ func TestRotation(t *testing.T) {
 		},
 	}
 
-	testRun := func(tc rotationTest, copyTruncate bool) func(t *testing.T) {
-		return func(t *testing.T) {
-			operator, logReceived, tempDir := newTestFileOperator(t,
-				func(cfg *InputConfig) {
-					cfg.PollInterval = helper.Duration{tc.pollInterval}
-				},
-				func(out *testutil.FakeOutput) {
-					out.Received = make(chan *entry.Entry, tc.totalLines)
-				},
-			)
-			logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate)
-
-			expected := make([]string, 0, tc.totalLines)
-			for i := 0; i < tc.totalLines; i++ {
-				expected = append(expected, fmt.Sprintf("this is a fifty char log entry with the number %3d", i))
-			}
-
-			require.NoError(t, operator.Start())
-			defer operator.Stop()
-
-			for _, message := range expected {
-				logger.Writer().Write([]byte(message + "\n"))
-				time.Sleep(tc.writeInterval)
-			}
-
-			received := make([]string, 0, tc.totalLines)
-		LOOP:
-			for {
-				select {
-				case e := <-logReceived:
-					received = append(received, e.Record.(string))
-				case <-time.After(250 * time.Millisecond):
-					break LOOP
-				}
-			}
-
-			if tc.ephemeralLines {
-				if !tc.expectEphemeralLines() {
-					// This is helpful for test development, and ensures the sample computation is used
-					t.Logf("Potentially unstable ephemerality expectation for test: %s", tc.name)
-				}
-				require.Subset(t, expected, received)
-			} else {
-				require.ElementsMatch(t, expected, received)
-			}
-		}
-	}
-
 	for _, tc := range cases {
-		t.Run(fmt.Sprintf("%s/MoveCreate", tc.name), testRun(tc, false))
-		t.Run(fmt.Sprintf("%s/CopyTruncate", tc.name), testRun(tc, false))
+		t.Run(fmt.Sprintf("%s/MoveCreate", tc.name), tc.run(tc, false))
+		t.Run(fmt.Sprintf("%s/CopyTruncate", tc.name), tc.run(tc, false))
 	}
 }
 
@@ -1215,7 +1215,7 @@ func TestEncodings(t *testing.T) {
 				select {
 				case entry := <-receivedEntries:
 					require.Equal(t, expected, []byte(entry.Record.(string)))
-				case <-time.After(time.Second):
+				case <-time.After(500 * time.Millisecond):
 					require.FailNow(t, "Timed out waiting for entry to be read")
 				}
 			}
