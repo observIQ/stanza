@@ -21,7 +21,10 @@ install-tools:
 	go install github.com/vektra/mockery/cmd/mockery
 
 .PHONY: test
-test:
+test: vet test-only
+
+.PHONY: test-only
+test-only:
 	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
 .PHONY: bench
