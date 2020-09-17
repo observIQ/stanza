@@ -47,6 +47,12 @@ listmod:
 lint:
 	golangci-lint run ./...
 
+.PHONY: vet
+vet:
+	GOOS=darwin $(MAKE) for-all CMD="go vet ./..."
+	GOOS=linux $(MAKE) for-all CMD="go vet ./..."
+	GOOS=windows $(MAKE) for-all CMD="go vet ./..."
+
 .PHONY: generate
 generate:
 	go generate ./...

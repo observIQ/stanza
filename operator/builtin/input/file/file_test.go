@@ -735,7 +735,7 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T
 	return func(t *testing.T) {
 		operator, logReceived, tempDir := newTestFileOperator(t,
 			func(cfg *InputConfig) {
-				cfg.PollInterval = helper.Duration{tc.pollInterval}
+				cfg.PollInterval = helper.NewDuration(tc.pollInterval)
 			},
 			func(out *testutil.FakeOutput) {
 				out.Received = make(chan *entry.Entry, tc.totalLines)
