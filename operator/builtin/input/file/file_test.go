@@ -752,7 +752,7 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T
 		defer operator.Stop()
 
 		for _, message := range expected {
-			logger.Writer().Write([]byte(message + "\n"))
+			logger.Println(message)
 			time.Sleep(tc.writeInterval)
 		}
 
