@@ -51,10 +51,20 @@ lint:
 	golangci-lint run ./...
 
 .PHONY: vet
-vet:
+vet: check-missing-modules
 	GOOS=darwin $(MAKE) for-all CMD="go vet ./..."
 	GOOS=linux $(MAKE) for-all CMD="go vet ./..."
 	GOOS=windows $(MAKE) for-all CMD="go vet ./..."
+
+.PHONY: check-missing-modules
+check-missing-modules:
+	@find ./operator/builtin -type f -name "go.mod" -exec dirname {} \; | cut -d'/' -f2- | while read mod ; do \
+		grep $$mod ./cmd/stanza/init_*.go > /dev/null ;\
+		if [ $$? -ne 0 ] ; then \
+			echo Stanza is not building with module $$mod ;\
+			exit 1 ;\
+		fi \
+	done
 
 .PHONY: generate
 generate:
