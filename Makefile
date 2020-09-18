@@ -21,7 +21,10 @@ install-tools:
 	go install github.com/vektra/mockery/cmd/mockery
 
 .PHONY: test
-test:
+test: vet test-only
+
+.PHONY: test-only
+test-only:
 	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
 .PHONY: bench
@@ -46,6 +49,12 @@ listmod:
 .PHONY: lint
 lint:
 	golangci-lint run ./...
+
+.PHONY: vet
+vet:
+	GOOS=darwin $(MAKE) for-all CMD="go vet ./..."
+	GOOS=linux $(MAKE) for-all CMD="go vet ./..."
+	GOOS=windows $(MAKE) for-all CMD="go vet ./..."
 
 .PHONY: generate
 generate:
