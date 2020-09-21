@@ -58,13 +58,37 @@ func (r Registry) Render(pluginType string, params map[string]interface{}) (Plug
 	}
 
 	for name, param := range plugin.Parameters {
-		if err := param.validate(); err != nil {
+		if err := param.validateDefintion(); err != nil {
 			return Plugin{}, errors.NewError(
 				"invalid parameter found in plugin",
 				"ensure that all parameters are valid for the plugin",
 				"plugin_type", pluginType,
 				"plugin_parameter", name,
 				"rendered_config", writer.String(),
+				"error_message", err.Error(),
+			)
+		}
+
+		value, ok := params[name]
+		if !ok && !param.Required {
+			continue
+		}
+
+		if !ok && param.Required {
+			return Plugin{}, errors.NewError(
+				"missing required parameter for plugin",
+				"ensure that the parameter is defined for the plugin",
+				"plugin_type", pluginType,
+				"plugin_parameter", name,
+			)
+		}
+
+		if err := param.validateValue(value); err != nil {
+			return Plugin{}, errors.NewError(
+				"plugin parameter failed validation",
+				"review the underlying error message for details",
+				"plugin_type", pluginType,
+				"plugin_parameter", name,
 				"error_message", err.Error(),
 			)
 		}

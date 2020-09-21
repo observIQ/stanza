@@ -634,6 +634,48 @@ pipeline:
 	}
 }
 
+func TestRenderWithMissingRequired(t *testing.T) {
+	template := `version: 0.0.0
+title: Test Plugin
+description: This is a test plugin
+parameters:
+  path:
+    label: Parameter
+    description: A parameter
+    type: int
+    required: true
+pipeline:
+`
+	reg := Registry{}
+	err := reg.Add("plugin", template)
+	require.NoError(t, err)
+
+	_, err = reg.Render("plugin", map[string]interface{}{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing required parameter for plugin")
+}
+
+func TestRenderWithInvalidParameter(t *testing.T) {
+	template := `version: 0.0.0
+title: Test Plugin
+description: This is a test plugin
+parameters:
+  path:
+    label: Parameter
+    description: A parameter
+    type: int
+    required: true
+pipeline:
+`
+	reg := Registry{}
+	err := reg.Add("plugin", template)
+	require.NoError(t, err)
+
+	_, err = reg.Render("plugin", map[string]interface{}{"path": "test"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "plugin parameter failed validation")
+}
+
 func TestDefaultPluginFuncWithValue(t *testing.T) {
 	result := defaultPluginFunc("default_value", "supplied_value")
 	require.Equal(t, "supplied_value", result)
