@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2020-09-21
+### Changed
+- Most operators are no longer part of dedicated modules
+
+## [0.11.0] - 2020-09-15
+### Changed
+- File input improvements and rotation tests
+
 ## [0.10.0] - 2020-09-11
 ### Added
 - Disk buffer for output operators ([PR109](https://github.com/observIQ/stanza/pull/109))
