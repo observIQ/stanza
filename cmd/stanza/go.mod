@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/kardianos/service v1.1.0
-	github.com/observiq/stanza v0.9.14
+	github.com/observiq/stanza v0.11.0
 	github.com/observiq/stanza/operator/builtin/input/file v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/input/journald v0.0.0-00010101000000-000000000000
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.0.0-00010101000000-000000000000
