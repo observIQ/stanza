@@ -14,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.5
-	go.uber.org/zap v1.15.0
+	go.uber.org/zap v1.16.0
 )
 
 replace github.com/observiq/stanza => ../../
