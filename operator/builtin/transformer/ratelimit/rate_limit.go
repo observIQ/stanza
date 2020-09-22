@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/observiq/stanza/entry"
@@ -66,6 +67,7 @@ type RateLimitOperator struct {
 	burst    uint
 	isReady  chan struct{}
 	cancel   context.CancelFunc
+	wg       *sync.WaitGroup
 }
 
 // Process will wait until a rate is met before sending an entry to the output.
@@ -82,9 +84,12 @@ func (p *RateLimitOperator) Start() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
+	p.wg = &sync.WaitGroup{}
 
 	// Buffer the ticker ticks in isReady to allow bursts
+	p.wg.Add(1)
 	go func() {
+		defer p.wg.Done()
 		defer ticker.Stop()
 		defer close(p.isReady)
 		for {
@@ -103,5 +108,6 @@ func (p *RateLimitOperator) Start() error {
 // Stop will stop the rate limit operator.
 func (p *RateLimitOperator) Stop() error {
 	p.cancel()
+	p.wg.Wait()
 	return nil
 }
