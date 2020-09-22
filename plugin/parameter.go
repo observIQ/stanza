@@ -24,31 +24,103 @@ type Parameter struct {
 	Default     interface{} // Must be valid according to Type & ValidValues
 }
 
-func (param Parameter) validate() error {
-	if param.Required && param.Default != nil {
+func (p Parameter) validateValue(value interface{}) error {
+	switch p.Type {
+	case stringType:
+		return p.validateStringValue(value)
+	case intType:
+		return p.validateIntValue(value)
+	case boolType:
+		return p.validateBoolValue(value)
+	case stringsType:
+		return p.validateStringsValue(value)
+	case enumType:
+		return p.validateEnumValue(value)
+	default:
+		return fmt.Errorf("invalid parameter type: %s", p.Type)
+	}
+}
+
+func (p Parameter) validateStringValue(value interface{}) error {
+	if _, ok := value.(string); !ok {
+		return fmt.Errorf("parameter must be a string")
+	}
+	return nil
+}
+
+func (p Parameter) validateIntValue(value interface{}) error {
+	if _, ok := value.(int); !ok {
+		return fmt.Errorf("parameter must be an integer")
+	}
+	return nil
+}
+
+func (p Parameter) validateBoolValue(value interface{}) error {
+	if _, ok := value.(bool); !ok {
+		return fmt.Errorf("parameter must be a bool")
+	}
+	return nil
+}
+
+func (p Parameter) validateStringsValue(value interface{}) error {
+	if _, ok := value.([]string); ok {
+		return nil
+	}
+
+	array, ok := value.([]interface{})
+	if !ok {
+		return fmt.Errorf("parameter must be an array of strings")
+	}
+
+	for _, v := range array {
+		if _, ok := v.(string); !ok {
+			return fmt.Errorf("parameter contains a non string value")
+		}
+	}
+
+	return nil
+}
+
+func (p Parameter) validateEnumValue(value interface{}) error {
+	enum, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("parameter must be a string")
+	}
+
+	for _, v := range p.ValidValues {
+		if v == enum {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("parameter must be one of the following values: %v", p.ValidValues)
+}
+
+func (p Parameter) validateDefintion() error {
+	if p.Required && p.Default != nil {
 		return errors.NewError(
 			"required parameter cannot have a default value",
 			"ensure that required parameters do not have default values",
 		)
 	}
 
-	if err := param.validateType(); err != nil {
+	if err := p.validateType(); err != nil {
 		return err
 	}
 
-	if err := param.validateValidValues(); err != nil {
+	if err := p.validateValidValues(); err != nil {
 		return err
 	}
 
-	if err := param.validateDefault(); err != nil {
+	if err := p.validateDefault(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (param Parameter) validateType() error {
-	switch param.Type {
+func (p Parameter) validateType() error {
+	switch p.Type {
 	case stringType, intType, boolType, stringsType, enumType: // ok
 	default:
 		return errors.NewError(
@@ -59,17 +131,17 @@ func (param Parameter) validateType() error {
 	return nil
 }
 
-func (param Parameter) validateValidValues() error {
-	switch param.Type {
+func (p Parameter) validateValidValues() error {
+	switch p.Type {
 	case stringType, intType, boolType, stringsType:
-		if len(param.ValidValues) > 0 {
+		if len(p.ValidValues) > 0 {
 			return errors.NewError(
-				fmt.Sprintf("valid_values is undefined for parameter of type '%s'", param.Type),
+				fmt.Sprintf("valid_values is undefined for parameter of type '%s'", p.Type),
 				"remove 'valid_values' field or change type to 'enum'",
 			)
 		}
 	case enumType:
-		if len(param.ValidValues) == 0 {
+		if len(p.ValidValues) == 0 {
 			return errors.NewError(
 				"parameter of type 'enum' must have 'valid_values' specified",
 				"specify an array that includes one or more valid values",
@@ -79,23 +151,23 @@ func (param Parameter) validateValidValues() error {
 	return nil
 }
 
-func (param Parameter) validateDefault() error {
-	if param.Default == nil {
+func (p Parameter) validateDefault() error {
+	if p.Default == nil {
 		return nil
 	}
 
 	// Validate that Default corresponds to Type
-	switch param.Type {
+	switch p.Type {
 	case stringType:
-		return validateStringDefault(param)
+		return validateStringDefault(p)
 	case intType:
-		return validateIntDefault(param)
+		return validateIntDefault(p)
 	case boolType:
-		return validateBoolDefault(param)
+		return validateBoolDefault(p)
 	case stringsType:
-		return validateStringArrayDefault(param)
+		return validateStringArrayDefault(p)
 	case enumType:
-		return validateEnumDefault(param)
+		return validateEnumDefault(p)
 	default:
 		return errors.NewError(
 			"invalid type for parameter",

@@ -124,3 +124,153 @@ func TestValidateDefault(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateValue(t *testing.T) {
+	testCases := []struct {
+		name      string
+		expectErr bool
+		param     Parameter
+		value     interface{}
+	}{
+		{
+			"ValidString",
+			false,
+			Parameter{
+				Type:    "string",
+				Default: "test",
+			},
+			"string",
+		},
+		{
+			"InvalidString",
+			true,
+			Parameter{
+				Type:    "string",
+				Default: "test",
+			},
+			5,
+		},
+		{
+			"ValidInt",
+			false,
+			Parameter{
+				Type:    "int",
+				Default: 5,
+			},
+			5,
+		},
+		{
+			"InvalidInt",
+			true,
+			Parameter{
+				Type:    "int",
+				Default: 5,
+			},
+			"test",
+		},
+		{
+			"ValidBool",
+			false,
+			Parameter{
+				Type:    "bool",
+				Default: true,
+			},
+			false,
+		},
+		{
+			"InvalidBool",
+			true,
+			Parameter{
+				Type:    "bool",
+				Default: true,
+			},
+			"test",
+		},
+		{
+			"ValidStringsAsInterface",
+			false,
+			Parameter{
+				Type:    "strings",
+				Default: []interface{}{"test"},
+			},
+			[]interface{}{"test"},
+		},
+		{
+			"ValidStrings",
+			false,
+			Parameter{
+				Type:    "strings",
+				Default: []interface{}{"test"},
+			},
+			[]string{"test"},
+		},
+		{
+			"InvalidStringsAsInterface",
+			true,
+			Parameter{
+				Type:    "strings",
+				Default: []interface{}{"test"},
+			},
+			[]interface{}{5},
+		},
+		{
+			"InvalidStrings",
+			true,
+			Parameter{
+				Type:    "strings",
+				Default: []interface{}{"test"},
+			},
+			[]int{5},
+		},
+		{
+			"ValidEnum",
+			false,
+			Parameter{
+				Type:        "enum",
+				ValidValues: []string{"test"},
+				Default:     "test",
+			},
+			"test",
+		},
+		{
+			"InvalidEnumValue",
+			true,
+			Parameter{
+				Type:        "enum",
+				ValidValues: []string{"test"},
+				Default:     "test",
+			},
+			"missing",
+		},
+		{
+			"InvalidEnumtype",
+			true,
+			Parameter{
+				Type:        "enum",
+				ValidValues: []string{"test"},
+				Default:     "test",
+			},
+			5,
+		},
+		{
+			"InvalidType",
+			true,
+			Parameter{
+				Type:    "float",
+				Default: 5,
+			},
+			5,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.param.validateValue(tc.value)
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
