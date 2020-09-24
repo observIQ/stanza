@@ -67,7 +67,7 @@ type RateLimitOperator struct {
 	burst    uint
 	isReady  chan struct{}
 	cancel   context.CancelFunc
-	wg       *sync.WaitGroup
+	wg       sync.WaitGroup
 }
 
 // Process will wait until a rate is met before sending an entry to the output.
@@ -84,7 +84,7 @@ func (p *RateLimitOperator) Start() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
-	p.wg = &sync.WaitGroup{}
+	p.wg = sync.WaitGroup{}
 
 	// Buffer the ticker ticks in isReady to allow bursts
 	p.wg.Add(1)
