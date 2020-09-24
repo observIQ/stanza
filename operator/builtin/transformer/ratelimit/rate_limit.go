@@ -72,9 +72,13 @@ type RateLimitOperator struct {
 
 // Process will wait until a rate is met before sending an entry to the output.
 func (p *RateLimitOperator) Process(ctx context.Context, entry *entry.Entry) error {
-	<-p.isReady
-	p.Write(ctx, entry)
-	return nil
+	select {
+	case <-p.isReady:
+		p.Write(ctx, entry)
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
 }
 
 // Start will start the rate limit operator.
@@ -84,7 +88,6 @@ func (p *RateLimitOperator) Start() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
-	p.wg = sync.WaitGroup{}
 
 	// Buffer the ticker ticks in isReady to allow bursts
 	p.wg.Add(1)
@@ -92,10 +95,11 @@ func (p *RateLimitOperator) Start() error {
 		defer p.wg.Done()
 		defer ticker.Stop()
 		defer close(p.isReady)
+
 		for {
 			select {
 			case <-ticker.C:
-				p.isReady <- struct{}{}
+				p.increment(ctx)
 			case <-ctx.Done():
 				return
 			}
@@ -103,6 +107,15 @@ func (p *RateLimitOperator) Start() error {
 	}()
 
 	return nil
+}
+
+func (p *RateLimitOperator) increment(ctx context.Context) {
+	select {
+	case p.isReady <- struct{}{}:
+		return
+	case <-ctx.Done():
+		return
+	}
 }
 
 // Stop will stop the rate limit operator.
