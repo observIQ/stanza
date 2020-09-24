@@ -58,9 +58,9 @@ type TCPInput struct {
 	helper.InputOperator
 	address *net.TCPAddr
 
-	listener  *net.TCPListener
-	cancel    context.CancelFunc
-	waitGroup *sync.WaitGroup
+	listener *net.TCPListener
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
 }
 
 // Start will start listening for log entries over tcp.
@@ -73,17 +73,16 @@ func (t *TCPInput) Start() error {
 	t.listener = listener
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancel = cancel
-	t.waitGroup = &sync.WaitGroup{}
 	t.goListen(ctx)
 	return nil
 }
 
 // goListenn will listen for tcp connections.
 func (t *TCPInput) goListen(ctx context.Context) {
-	t.waitGroup.Add(1)
+	t.wg.Add(1)
 
 	go func() {
-		defer t.waitGroup.Done()
+		defer t.wg.Done()
 
 		for {
 			conn, err := t.listener.AcceptTCP()
@@ -106,10 +105,10 @@ func (t *TCPInput) goListen(ctx context.Context) {
 
 // goHandleClose will wait for the context to finish before closing a connection.
 func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
-	t.waitGroup.Add(1)
+	t.wg.Add(1)
 
 	go func() {
-		defer t.waitGroup.Done()
+		defer t.wg.Done()
 		<-ctx.Done()
 		t.Debugf("Closing connection: %s", conn.RemoteAddr().String())
 		if err := conn.Close(); err != nil {
@@ -120,10 +119,10 @@ func (t *TCPInput) goHandleClose(ctx context.Context, conn net.Conn) {
 
 // goHandleMessages will handles messages from a tcp connection.
 func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel context.CancelFunc) {
-	t.waitGroup.Add(1)
+	t.wg.Add(1)
 
 	go func() {
-		defer t.waitGroup.Done()
+		defer t.wg.Done()
 		defer cancel()
 
 		scanner := bufio.NewScanner(conn)
@@ -149,6 +148,6 @@ func (t *TCPInput) Stop() error {
 		return err
 	}
 
-	t.waitGroup.Wait()
+	t.wg.Wait()
 	return nil
 }

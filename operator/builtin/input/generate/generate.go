@@ -54,15 +54,14 @@ type GenerateInput struct {
 	entry  entry.Entry
 	count  int
 	static bool
+	wg     sync.WaitGroup
 	cancel context.CancelFunc
-	wg     *sync.WaitGroup
 }
 
 // Start will start generating log entries.
 func (g *GenerateInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	g.cancel = cancel
-	g.wg = &sync.WaitGroup{}
 
 	g.wg.Add(1)
 	go func() {

@@ -61,14 +61,13 @@ type UDPInput struct {
 
 	connection net.PacketConn
 	cancel     context.CancelFunc
-	waitGroup  *sync.WaitGroup
+	wg         sync.WaitGroup
 }
 
 // Start will start listening for messages on a socket.
 func (u *UDPInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	u.cancel = cancel
-	u.waitGroup = &sync.WaitGroup{}
 
 	conn, err := net.ListenUDP("udp", u.address)
 	if err != nil {
@@ -82,10 +81,10 @@ func (u *UDPInput) Start() error {
 
 // goHandleMessages will handle messages from a udp connection.
 func (u *UDPInput) goHandleMessages(ctx context.Context) {
-	u.waitGroup.Add(1)
+	u.wg.Add(1)
 
 	go func() {
-		defer u.waitGroup.Done()
+		defer u.wg.Done()
 
 		for {
 			message, err := u.readMessage()
@@ -128,6 +127,6 @@ func (u *UDPInput) readMessage() (string, error) {
 func (u *UDPInput) Stop() error {
 	u.cancel()
 	u.connection.Close()
-	u.waitGroup.Wait()
+	u.wg.Wait()
 	return nil
 }

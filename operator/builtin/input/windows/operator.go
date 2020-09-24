@@ -82,14 +82,13 @@ type EventLogInput struct {
 	pollInterval helper.Duration
 	offsets      helper.Persister
 	cancel       context.CancelFunc
-	wg           *sync.WaitGroup
+	wg           sync.WaitGroup
 }
 
 // Start will start reading events from a subscription.
 func (e *EventLogInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	e.cancel = cancel
-	e.wg = &sync.WaitGroup{}
 
 	e.bookmark = NewBookmark()
 	offsetXML, err := e.getBookmarkOffset()
