@@ -98,7 +98,7 @@ type JournaldInput struct {
 	persist helper.Persister
 	json    jsoniter.API
 	cancel  context.CancelFunc
-	wg      *sync.WaitGroup
+	wg      sync.WaitGroup
 }
 
 type cmd interface {
@@ -112,7 +112,6 @@ var lastReadCursorKey = "lastReadCursor"
 func (operator *JournaldInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	operator.cancel = cancel
-	operator.wg = &sync.WaitGroup{}
 
 	err := operator.persist.Load()
 	if err != nil {
