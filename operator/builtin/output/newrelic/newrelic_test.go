@@ -48,6 +48,7 @@ func TestNewRelicOutput(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, op.Start())
 			require.NoError(t, op.Process(context.Background(), tc.input))
+			defer op.Stop()
 
 			testConnection := `[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[]}]` + "\n"
 			select {
