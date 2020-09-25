@@ -16,6 +16,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewRelicConfigBuild(t *testing.T) {
+	t.Run("OutputConfigError", func(t *testing.T) {
+		cfg := NewNewRelicOutputConfig("test")
+		cfg.OperatorType = ""
+		_, err := cfg.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "missing required `type` field")
+	})
+
+	t.Run("MissingKey", func(t *testing.T) {
+		cfg := NewNewRelicOutputConfig("test")
+		_, err := cfg.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+		require.Equal(t, err.Error(), "one of 'api_key' or 'license_key' is required")
+	})
+
+	t.Run("InvalidURL", func(t *testing.T) {
+		cfg := NewNewRelicOutputConfig("test")
+		cfg.LicenseKey = "testkey"
+		cfg.BaseURI = `%^&*($@)`
+		_, err := cfg.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "is not a valid URL")
+	})
+}
+
 func TestNewRelicOutput(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -87,6 +113,17 @@ func TestNewRelicOutput(t *testing.T) {
 			expectRequestBody(t, ln, tc.expected)
 		})
 	}
+
+	t.Run("FailedTestConnection", func(t *testing.T) {
+		cfg := NewNewRelicOutputConfig("test")
+		cfg.BaseURI = "http://localhost/log/v1"
+		cfg.APIKey = "testkey"
+
+		op, err := cfg.Build(testutil.NewBuildContext(t))
+		require.NoError(t, err)
+		err = op.Start()
+		require.Error(t, err)
+	})
 }
 
 func expectTestConnection(t *testing.T, ln *listener) {

@@ -67,7 +67,7 @@ func (c NewRelicOutputConfig) Build(context operator.BuildContext) (operator.Ope
 
 	url, err := url.Parse(c.BaseURI)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse 'base_uri'")
+		return nil, errors.Wrap(err, "'base_uri' is not a valid URL")
 	}
 
 	nro := &NewRelicOutput{
