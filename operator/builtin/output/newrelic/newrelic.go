@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -30,6 +31,7 @@ func NewNewRelicOutputConfig(operatorID string) *NewRelicOutputConfig {
 		FlusherConfig: flusher.NewConfig(),
 		BaseURI:       "https://log-api.newrelic.com/log/v1",
 		Timeout:       helper.NewDuration(10 * time.Second),
+		MessageField:  entry.NewRecordField(),
 	}
 }
 
@@ -39,10 +41,11 @@ type NewRelicOutputConfig struct {
 	BufferConfig        buffer.Config  `json:"buffer" yaml:"buffer"`
 	FlusherConfig       flusher.Config `json:"flusher" yaml:"flusher"`
 
-	APIKey     string          `json:"api_key,omitempty"     yaml:"api_key,omitempty"`
-	BaseURI    string          `json:"base_uri,omitempty"    yaml:"base_uri,omitempty"`
-	LicenseKey string          `json:"license_key,omitempty" yaml:"license_key,omitempty"`
-	Timeout    helper.Duration `json:"timeout,omitempty"     yaml:"timeout,omitempty"`
+	APIKey       string          `json:"api_key,omitempty"       yaml:"api_key,omitempty"`
+	BaseURI      string          `json:"base_uri,omitempty"      yaml:"base_uri,omitempty"`
+	LicenseKey   string          `json:"license_key,omitempty"   yaml:"license_key,omitempty"`
+	Timeout      helper.Duration `json:"timeout,omitempty"       yaml:"timeout,omitempty"`
+	MessageField entry.Field     `json:"message_field,omitempty" yaml:"message_field,omitempty"`
 }
 
 // Build will build a new NewRelicOutput
@@ -74,6 +77,7 @@ func (c NewRelicOutputConfig) Build(context operator.BuildContext) (operator.Ope
 		headers:        headers,
 		url:            url,
 		timeout:        c.Timeout.Raw(),
+		messageField:   c.MessageField,
 	}
 
 	nro.flusher = c.FlusherConfig.Build(buffer, nro.ProcessMulti, nro.SugaredLogger)
@@ -104,10 +108,11 @@ type NewRelicOutput struct {
 	buffer  buffer.Buffer
 	flusher *flusher.Flusher
 
-	client  *http.Client
-	url     *url.URL
-	headers http.Header
-	timeout time.Duration
+	client       *http.Client
+	url          *url.URL
+	headers      http.Header
+	timeout      time.Duration
+	messageField entry.Field
 }
 
 // Start tests the connection to New Relic and begins flushing entries
@@ -136,7 +141,7 @@ func (nro *NewRelicOutput) Process(ctx context.Context, entry *entry.Entry) erro
 
 // ProcessMulti will send a chunk of entries to New Relic
 func (nro *NewRelicOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
-	lp := LogPayloadFromEntries(entries)
+	lp := LogPayloadFromEntries(entries, nro.messageField)
 
 	ctx, cancel := context.WithTimeout(ctx, nro.timeout)
 	defer cancel()
@@ -149,10 +154,8 @@ func (nro *NewRelicOutput) ProcessMulti(ctx context.Context, entries []*entry.En
 	if err != nil {
 		return errors.Wrap(err, "execute request")
 	}
-	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
-		return errors.Wrap(err, "non-zero status code").WithDetails("status", res.Status)
-	}
-	return res.Body.Close()
+	nro.handleResponse(res)
+	return nil
 }
 
 // newRequest creates a new http.Request with the given context and payload
@@ -174,4 +177,16 @@ func (nro *NewRelicOutput) newRequest(ctx context.Context, payload LogPayload) (
 	req.Header = nro.headers
 
 	return req, nil
+}
+
+func (nro *NewRelicOutput) handleResponse(res *http.Response) {
+	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			nro.Errorw("Request returned a non-zero status code", "status", res.Status)
+		} else {
+			nro.Errorw("Request returned a non-zero status code", "status", res.Status, "body", body)
+		}
+	}
+	res.Body.Close()
 }

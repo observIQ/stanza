@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
@@ -20,11 +19,13 @@ import (
 func TestNewRelicOutput(t *testing.T) {
 	cases := []struct {
 		name     string
+		cfgMod   func(*NewRelicOutputConfig)
 		input    []*entry.Entry
 		expected string
 	}{
 		{
 			"Simple",
+			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
 				Record:    "test",
@@ -33,6 +34,7 @@ func TestNewRelicOutput(t *testing.T) {
 		},
 		{
 			"Multi",
+			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
 				Record:    "test1",
@@ -41,6 +43,20 @@ func TestNewRelicOutput(t *testing.T) {
 				Record:    "test2",
 			}},
 			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"labels":null,"resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
+		},
+		{
+			"CustomMessage",
+			func(cfg *NewRelicOutputConfig) {
+				cfg.MessageField = entry.NewRecordField("log")
+			},
+			[]*entry.Entry{{
+				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
+				Record: map[string]interface{}{
+					"log":     "testlog",
+					"message": "testmessage",
+				},
+			}},
+			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"resource":null,"severity":"default"},"message":"testlog"}]}]` + "\n",
 		},
 	}
 
@@ -55,6 +71,9 @@ func TestNewRelicOutput(t *testing.T) {
 			cfg.BaseURI = fmt.Sprintf("http://%s/log/v1", addr)
 			cfg.FlusherConfig.MaxWait = helper.NewDuration(time.Millisecond)
 			cfg.APIKey = "testkey"
+			if tc.cfgMod != nil {
+				tc.cfgMod(cfg)
+			}
 
 			op, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
@@ -68,9 +87,6 @@ func TestNewRelicOutput(t *testing.T) {
 			expectRequestBody(t, ln, tc.expected)
 		})
 	}
-}
-
-func processEntries(t *testing.T, op operator.Operator, entries []*entry.Entry) {
 }
 
 func expectTestConnection(t *testing.T, ln *listener) {

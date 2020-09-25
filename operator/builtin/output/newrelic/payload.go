@@ -6,10 +6,10 @@ import (
 )
 
 // LogPayloadFromEntries creates a new []*LogPayload from an array of entries
-func LogPayloadFromEntries(entries []*entry.Entry) LogPayload {
+func LogPayloadFromEntries(entries []*entry.Entry, messageField entry.Field) LogPayload {
 	logs := make([]*LogMessage, 0, len(entries))
 	for _, entry := range entries {
-		logs = append(logs, LogMessageFromEntry(entry))
+		logs = append(logs, LogMessageFromEntry(entry, messageField))
 	}
 
 	lp := LogPayload{{
@@ -42,38 +42,17 @@ type LogPayloadCommon struct {
 }
 
 // LogMessageFromEntry creates a new LogMessage from a given entry.Entry
-func LogMessageFromEntry(entry *entry.Entry) *LogMessage {
+func LogMessageFromEntry(entry *entry.Entry, messageField entry.Field) *LogMessage {
 	logMessage := &LogMessage{
 		Timestamp:  entry.Timestamp.UnixNano() / 1000 / 1000, // Convert to millis
 		Attributes: make(map[string]interface{}),
 	}
 
-	// Promote message to the top-level
-	switch r := entry.Record.(type) {
-	case string:
-		logMessage.Message = r
-	case []byte:
-		logMessage.Message = string(r)
-	case map[string]interface{}:
-		// Instead of modifying the original with delete(), copy
-		// each key/value, promoting message if we come across it
-		for k, v := range r {
-			if k != "message" {
-				logMessage.Attributes[k] = v
-			} else if msgString, ok := v.(string); ok {
-				logMessage.Message = msgString
-			} else if msgBytes, ok := v.([]byte); ok {
-				logMessage.Message = string(msgBytes)
-			}
-		}
-	case map[string]string:
-		for k, v := range r {
-			if k != "message" {
-				logMessage.Attributes[k] = v
-			} else {
-				logMessage.Message = v
-			}
-		}
+	var message string
+	err := entry.Read(messageField, &message)
+	if err == nil {
+		logMessage.Message = message
+		entry.Delete(messageField)
 	}
 
 	logMessage.Attributes["resource"] = entry.Resource
