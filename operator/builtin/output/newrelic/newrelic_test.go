@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
@@ -19,16 +20,27 @@ import (
 func TestNewRelicOutput(t *testing.T) {
 	cases := []struct {
 		name     string
-		input    *entry.Entry
+		input    []*entry.Entry
 		expected string
 	}{
 		{
 			"Simple",
-			&entry.Entry{
+			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
 				Record:    "test",
-			},
+			}},
 			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"resource":null,"severity":"default"},"message":"test"}]}]` + "\n",
+		},
+		{
+			"Multi",
+			[]*entry.Entry{{
+				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
+				Record:    "test1",
+			}, {
+				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
+				Record:    "test2",
+			}},
+			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"labels":null,"resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
 		},
 	}
 
@@ -47,13 +59,18 @@ func TestNewRelicOutput(t *testing.T) {
 			op, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
 			require.NoError(t, op.Start())
-			require.NoError(t, op.Process(context.Background(), tc.input))
+			for _, entry := range tc.input {
+				require.NoError(t, op.Process(context.Background(), entry))
+			}
 			defer op.Stop()
 
 			expectTestConnection(t, ln)
 			expectRequestBody(t, ln, tc.expected)
 		})
 	}
+}
+
+func processEntries(t *testing.T, op operator.Operator, entries []*entry.Entry) {
 }
 
 func expectTestConnection(t *testing.T, ln *listener) {
@@ -99,9 +116,6 @@ func (l *listener) start() (string, error) {
 		l.server.Serve(ln)
 	}()
 
-	// Wait for the server to start to avoid an error log
-	time.Sleep(100 * time.Millisecond)
-
 	return ln.Addr().String(), nil
 }
 
@@ -122,6 +136,8 @@ func handle(ch chan []byte) func(rw http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			panic(err)
 		}
+		req.Body.Close()
+
 		ch <- body
 	}
 }
