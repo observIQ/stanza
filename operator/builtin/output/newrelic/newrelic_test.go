@@ -50,21 +50,23 @@ func TestNewRelicOutput(t *testing.T) {
 			require.NoError(t, op.Process(context.Background(), tc.input))
 			defer op.Stop()
 
-			testConnection := `[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[]}]` + "\n"
-			select {
-			case body := <-ln.requestBodies:
-				require.Equal(t, testConnection, string(body))
-			case <-time.After(time.Minute):
-				require.FailNow(t, "Timed out waiting for test connection")
-			}
-
-			select {
-			case body := <-ln.requestBodies:
-				require.Equal(t, tc.expected, string(body))
-			case <-time.After(time.Minute):
-				require.FailNow(t, "Timed out waiting for request")
-			}
+			expectTestConnection(t, ln)
+			expectRequestBody(t, ln, tc.expected)
 		})
+	}
+}
+
+func expectTestConnection(t *testing.T, ln *listener) {
+	testConnection := `[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[]}]` + "\n"
+	expectRequestBody(t, ln, testConnection)
+}
+
+func expectRequestBody(t *testing.T, ln *listener, expected string) {
+	select {
+	case body := <-ln.requestBodies:
+		require.Equal(t, expected, string(body))
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for test connection")
 	}
 }
 
