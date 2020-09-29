@@ -9,7 +9,6 @@ import (
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,20 +16,16 @@ func TestRateLimit(t *testing.T) {
 	t.Parallel()
 
 	cfg := NewRateLimitConfig("my_rate_limit")
-	cfg.OutputIDs = []string{"output1"}
+	cfg.OutputIDs = []string{"fake"}
 	cfg.Burst = 1
-	cfg.Rate = 10
+	cfg.Rate = 100
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 
-	receivedLog := make(chan struct{}, 100)
-	mockOutput := testutil.NewMockOperator("output1")
-	mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		receivedLog <- struct{}{}
-	})
+	fake := testutil.NewFakeOutput(t)
 
-	err = rateLimit.SetOutputs([]operator.Operator{mockOutput})
+	err = rateLimit.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
 	err = rateLimit.Start()
@@ -53,11 +48,11 @@ func TestRateLimit(t *testing.T) {
 	}()
 
 	i := 0
-	timeout := time.After(time.Second)
+	timeout := time.After(100 * time.Millisecond)
 LOOP:
 	for {
 		select {
-		case <-receivedLog:
+		case <-fake.Received:
 			i++
 		case <-timeout:
 			break LOOP
