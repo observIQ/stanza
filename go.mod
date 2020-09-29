@@ -13,6 +13,7 @@ require (
 	github.com/observiq/ctimefmt v1.0.0
 	github.com/observiq/nanojack v0.0.0-20200910202758-a0af1c611319
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/spf13/cobra v1.1.1 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.4

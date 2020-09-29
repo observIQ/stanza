@@ -34,7 +34,7 @@ func TestOutputOperatorCanProcess(t *testing.T) {
 		BasicOperator: BasicOperator{
 			OperatorID:    "test-id",
 			OperatorType:  "test-type",
-			SugaredLogger: buildContext.Logger,
+			SugaredLogger: buildContext.Logger.SugaredLogger,
 		},
 	}
 	require.True(t, output.CanProcess())
@@ -46,7 +46,7 @@ func TestOutputOperatorCanOutput(t *testing.T) {
 		BasicOperator: BasicOperator{
 			OperatorID:    "test-id",
 			OperatorType:  "test-type",
-			SugaredLogger: buildContext.Logger,
+			SugaredLogger: buildContext.Logger.SugaredLogger,
 		},
 	}
 	require.False(t, output.CanOutput())
@@ -58,7 +58,7 @@ func TestOutputOperatorOutputs(t *testing.T) {
 		BasicOperator: BasicOperator{
 			OperatorID:    "test-id",
 			OperatorType:  "test-type",
-			SugaredLogger: buildContext.Logger,
+			SugaredLogger: buildContext.Logger.SugaredLogger,
 		},
 	}
 	require.Equal(t, []operator.Operator{}, output.Outputs())
@@ -70,7 +70,7 @@ func TestOutputOperatorSetOutputs(t *testing.T) {
 		BasicOperator: BasicOperator{
 			OperatorID:    "test-id",
 			OperatorType:  "test-type",
-			SugaredLogger: buildContext.Logger,
+			SugaredLogger: buildContext.Logger.SugaredLogger,
 		},
 	}
 

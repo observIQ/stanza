@@ -80,7 +80,7 @@ func TestParserInvalidParse(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 			},
 			OnError: DropOnError,
@@ -105,7 +105,7 @@ func TestParserInvalidTimeParse(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 			},
 			OnError: DropOnError,
@@ -137,7 +137,7 @@ func TestParserInvalidSeverityParse(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 			},
 			OnError: DropOnError,
@@ -166,7 +166,7 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 			},
 			OnError: DropOnError,
@@ -210,7 +210,7 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 			},
 			OnError: DropOnError,
@@ -259,7 +259,7 @@ func TestParserOutput(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 				OutputOperators: []operator.Operator{output},
 			},
@@ -289,7 +289,7 @@ func TestParserWithPreserve(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 				OutputOperators: []operator.Operator{output},
 			},
@@ -330,7 +330,7 @@ func TestParserWithoutPreserve(t *testing.T) {
 				BasicOperator: BasicOperator{
 					OperatorID:    "test-id",
 					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger,
+					SugaredLogger: buildContext.Logger.SugaredLogger,
 				},
 				OutputOperators: []operator.Operator{output},
 			},
