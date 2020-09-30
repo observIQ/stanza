@@ -10,26 +10,35 @@ import (
 
 // LogAgentBuilder is a construct used to build a log agent
 type LogAgentBuilder struct {
-	cfg           *Config
+	configFiles   []string
+	config        *Config
 	logger        *zap.SugaredLogger
 	pluginDir     string
 	databaseFile  string
 	defaultOutput operator.Operator
-	registry      *operator.Registry
 }
 
 // NewBuilder creates a new LogAgentBuilder
-func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
+func NewBuilder(logger *zap.SugaredLogger) *LogAgentBuilder {
 	return &LogAgentBuilder{
-		cfg:      cfg,
-		logger:   logger,
-		registry: operator.DefaultRegistry,
+		logger: logger,
 	}
 }
 
 // WithPluginDir adds the specified plugin directory when building a log agent
 func (b *LogAgentBuilder) WithPluginDir(pluginDir string) *LogAgentBuilder {
 	b.pluginDir = pluginDir
+	return b
+}
+
+// WithPluginDir adds the specified plugin directory when building a log agent
+func (b *LogAgentBuilder) WithConfigFiles(files []string) *LogAgentBuilder {
+	b.configFiles = files
+	return b
+}
+
+func (b *LogAgentBuilder) WithConfig(cfg *Config) *LogAgentBuilder {
+	b.config = cfg
 	return b
 }
 
@@ -52,17 +61,28 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		return nil, errors.Wrap(err, "open database")
 	}
 
-	if err := plugin.RegisterPlugins(b.pluginDir, b.registry); err != nil {
-		return nil, err
+	if b.pluginDir != "" {
+		if err := plugin.RegisterPlugins(b.pluginDir, operator.DefaultRegistry); err != nil {
+			return nil, err
+		}
+	}
+
+	if b.config != nil && len(b.configFiles) > 0 {
+		return nil, errors.NewError("agent can be built WithConfig or WithConfigFiles, but not both", "")
+	} else if len(b.configFiles) > 0 {
+		b.config, err = NewConfigFromGlobs(b.configFiles)
+		if err != nil {
+			return nil, errors.Wrap(err, "read configs from globs")
+		}
 	}
 
 	buildContext := operator.BuildContext{
-		Logger:   b.logger,
-		Database: db,
-		Registry: b.registry,
+		Logger:    b.logger,
+		Database:  db,
+		Namespace: "$",
 	}
 
-	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext)
+	pipeline, err := b.config.Pipeline.BuildPipeline(buildContext)
 	if err != nil {
 		return nil, err
 	}

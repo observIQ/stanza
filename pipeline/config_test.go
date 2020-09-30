@@ -512,7 +512,6 @@ import (
 // 	newBuilder := func() operator.Builder {
 // 		config := &invalidOperatorConfig{}
 // 		config.On("Build", mock.Anything).Return(nil, fmt.Errorf("failed to build operator"))
-// 		config.On("SetNamespace", mock.Anything, mock.Anything).Return()
 // 		config.On("ID").Return("test_id")
 // 		config.On("Type").Return("invalid_operator")
 // 		return config

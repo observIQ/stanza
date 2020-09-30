@@ -62,13 +62,6 @@ func (c BasicConfig) Build(context operator.BuildContext) (BasicOperator, error)
 	return operator, nil
 }
 
-// SetNamespace will namespace the operator id.
-func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
-	if CanNamespace(c.ID(), exclusions) {
-		c.OperatorID = AddNamespace(c.ID(), namespace)
-	}
-}
-
 // BasicOperator provides a basic implementation of an operator.
 type BasicOperator struct {
 	OperatorID   string

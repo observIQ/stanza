@@ -23,8 +23,8 @@ type WriterConfig struct {
 }
 
 // Build will build a writer operator from the config.
-func (c WriterConfig) Build(context operator.BuildContext) (WriterOperator, error) {
-	basicOperator, err := c.BasicConfig.Build(context)
+func (c WriterConfig) Build(bc operator.BuildContext) (WriterOperator, error) {
+	basicOperator, err := c.BasicConfig.Build(bc)
 	if err != nil {
 		return WriterOperator{}, err
 	}
@@ -32,7 +32,11 @@ func (c WriterConfig) Build(context operator.BuildContext) (WriterOperator, erro
 	// Namespace all the output IDs
 	namespacedIDs := make([]string, 0, len(c.OutputIDs))
 	for _, id := range c.OutputIDs {
-		namespacedIDs = append(namespacedIDs, context.PrependNamespace(id))
+		namespacedIDs = append(namespacedIDs, bc.PrependNamespace(id))
+	}
+
+	if len(namespacedIDs) == 0 {
+		namespacedIDs = bc.DefaultOutputIDs
 	}
 
 	writer := WriterOperator{
@@ -87,29 +91,6 @@ func (w *WriterOperator) SetOutputs(operators []operator.Operator) error {
 		outputOperators = append(outputOperators, operator)
 	}
 
-	// No outputs have been set, so use the next configured operator
-	if len(w.OutputIDs) == 0 {
-		currentOperatorIndex := -1
-		for i, operator := range operators {
-			if operator.ID() == w.ID() {
-				currentOperatorIndex = i
-				break
-			}
-		}
-		if currentOperatorIndex == -1 {
-			return fmt.Errorf("unexpectedly could not find self in array of operators")
-		}
-		nextOperatorIndex := currentOperatorIndex + 1
-		if nextOperatorIndex == len(operators) {
-			return fmt.Errorf("cannot omit output for the last operator in the pipeline")
-		}
-		nextOperator := operators[nextOperatorIndex]
-		if !nextOperator.CanProcess() {
-			return fmt.Errorf("operator '%s' cannot process entries, but it was selected as a receiver because 'output' was omitted", nextOperator.ID())
-		}
-		outputOperators = append(outputOperators, nextOperator)
-	}
-
 	w.OutputOperators = outputOperators
 	return nil
 }
@@ -135,7 +116,7 @@ func (o *OutputIDs) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	ids, err := o.fromInterface(value)
+	ids, err := NewOutputIDsFromInterface(value)
 	if err != nil {
 		return err
 	}
@@ -152,7 +133,7 @@ func (o *OutputIDs) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	ids, err := o.fromInterface(value)
+	ids, err := NewOutputIDsFromInterface(value)
 	if err != nil {
 		return err
 	}
@@ -161,21 +142,19 @@ func (o *OutputIDs) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// fromInterface will parse OutputIDs from a raw interface.
-func (o *OutputIDs) fromInterface(value interface{}) (OutputIDs, error) {
+func NewOutputIDsFromInterface(value interface{}) (OutputIDs, error) {
 	if str, ok := value.(string); ok {
 		return OutputIDs{str}, nil
 	}
 
 	if array, ok := value.([]interface{}); ok {
-		return o.fromArray(array)
+		return NewOutputIDsFromArray(array)
 	}
 
 	return nil, fmt.Errorf("value is not of type string or string array")
 }
 
-// fromArray will parse OutputIDs from a raw array.
-func (o *OutputIDs) fromArray(array []interface{}) (OutputIDs, error) {
+func NewOutputIDsFromArray(array []interface{}) (OutputIDs, error) {
 	ids := OutputIDs{}
 	for _, rawValue := range array {
 		strValue, ok := rawValue.(string)

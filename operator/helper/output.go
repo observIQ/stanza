@@ -31,13 +31,6 @@ func (c OutputConfig) Build(context operator.BuildContext) (OutputOperator, erro
 	return outputOperator, nil
 }
 
-// SetNamespace will namespace the id and output of the operator config.
-func (c *OutputConfig) SetNamespace(namespace string, exclusions ...string) {
-	if CanNamespace(c.ID(), exclusions) {
-		c.OperatorID = AddNamespace(c.ID(), namespace)
-	}
-}
-
 // OutputOperator provides a basic implementation of an output operator.
 type OutputOperator struct {
 	BasicOperator

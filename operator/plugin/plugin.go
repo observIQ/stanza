@@ -102,7 +102,9 @@ func (p *Plugin) UnmarshalText(text []byte) error {
 		return err
 	}
 
-	p.Template, err = template.New(p.Title).Parse(string(templateBytes))
+	p.Template, err = template.New(p.Title).
+		Funcs(pluginFuncs()).
+		Parse(string(templateBytes))
 	return err
 }
 
@@ -152,13 +154,11 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 		return nil, err
 	}
 
-	pluginID := strings.Split(path, ".")[0]
-	p := &Plugin{
-		ID: pluginID,
-	}
+	p := &Plugin{}
 	if err = p.UnmarshalText(contents); err != nil {
 		return nil, err
 	}
+	p.ID = strings.Split(filepath.Base(path), ".")[0]
 
 	return p, nil
 }
@@ -183,4 +183,19 @@ func RegisterPlugins(pluginDir string, registry *operator.Registry) error {
 	}
 
 	return nil
+}
+
+// pluginFuncs returns a map of custom plugin functions used for templating.
+func pluginFuncs() template.FuncMap {
+	funcs := make(map[string]interface{})
+	funcs["default"] = defaultPluginFunc
+	return funcs
+}
+
+// defaultPluginFunc is a plugin function that returns a default value if the supplied value is nil.
+func defaultPluginFunc(def interface{}, val interface{}) interface{} {
+	if val == nil {
+		return def
+	}
+	return val
 }

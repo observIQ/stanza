@@ -14,7 +14,6 @@ type FakeBuilder struct {
 	Array        []string `json:"array" yaml:"array"`
 }
 
-func (f *FakeBuilder) SetNamespace(s string, e ...string)           {}
 func (f *FakeBuilder) Build(context BuildContext) (Operator, error) { return nil, nil }
 func (f *FakeBuilder) ID() string                                   { return "plugin" }
 func (f *FakeBuilder) Type() string                                 { return "plugin" }

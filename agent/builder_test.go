@@ -17,7 +17,8 @@ func TestBuildAgentSuccess(t *testing.T) {
 	mockDatabaseFile := ""
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
@@ -38,7 +39,8 @@ func TestBuildAgentFailureOnDatabase(t *testing.T) {
 	mockDatabaseFile := invalidDatabaseFile
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
@@ -54,7 +56,8 @@ func TestBuildAgentFailureOnPluginRegistry(t *testing.T) {
 	mockDatabaseFile := ""
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
