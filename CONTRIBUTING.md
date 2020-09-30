@@ -104,7 +104,7 @@ func (c ExampleOperatorConfig) Build(context operator.BuildContext) (operator.Op
 
 ```go
 func init() {
-	operator.Register("example_operator", &ExampleOperatorConfig{})
+	operator.RegisterOperator("example_operator", &ExampleOperatorConfig{})
 }
 ```
 

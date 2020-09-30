@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	operator.Register("k8s_metadata_decorator", func() operator.Builder { return NewK8sMetadataDecoratorConfig("") })
+	operator.RegisterOperator("k8s_metadata_decorator", func() operator.Builder { return NewK8sMetadataDecoratorConfig("") })
 }
 
 // NewK8sMetadataDecoratorConfig creates a new k8s metadata decorator config with default values

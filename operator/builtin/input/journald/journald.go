@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	operator.Register("journald_input", func() operator.Builder { return NewJournaldInputConfig("") })
+	operator.RegisterOperator("journald_input", func() operator.Builder { return NewJournaldInputConfig("") })
 }
 
 func NewJournaldInputConfig(operatorID string) *JournaldInputConfig {

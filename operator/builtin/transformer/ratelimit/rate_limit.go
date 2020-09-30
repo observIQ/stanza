@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	operator.Register("rate_limit", func() operator.Builder { return NewRateLimitConfig("") })
+	operator.RegisterOperator("rate_limit", func() operator.Builder { return NewRateLimitConfig("") })
 }
 
 // NewRateLimitConfig creates a new rate limit config with default values

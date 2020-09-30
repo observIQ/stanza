@@ -242,11 +242,9 @@ func TestPipelineStopOrder(t *testing.T) {
 
 	err = pipeline.Start()
 	require.NoError(t, err)
-	require.True(t, pipeline.Running())
 
 	err = pipeline.Stop()
 	require.NoError(t, err)
-	require.False(t, pipeline.Running())
 	require.Equal(t, []int{1, 2, 3}, stopOrder)
 }
 

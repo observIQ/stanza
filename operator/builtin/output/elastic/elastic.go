@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	operator.Register("elastic_output", func() operator.Builder { return NewElasticOutputConfig("") })
+	operator.RegisterOperator("elastic_output", func() operator.Builder { return NewElasticOutputConfig("") })
 }
 
 // NewElasticOutputConfig creates a new elastic output config with default values

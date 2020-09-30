@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	operator.Register("k8s_event_input", func() operator.Builder { return NewK8sEventsConfig("") })
+	operator.RegisterOperator("k8s_event_input", func() operator.Builder { return NewK8sEventsConfig("") })
 }
 
 // NewK8sEventsConfig creates a default K8sEventsConfig

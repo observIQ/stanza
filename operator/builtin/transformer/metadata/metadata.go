@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	operator.Register("metadata", func() operator.Builder { return NewMetadataOperatorConfig("") })
+	operator.RegisterOperator("metadata", func() operator.Builder { return NewMetadataOperatorConfig("") })
 }
 
 // NewMetadataOperatorConfig creates a new metadata config with default values

@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	operator.Register("regex_parser", func() operator.Builder { return NewRegexParserConfig("") })
+	operator.RegisterOperator("regex_parser", func() operator.Builder { return NewRegexParserConfig("") })
 }
 
 // NewRegexParserConfig creates a new regex parser config with default values

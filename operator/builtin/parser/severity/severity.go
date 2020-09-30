@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	operator.Register("severity_parser", func() operator.Builder { return NewSeverityParserConfig("") })
+	operator.RegisterOperator("severity_parser", func() operator.Builder { return NewSeverityParserConfig("") })
 }
 
 // NewSeverityParserConfig creates a new severity parser config with default values

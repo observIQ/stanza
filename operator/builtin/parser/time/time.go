@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	operator.Register("time_parser", func() operator.Builder { return NewTimeParserConfig("") })
+	operator.RegisterOperator("time_parser", func() operator.Builder { return NewTimeParserConfig("") })
 }
 
 // NewTimeParserConfig creates a new time parser config with default values

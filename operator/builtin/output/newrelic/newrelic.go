@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	operator.Register("newrelic_output", func() operator.Builder { return NewNewRelicOutputConfig("") })
+	operator.RegisterOperator("newrelic_output", func() operator.Builder { return NewNewRelicOutputConfig("") })
 }
 
 // NewNewRelicOutputConfig creates a new elastic output config with default values

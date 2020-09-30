@@ -26,4 +26,8 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
+	k8s.io/apimachinery v0.19.2 // indirect
+	k8s.io/client-go v11.0.0+incompatible // indirect
+	k8s.io/klog v1.0.0 // indirect
+	k8s.io/utils v0.0.0-20200912215256-4140de9c8800 // indirect
 )

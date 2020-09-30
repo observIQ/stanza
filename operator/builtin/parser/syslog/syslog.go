@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	operator.Register("syslog_parser", func() operator.Builder { return NewSyslogParserConfig("") })
+	operator.RegisterOperator("syslog_parser", func() operator.Builder { return NewSyslogParserConfig("") })
 }
 
 // NewSyslogParserConfig creates a new syslog parser config with default values

@@ -15,6 +15,7 @@ type Config struct {
 	helper.BasicConfig
 	plugin     *Plugin
 	Parameters map[string]interface{} `json:",squash" yaml:",squash"`
+	// TODO outputs
 }
 
 func (c *Config) Build(bc operator.BuildContext) (operator.Operator, error) {
@@ -100,14 +101,20 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func (c Config) MarshalYAML() {
-	// TODO
+func (c Config) MarshalYAML() (interface{}, error) {
+	var m map[string]interface{}
+	for k, v := range c.Parameters {
+		m[k] = v
+	}
+	m["id"] = c.ID()
+	m["type"] = c.Type()
+	return m, nil
 }
 
-func (c Config) UnmarshalJSON() {
-	// TODO
-}
+// func (c Config) UnmarshalJSON() {
+// 	// TODO
+// }
 
-func (c Config) MarshalJSON() {
-	// TODO
-}
+// func (c Config) MarshalJSON() {
+// 	// TODO
+// }

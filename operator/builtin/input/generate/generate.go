@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	operator.Register("generate_input", func() operator.Builder { return NewGenerateInputConfig("") })
+	operator.RegisterOperator("generate_input", func() operator.Builder { return NewGenerateInputConfig("") })
 }
 
 // NewGenerateInputConfig creates a new generate input config with default values

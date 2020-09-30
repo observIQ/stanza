@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	operator.Register("udp_input", func() operator.Builder { return NewUDPInputConfig("") })
+	operator.RegisterOperator("udp_input", func() operator.Builder { return NewUDPInputConfig("") })
 }
 
 // NewUDPInputConfig creates a new UDP input config with default values

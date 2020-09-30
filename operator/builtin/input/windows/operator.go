@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	operator.Register("windows_eventlog_input", NewDefaultConfig)
+	operator.RegisterOperator("windows_eventlog_input", NewDefaultConfig)
 }
 
 // EventLogConfig is the configuration of a windows event log operator.
