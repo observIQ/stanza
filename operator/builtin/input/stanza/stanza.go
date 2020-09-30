@@ -4,11 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/logger"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
-	"go.uber.org/zap/zapcore"
 )
 
 func init() {
@@ -80,53 +78,8 @@ func (i *Input) startReading(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case e := <-i.receiver:
-				entry := createEntry(e)
-				i.Write(ctx, entry)
+				i.Write(ctx, &e)
 			}
 		}
 	}()
-}
-
-// createEntry will create a stanza entry from a zapcore entry.
-func createEntry(e zapcore.Entry) *entry.Entry {
-	return &entry.Entry{
-		Timestamp: e.Time,
-		Record:    parseRecord(e),
-		Severity:  parseSeverity(e),
-	}
-}
-
-// parseRecord will parse a record from a zapcore entry.
-func parseRecord(e zapcore.Entry) map[string]interface{} {
-	record := map[string]interface{}{
-		"message": e.Message,
-		"logger":  e.LoggerName,
-	}
-
-	if e.Level > zapcore.WarnLevel {
-		record["caller"] = e.Caller.String()
-		record["stack"] = e.Stack
-	}
-
-	return record
-}
-
-// parseSeverity will parse a stanza severity from a zapcore entry.
-func parseSeverity(e zapcore.Entry) entry.Severity {
-	switch e.Level {
-	case zapcore.DebugLevel:
-		return entry.Debug
-	case zapcore.InfoLevel:
-		return entry.Info
-	case zapcore.WarnLevel:
-		return entry.Warning
-	case zapcore.ErrorLevel:
-		return entry.Error
-	case zapcore.PanicLevel:
-		return entry.Critical
-	case zapcore.FatalLevel:
-		return entry.Catastrophe
-	default:
-		return entry.Default
-	}
 }

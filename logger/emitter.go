@@ -3,13 +3,13 @@ package logger
 import (
 	"sync"
 
-	"go.uber.org/zap/zapcore"
+	"github.com/observiq/stanza/entry"
 )
 
-// Receiver is a channel that receives zap logs.
-type Receiver chan zapcore.Entry
+// Receiver is a channel that receives internal stanza logs.
+type Receiver chan entry.Entry
 
-// Emitter emits zap logs to a collection of receivers.
+// Emitter emits internal logs to registered receivers.
 type Emitter struct {
 	receivers []Receiver
 	mux       sync.RWMutex
@@ -22,18 +22,22 @@ func (e *Emitter) AddReceiver(receiver Receiver) {
 	e.mux.Unlock()
 }
 
-// Emit will emit to all receivers.
-// If a receiver is full, the operation is skipped.
-func (e *Emitter) Emit(entry zapcore.Entry) error {
+// Emit emits an entry to all receivers.
+func (e *Emitter) emit(entry entry.Entry) {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
-
 	for _, receiver := range e.receivers {
 		select {
 		case receiver <- entry:
 		default:
 		}
 	}
+}
 
-	return nil
+// newEmitter creates a new emitter.
+func newEmitter() *Emitter {
+	return &Emitter{
+		receivers: []Receiver{},
+		mux:       sync.RWMutex{},
+	}
 }

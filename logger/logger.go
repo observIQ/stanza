@@ -7,22 +7,18 @@ import (
 // Logger is a wrapped logger used by the stanza agent.
 type Logger struct {
 	*zap.SugaredLogger
-	emitter *Emitter
-}
-
-// AddReceiver will add a receiver to the logger.
-func (l *Logger) AddReceiver(receiver Receiver) {
-	l.emitter.AddReceiver(receiver)
+	*Emitter
 }
 
 // New will create a new logger.
 func New(sugared *zap.SugaredLogger) *Logger {
-	emitter := &Emitter{}
-	hooks := zap.Hooks(emitter.Emit)
-	base := sugared.Desugar().WithOptions(hooks)
+	baseLogger := sugared.Desugar()
+	emitter := newEmitter()
+	core := newCore(baseLogger.Core(), emitter)
+	wrappedLogger := zap.New(core).Sugar()
 
 	return &Logger{
-		base.Sugar(),
+		wrappedLogger,
 		emitter,
 	}
 }
