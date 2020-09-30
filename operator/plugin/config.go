@@ -11,12 +11,13 @@ var _ operator.Builder = (*Config)(nil)
 
 type Config struct {
 	helper.BasicConfig
+	plugin     *Plugin
 	Parameters map[string]interface{} `json:",squash" yaml:",squash"`
 }
 
 func (c *Config) Build(bc operator.BuildContext) (operator.Operator, error) {
 	params := c.getRenderParams()
-	plugin, err := bc.PluginRegistry.Render(c.OperatorType, params)
+	plugin, err := c.plugin.Render(c.OperatorType, params)
 	if err != nil {
 		return nil, err
 	}

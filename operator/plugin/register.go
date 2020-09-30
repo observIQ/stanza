@@ -15,15 +15,6 @@ import (
 // Registry is a registry of plugin templates.
 type Registry map[string]*template.Template
 
-// Plugin is the rendered result of a plugin template.
-type Plugin struct {
-	Version     string
-	Title       string
-	Description string
-	Parameters  map[string]Parameter
-	Pipeline    []Config
-}
-
 // Render will render a plugin using the params and plugin type.
 func (r Registry) Render(pluginType string, params map[string]interface{}) (Plugin, error) {
 	template, ok := r[pluginType]

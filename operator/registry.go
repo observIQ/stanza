@@ -1,7 +1,7 @@
 package operator
 
-// defaultRegistry is a global registry of operator types to operator builders.
-var defaultRegistry = NewRegistry()
+// DefaultRegistry is a global registry of operator types to operator builders.
+var DefaultRegistry = NewRegistry()
 
 type Registry struct {
 	operators map[string]func() Builder
@@ -46,27 +46,17 @@ func (r *Registry) Lookup(configType string) (func() Builder, bool) {
 
 // RegisterOperator will register an operator in the default registry
 func RegisterOperator(operatorType string, newBuilder func() Builder) {
-	defaultRegistry.RegisterOperator(operatorType, newBuilder)
+	DefaultRegistry.RegisterOperator(operatorType, newBuilder)
 }
 
 // RegisterPlugin will register a plugin in the default registry
 func RegisterPlugin(pluginName string, newBuilder func() Builder) {
-	defaultRegistry.RegisterPlugin(pluginName, newBuilder)
+	DefaultRegistry.RegisterPlugin(pluginName, newBuilder)
 }
 
 // Lookup looks up a given config type, prioritizing builtin operators
 // before looking in registered plugins. Its second return value will
 // be false if no builder is registered for that type
 func Lookup(configType string) (func() Builder, bool) {
-	operator, ok := r.operators[configType]
-	if ok {
-		return operator, ok
-	}
-
-	plugin, ok := r.plugins[configType]
-	if ok {
-		return plugin, ok
-	}
-
-	return nil, false
+	return DefaultRegistry.Lookup(configType)
 }
