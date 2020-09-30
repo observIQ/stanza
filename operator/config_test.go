@@ -79,7 +79,7 @@ func TestMarshalJSON(t *testing.T) {
 
 func TestUnmarshalYAMLErrors(t *testing.T) {
 	t.Run("ValidYAML", func(t *testing.T) {
-		Register("fake_operator", func() Builder { return &FakeBuilder{} })	
+		Register("fake_operator", func() Builder { return &FakeBuilder{} })
 		raw := `type: fake_operator`
 		var cfg Config
 		err := yaml.Unmarshal([]byte(raw), &cfg)
@@ -142,9 +142,3 @@ func TestMarshalYAML(t *testing.T) {
 	expected := "id: plugin\ntype: plugin\narray:\n- test\n"
 	require.Equal(t, expected, string(out))
 }
-
-func TestIsDefined(t *testing.T) {
-	Register("fake_operator", func() Builder { return &FakeBuilder{} })
-	require.True(t, IsDefined("fake_operator"))
-}
-

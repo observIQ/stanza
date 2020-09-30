@@ -56,11 +56,12 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 	}
 
 	buildContext := operator.BuildContext{
-		Logger:   b.logger,
-		Database: db,
+		Logger:         b.logger,
+		Database:       db,
+		PluginRegistry: registry,
 	}
 
-	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext, registry, b.defaultOutput)
+	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext)
 	if err != nil {
 		return nil, err
 	}

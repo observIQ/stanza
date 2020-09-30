@@ -29,21 +29,17 @@ func (c WriterConfig) Build(context operator.BuildContext) (WriterOperator, erro
 		return WriterOperator{}, err
 	}
 
+	// Namespace all the output IDs
+	namespacedIDs := make([]string, 0, len(c.OutputIDs))
+	for _, id := range c.OutputIDs {
+		namespacedIDs = append(namespacedIDs, context.PrependNamespace(id))
+	}
+
 	writer := WriterOperator{
-		OutputIDs:     c.OutputIDs,
+		OutputIDs:     namespacedIDs,
 		BasicOperator: basicOperator,
 	}
 	return writer, nil
-}
-
-// SetNamespace will namespace the output ids of the writer.
-func (c *WriterConfig) SetNamespace(namespace string, exclusions ...string) {
-	c.BasicConfig.SetNamespace(namespace, exclusions...)
-	for i, outputID := range c.OutputIDs {
-		if CanNamespace(outputID, exclusions) {
-			c.OutputIDs[i] = AddNamespace(outputID, namespace)
-		}
-	}
 }
 
 // WriterOperator is an operator that can write to other operators.

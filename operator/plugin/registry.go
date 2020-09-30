@@ -9,9 +9,11 @@ import (
 	"text/template"
 
 	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
 	yaml "gopkg.in/yaml.v2"
 )
+
+// Registry is a registry of plugin templates.
+type Registry map[string]*template.Template
 
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
@@ -19,11 +21,8 @@ type Plugin struct {
 	Title       string
 	Description string
 	Parameters  map[string]Parameter
-	Pipeline    []operator.Config
+	Pipeline    []Config
 }
-
-// Registry is a registry of plugin templates.
-type Registry map[string]*template.Template
 
 // Render will render a plugin using the params and plugin type.
 func (r Registry) Render(pluginType string, params map[string]interface{}) (Plugin, error) {
@@ -148,7 +147,7 @@ func (r Registry) Load(path string) error {
 
 // Add will add a plugin to the registry.
 func (r Registry) Add(pluginType string, contents string) error {
-	if operator.IsDefined(pluginType) {
+	if IsDefined(pluginType) {
 		return fmt.Errorf("plugin type %s already exists as a builtin plugin", pluginType)
 	}
 

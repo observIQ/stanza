@@ -5,9 +5,6 @@ package operator
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/observiq/stanza/database"
-	"go.uber.org/zap"
 )
 
 // Config is the configuration of an operator
@@ -20,56 +17,31 @@ type Builder interface {
 	ID() string
 	Type() string
 	Build(BuildContext) (Operator, error)
-	SetNamespace(namespace string, exclude ...string)
-}
-
-// BuildContext supplies contextual resources when building an operator.
-type BuildContext struct {
-	Database   database.Database
-	Parameters map[string]interface{}
-	Logger     *zap.SugaredLogger
-}
-
-// registry is a global registry of operator types to operator builders.
-var registry = make(map[string]func() Builder)
-
-// Register will register a function to an operator type.
-// This function will return a builder for the supplied type.
-func Register(operatorType string, newBuilder func() Builder) {
-	registry[operatorType] = newBuilder
-}
-
-// IsDefined will return a boolean indicating if an operator type is registered and defined.
-func IsDefined(operatorType string) bool {
-	_, ok := registry[operatorType]
-	return ok
 }
 
 // UnmarshalJSON will unmarshal a config from JSON.
 func (c *Config) UnmarshalJSON(bytes []byte) error {
-	var baseConfig struct {
-		ID   string
+	var typeUnmarshaller struct {
 		Type string
 	}
 
-	err := json.Unmarshal(bytes, &baseConfig)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &typeUnmarshaller); err != nil {
 		return err
 	}
 
-	if baseConfig.Type == "" {
+	if typeUnmarshaller.Type == "" {
 		return fmt.Errorf("missing required field 'type'")
 	}
 
-	builderFunc, ok := registry[baseConfig.Type]
+	builderFunc, ok := registry[typeUnmarshaller.Type]
 	if !ok {
-		return fmt.Errorf("unsupported type '%s'", baseConfig.Type)
+
+		panic("unknown plugin type") // TODO
 	}
 
 	builder := builderFunc()
-	err = json.Unmarshal(bytes, builder)
-	if err != nil {
-		return fmt.Errorf("unmarshal to %s: %s", baseConfig.Type, err)
+	if err := json.Unmarshal(bytes, builder); err != nil {
+		return fmt.Errorf("unmarshal to %s: %s", typeUnmarshaller.Type, err)
 	}
 
 	c.Builder = builder
@@ -105,8 +77,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	builder := builderFunc()
-	err = unmarshal(builder)
-	if err != nil {
+	if err = unmarshal(builder); err != nil {
 		return fmt.Errorf("unmarshal to %s: %s", typeString, err)
 	}
 
