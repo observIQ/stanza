@@ -5,6 +5,8 @@ import (
 
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/pipeline"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var _ operator.Builder = (*Config)(nil)
@@ -17,13 +19,41 @@ type Config struct {
 
 func (c *Config) Build(bc operator.BuildContext) (operator.Operator, error) {
 	params := c.getRenderParams()
-	plugin, err := c.plugin.Render(c.OperatorType, params)
+	pipelineConfigBytes, err := c.plugin.Render(c.OperatorType, params)
 	if err != nil {
 		return nil, err
 	}
-	// TODO
-	return nil, nil
 
+	var pipelineConfig struct {
+		Config pipeline.Config
+	}
+	if err := yaml.Unmarshal(pipelineConfigBytes, &pipelineConfig); err != nil {
+		return nil, err
+	}
+
+	directedPipeline, err := pipelineConfig.Config.BuildPipeline(bc)
+	if err != nil {
+		return nil, err
+	}
+
+	basicOperator, err := c.BasicConfig.Build(bc)
+	if err != nil {
+		return nil, err
+	}
+
+	var entrypoint operator.Operator
+	for _, operator := range directedPipeline.Operators() {
+		if operator.ID() == c.ID() {
+			entrypoint = operator
+			break
+		}
+	}
+
+	return &PluginOperator{
+		BasicOperator: basicOperator,
+		Pipeline:      directedPipeline,
+		Entrypoint:    entrypoint,
+	}, nil
 }
 
 func (c *Config) getRenderParams() map[string]interface{} {

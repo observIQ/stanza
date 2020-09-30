@@ -4,7 +4,7 @@ import (
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/plugin"
+	"github.com/observiq/stanza/operator/plugin"
 	"go.uber.org/zap"
 )
 
@@ -15,13 +15,15 @@ type LogAgentBuilder struct {
 	pluginDir     string
 	databaseFile  string
 	defaultOutput operator.Operator
+	registry      *operator.Registry
 }
 
 // NewBuilder creates a new LogAgentBuilder
 func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
 	return &LogAgentBuilder{
-		cfg:    cfg,
-		logger: logger,
+		cfg:      cfg,
+		logger:   logger,
+		registry: operator.DefaultRegistry,
 	}
 }
 
@@ -50,15 +52,14 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		return nil, errors.Wrap(err, "open database")
 	}
 
-	registry, err := plugin.NewPluginRegistry(b.pluginDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "load plugin registry")
+	if err := plugin.RegisterPlugins(b.pluginDir, b.registry); err != nil {
+		return nil, err
 	}
 
 	buildContext := operator.BuildContext{
-		Logger:         b.logger,
-		Database:       db,
-		PluginRegistry: registry,
+		Logger:   b.logger,
+		Database: db,
+		Registry: b.registry,
 	}
 
 	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext)

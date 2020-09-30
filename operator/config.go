@@ -33,10 +33,9 @@ func (c *Config) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("missing required field 'type'")
 	}
 
-	builderFunc, ok := registry[typeUnmarshaller.Type]
+	builderFunc, ok := DefaultRegistry.Lookup(typeUnmarshaller.Type)
 	if !ok {
-
-		panic("unknown plugin type") // TODO
+		return fmt.Errorf("unsupported type '%s'", typeUnmarshaller.Type)
 	}
 
 	builder := builderFunc()
@@ -71,7 +70,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("non-string type %T for field 'type'", typeInterface)
 	}
 
-	builderFunc, ok := registry[typeString]
+	builderFunc, ok := DefaultRegistry.Lookup(typeString)
 	if !ok {
 		return fmt.Errorf("unsupported type '%s'", typeString)
 	}

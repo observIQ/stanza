@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
@@ -25,6 +26,7 @@ type Plugin struct {
 	Template    *template.Template
 }
 
+// NewBuilder creates a new, empty config that can build into an operator
 func (p *Plugin) NewBuilder() operator.Builder {
 	return &Config{
 		plugin: p,
@@ -159,4 +161,26 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 	}
 
 	return p, nil
+}
+
+func RegisterPlugins(pluginDir string, registry *operator.Registry) error {
+	glob := filepath.Join(pluginDir, "*.yaml")
+	filePaths, err := filepath.Glob(glob)
+	if err != nil {
+		return errors.NewError(
+			"failed to find plugins with glob pattern",
+			"ensure that the plugin directory and file pattern are valid",
+			"glob_pattern", glob,
+		)
+	}
+
+	for _, path := range filePaths {
+		plugin, err := NewPluginFromFile(path)
+		if err != nil {
+			return errors.Wrap(err, "parse plugin file")
+		}
+		registry.RegisterPlugin(plugin.ID, plugin.NewBuilder)
+	}
+
+	return nil
 }

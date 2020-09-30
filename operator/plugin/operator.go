@@ -14,11 +14,8 @@ var _ operator.Operator = (*PluginOperator)(nil)
 
 type PluginOperator struct {
 	helper.BasicOperator
-	Version     string
-	Title       string
-	Description string
-	Pipeline    pipeline.Pipeline
-	Entrypoint  operator.Operator
+	Pipeline   pipeline.Pipeline
+	Entrypoint operator.Operator
 }
 
 func (p *PluginOperator) Start() error {
@@ -41,7 +38,7 @@ func (p *PluginOperator) Outputs() []operator.Operator {
 
 	// Convert the set to an array
 	outputs := make([]operator.Operator, 0, len(uniqueOutputs))
-	for operator, _ := range uniqueOutputs {
+	for operator := range uniqueOutputs {
 		outputs = append(outputs, operator)
 	}
 
@@ -61,10 +58,7 @@ func (p *PluginOperator) SetOutputs(operators []operator.Operator) error {
 }
 
 func (p *PluginOperator) CanProcess() bool {
-	if p.Entrypoint != nil {
-		return true
-	}
-	return false
+	return p.Entrypoint != nil
 }
 
 func (p *PluginOperator) Process(ctx context.Context, entry *entry.Entry) error {

@@ -21,7 +21,7 @@ func (f *FakeBuilder) Type() string                                 { return "pl
 
 func TestUnmarshalJSONErrors(t *testing.T) {
 	t.Run("ValidJSON", func(t *testing.T) {
-		Register("fake_operator", func() Builder { return &FakeBuilder{} })
+		RegisterOperator("fake_operator", func() Builder { return &FakeBuilder{} })
 		raw := `{"type":"fake_operator"}`
 		cfg := &Config{}
 		err := cfg.UnmarshalJSON([]byte(raw))
@@ -55,7 +55,7 @@ func TestUnmarshalJSONErrors(t *testing.T) {
 
 	t.Run("TypeSpecificUnmarshal", func(t *testing.T) {
 		raw := `{"id":"plugin","type":"plugin","array":"non-array-value"}`
-		Register("plugin", func() Builder { return &FakeBuilder{} })
+		RegisterOperator("plugin", func() Builder { return &FakeBuilder{} })
 		var cfg Config
 		err := json.Unmarshal([]byte(raw), &cfg)
 		require.Error(t, err)
@@ -79,7 +79,7 @@ func TestMarshalJSON(t *testing.T) {
 
 func TestUnmarshalYAMLErrors(t *testing.T) {
 	t.Run("ValidYAML", func(t *testing.T) {
-		Register("fake_operator", func() Builder { return &FakeBuilder{} })
+		RegisterOperator("fake_operator", func() Builder { return &FakeBuilder{} })
 		raw := `type: fake_operator`
 		var cfg Config
 		err := yaml.Unmarshal([]byte(raw), &cfg)
@@ -121,7 +121,7 @@ func TestUnmarshalYAMLErrors(t *testing.T) {
 
 	t.Run("TypeSpecificUnmarshal", func(t *testing.T) {
 		raw := "id: plugin\ntype: plugin\narray: nonarray"
-		Register("plugin", func() Builder { return &FakeBuilder{} })
+		RegisterOperator("plugin", func() Builder { return &FakeBuilder{} })
 		var cfg Config
 		err := yaml.Unmarshal([]byte(raw), &cfg)
 		require.Error(t, err)
