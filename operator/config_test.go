@@ -19,13 +19,17 @@ func (f *FakeBuilder) ID() string                                   { return "pl
 func (f *FakeBuilder) Type() string                                 { return "plugin" }
 
 func TestUnmarshalJSONErrors(t *testing.T) {
+	t.Cleanup(func() {
+		DefaultRegistry = NewRegistry()
+	})
+
 	t.Run("ValidJSON", func(t *testing.T) {
 		RegisterOperator("fake_operator", func() Builder { return &FakeBuilder{} })
 		raw := `{"type":"fake_operator"}`
 		cfg := &Config{}
 		err := cfg.UnmarshalJSON([]byte(raw))
 		require.NoError(t, err)
-		require.IsType(t, &FakeBuilder{}, cfg.MultiBuilder)
+		require.IsType(t, &MultiBuilderWrapper{}, cfg.MultiBuilder)
 	})
 
 	t.Run("InvalidJSON", func(t *testing.T) {

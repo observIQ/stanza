@@ -1,5 +1,7 @@
 package operator
 
+import "encoding/json"
+
 // DefaultRegistry is a global registry of operator types to operator builders.
 var DefaultRegistry = NewRegistry()
 
@@ -78,4 +80,8 @@ func (m *MultiBuilderWrapper) BuildMulti(bc BuildContext) ([]Operator, error) {
 
 func (m *MultiBuilderWrapper) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return unmarshal(m.Builder)
+}
+
+func (m *MultiBuilderWrapper) UnmarshalJSON(bytes []byte) error {
+	return json.Unmarshal(bytes, m.Builder)
 }

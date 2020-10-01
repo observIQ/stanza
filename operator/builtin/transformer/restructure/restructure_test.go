@@ -208,6 +208,7 @@ func TestRestructureOperator(t *testing.T) {
 			restructure := op.(*RestructureOperator)
 			fake := testutil.NewFakeOutput(t)
 			restructure.SetOutputs([]operator.Operator{fake})
+			restructure.ops = tc.ops
 
 			err = restructure.Process(context.Background(), tc.input)
 			require.NoError(t, err)

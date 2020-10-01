@@ -101,13 +101,12 @@ func connectNodes(graph *simple.DirectedGraph) error {
 func connectNode(graph *simple.DirectedGraph, inputNode OperatorNode) error {
 	for outputOperatorID, outputNodeID := range inputNode.OutputIDs() {
 		if graph.Node(outputNodeID) == nil {
-			// return errors.NewError(
-			// 	"operators cannot be connected, because the output does not exist in the pipeline",
-			// 	"ensure that the output operator is defined",
-			// 	"input_operator", inputNode.Operator().ID(),
-			// 	"output_operator", outputOperatorID,
-			// )
-			return nil
+			return errors.NewError(
+				"operators cannot be connected, because the output does not exist in the pipeline",
+				"ensure that the output operator is defined",
+				"input_operator", inputNode.Operator().ID(),
+				"output_operator", outputOperatorID,
+			)
 		}
 
 		outputNode := graph.Node(outputNodeID).(OperatorNode)

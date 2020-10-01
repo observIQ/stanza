@@ -34,7 +34,7 @@ func (p *Plugin) NewBuilder() operator.MultiBuilder {
 }
 
 // Render will render a plugin's template with the given parameters
-func (p *Plugin) Render(pluginType string, params map[string]interface{}) ([]byte, error) {
+func (p *Plugin) Render(params map[string]interface{}) ([]byte, error) {
 	if err := p.Validate(params); err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (p *Plugin) Render(pluginType string, params map[string]interface{}) ([]byt
 		return nil, errors.NewError(
 			"failed to render template for plugin",
 			"ensure that all parameters are valid for the plugin",
-			"plugin_type", pluginType,
+			"plugin_type", p.ID,
 			"error_message", err.Error(),
 		)
 	}
@@ -154,11 +154,16 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 		return nil, err
 	}
 
+	id := strings.Split(filepath.Base(path), ".")[0]
+	return NewPlugin(id, contents)
+}
+
+func NewPlugin(id string, contents []byte) (*Plugin, error) {
 	p := &Plugin{}
-	if err = p.UnmarshalText(contents); err != nil {
+	if err := p.UnmarshalText(contents); err != nil {
 		return nil, err
 	}
-	p.ID = strings.Split(filepath.Base(path), ".")[0]
+	p.ID = id
 
 	return p, nil
 }

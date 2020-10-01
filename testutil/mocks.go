@@ -80,7 +80,7 @@ func (f *FakeOutput) ExpectRecord(t testing.TB, record interface{}) {
 func (f *FakeOutput) ExpectEntry(t testing.TB, expected *entry.Entry) {
 	select {
 	case e := <-f.Received:
-		require.Equal(t, expected, e.Record)
+		require.Equal(t, expected, e)
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for entry")
 	}

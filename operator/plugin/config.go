@@ -22,11 +22,10 @@ func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, erro
 	nbc := bc.WithSubNamespace(c.ID())
 
 	params := c.getRenderParams(bc)
-	pipelineConfigBytes, err := c.plugin.Render(c.OperatorType, params)
+	pipelineConfigBytes, err := c.plugin.Render(params)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Rendered %s:\n%s\n", c.ID(), pipelineConfigBytes)
 
 	var pipelineConfig struct {
 		Pipeline pipeline.Config
@@ -46,14 +45,18 @@ func (c *Config) getRenderParams(bc operator.BuildContext) map[string]interface{
 	}
 
 	// Add ID and output to params
-	params["id"] = c.ID()
+	params["input"] = bc.PrependNamespace(c.ID())
 	params["output"] = c.yamlOutputs(bc)
 	return params
 }
 
 func (c *Config) yamlOutputs(bc operator.BuildContext) string {
-	namespacedOutputs := make([]string, 0, len(c.OutputIDs))
-	for _, outputID := range c.OutputIDs {
+	outputIDs := c.OutputIDs
+	if len(outputIDs) == 0 {
+		outputIDs = bc.DefaultOutputIDs
+	}
+	namespacedOutputs := make([]string, 0, len(outputIDs))
+	for _, outputID := range outputIDs {
 		namespacedOutputs = append(namespacedOutputs, bc.PrependNamespace(outputID))
 	}
 	return fmt.Sprintf("[%s]", strings.Join(namespacedOutputs, ","))

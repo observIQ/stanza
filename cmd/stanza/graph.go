@@ -50,8 +50,9 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	}
 
 	buildContext := operator.BuildContext{
-		Logger:   logger,
-		Database: database.NewStubDatabase(),
+		Logger:    logger,
+		Database:  database.NewStubDatabase(),
+		Namespace: "$",
 	}
 
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext)

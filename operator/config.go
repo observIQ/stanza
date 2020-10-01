@@ -12,17 +12,20 @@ type Config struct {
 	MultiBuilder
 }
 
-// Builder is an entity that can build operators
-type Builder interface {
+type Identifier interface {
 	ID() string
 	Type() string
+}
+
+// Builder is an entity that can build operators
+type Builder interface {
+	Identifier
 	Build(BuildContext) (Operator, error)
 }
 
 // Builder is an entity that can build operators
 type MultiBuilder interface {
-	ID() string
-	Type() string
+	Identifier
 	BuildMulti(BuildContext) ([]Operator, error)
 }
 

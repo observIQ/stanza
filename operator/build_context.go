@@ -10,12 +10,11 @@ import (
 
 // BuildContext supplies contextual resources when building an operator.
 type BuildContext struct {
-	Database                 database.Database
-	Parameters               map[string]interface{}
-	Logger                   *zap.SugaredLogger
-	Namespace                string
-	DefaultOutputIDs         []string
-	VisibleExternalOperators []Operator
+	Database         database.Database
+	Parameters       map[string]interface{}
+	Logger           *zap.SugaredLogger
+	Namespace        string
+	DefaultOutputIDs []string
 }
 
 func (bc BuildContext) PrependNamespace(id string) string {
@@ -34,15 +33,6 @@ func (bc BuildContext) WithSubNamespace(namespace string) BuildContext {
 func (bc BuildContext) WithDefaultOutputIDs(ids []string) BuildContext {
 	newBuildContext := bc.Copy()
 	newBuildContext.DefaultOutputIDs = ids
-	return newBuildContext
-}
-
-func (bc BuildContext) WithVisibleOperators(operators []Operator) BuildContext {
-	newBuildContext := bc.Copy()
-	newVisible := make([]Operator, len(bc.VisibleExternalOperators))
-	copy(newVisible, bc.VisibleExternalOperators)
-	newVisible = append(newVisible, operators...)
-	newBuildContext.VisibleExternalOperators = newVisible
 	return newBuildContext
 }
 

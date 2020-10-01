@@ -33,6 +33,10 @@ func graphTest(config, output string) func(t *testing.T) {
 		err = graphCmd.Execute()
 		require.NoError(t, err)
 
+		println("Output")
+		println(output)
+		println("Buf")
+		println(buf.String())
 		require.Equal(t, testutil.Trim(output), testutil.Trim(buf.String()))
 	}
 }
