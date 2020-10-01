@@ -21,7 +21,7 @@ func (c *Core) Enabled(level zapcore.Level) bool {
 	return c.core.Enabled(level)
 }
 
-// Check checks the entry level against the underlying core.
+// Check checks the entry and determines if the core should write it.
 func (c *Core) Check(zapEntry zapcore.Entry, checkedEntry *zapcore.CheckedEntry) *zapcore.CheckedEntry {
 	if !c.Enabled(zapEntry.Level) {
 		return checkedEntry

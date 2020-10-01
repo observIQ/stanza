@@ -3,6 +3,7 @@ package stanza
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/observiq/stanza/logger"
 	"github.com/observiq/stanza/operator"
@@ -76,10 +77,24 @@ func (i *Input) startReading(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				i.drain(ctx)
 				return
 			case e := <-i.receiver:
 				i.Write(ctx, &e)
 			}
 		}
 	}()
+}
+
+// drain will read stanza logs until the receiver is empty.
+func (i *Input) drain(ctx context.Context) {
+	timeout := time.After(time.Millisecond * 100)
+	for {
+		select {
+		case e := <-i.receiver:
+			i.Write(ctx, &e)
+		case <-timeout:
+			return
+		}
+	}
 }
