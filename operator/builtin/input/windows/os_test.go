@@ -11,5 +11,6 @@ import (
 )
 
 func TestWindowsOnly(t *testing.T) {
-	require.False(t, operator.IsDefined("windows_eventlog_input"), "'windows_eventlog_input' should only be available on windows")
+	_, ok := operator.Lookup("windows_eventlog_input")
+	require.False(t, ok, "'windows_eventlog_input' should only be available on windows")
 }
