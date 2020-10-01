@@ -48,7 +48,7 @@ func TestRateLimit(t *testing.T) {
 	}()
 
 	i := 0
-	timeout := time.After(100 * time.Millisecond)
+	timeout := time.After(101 * time.Millisecond)
 LOOP:
 	for {
 		select {
