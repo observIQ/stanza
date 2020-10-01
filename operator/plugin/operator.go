@@ -13,7 +13,7 @@ import (
 var _ operator.Operator = (*PluginOperator)(nil)
 
 type PluginOperator struct {
-	helper.BasicOperator
+	helper.WriterOperator
 	Pipeline   pipeline.Pipeline
 	Entrypoint operator.Operator
 }

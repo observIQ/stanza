@@ -27,7 +27,7 @@ type Plugin struct {
 }
 
 // NewBuilder creates a new, empty config that can build into an operator
-func (p *Plugin) NewBuilder() operator.Builder {
+func (p *Plugin) NewBuilder() operator.MultiBuilder {
 	return &Config{
 		plugin: p,
 	}

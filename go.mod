@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/antonmedv/expr v1.8.2
 	github.com/cenkalti/backoff/v4 v4.0.2
+	github.com/gohugoio/hugo v0.75.1 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

@@ -9,7 +9,7 @@ import (
 
 // Config is the configuration of an operator
 type Config struct {
-	Builder
+	MultiBuilder
 }
 
 // Builder is an entity that can build operators
@@ -17,6 +17,13 @@ type Builder interface {
 	ID() string
 	Type() string
 	Build(BuildContext) (Operator, error)
+}
+
+// Builder is an entity that can build operators
+type MultiBuilder interface {
+	ID() string
+	Type() string
+	BuildMulti(BuildContext) ([]Operator, error)
 }
 
 // UnmarshalJSON will unmarshal a config from JSON.
@@ -43,13 +50,13 @@ func (c *Config) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("unmarshal to %s: %s", typeUnmarshaller.Type, err)
 	}
 
-	c.Builder = builder
+	c.MultiBuilder = builder
 	return nil
 }
 
 // MarshalJSON will marshal a config to JSON.
 func (c Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.Builder)
+	return json.Marshal(c.MultiBuilder)
 }
 
 // UnmarshalYAML will unmarshal a config from YAML.
@@ -80,11 +87,11 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("unmarshal to %s: %s", typeString, err)
 	}
 
-	c.Builder = builder
+	c.MultiBuilder = builder
 	return nil
 }
 
 // MarshalYAML will marshal a config to YAML.
 func (c Config) MarshalYAML() (interface{}, error) {
-	return c.Builder, nil
+	return c.MultiBuilder, nil
 }

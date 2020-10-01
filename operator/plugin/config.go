@@ -10,17 +10,15 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var _ operator.Builder = (*Config)(nil)
+var _ operator.MultiBuilder = (*Config)(nil)
 
 type Config struct {
-	helper.BasicConfig
+	helper.WriterConfig
 	plugin     *Plugin
 	Parameters map[string]interface{} `json:",squash" yaml:",squash"`
-	OutputIDs  helper.OutputIDs
-	// TODO outputs
 }
 
-func (c *Config) Build(bc operator.BuildContext) (operator.Operator, error) {
+func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, error) {
 	nbc := bc.WithSubNamespace(c.ID())
 
 	params := c.getRenderParams(bc)
@@ -37,29 +35,7 @@ func (c *Config) Build(bc operator.BuildContext) (operator.Operator, error) {
 		return nil, err
 	}
 
-	directedPipeline, err := pipelineConfig.Pipeline.BuildPipeline(nbc)
-	if err != nil {
-		return nil, err
-	}
-
-	basicOperator, err := c.BasicConfig.Build(nbc)
-	if err != nil {
-		return nil, err
-	}
-
-	var entrypoint operator.Operator
-	for _, operator := range directedPipeline.Operators() {
-		if operator.ID() == c.ID() {
-			entrypoint = operator
-			break
-		}
-	}
-
-	return &PluginOperator{
-		BasicOperator: basicOperator,
-		Pipeline:      directedPipeline,
-		Entrypoint:    entrypoint,
-	}, nil
+	return pipelineConfig.Pipeline.BuildOperators(nbc)
 }
 
 func (c *Config) getRenderParams(bc operator.BuildContext) map[string]interface{} {
@@ -130,11 +106,3 @@ func (c Config) MarshalYAML() (interface{}, error) {
 	m["output"] = c.OutputIDs
 	return m, nil
 }
-
-// func (c Config) UnmarshalJSON() {
-// 	// TODO
-// }
-
-// func (c Config) MarshalJSON() {
-// 	// TODO
-// }

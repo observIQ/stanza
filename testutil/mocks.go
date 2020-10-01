@@ -3,9 +3,11 @@ package testutil
 import (
 	context "context"
 	"testing"
+	"time"
 
 	entry "github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/stretchr/testify/require"
 	zap "go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
@@ -64,4 +66,22 @@ func (f *FakeOutput) Type() string { return "fake_output" }
 func (f *FakeOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	f.Received <- entry
 	return nil
+}
+
+func (f *FakeOutput) ExpectRecord(t testing.TB, record interface{}) {
+	select {
+	case e := <-f.Received:
+		require.Equal(t, record, e.Record)
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for entry")
+	}
+}
+
+func (f *FakeOutput) ExpectEntry(t testing.TB, expected *entry.Entry) {
+	select {
+	case e := <-f.Received:
+		require.Equal(t, expected, e.Record)
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for entry")
+	}
 }
