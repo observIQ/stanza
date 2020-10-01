@@ -43,10 +43,10 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 		TransformerOperator: helper.TransformerOperator{
 			WriterOperator: helper.WriterOperator{
 				BasicOperator: helper.BasicOperator{
-					OperatorID:   "testoperator",
+					OperatorID:   "$.testoperator",
 					OperatorType: "k8s_metadata_decorator",
 				},
-				OutputIDs: []string{"mock"},
+				OutputIDs: []string{"$.mock"},
 			},
 			OnError: "send",
 		},
