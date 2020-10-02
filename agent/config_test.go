@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/observiq/stanza/operator"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
+	"github.com/observiq/stanza/pipeline"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -96,20 +98,19 @@ pipeline:
 	require.Contains(t, err.Error(), "failed to read config file as yaml")
 }
 
-// TODO
-// func TestMergeConfigs(t *testing.T) {
-// 	config1 := Config{
-// 		Pipeline: pipeline.Config{
-// 			{"type": "first"},
-// 		},
-// 	}
+func TestMergeConfigs(t *testing.T) {
+	config1 := Config{
+		Pipeline: pipeline.Config{
+			operator.Config{},
+		},
+	}
 
-// 	config2 := Config{
-// 		Pipeline: pipeline.Config{
-// 			{"type": "second"},
-// 		},
-// 	}
+	config2 := Config{
+		Pipeline: pipeline.Config{
+			operator.Config{},
+		},
+	}
 
-// 	config3 := mergeConfigs(&config1, &config2)
-// 	require.Equal(t, len(config3.Pipeline), 2)
-// }
+	config3 := mergeConfigs(&config1, &config2)
+	require.Equal(t, len(config3.Pipeline), 2)
+}

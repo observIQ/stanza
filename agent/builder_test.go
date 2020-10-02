@@ -66,23 +66,38 @@ func TestBuildAgentFailureOnPluginRegistry(t *testing.T) {
 	require.Nil(t, agent)
 }
 
-// TODO
-// func TestBuildAgentFailureOnPipeline(t *testing.T) {
-// 	mockCfg := Config{
-// 		Pipeline: pipeline.Config{
-// 			pipeline.Params{"type": "missing"},
-// 		},
-// 	}
-// 	mockLogger := zap.NewNop().Sugar()
-// 	mockPluginDir := "/some/path/plugins"
-// 	mockDatabaseFile := ""
-// 	mockOutput := testutil.NewFakeOutput(t)
+func TestBuildAgentFailureWithBothConfigAndGlobs(t *testing.T) {
+	mockCfg := Config{}
+	mockLogger := zap.NewNop().Sugar()
+	mockPluginDir := "/some/plugin/path"
+	mockDatabaseFile := ""
+	mockOutput := testutil.NewFakeOutput(t)
 
-// 	agent, err := NewBuilder(&mockCfg, mockLogger).
-// 		WithPluginDir(mockPluginDir).
-// 		WithDatabaseFile(mockDatabaseFile).
-// 		WithDefaultOutput(mockOutput).
-// 		Build()
-// 	require.Error(t, err)
-// 	require.Nil(t, agent)
-// }
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
+		WithConfigFiles([]string{"test"}).
+		WithPluginDir(mockPluginDir).
+		WithDatabaseFile(mockDatabaseFile).
+		WithDefaultOutput(mockOutput).
+		Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not both")
+	require.Nil(t, agent)
+}
+
+func TestBuildAgentFailureNonexistGlobs(t *testing.T) {
+	mockLogger := zap.NewNop().Sugar()
+	mockPluginDir := "/some/plugin/path"
+	mockDatabaseFile := ""
+	mockOutput := testutil.NewFakeOutput(t)
+
+	agent, err := NewBuilder(mockLogger).
+		WithConfigFiles([]string{"/tmp/nonexist"}).
+		WithPluginDir(mockPluginDir).
+		WithDatabaseFile(mockDatabaseFile).
+		WithDefaultOutput(mockOutput).
+		Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "read configs from globs")
+	require.Nil(t, agent)
+}
