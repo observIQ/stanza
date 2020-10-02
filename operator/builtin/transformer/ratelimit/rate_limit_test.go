@@ -18,7 +18,7 @@ func TestRateLimit(t *testing.T) {
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
 	cfg.Burst = 1
-	cfg.Rate = 100
+	cfg.Rate = 1000
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
@@ -62,5 +62,5 @@ LOOP:
 	cancel()
 	wg.Wait()
 
-	require.InDelta(t, 10, i, 3)
+	require.InDelta(t, 100, i, 10)
 }
