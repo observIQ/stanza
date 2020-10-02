@@ -15,7 +15,7 @@ import (
 func TestRateLimit(t *testing.T) {
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
-	cfg.Burst = 50
+	cfg.Burst = 1
 	cfg.Rate = 1000
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
@@ -29,36 +29,27 @@ func TestRateLimit(t *testing.T) {
 	err = rateLimit.Start()
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
-			select {
-			case <-ctx.Done():
+			_, ok := <-fake.Received
+			if !ok {
 				return
-			default:
-				err := rateLimit.Process(ctx, entry.New())
-				require.NoError(t, err)
 			}
 		}
 	}()
 
-	i := 0
-	timeout := time.After(time.Second)
-LOOP:
-	for {
-		select {
-		case <-fake.Received:
-			i++
-		case <-timeout:
-			break LOOP
-		}
+	start := time.Now()
+	for i := 0; i < 1000; i++ {
+		err := rateLimit.Process(context.Background(), entry.New())
+		require.NoError(t, err)
 	}
+	elapsed := time.Since(start)
 
-	cancel()
+	close(fake.Received)
 	wg.Wait()
 
-	require.InDelta(t, 1000, i, 500)
+	require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.1)
 }
