@@ -87,6 +87,8 @@ func (p *Plugin) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Metadata:\n%s\n", string(metadataBytes))
+	fmt.Printf("Template:\n%s\n", string(templateBytes))
 
 	if err := yaml.Unmarshal(metadataBytes, p); err != nil {
 		return err
@@ -99,37 +101,43 @@ func (p *Plugin) UnmarshalText(text []byte) error {
 }
 
 func splitPluginFile(text []byte) (metadata, template []byte, err error) {
-	// Split the file into the metadata and the template by looknig for the first
-	// unindented line after `parameters`
+	// Split the file into the metadata and the template by finding the pipeline,
+	// then navigating backwards until we find a non-commented, non-empty line
 	textReader := bufio.NewReader(bytes.NewReader(text))
 	var metadataBuf bytes.Buffer
 	var templateBuf bytes.Buffer
 
-	// Find parameters line
+	// Find the pipeline
+	lines := []string{}
 	for {
 		line, err := textReader.ReadString('\n')
 		if err != nil {
-			return nil, nil, fmt.Errorf("plugin file is missing the parameters block")
+			return nil, nil, fmt.Errorf("plugin file is missing the pipeline block")
 		}
-		if _, err := metadataBuf.WriteString(line); err != nil {
-			return nil, nil, err
-		}
-		if matched, _ := regexp.MatchString(`^parameters:`, line); matched {
+		lines = append(lines, line)
+		if matched, _ := regexp.MatchString(`^pipeline:`, line); matched {
 			break
 		}
 	}
 
-	// Find the next unindented line
-	for {
-		line, err := textReader.ReadString('\n')
-		if err != nil {
-			return nil, nil, fmt.Errorf("plugin file is missing a template after the parameters block")
-		}
-		if indented, _ := regexp.MatchString(`^\s+`, line); !indented {
-			templateBuf.WriteString(line)
+	// Include all empty and commented lines above pipeline in the pipeline half.
+	// Skip the last line since we know it's the pipeline
+	emptyRegexp := regexp.MustCompile(`^\s*$`)
+	commentedRegexp := regexp.MustCompile(`^\s*#`)
+	i := len(lines) - 1
+	for ; i >= 0; i-- {
+		line := lines[i]
+		if !emptyRegexp.MatchString(line) && !commentedRegexp.MatchString(line) {
 			break
 		}
+	}
+
+	for _, line := range lines[:i] {
 		metadataBuf.WriteString(line)
+	}
+
+	for _, line := range lines[i:] {
+		templateBuf.WriteString(line)
 	}
 
 	if _, err := io.Copy(&templateBuf, textReader); err != nil {

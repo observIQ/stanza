@@ -110,7 +110,7 @@ func TestPluginMetadata(t *testing.T) {
 	}{
 		{
 			name:      "no_meta",
-			expectErr: true,
+			expectErr: false,
 			template: `pipeline:
 `,
 		},
@@ -129,6 +129,38 @@ parameters:
     label: Other Thing
     description: Another parameter
     type: int
+pipeline:
+`,
+		},
+		{
+			name:      "only_params",
+			expectErr: false,
+			template: `parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: int
+pipeline:
+`,
+		},
+		{
+			name:      "out_of_order",
+			expectErr: false,
+			template: `parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: int
+title: Test Plugin
+description: This is a test plugin
 pipeline:
 `,
 		},
