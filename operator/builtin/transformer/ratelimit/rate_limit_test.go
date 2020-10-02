@@ -51,5 +51,5 @@ func TestRateLimit(t *testing.T) {
 	close(fake.Received)
 	wg.Wait()
 
-	require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.1)
+	require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.5)
 }
