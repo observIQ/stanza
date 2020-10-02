@@ -54,16 +54,6 @@ func (p *Plugin) Render(params map[string]interface{}) ([]byte, error) {
 
 func (p *Plugin) Validate(params map[string]interface{}) error {
 	for name, param := range p.Parameters {
-		if err := param.validateDefintion(); err != nil {
-			return errors.NewError(
-				"invalid parameter found in plugin",
-				"ensure that all parameters are valid for the plugin",
-				"plugin_type", p.ID,
-				"plugin_parameter", name,
-				"error_message", err.Error(),
-			)
-		}
-
 		value, ok := params[name]
 		if !ok && !param.Required {
 			continue
@@ -139,6 +129,7 @@ func splitPluginFile(text []byte) (metadata, template []byte, err error) {
 			templateBuf.WriteString(line)
 			break
 		}
+		metadataBuf.WriteString(line)
 	}
 
 	if _, err := io.Copy(&templateBuf, textReader); err != nil {
@@ -164,6 +155,19 @@ func NewPlugin(id string, contents []byte) (*Plugin, error) {
 		return nil, err
 	}
 	p.ID = id
+
+	// Validate the parameter definitions
+	for name, param := range p.Parameters {
+		if err := param.validateDefinition(); err != nil {
+			return nil, errors.NewError(
+				"invalid parameter found in plugin",
+				"ensure that all parameters are valid for the plugin",
+				"plugin_type", p.ID,
+				"plugin_parameter", name,
+				"error_message", err.Error(),
+			)
+		}
+	}
 
 	return p, nil
 }
