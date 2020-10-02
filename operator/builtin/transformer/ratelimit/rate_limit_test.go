@@ -17,7 +17,7 @@ func TestRateLimit(t *testing.T) {
 
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
-	cfg.Burst = 1
+	cfg.Burst = 50
 	cfg.Rate = 1000
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
