@@ -13,8 +13,6 @@ import (
 )
 
 func TestRateLimit(t *testing.T) {
-	t.Parallel()
-
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
 	cfg.Burst = 50
@@ -62,5 +60,5 @@ LOOP:
 	cancel()
 	wg.Wait()
 
-	require.InDelta(t, 10000, i, 100)
+	require.InDelta(t, 10000, i, 3000)
 }
