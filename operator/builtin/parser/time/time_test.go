@@ -28,35 +28,27 @@ func TestTimeUnixParser(t *testing.T) {
 		layout     string
 		sample     interface{}
 		want       string
-		maxLoss    time.Duration
-		fails      bool
 	}{
 		{
 			name:       "unixhex now",
 			layoutType: helper.UnixHex,
 			layout:     ``,
-			sample:     time.Now().Unix(),
+			sample:     strconv.FormatInt(time.Now().Unix(), 16),
 			want:       ``,
-			maxLoss:    time.Nanosecond * 100,
-			fails:      false,
 		},
 		{
 			name:       "unixhex string",
 			layoutType: helper.UnixHex,
 			layout:     ``,
-			sample:     "5F77E813",
-			want:       "2020-10-03 04:55:15 +0200 CEST",
-			maxLoss:    time.Nanosecond * 100,
-			fails:      false,
+			sample:     strconv.FormatInt(time.Now().Unix(), 16),
+			want:       ``,
 		},
 		{
 			name:       "unixhex byte slice",
 			layoutType: helper.UnixHex,
 			layout:     ``,
-			sample:     []byte(`5F77E813`),
-			want:       "2020-10-03 04:55:15 +0200 CEST",
-			maxLoss:    time.Nanosecond * 100,
-			fails:      false,
+			sample:     []byte(strconv.FormatInt(time.Now().Unix(), 16)),
+			want:       ``,
 		},
 	}
 
@@ -70,8 +62,6 @@ func TestTimeUnixParser(t *testing.T) {
 				hexStamp = string(v)
 			case string:
 				hexStamp = fmt.Sprintf("%v", v)
-			case int64:
-				hexStamp = strconv.FormatInt(v, 16)
 			default:
 				return
 			}
@@ -79,7 +69,7 @@ func TestTimeUnixParser(t *testing.T) {
 			expected, err := strconv.ParseInt(hexStamp, 16, 64)
 			require.NoError(t, err)
 			gotimeRootCfg := parseTimeTestConfig(tt.layoutType, tt.layout, rootField)
-			t.Run(tt.name+"-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, hexStamp), false, false, time.Unix(expected, 0)))
+			t.Run(tt.name+"-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tt.sample), false, false, time.Unix(expected, 0)))
 
 		})
 	}
@@ -425,6 +415,13 @@ func TestTimeErrors(t *testing.T) {
 			layoutType: "epoch",
 			layout:     "s",
 			sample:     "not-a-number",
+			parseErr:   true,
+		},
+		{
+			name:       "bad-unixhex-value",
+			layoutType: helper.UnixHex,
+			layout:     "",
+			sample:     time.Now().Unix(),
 			parseErr:   true,
 		},
 	}

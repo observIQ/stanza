@@ -84,7 +84,7 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 	default:
 		return errors.NewError(
 			fmt.Sprintf("unsupported layout_type %s", t.LayoutType),
-			"valid values are 'strptime', 'gotime', 'epoch' and 'unixhex",
+			"valid values are 'strptime', 'gotime', 'epoch' and 'unixhex'",
 		)
 	}
 
@@ -146,11 +146,9 @@ func (t *TimeParser) parseUnixHexTime(value interface{}) (time.Time, error) {
 	case []byte:
 		ti = string(v)
 	case string:
-		ti = fmt.Sprintf("%v", v)
-	case int, int32, int64, uint32, uint64:
-		ti = fmt.Sprintf("%d", v)
+		ti = v
 	default:
-		return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", v, t.Layout)
+		return time.Time{}, fmt.Errorf("invalid value '%v' for layoutType '%s'", v, t.LayoutType)
 	}
 
 	stamp, err := strconv.ParseInt(ti, 16, 64)
