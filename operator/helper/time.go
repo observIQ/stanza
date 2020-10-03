@@ -84,7 +84,7 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 	default:
 		return errors.NewError(
 			fmt.Sprintf("unsupported layout_type %s", t.LayoutType),
-			"valid values are 'strptime', 'gotime', 'epoch', 'unixhex",
+			"valid values are 'strptime', 'gotime', 'epoch' and 'unixhex",
 		)
 	}
 
