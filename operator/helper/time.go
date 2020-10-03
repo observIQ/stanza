@@ -55,16 +55,16 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 		return fmt.Errorf("missing required parameter 'parse_from'")
 	}
 
+	if t.Layout == "" && t.LayoutType != NativeKey && t.LayoutType != UnixHex {
+		return errors.NewError("missing required configuration parameter `layout`", "")
+	}
+
 	if t.LayoutType == "" {
 		t.LayoutType = StrptimeKey
 	}
 
 	switch t.LayoutType {
-	case GotimeKey, UnixHex:
-	case NativeKey:
-		if t.Layout == "" {
-			return errors.NewError("missing required configuration parameter `layout`", "")
-		}
+	case GotimeKey, UnixHex, NativeKey:
 	case StrptimeKey:
 		var err error
 		t.Layout, err = strptime.ToNative(t.Layout)
@@ -84,7 +84,7 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 	default:
 		return errors.NewError(
 			fmt.Sprintf("unsupported layout_type %s", t.LayoutType),
-			"valid values are 'strptime', 'gotime', and 'epoch'",
+			"valid values are 'strptime', 'gotime', 'epoch', 'unixhex",
 		)
 	}
 
