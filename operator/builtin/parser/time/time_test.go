@@ -2,7 +2,9 @@ package time
 
 import (
 	"context"
+	"fmt"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -17,6 +19,70 @@ import (
 func TestIsZero(t *testing.T) {
 	require.True(t, (&helper.TimeParser{}).IsZero())
 	require.False(t, (&helper.TimeParser{Layout: "strptime"}).IsZero())
+}
+
+func TestTimeUnixParser(t *testing.T) {
+	tests := []struct {
+		name       string
+		layoutType string
+		layout     string
+		sample     interface{}
+		want       string
+		maxLoss    time.Duration
+		fails      bool
+	}{
+		{
+			name:       "unixhex now",
+			layoutType: helper.UnixHex,
+			layout:     ``,
+			sample:     time.Now().Unix(),
+			want:       ``,
+			maxLoss:    time.Nanosecond * 100,
+			fails:      false,
+		},
+		{
+			name:       "unixhex string",
+			layoutType: helper.UnixHex,
+			layout:     ``,
+			sample:     "5F77E813",
+			want:       "2020-10-03 04:55:15 +0200 CEST",
+			maxLoss:    time.Nanosecond * 100,
+			fails:      false,
+		},
+		{
+			name:       "unixhex byte slice",
+			layoutType: helper.UnixHex,
+			layout:     ``,
+			sample:     []byte(`5F77E813`),
+			want:       "2020-10-03 04:55:15 +0200 CEST",
+			maxLoss:    time.Nanosecond * 100,
+			fails:      false,
+		},
+	}
+
+	rootField := entry.NewRecordField()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var hexStamp string
+			switch v := tt.sample.(type) {
+			case []byte:
+				hexStamp = string(v)
+			case string:
+				hexStamp = fmt.Sprintf("%v", v)
+			case int64:
+				hexStamp = strconv.FormatInt(v, 16)
+			default:
+				return
+			}
+
+			expected, err := strconv.ParseInt(hexStamp, 16, 64)
+			require.NoError(t, err)
+			gotimeRootCfg := parseTimeTestConfig(tt.layoutType, tt.layout, rootField)
+			t.Run(tt.name+"-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, hexStamp), false, false, time.Unix(expected, 0)))
+
+		})
+	}
 }
 
 func TestTimeParser(t *testing.T) {

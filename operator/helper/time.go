@@ -26,6 +26,9 @@ const EpochKey = "epoch"
 // NativeKey is literally "native" and refers to Golang's native time.Time
 const NativeKey = "native" // provided for operator development
 
+// UnixHex is literally "unixhex" and can parse unix hexadecimal timestamp.
+const UnixHex = "unixhex"
+
 // NewTimeParser creates a new time parser with default values
 func NewTimeParser() TimeParser {
 	return TimeParser{
@@ -52,16 +55,16 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 		return fmt.Errorf("missing required parameter 'parse_from'")
 	}
 
-	if t.Layout == "" && t.LayoutType != "native" {
-		return errors.NewError("missing required configuration parameter `layout`", "")
-	}
-
 	if t.LayoutType == "" {
 		t.LayoutType = StrptimeKey
 	}
 
 	switch t.LayoutType {
-	case NativeKey, GotimeKey: // ok
+	case GotimeKey, UnixHex:
+	case NativeKey:
+		if t.Layout == "" {
+			return errors.NewError("missing required configuration parameter `layout`", "")
+		}
 	case StrptimeKey:
 		var err error
 		t.Layout, err = strptime.ToNative(t.Layout)
@@ -118,6 +121,13 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 			return err
 		}
 		entry.Timestamp = setTimestampYear(timeValue)
+	case UnixHex:
+		timeValue, err := t.parseUnixHexTime(value)
+		if err != nil {
+			return err
+		}
+
+		entry.Timestamp = setTimestampYear(timeValue)
 	default:
 		return fmt.Errorf("unsupported layout type: %s", t.LayoutType)
 	}
@@ -127,6 +137,28 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 	}
 
 	return nil
+}
+
+func (t *TimeParser) parseUnixHexTime(value interface{}) (time.Time, error) {
+	var ti string
+
+	switch v := value.(type) {
+	case []byte:
+		ti = string(v)
+	case string:
+		ti = fmt.Sprintf("%v", v)
+	case int, int32, int64, uint32, uint64:
+		ti = fmt.Sprintf("%d", v)
+	default:
+		return time.Time{}, fmt.Errorf("invalid value '%v' for layout '%s'", v, t.Layout)
+	}
+
+	stamp, err := strconv.ParseInt(ti, 16, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(stamp, 0), nil
 }
 
 func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
