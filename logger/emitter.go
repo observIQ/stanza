@@ -37,7 +37,6 @@ func (e *Emitter) emit(entry entry.Entry) {
 // newEmitter creates a new emitter.
 func newEmitter() *Emitter {
 	return &Emitter{
-		receivers: []Receiver{},
-		mux:       sync.RWMutex{},
+		receivers: make([]Receiver, 0, 2),
 	}
 }
