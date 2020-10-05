@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("host_metadata", func() operator.Builder { return NewHostMetadataConfig("") })
+	operator.Register("host_metadata", func() operator.Builder { return NewHostMetadataConfig("") })
 }
 
 // NewHostMetadataConfig returns a HostMetadataConfig with default values

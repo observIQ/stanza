@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("restructure", func() operator.Builder { return NewRestructureOperatorConfig("") })
+	operator.Register("restructure", func() operator.Builder { return NewRestructureOperatorConfig("") })
 }
 
 // NewRestructureOperatorConfig creates a new restructure operator config with default values

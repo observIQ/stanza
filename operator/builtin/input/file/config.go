@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("file_input", func() operator.Builder { return NewInputConfig("") })
+	operator.Register("file_input", func() operator.Builder { return NewInputConfig("") })
 }
 
 // NewInputConfig creates a new input config with default values

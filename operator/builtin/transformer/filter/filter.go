@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("filter", func() operator.Builder { return NewFilterOperatorConfig("") })
+	operator.Register("filter", func() operator.Builder { return NewFilterOperatorConfig("") })
 }
 
 // NewFilterOperatorConfig creates a filter operator config with default values

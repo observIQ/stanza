@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("router", func() operator.Builder { return NewRouterOperatorConfig("") })
+	operator.Register("router", func() operator.Builder { return NewRouterOperatorConfig("") })
 }
 
 // NewRouterOperatorConfig config creates a new router operator config with default values

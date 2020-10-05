@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("file_output", func() operator.Builder { return NewFileOutputConfig("") })
+	operator.Register("file_output", func() operator.Builder { return NewFileOutputConfig("") })
 }
 
 // NewFileOutputConfig creates a new file output config with default values

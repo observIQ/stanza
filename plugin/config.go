@@ -10,6 +10,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// Enforce that Config implements operator.MultiBuilder
 var _ operator.MultiBuilder = (*Config)(nil)
 
 type Config struct {

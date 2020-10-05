@@ -16,7 +16,7 @@ import (
 var Stdout io.Writer = os.Stdout
 
 func init() {
-	operator.RegisterOperator("stdout", func() operator.Builder { return NewStdoutConfig("") })
+	operator.Register("stdout", func() operator.Builder { return NewStdoutConfig("") })
 }
 
 // NewStdoutConfig creates a new stdout config with default values

@@ -17,9 +17,9 @@ func NewRegistry() *Registry {
 	}
 }
 
-// RegisterOperator will register a function to an operator type.
+// Register will register a function to an operator type.
 // This function will return a builder for the supplied type.
-func (r *Registry) RegisterOperator(operatorType string, newBuilder func() Builder) {
+func (r *Registry) Register(operatorType string, newBuilder func() Builder) {
 	r.operators[operatorType] = newBuilder
 }
 
@@ -46,9 +46,9 @@ func (r *Registry) Lookup(configType string) (func() MultiBuilder, bool) {
 	return nil, false
 }
 
-// RegisterOperator will register an operator in the default registry
-func RegisterOperator(operatorType string, newBuilder func() Builder) {
-	DefaultRegistry.RegisterOperator(operatorType, newBuilder)
+// Register will register an operator in the default registry
+func Register(operatorType string, newBuilder func() Builder) {
+	DefaultRegistry.Register(operatorType, newBuilder)
 }
 
 // RegisterPlugin will register a plugin in the default registry

@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("noop", func() operator.Builder { return NewNoopOperatorConfig("") })
+	operator.Register("noop", func() operator.Builder { return NewNoopOperatorConfig("") })
 }
 
 // NewNoopOperatorConfig creates a new noop operator config with default values

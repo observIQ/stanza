@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("google_cloud_output", func() operator.Builder { return NewGoogleCloudOutputConfig("") })
+	operator.Register("google_cloud_output", func() operator.Builder { return NewGoogleCloudOutputConfig("") })
 }
 
 // NewGoogleCloudOutputConfig creates a new google cloud output config with default

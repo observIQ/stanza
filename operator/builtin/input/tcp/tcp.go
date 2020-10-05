@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("tcp_input", func() operator.Builder { return NewTCPInputConfig("") })
+	operator.Register("tcp_input", func() operator.Builder { return NewTCPInputConfig("") })
 }
 
 // NewTCPInputConfig creates a new TCP input config with default values

@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("drop_output", func() operator.Builder { return NewDropOutputConfig("") })
+	operator.Register("drop_output", func() operator.Builder { return NewDropOutputConfig("") })
 }
 
 // NewDropOutputConfig creates a new drop output config with default values

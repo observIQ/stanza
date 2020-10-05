@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	operator.RegisterOperator("json_parser", func() operator.Builder { return NewJSONParserConfig("") })
+	operator.Register("json_parser", func() operator.Builder { return NewJSONParserConfig("") })
 }
 
 // NewJSONParserConfig creates a new JSON parser config with default values
