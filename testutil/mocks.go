@@ -68,6 +68,8 @@ func (f *FakeOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	return nil
 }
 
+// ExpectRecord expects that a record will be received by the fake operator within a second
+// and that it is equal to the given record
 func (f *FakeOutput) ExpectRecord(t testing.TB, record interface{}) {
 	select {
 	case e := <-f.Received:
@@ -77,6 +79,8 @@ func (f *FakeOutput) ExpectRecord(t testing.TB, record interface{}) {
 	}
 }
 
+// ExpectEntry expects that an entry will be received by the fake operator within a second
+// and that it is equal to the given record
 func (f *FakeOutput) ExpectEntry(t testing.TB, expected *entry.Entry) {
 	select {
 	case e := <-f.Received:

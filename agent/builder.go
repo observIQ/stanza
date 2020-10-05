@@ -31,12 +31,13 @@ func (b *LogAgentBuilder) WithPluginDir(pluginDir string) *LogAgentBuilder {
 	return b
 }
 
-// WithPluginDir adds the specified plugin directory when building a log agent
+// WithConfigFiles adds a list of globs to the search path for config files
 func (b *LogAgentBuilder) WithConfigFiles(files []string) *LogAgentBuilder {
 	b.configFiles = files
 	return b
 }
 
+// WithConfig builds the agent with a given, pre-built config
 func (b *LogAgentBuilder) WithConfig(cfg *Config) *LogAgentBuilder {
 	b.config = cfg
 	return b

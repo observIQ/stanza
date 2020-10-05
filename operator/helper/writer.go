@@ -142,6 +142,7 @@ func (o *OutputIDs) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// NewOutputIDsFromInterface creates a new OutputIDs object from an interface
 func NewOutputIDsFromInterface(value interface{}) (OutputIDs, error) {
 	if str, ok := value.(string); ok {
 		return OutputIDs{str}, nil
@@ -154,6 +155,7 @@ func NewOutputIDsFromInterface(value interface{}) (OutputIDs, error) {
 	return nil, fmt.Errorf("value is not of type string or string array")
 }
 
+// NewOutputIDsFromArray creates a new OutputIDs object from an array
 func NewOutputIDsFromArray(array []interface{}) (OutputIDs, error) {
 	ids := OutputIDs{}
 	for _, rawValue := range array {

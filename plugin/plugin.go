@@ -49,6 +49,7 @@ func (p *Plugin) Render(params map[string]interface{}) ([]byte, error) {
 	return writer.Bytes(), nil
 }
 
+// Validate checks the provided params against the parameter definitions to ensure they are valid
 func (p *Plugin) Validate(params map[string]interface{}) error {
 	for name, param := range p.Parameters {
 		value, ok := params[name]
@@ -79,6 +80,7 @@ func (p *Plugin) Validate(params map[string]interface{}) error {
 	return nil
 }
 
+// UnmarshalText unmarshals a plugin from a text file
 func (p *Plugin) UnmarshalText(text []byte) error {
 	metadataBytes, templateBytes, err := splitPluginFile(text)
 	if err != nil {
@@ -150,6 +152,7 @@ func splitPluginFile(text []byte) (metadata, template []byte, err error) {
 	return metadataBuf.Bytes(), templateBuf.Bytes(), nil
 }
 
+// NewPluginFromFile builds a new plugin from a file
 func NewPluginFromFile(path string) (*Plugin, error) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -160,6 +163,7 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 	return NewPlugin(id, contents)
 }
 
+// NewPlugin builds a new plugin from an ID and file contents
 func NewPlugin(id string, contents []byte) (*Plugin, error) {
 	p := &Plugin{}
 	if err := p.UnmarshalText(contents); err != nil {
@@ -183,6 +187,7 @@ func NewPlugin(id string, contents []byte) (*Plugin, error) {
 	return p, nil
 }
 
+// RegisterPlugins adds every plugin in a directory to the global plugin registry
 func RegisterPlugins(pluginDir string, registry *operator.Registry) error {
 	glob := filepath.Join(pluginDir, "*.yaml")
 	filePaths, err := filepath.Glob(glob)

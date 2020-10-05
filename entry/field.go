@@ -85,83 +85,83 @@ func (f Field) MarshalYAML() (interface{}, error) {
 type splitState uint
 
 const (
-	// BEGIN is the beginning state of a field split
-	BEGIN splitState = iota
-	// IN_BRACKET is the state of a field split inside a bracket
-	IN_BRACKET
-	// IN_QUOTE is the state of a field split inside a quote
-	IN_QUOTE
-	// OUT_QUOTE is the state of a field split outside a quote
-	OUT_QUOTE
-	// OUT_BRACKET is the state of a field split outside a bracket
-	OUT_BRACKET
-	// IN_UNBRACKETED_TOKEN is the state field split on any token outside brackets
-	IN_UNBRACKETED_TOKEN
+	// Begin is the beginning state of a field split
+	Begin splitState = iota
+	// InBracket is the state of a field split inside a bracket
+	InBracket
+	// InQuote is the state of a field split inside a quote
+	InQuote
+	// OutQuote is the state of a field split outside a quote
+	OutQuote
+	// OutBracket is the state of a field split outside a bracket
+	OutBracket
+	// InUnbracketedToken is the state field split on any token outside brackets
+	InUnbracketedToken
 )
 
 func splitField(s string) ([]string, error) {
 	fields := make([]string, 0, 1)
 
-	state := BEGIN
+	state := Begin
 	var quoteChar rune
 	var tokenStart int
 
 	for i, c := range s {
 		switch state {
-		case BEGIN:
+		case Begin:
 			if c == '[' {
-				state = IN_BRACKET
+				state = InBracket
 				continue
 			}
 			tokenStart = i
-			state = IN_UNBRACKETED_TOKEN
-		case IN_BRACKET:
+			state = InUnbracketedToken
+		case InBracket:
 			if !(c == '\'' || c == '"') {
 				return nil, fmt.Errorf("strings in brackets must be surrounded by quotes")
 			}
-			state = IN_QUOTE
+			state = InQuote
 			quoteChar = c
 			tokenStart = i + 1
-		case IN_QUOTE:
+		case InQuote:
 			if c == quoteChar {
 				fields = append(fields, s[tokenStart:i])
-				state = OUT_QUOTE
+				state = OutQuote
 			}
-		case OUT_QUOTE:
+		case OutQuote:
 			if c != ']' {
 				return nil, fmt.Errorf("found characters between closed quote and closing bracket")
 			}
-			state = OUT_BRACKET
-		case OUT_BRACKET:
+			state = OutBracket
+		case OutBracket:
 			switch c {
 			case '.':
-				state = IN_UNBRACKETED_TOKEN
+				state = InUnbracketedToken
 				tokenStart = i + 1
 			case '[':
-				state = IN_BRACKET
+				state = InBracket
 			default:
 				return nil, fmt.Errorf("bracketed access must be followed by a dot or another bracketed access")
 			}
-		case IN_UNBRACKETED_TOKEN:
+		case InUnbracketedToken:
 			if c == '.' {
 				fields = append(fields, s[tokenStart:i])
 				tokenStart = i + 1
 			} else if c == '[' {
 				fields = append(fields, s[tokenStart:i])
-				state = IN_BRACKET
+				state = InBracket
 			}
 		}
 	}
 
 	switch state {
-	case IN_BRACKET, OUT_QUOTE:
+	case InBracket, OutQuote:
 		return nil, fmt.Errorf("found unclosed left bracket")
-	case IN_QUOTE:
+	case InQuote:
 		if quoteChar == '"' {
 			return nil, fmt.Errorf("found unclosed double quote")
 		}
 		return nil, fmt.Errorf("found unclosed single quote")
-	case IN_UNBRACKETED_TOKEN:
+	case InUnbracketedToken:
 		fields = append(fields, s[tokenStart:])
 	}
 

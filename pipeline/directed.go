@@ -51,6 +51,7 @@ func (p *DirectedPipeline) Render() ([]byte, error) {
 	return dot.Marshal(p.Graph, "G", "", " ")
 }
 
+// Operators returns a slice of operators that make up the pipeline graph
 func (p *DirectedPipeline) Operators() []operator.Operator {
 	operators := make([]operator.Operator, 0)
 	nodes := p.Graph.Nodes()

@@ -5,11 +5,14 @@ import "encoding/json"
 // DefaultRegistry is a global registry of operator types to operator builders.
 var DefaultRegistry = NewRegistry()
 
+// Registry is a registry for operators and plugins that is used for
+// building types from IDs
 type Registry struct {
 	operators map[string]func() Builder
 	plugins   map[string]func() MultiBuilder
 }
 
+// NewRegistry creates a new registry
 func NewRegistry() *Registry {
 	return &Registry{
 		operators: make(map[string]func() Builder),
@@ -63,33 +66,41 @@ func Lookup(configType string) (func() MultiBuilder, bool) {
 	return DefaultRegistry.Lookup(configType)
 }
 
+// WrapBuilder takes a function that would create a Builder, and
+// returns a function that makes a MultiBuilder instead
 func WrapBuilder(f func() Builder) func() MultiBuilder {
 	return func() MultiBuilder {
 		return &MultiBuilderWrapper{f()}
 	}
 }
 
+// MultiBuilderWrapper wraps a Builder to turn it into a MultiBuilder
 type MultiBuilderWrapper struct {
 	Builder
 }
 
+// BuildMulti implements MultiBuilder.BuildMulti
 func (m *MultiBuilderWrapper) BuildMulti(bc BuildContext) ([]Operator, error) {
 	op, err := m.Builder.Build(bc)
 	return []Operator{op}, err
 }
 
+// UnmarshalYAML unmarshals YAML
 func (m *MultiBuilderWrapper) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return unmarshal(m.Builder)
 }
 
+// UnmarshalJSON unmarshals JSON
 func (m *MultiBuilderWrapper) UnmarshalJSON(bytes []byte) error {
 	return json.Unmarshal(bytes, m.Builder)
 }
 
+// MarshalJSON marshalls JSON
 func (m MultiBuilderWrapper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.Builder)
 }
 
+// MarshalYAML marshalls YAML
 func (m MultiBuilderWrapper) MarshalYAML() (interface{}, error) {
 	return m.Builder, nil
 }

@@ -13,12 +13,14 @@ import (
 // Enforce that Config implements operator.MultiBuilder
 var _ operator.MultiBuilder = (*Config)(nil)
 
+// Config is the config values for the plugin
 type Config struct {
 	helper.WriterConfig
 	plugin     *Plugin
 	Parameters map[string]interface{} `json:",squash" yaml:",squash"`
 }
 
+// BuildMulti implements operator.MultiBuilder
 func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, error) {
 	params := c.getRenderParams(bc)
 	pipelineConfigBytes, err := c.plugin.Render(params)
@@ -62,6 +64,7 @@ func (c *Config) yamlOutputs(bc operator.BuildContext) string {
 	return fmt.Sprintf("[%s]", strings.Join(namespacedOutputs, ","))
 }
 
+// UnmarshalYAML unmarshals YAML
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var m map[string]interface{}
 	if err := unmarshal(&m); err != nil {
@@ -99,6 +102,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// MarshalYAML marshals YAML
 func (c Config) MarshalYAML() (interface{}, error) {
 	var m map[string]interface{}
 	for k, v := range c.Parameters {

@@ -7,6 +7,7 @@ import (
 // Config is the configuration of a pipeline.
 type Config []operator.Config
 
+// BuildOperators builds the operators from the list of configs into operators
 func (c Config) BuildOperators(bc operator.BuildContext) ([]operator.Operator, error) {
 	operators := make([]operator.Operator, 0, len(c))
 	for i, builder := range c {
