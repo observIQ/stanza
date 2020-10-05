@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/observiq/stanza/internal/version"
+	"github.com/observiq/stanza/version"
 	"github.com/spf13/cobra"
 )
 
