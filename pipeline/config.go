@@ -21,10 +21,18 @@ func (c Config) BuildOperators(bc operator.BuildContext) ([]operator.Operator, e
 }
 
 // BuildPipeline will build a pipeline from the config.
-func (c Config) BuildPipeline(bc operator.BuildContext) (*DirectedPipeline, error) {
+func (c Config) BuildPipeline(bc operator.BuildContext, defaultOperator operator.Operator) (*DirectedPipeline, error) {
+	if defaultOperator != nil {
+		bc.DefaultOutputIDs = []string{defaultOperator.ID()}
+	}
+
 	operators, err := c.BuildOperators(bc)
 	if err != nil {
 		return nil, err
+	}
+
+	if defaultOperator != nil {
+		operators = append(operators, defaultOperator)
 	}
 
 	return NewDirectedPipeline(operators)

@@ -82,7 +82,7 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		Namespace: "$",
 	}
 
-	pipeline, err := b.config.Pipeline.BuildPipeline(buildContext)
+	pipeline, err := b.config.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
 	if err != nil {
 		return nil, err
 	}

@@ -55,7 +55,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		Namespace: "$",
 	}
 
-	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext)
+	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
 	if err != nil {
 		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
 		os.Exit(1)
