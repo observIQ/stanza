@@ -19,8 +19,6 @@ type Config struct {
 }
 
 func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, error) {
-	nbc := bc.WithSubNamespace(c.ID())
-
 	params := c.getRenderParams(bc)
 	pipelineConfigBytes, err := c.plugin.Render(params)
 	if err != nil {
@@ -34,6 +32,7 @@ func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, erro
 		return nil, err
 	}
 
+	nbc := bc.WithSubNamespace(c.ID())
 	return pipelineConfig.Pipeline.BuildOperators(nbc)
 }
 
