@@ -5,14 +5,14 @@ go 1.14
 require (
 	github.com/antonmedv/expr v1.8.2
 	github.com/cenkalti/backoff/v4 v4.0.2
-	github.com/gohugoio/hugo v0.75.1 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/observiq/ctimefmt v1.0.0
 	github.com/observiq/nanojack v0.0.0-20200910202758-a0af1c611319
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/spf13/cobra v1.0.0 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.4
