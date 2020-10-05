@@ -66,29 +66,29 @@ func TestUnmarshalJSONErrors(t *testing.T) {
 	})
 }
 
-// func TestMarshalJSON(t *testing.T) {
-// 	cfg := Config{
-// 		MultiBuilder: &FakeBuilder{
-// 			OperatorID:   "plugin",
-// 			OperatorType: "plugin",
-// 			Array:        []string{"test"},
-// 		},
-// 	}
-// 	out, err := json.Marshal(cfg)
-// 	require.NoError(t, err)
-// 	expected := `{"id":"plugin","type":"plugin","array":["test"]}`
-// 	require.Equal(t, expected, string(out))
-// }
+func TestMarshalJSON(t *testing.T) {
+	cfg := Config{
+		MultiBuilder: &MultiBuilderWrapper{&FakeBuilder{
+			OperatorID:   "plugin",
+			OperatorType: "plugin",
+			Array:        []string{"test"},
+		}},
+	}
+	out, err := json.Marshal(cfg)
+	require.NoError(t, err)
+	expected := `{"id":"plugin","type":"plugin","array":["test"]}`
+	require.Equal(t, expected, string(out))
+}
 
 func TestUnmarshalYAMLErrors(t *testing.T) {
-	// t.Run("ValidYAML", func(t *testing.T) {
-	// 	RegisterOperator("fake_operator", func() Builder { return &FakeBuilder{} })
-	// 	raw := `type: fake_operator`
-	// 	var cfg Config
-	// 	err := yaml.Unmarshal([]byte(raw), &cfg)
-	// 	require.NoError(t, err)
-	// 	require.IsType(t, &FakeBuilder{}, cfg.Builder)
-	// })
+	t.Run("ValidYAML", func(t *testing.T) {
+		RegisterOperator("fake_operator", func() Builder { return &FakeBuilder{} })
+		raw := `type: fake_operator`
+		var cfg Config
+		err := yaml.Unmarshal([]byte(raw), &cfg)
+		require.NoError(t, err)
+		require.IsType(t, &MultiBuilderWrapper{&FakeBuilder{}}, cfg.MultiBuilder)
+	})
 
 	t.Run("InvalidYAML", func(t *testing.T) {
 		raw := `-- - \n||\\`
@@ -132,16 +132,16 @@ func TestUnmarshalYAMLErrors(t *testing.T) {
 	})
 }
 
-// func TestMarshalYAML(t *testing.T) {
-// 	cfg := Config{
-// 		Builder: &FakeBuilder{
-// 			OperatorID:   "plugin",
-// 			OperatorType: "plugin",
-// 			Array:        []string{"test"},
-// 		},
-// 	}
-// 	out, err := yaml.Marshal(cfg)
-// 	require.NoError(t, err)
-// 	expected := "id: plugin\ntype: plugin\narray:\n- test\n"
-// 	require.Equal(t, expected, string(out))
-// }
+func TestMarshalYAML(t *testing.T) {
+	cfg := Config{
+		MultiBuilder: &MultiBuilderWrapper{&FakeBuilder{
+			OperatorID:   "plugin",
+			OperatorType: "plugin",
+			Array:        []string{"test"},
+		}},
+	}
+	out, err := yaml.Marshal(cfg)
+	require.NoError(t, err)
+	expected := "id: plugin\ntype: plugin\narray:\n- test\n"
+	require.Equal(t, expected, string(out))
+}

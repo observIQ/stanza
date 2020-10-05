@@ -85,3 +85,11 @@ func (m *MultiBuilderWrapper) UnmarshalYAML(unmarshal func(interface{}) error) e
 func (m *MultiBuilderWrapper) UnmarshalJSON(bytes []byte) error {
 	return json.Unmarshal(bytes, m.Builder)
 }
+
+func (m MultiBuilderWrapper) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.Builder)
+}
+
+func (m MultiBuilderWrapper) MarshalYAML() (interface{}, error) {
+	return m.Builder, nil
+}
