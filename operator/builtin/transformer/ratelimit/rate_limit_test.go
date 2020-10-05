@@ -41,6 +41,13 @@ func TestRateLimit(t *testing.T) {
 		}
 	}()
 
+	// Warm up
+	for i := 0; i < 100; i++ {
+		err := rateLimit.Process(context.Background(), entry.New())
+		require.NoError(t, err)
+	}
+
+	// Measure
 	start := time.Now()
 	for i := 0; i < 1000; i++ {
 		err := rateLimit.Process(context.Background(), entry.New())
