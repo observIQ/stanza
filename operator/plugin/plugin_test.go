@@ -3,6 +3,7 @@ package plugin
 import (
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/observiq/stanza/operator"
@@ -640,54 +641,134 @@ pipeline:
 	}
 }
 
-// func TestRenderWithMissingRequired(t *testing.T) {
-// 	template := `version: 0.0.0
-// title: Test Plugin
-// description: This is a test plugin
-// parameters:
-//   path:
-//     label: Parameter
-//     description: A parameter
-//     type: int
-//     required: true
-// pipeline:
-// `
-// 	reg := Registry{}
-// 	err := reg.Add("plugin", template)
-// 	require.NoError(t, err)
+func TestRenderWithMissingRequired(t *testing.T) {
+	template := `version: 0.0.0
+title: Test Plugin
+description: This is a test plugin
+parameters:
+  path:
+    label: Parameter
+    description: A parameter
+    type: int
+    required: true
+pipeline:
+`
 
-// 	_, err = reg.Render("plugin", map[string]interface{}{})
-// 	require.Error(t, err)
-// 	require.Contains(t, err.Error(), "missing required parameter for plugin")
-// }
+	plugin, err := NewPlugin("plugin", []byte(template))
+	require.NoError(t, err)
+	_, err = plugin.Render(map[string]interface{}{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing required parameter for plugin")
+}
 
-// func TestRenderWithInvalidParameter(t *testing.T) {
-// 	template := `version: 0.0.0
-// title: Test Plugin
-// description: This is a test plugin
-// parameters:
-//   path:
-//     label: Parameter
-//     description: A parameter
-//     type: int
-//     required: true
-// pipeline:
-// `
-// 	reg := Registry{}
-// 	err := reg.Add("plugin", template)
-// 	require.NoError(t, err)
+func TestRenderWithInvalidParameter(t *testing.T) {
+	template := `version: 0.0.0
+title: Test Plugin
+description: This is a test plugin
+parameters:
+  path:
+    label: Parameter
+    description: A parameter
+    type: int
+    required: true
+pipeline:
+`
+	plugin, err := NewPlugin("plugin", []byte(template))
+	require.NoError(t, err)
+	_, err = plugin.Render(map[string]interface{}{"path": "test"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "plugin parameter failed validation")
+}
 
-// 	_, err = reg.Render("plugin", map[string]interface{}{"path": "test"})
-// 	require.Error(t, err)
-// 	require.Contains(t, err.Error(), "plugin parameter failed validation")
-// }
+func TestDefaultPluginFuncWithValue(t *testing.T) {
+	result := defaultPluginFunc("default_value", "supplied_value")
+	require.Equal(t, "supplied_value", result)
+}
 
-// func TestDefaultPluginFuncWithValue(t *testing.T) {
-// 	result := defaultPluginFunc("default_value", "supplied_value")
-// 	require.Equal(t, "supplied_value", result)
-// }
+func TestDefaultPluginFuncWithoutValue(t *testing.T) {
+	result := defaultPluginFunc("default_value", nil)
+	require.Equal(t, "default_value", result)
+}
 
-// func TestDefaultPluginFuncWithoutValue(t *testing.T) {
-// 	result := defaultPluginFunc("default_value", nil)
-// 	require.Equal(t, "default_value", result)
-// }
+func TestSplitPluginFile(t *testing.T) {
+	cases := map[int]struct {
+		input            string
+		expectedMetadata string
+		expectedTemplate string
+		expectError      bool
+	}{
+		0: {
+			"pipeline:\n",
+			"",
+			"pipeline:\n",
+			false,
+		},
+		1: {
+			"parameters:\npipeline:\n",
+			"parameters:\n",
+			"pipeline:\n",
+			false,
+		},
+		2: {
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+pipeline:
+  - type: stdout
+`,
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+`,
+			`pipeline:
+  - type: stdout
+`,
+			false,
+		},
+		3: {
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+
+# Defaults
+# {{ $output := true }}
+
+pipeline:
+  - type: stdout
+`,
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+`,
+			`
+# Defaults
+# {{ $output := true }}
+
+pipeline:
+  - type: stdout
+`,
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			meta, template, err := splitPluginFile([]byte(tc.input))
+			if tc.expectError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedMetadata, string(meta))
+			require.Equal(t, tc.expectedTemplate, string(template))
+		})
+	}
+}

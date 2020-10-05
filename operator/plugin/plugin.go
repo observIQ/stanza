@@ -1,10 +1,7 @@
 package plugin
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
-	"io"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
@@ -87,8 +84,6 @@ func (p *Plugin) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Metadata:\n%s\n", string(metadataBytes))
-	fmt.Printf("Template:\n%s\n", string(templateBytes))
 
 	if err := yaml.Unmarshal(metadataBytes, p); err != nil {
 		return err
@@ -103,45 +98,53 @@ func (p *Plugin) UnmarshalText(text []byte) error {
 func splitPluginFile(text []byte) (metadata, template []byte, err error) {
 	// Split the file into the metadata and the template by finding the pipeline,
 	// then navigating backwards until we find a non-commented, non-empty line
-	textReader := bufio.NewReader(bytes.NewReader(text))
 	var metadataBuf bytes.Buffer
 	var templateBuf bytes.Buffer
 
-	// Find the pipeline
-	lines := []string{}
-	for {
-		line, err := textReader.ReadString('\n')
-		if err != nil {
-			return nil, nil, fmt.Errorf("plugin file is missing the pipeline block")
-		}
-		lines = append(lines, line)
-		if matched, _ := regexp.MatchString(`^pipeline:`, line); matched {
+	lines := bytes.Split(text, []byte("\n"))
+	if len(lines) != 0 && len(lines[len(lines)-1]) == 0 {
+		// Delete empty trailing line
+		lines = lines[:len(lines)-1]
+	}
+
+	// Find the index of the pipeline line
+	pipelineRegex := regexp.MustCompile(`^pipeline:`)
+	pipelineIndex := -1
+	for i, line := range lines {
+		if pipelineRegex.Match(line) {
+			pipelineIndex = i
 			break
 		}
 	}
 
-	// Include all empty and commented lines above pipeline in the pipeline half.
-	// Skip the last line since we know it's the pipeline
+	if pipelineIndex == -1 {
+		return nil, nil, errors.NewError(
+			"missing the pipeline block in plugin template",
+			"ensure that the plugin file contains a pipeline",
+		)
+	}
+
+	// Iterate backwards from the pipeline start to find the first non-commented, non-empty line
 	emptyRegexp := regexp.MustCompile(`^\s*$`)
 	commentedRegexp := regexp.MustCompile(`^\s*#`)
-	i := len(lines) - 1
-	for ; i >= 0; i-- {
+	templateStartIndex := pipelineIndex
+	for i := templateStartIndex - 1; i >= 0; i-- {
 		line := lines[i]
-		if !emptyRegexp.MatchString(line) && !commentedRegexp.MatchString(line) {
-			break
+		if emptyRegexp.Match(line) || commentedRegexp.Match(line) {
+			templateStartIndex = i
+			continue
 		}
+		break
 	}
 
-	for _, line := range lines[:i] {
-		metadataBuf.WriteString(line)
+	for _, line := range lines[:templateStartIndex] {
+		metadataBuf.Write(line)
+		metadataBuf.WriteByte('\n')
 	}
 
-	for _, line := range lines[i:] {
-		templateBuf.WriteString(line)
-	}
-
-	if _, err := io.Copy(&templateBuf, textReader); err != nil {
-		return nil, nil, err
+	for _, line := range lines[templateStartIndex:] {
+		templateBuf.Write(line)
+		templateBuf.WriteByte('\n')
 	}
 
 	return metadataBuf.Bytes(), templateBuf.Bytes(), nil
