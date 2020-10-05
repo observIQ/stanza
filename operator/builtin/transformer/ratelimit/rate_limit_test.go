@@ -48,7 +48,7 @@ func TestRateLimit(t *testing.T) {
 	}()
 
 	i := 0
-	timeout := time.After(101 * time.Millisecond)
+	timeout := time.After(100 * time.Millisecond)
 LOOP:
 	for {
 		select {
@@ -62,5 +62,5 @@ LOOP:
 	cancel()
 	wg.Wait()
 
-	require.InDelta(t, 10, i, 3)
+	require.InDelta(t, 10, i, 5)
 }
