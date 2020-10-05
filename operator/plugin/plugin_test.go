@@ -49,59 +49,25 @@ func TestRegisterPlugins(t *testing.T) {
 	})
 }
 
-// func TestPluginRender(t *testing.T) {
+func TestPluginRender(t *testing.T) {
 
-// 	t.Run("ErrorExecFailure", func(t *testing.T) {
-// 		tmpl, err := template.New("plugintype").Parse(`{{ .panicker }}`)
-// 		require.NoError(t, err)
+	t.Run("ErrorExecFailure", func(t *testing.T) {
+		plugin, err := NewPlugin("panicker", []byte(`pipeline:\n  {{ .panicker }}`))
+		require.NoError(t, err)
 
-// 		reg := Registry{
-// 			"plugintype": tmpl,
-// 		}
-// 		params := map[string]interface{}{
-// 			"panicker": func() {
-// 				panic("testpanic")
-// 			},
-// 		}
-// 		_, err = reg.Render("plugintype", params)
-// 		require.Contains(t, err.Error(), "failed to render")
-// 	})
-// }
+		params := map[string]interface{}{
+			"panicker": func() {
+				panic("testpanic")
+			},
+		}
+		_, err = plugin.Render(params)
+		require.Contains(t, err.Error(), "failed to render")
+	})
+}
 
-// func TestRegistryLoad(t *testing.T) {
-// 	t.Run("LoadAllBadGlob", func(t *testing.T) {
-// 		reg := Registry{}
-// 		err := reg.LoadAll("", `[]`)
-// 		require.Error(t, err)
-// 		require.Contains(t, err.Error(), "with glob pattern")
-// 	})
-
-// 	t.Run("AddDuplicate", func(t *testing.T) {
-// 		reg := Registry{}
-// 		operator.Register("copy", func() operator.Builder { return nil })
-// 		err := reg.Add("copy", "pipeline:\n")
-// 		require.Error(t, err)
-// 		require.Contains(t, err.Error(), "already exists")
-// 	})
-
-// 	t.Run("AddBadTemplate", func(t *testing.T) {
-// 		reg := Registry{}
-// 		err := reg.Add("new", "{{ nofunc }")
-// 		require.Error(t, err)
-// 		require.Contains(t, err.Error(), "as a plugin template")
-// 	})
-
-// 	t.Run("LoadAllWithFailures", func(t *testing.T) {
-// 		tempDir := NewTempDir(t)
-// 		pluginPath := filepath.Join(tempDir, "copy.yaml")
-// 		err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
-// 		require.NoError(t, err)
-
-// 		reg := Registry{}
-// 		err = reg.LoadAll(tempDir, "*.yaml")
-// 		require.Error(t, err)
-// 	})
-// }
+func clearRegistry() {
+	operator.DefaultRegistry = operator.NewRegistry()
+}
 
 func TestPluginMetadata(t *testing.T) {
 	testCases := []struct {
