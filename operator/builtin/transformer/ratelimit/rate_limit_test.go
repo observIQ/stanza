@@ -18,7 +18,7 @@ func TestRateLimit(t *testing.T) {
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
 	cfg.Burst = 1
-	cfg.Rate = 100
+	cfg.Rate = 1000
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func TestRateLimit(t *testing.T) {
 	}()
 
 	// This allows for the operator to reach steady operation
-	timeout := time.After(50 * time.Millisecond)
+	timeout := time.After(100 * time.Millisecond)
 WARMUP:
 	for {
 		select {
@@ -60,7 +60,6 @@ WARMUP:
 	}
 
 	i := 0
-	timeout = time.After(100 * time.Millisecond)
 LOOP:
 	for {
 		select {
@@ -74,5 +73,5 @@ LOOP:
 	cancel()
 	wg.Wait()
 
-	require.InDelta(t, 10, i, 2)
+	require.InDelta(t, 100, i, 20)
 }
