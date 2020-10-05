@@ -4,7 +4,7 @@ import (
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/plugin"
+	"github.com/observiq/stanza/plugin"
 	"go.uber.org/zap"
 )
 

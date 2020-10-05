@@ -6,7 +6,7 @@ import (
 	"github.com/observiq/stanza/agent"
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/plugin"
+	"github.com/observiq/stanza/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
