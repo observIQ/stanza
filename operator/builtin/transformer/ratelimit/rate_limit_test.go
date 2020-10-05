@@ -47,8 +47,20 @@ func TestRateLimit(t *testing.T) {
 		}
 	}()
 
+	// This allows for the operator to reach steady operation
+	timeout := time.After(50 * time.Millisecond)
+WARMUP:
+	for {
+		select {
+		case <-fake.Received:
+			// Just consume the channel to keep it empty
+		case <-timeout:
+			break WARMUP
+		}
+	}
+
 	i := 0
-	timeout := time.After(101 * time.Millisecond)
+	timeout = time.After(100 * time.Millisecond)
 LOOP:
 	for {
 		select {
@@ -62,5 +74,5 @@ LOOP:
 	cancel()
 	wg.Wait()
 
-	require.InDelta(t, 10, i, 3)
+	require.InDelta(t, 10, i, 2)
 }
