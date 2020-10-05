@@ -66,6 +66,22 @@ func TestBuildAgentFailureOnPluginRegistry(t *testing.T) {
 	require.Nil(t, agent)
 }
 
+func TestBuildAgentFailureNoConfigOrGlobs(t *testing.T) {
+	mockLogger := zap.NewNop().Sugar()
+	mockPluginDir := "/some/plugin/path"
+	mockDatabaseFile := ""
+	mockOutput := testutil.NewFakeOutput(t)
+
+	agent, err := NewBuilder(mockLogger).
+		WithPluginDir(mockPluginDir).
+		WithDatabaseFile(mockDatabaseFile).
+		WithDefaultOutput(mockOutput).
+		Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot be built without")
+	require.Nil(t, agent)
+}
+
 func TestBuildAgentFailureWithBothConfigAndGlobs(t *testing.T) {
 	mockCfg := Config{}
 	mockLogger := zap.NewNop().Sugar()

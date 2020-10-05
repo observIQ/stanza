@@ -70,6 +70,8 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 
 	if b.config != nil && len(b.configFiles) > 0 {
 		return nil, errors.NewError("agent can be built WithConfig or WithConfigFiles, but not both", "")
+	} else if b.config == nil && len(b.configFiles) == 0 {
+		return nil, errors.NewError("agent cannot be built without WithConfig or WithConfigFiles", "")
 	} else if len(b.configFiles) > 0 {
 		b.config, err = NewConfigFromGlobs(b.configFiles)
 		if err != nil {
