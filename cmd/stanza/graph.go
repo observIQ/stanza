@@ -49,12 +49,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	buildContext := operator.BuildContext{
-		Logger:    logger,
-		Database:  database.NewStubDatabase(),
-		Namespace: "$",
-	}
-
+	buildContext := operator.NewBuildContext(database.NewStubDatabase(), logger)
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
 	if err != nil {
 		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))

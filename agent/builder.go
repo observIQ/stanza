@@ -76,12 +76,7 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		}
 	}
 
-	buildContext := operator.BuildContext{
-		Logger:    b.logger,
-		Database:  db,
-		Namespace: "$",
-	}
-
+	buildContext := operator.NewBuildContext(db, b.logger)
 	pipeline, err := b.config.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
 	if err != nil {
 		return nil, err

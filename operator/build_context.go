@@ -45,3 +45,13 @@ func (bc BuildContext) Copy() BuildContext {
 		DefaultOutputIDs: bc.DefaultOutputIDs,
 	}
 }
+
+func NewBuildContext(db database.Database, logger *zap.SugaredLogger) BuildContext {
+	return BuildContext{
+		Database:         db,
+		Parameters:       nil,
+		Logger:           logger,
+		Namespace:        "$",
+		DefaultOutputIDs: []string{},
+	}
+}
