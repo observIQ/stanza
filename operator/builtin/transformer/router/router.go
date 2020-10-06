@@ -71,18 +71,6 @@ func (c RouterOperatorConfig) Build(context operator.BuildContext) (operator.Ope
 	return routerOperator, nil
 }
 
-// SetNamespace will namespace the router operator and the outputs contained in its routes
-func (c *RouterOperatorConfig) SetNamespace(namespace string, exclusions ...string) {
-	c.BasicConfig.SetNamespace(namespace, exclusions...)
-	for _, route := range c.Routes {
-		for i, outputID := range route.OutputIDs {
-			if helper.CanNamespace(outputID, exclusions) {
-				route.OutputIDs[i] = helper.AddNamespace(outputID, namespace)
-			}
-		}
-	}
-}
-
 // RouterOperator is an operator that routes entries based on matching expressions
 type RouterOperator struct {
 	helper.BasicOperator

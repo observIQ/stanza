@@ -10,7 +10,8 @@ import (
 
 // LogAgentBuilder is a construct used to build a log agent
 type LogAgentBuilder struct {
-	cfg           *Config
+	configFiles   []string
+	config        *Config
 	logger        *zap.SugaredLogger
 	pluginDir     string
 	databaseFile  string
@@ -18,9 +19,8 @@ type LogAgentBuilder struct {
 }
 
 // NewBuilder creates a new LogAgentBuilder
-func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
+func NewBuilder(logger *zap.SugaredLogger) *LogAgentBuilder {
 	return &LogAgentBuilder{
-		cfg:    cfg,
 		logger: logger,
 	}
 }
@@ -28,6 +28,18 @@ func NewBuilder(cfg *Config, logger *zap.SugaredLogger) *LogAgentBuilder {
 // WithPluginDir adds the specified plugin directory when building a log agent
 func (b *LogAgentBuilder) WithPluginDir(pluginDir string) *LogAgentBuilder {
 	b.pluginDir = pluginDir
+	return b
+}
+
+// WithConfigFiles adds a list of globs to the search path for config files
+func (b *LogAgentBuilder) WithConfigFiles(files []string) *LogAgentBuilder {
+	b.configFiles = files
+	return b
+}
+
+// WithConfig builds the agent with a given, pre-built config
+func (b *LogAgentBuilder) WithConfig(cfg *Config) *LogAgentBuilder {
+	b.config = cfg
 	return b
 }
 
@@ -50,17 +62,25 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		return nil, errors.Wrap(err, "open database")
 	}
 
-	registry, err := plugin.NewPluginRegistry(b.pluginDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "load plugin registry")
+	if b.pluginDir != "" {
+		if err := plugin.RegisterPlugins(b.pluginDir, operator.DefaultRegistry); err != nil {
+			return nil, err
+		}
 	}
 
-	buildContext := operator.BuildContext{
-		Logger:   b.logger,
-		Database: db,
+	if b.config != nil && len(b.configFiles) > 0 {
+		return nil, errors.NewError("agent can be built WithConfig or WithConfigFiles, but not both", "")
+	} else if b.config == nil && len(b.configFiles) == 0 {
+		return nil, errors.NewError("agent cannot be built without WithConfig or WithConfigFiles", "")
+	} else if len(b.configFiles) > 0 {
+		b.config, err = NewConfigFromGlobs(b.configFiles)
+		if err != nil {
+			return nil, errors.Wrap(err, "read configs from globs")
+		}
 	}
 
-	pipeline, err := b.cfg.Pipeline.BuildPipeline(buildContext, registry, b.defaultOutput)
+	buildContext := operator.NewBuildContext(db, b.logger)
+	pipeline, err := b.config.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
 	if err != nil {
 		return nil, err
 	}

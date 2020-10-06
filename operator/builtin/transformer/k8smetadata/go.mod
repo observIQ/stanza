@@ -10,4 +10,4 @@ require (
 	k8s.io/utils v0.0.0-20200821003339-5e75c0163111 // indirect
 )
 
-replace github.com/observiq/stanza => ../../../..
+replace github.com/observiq/stanza => ../../../../

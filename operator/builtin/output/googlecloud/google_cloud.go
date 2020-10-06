@@ -188,6 +188,7 @@ func (p *GoogleCloudOutput) Stop() error {
 	return p.client.Close()
 }
 
+// Process processes an entry
 func (p *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
 	return p.buffer.Add(ctx, e)
 }

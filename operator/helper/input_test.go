@@ -53,22 +53,6 @@ func TestInputConfigValid(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestInputConfigSetNamespace(t *testing.T) {
-	config := InputConfig{
-		WriteTo: entry.Field{},
-		WriterConfig: WriterConfig{
-			BasicConfig: BasicConfig{
-				OperatorID:   "test-id",
-				OperatorType: "test-type",
-			},
-			OutputIDs: []string{"test-output"},
-		},
-	}
-	config.SetNamespace("test-namespace")
-	require.Equal(t, "test-namespace.test-id", config.OperatorID)
-	require.Equal(t, "test-namespace.test-output", config.OutputIDs[0])
-}
-
 func TestInputOperatorCanProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	input := InputOperator{

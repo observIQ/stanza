@@ -11,4 +11,4 @@ require (
 	k8s.io/client-go v0.19.0
 )
 
-replace github.com/observiq/stanza => ../../../..
+replace github.com/observiq/stanza => ../../../../

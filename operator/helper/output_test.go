@@ -28,17 +28,6 @@ func TestOutputConfigBuildValid(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestOutputConfigNamespace(t *testing.T) {
-	config := OutputConfig{
-		BasicConfig: BasicConfig{
-			OperatorID:   "test-id",
-			OperatorType: "test-type",
-		},
-	}
-	config.SetNamespace("test-namespace")
-	require.Equal(t, "test-namespace.test-id", config.ID())
-}
-
 func TestOutputOperatorCanProcess(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	output := OutputOperator{

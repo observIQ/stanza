@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/observiq/stanza/pipeline"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -18,7 +17,8 @@ func TestBuildAgentSuccess(t *testing.T) {
 	mockDatabaseFile := ""
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
@@ -39,7 +39,8 @@ func TestBuildAgentFailureOnDatabase(t *testing.T) {
 	mockDatabaseFile := invalidDatabaseFile
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
@@ -55,7 +56,8 @@ func TestBuildAgentFailureOnPluginRegistry(t *testing.T) {
 	mockDatabaseFile := ""
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
@@ -64,22 +66,54 @@ func TestBuildAgentFailureOnPluginRegistry(t *testing.T) {
 	require.Nil(t, agent)
 }
 
-func TestBuildAgentFailureOnPipeline(t *testing.T) {
-	mockCfg := Config{
-		Pipeline: pipeline.Config{
-			pipeline.Params{"type": "missing"},
-		},
-	}
+func TestBuildAgentFailureNoConfigOrGlobs(t *testing.T) {
 	mockLogger := zap.NewNop().Sugar()
-	mockPluginDir := "/some/path/plugins"
+	mockPluginDir := "/some/plugin/path"
 	mockDatabaseFile := ""
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(&mockCfg, mockLogger).
+	agent, err := NewBuilder(mockLogger).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
 		Build()
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot be built without")
+	require.Nil(t, agent)
+}
+
+func TestBuildAgentFailureWithBothConfigAndGlobs(t *testing.T) {
+	mockCfg := Config{}
+	mockLogger := zap.NewNop().Sugar()
+	mockPluginDir := "/some/plugin/path"
+	mockDatabaseFile := ""
+	mockOutput := testutil.NewFakeOutput(t)
+
+	agent, err := NewBuilder(mockLogger).
+		WithConfig(&mockCfg).
+		WithConfigFiles([]string{"test"}).
+		WithPluginDir(mockPluginDir).
+		WithDatabaseFile(mockDatabaseFile).
+		WithDefaultOutput(mockOutput).
+		Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not both")
+	require.Nil(t, agent)
+}
+
+func TestBuildAgentFailureNonexistGlobs(t *testing.T) {
+	mockLogger := zap.NewNop().Sugar()
+	mockPluginDir := "/some/plugin/path"
+	mockDatabaseFile := ""
+	mockOutput := testutil.NewFakeOutput(t)
+
+	agent, err := NewBuilder(mockLogger).
+		WithConfigFiles([]string{"/tmp/nonexist"}).
+		WithPluginDir(mockPluginDir).
+		WithDatabaseFile(mockDatabaseFile).
+		WithDefaultOutput(mockOutput).
+		Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "read configs from globs")
 	require.Nil(t, agent)
 }

@@ -11,18 +11,15 @@ import (
 	"gonum.org/v1/gonum/graph/topo"
 )
 
+var _ Pipeline = (*DirectedPipeline)(nil)
+
 // DirectedPipeline is a pipeline backed by a directed graph
 type DirectedPipeline struct {
-	Graph   *simple.DirectedGraph
-	running bool
+	Graph *simple.DirectedGraph
 }
 
 // Start will start the operators in a pipeline in reverse topological order
 func (p *DirectedPipeline) Start() error {
-	if p.running {
-		return nil
-	}
-
 	sortedNodes, _ := topo.Sort(p.Graph)
 	for i := len(sortedNodes) - 1; i >= 0; i-- {
 		operator := sortedNodes[i].(OperatorNode).Operator()
@@ -33,16 +30,11 @@ func (p *DirectedPipeline) Start() error {
 		operator.Logger().Debug("Started operator")
 	}
 
-	p.running = true
 	return nil
 }
 
 // Stop will stop the operators in a pipeline in topological order
 func (p *DirectedPipeline) Stop() error {
-	if !p.running {
-		return nil
-	}
-
 	sortedNodes, _ := topo.Sort(p.Graph)
 	for _, node := range sortedNodes {
 		operator := node.(OperatorNode).Operator()
@@ -51,18 +43,22 @@ func (p *DirectedPipeline) Stop() error {
 		operator.Logger().Debug("Stopped operator")
 	}
 
-	p.running = false
 	return nil
-}
-
-// Running will return the running state of the pipeline
-func (p *DirectedPipeline) Running() bool {
-	return p.running
 }
 
 // Render will render the pipeline as a dot graph
 func (p *DirectedPipeline) Render() ([]byte, error) {
 	return dot.Marshal(p.Graph, "G", "", " ")
+}
+
+// Operators returns a slice of operators that make up the pipeline graph
+func (p *DirectedPipeline) Operators() []operator.Operator {
+	operators := make([]operator.Operator, 0)
+	nodes := p.Graph.Nodes()
+	for nodes.Next() {
+		operators = append(operators, nodes.Node().(OperatorNode).Operator())
+	}
+	return operators
 }
 
 // addNodes will add operators as nodes to the supplied graph.

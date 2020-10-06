@@ -8,4 +8,4 @@ require (
 	github.com/stretchr/testify v1.6.1
 )
 
-replace github.com/observiq/stanza => ../../../..
+replace github.com/observiq/stanza => ../../../../

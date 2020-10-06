@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -13,12 +14,10 @@ import (
 )
 
 func TestRateLimit(t *testing.T) {
-	t.Parallel()
-
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
 	cfg.Burst = 1
-	cfg.Rate = 100
+	cfg.Rate = 1000
 
 	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
@@ -31,36 +30,39 @@ func TestRateLimit(t *testing.T) {
 	err = rateLimit.Start()
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
-			select {
-			case <-ctx.Done():
+			_, ok := <-fake.Received
+			if !ok {
 				return
-			default:
-				err := rateLimit.Process(ctx, entry.New())
-				require.NoError(t, err)
 			}
 		}
 	}()
 
-	i := 0
-	timeout := time.After(100 * time.Millisecond)
-LOOP:
-	for {
-		select {
-		case <-fake.Received:
-			i++
-		case <-timeout:
-			break LOOP
-		}
+	// Warm up
+	for i := 0; i < 100; i++ {
+		err := rateLimit.Process(context.Background(), entry.New())
+		require.NoError(t, err)
 	}
 
-	cancel()
+	// Measure
+	start := time.Now()
+	for i := 0; i < 1000; i++ {
+		err := rateLimit.Process(context.Background(), entry.New())
+		require.NoError(t, err)
+	}
+	elapsed := time.Since(start)
+
+	close(fake.Received)
 	wg.Wait()
 
-	require.InDelta(t, 10, i, 5)
+	if runtime.GOOS == "darwin" {
+		t.Log("Using a wider acceptable range on darwin because of slow CI servers")
+		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.6)
+	} else {
+		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.2)
+	}
 }

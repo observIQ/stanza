@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/observiq/stanza/operator"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	"github.com/observiq/stanza/pipeline"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
@@ -15,7 +17,7 @@ func TestNewConfigFromFile(t *testing.T) {
 	configFile := filepath.Join(tempDir, "config.yaml")
 	configContents := `
 pipeline:
-  - type: operator
+  - type: noop
 `
 	err := ioutil.WriteFile(configFile, []byte(configContents), 0755)
 	require.NoError(t, err)
@@ -54,7 +56,7 @@ func TestNewConfigFromGlobs(t *testing.T) {
 	configFile := filepath.Join(tempDir, "config.yaml")
 	configContents := `
 pipeline:
-  - type: operator
+  - type: noop
 `
 	err := ioutil.WriteFile(configFile, []byte(configContents), 0755)
 	require.NoError(t, err)
@@ -99,13 +101,13 @@ pipeline:
 func TestMergeConfigs(t *testing.T) {
 	config1 := Config{
 		Pipeline: pipeline.Config{
-			{"type": "first"},
+			operator.Config{},
 		},
 	}
 
 	config2 := Config{
 		Pipeline: pipeline.Config{
-			{"type": "second"},
+			operator.Config{},
 		},
 	}
 

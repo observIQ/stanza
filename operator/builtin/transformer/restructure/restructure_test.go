@@ -13,7 +13,6 @@ import (
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
@@ -201,16 +200,20 @@ func TestRestructureOperator(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-
-			operator, mockOutput := NewFakeRestructureOperator()
-			operator.ops = tc.ops
-
-			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-				require.Equal(t, tc.output, args[1].(*entry.Entry))
-			}).Return(nil)
-
-			err := operator.Process(context.Background(), tc.input)
+			cfg := NewRestructureOperatorConfig("test")
+			cfg.OutputIDs = []string{"fake"}
+			op, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
+
+			restructure := op.(*RestructureOperator)
+			fake := testutil.NewFakeOutput(t)
+			restructure.SetOutputs([]operator.Operator{fake})
+			restructure.ops = tc.ops
+
+			err = restructure.Process(context.Background(), tc.input)
+			require.NoError(t, err)
+
+			fake.ExpectEntry(t, tc.output)
 		})
 	}
 }
@@ -343,51 +346,53 @@ ops:
 }`
 
 	expected := operator.Config(operator.Config{
-		Builder: &RestructureOperatorConfig{
-			TransformerConfig: helper.TransformerConfig{
-				WriterConfig: helper.WriterConfig{
-					BasicConfig: helper.BasicConfig{
-						OperatorID:   "my_restructure",
-						OperatorType: "restructure",
+		MultiBuilder: &operator.MultiBuilderWrapper{
+			Builder: &RestructureOperatorConfig{
+				TransformerConfig: helper.TransformerConfig{
+					WriterConfig: helper.WriterConfig{
+						BasicConfig: helper.BasicConfig{
+							OperatorID:   "my_restructure",
+							OperatorType: "restructure",
+						},
+						OutputIDs: []string{"test_output"},
 					},
-					OutputIDs: []string{"test_output"},
+					OnError: helper.SendOnError,
 				},
-				OnError: helper.SendOnError,
-			},
-			Ops: []Op{
-				{&OpAdd{
-					Field: entry.NewRecordField("message"),
-					Value: "val",
-				}},
-				{&OpAdd{
-					Field: entry.NewRecordField("message_suffix"),
-					ValueExpr: func() *string {
-						s := `$.message + "_suffix"`
-						return &s
-					}(),
-					program: func() *vm.Program {
-						vm, err := expr.Compile(`$.message + "_suffix"`)
-						require.NoError(t, err)
-						return vm
-					}(),
-				}},
-				{&OpRemove{
-					Field: entry.NewRecordField("message"),
-				}},
-				{&OpRetain{
-					Fields: []entry.Field{
-						entry.NewRecordField("message_retain"),
-					},
-				}},
-				{&OpFlatten{
-					Field: entry.RecordField{
-						Keys: []string{"message_flatten"},
-					},
-				}},
-				{&OpMove{
-					From: entry.NewRecordField("message1"),
-					To:   entry.NewRecordField("message2"),
-				}},
+				Ops: []Op{
+					{&OpAdd{
+						Field: entry.NewRecordField("message"),
+						Value: "val",
+					}},
+					{&OpAdd{
+						Field: entry.NewRecordField("message_suffix"),
+						ValueExpr: func() *string {
+							s := `$.message + "_suffix"`
+							return &s
+						}(),
+						program: func() *vm.Program {
+							vm, err := expr.Compile(`$.message + "_suffix"`)
+							require.NoError(t, err)
+							return vm
+						}(),
+					}},
+					{&OpRemove{
+						Field: entry.NewRecordField("message"),
+					}},
+					{&OpRetain{
+						Fields: []entry.Field{
+							entry.NewRecordField("message_retain"),
+						},
+					}},
+					{&OpFlatten{
+						Field: entry.RecordField{
+							Keys: []string{"message_flatten"},
+						},
+					}},
+					{&OpMove{
+						From: entry.NewRecordField("message1"),
+						To:   entry.NewRecordField("message2"),
+					}},
+				},
 			},
 		},
 	})

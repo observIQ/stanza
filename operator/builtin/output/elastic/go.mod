@@ -10,4 +10,4 @@ require (
 	go.uber.org/zap v1.15.0
 )
 
-replace github.com/observiq/stanza => ../../../..
+replace github.com/observiq/stanza => ../../../../

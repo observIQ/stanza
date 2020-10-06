@@ -2,123 +2,62 @@ package regex
 
 import (
 	"context"
-	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func NewTestConfig(t *testing.T, regex string) (*operator.Config, error) {
-	json := `{
-		"type": "regex_parser",
-		"id": "test_id",
-		"regex": "%s",
-		"output": "test_output"
-	}`
-	json = fmt.Sprintf(json, regex)
-	config := &operator.Config{}
-	err := config.UnmarshalJSON([]byte(json))
-	return config, err
-}
-
-func NewTestParser(t *testing.T, regex string) (*RegexParser, error) {
-	config, err := NewTestConfig(t, regex)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx := testutil.NewBuildContext(t)
-	op, err := config.Build(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	parser, ok := op.(*RegexParser)
-	if !ok {
-		return nil, fmt.Errorf("operator is not a regex parser")
-	}
-
-	return parser, nil
+func newTestParser(t *testing.T, regex string) *RegexParser {
+	cfg := NewRegexParserConfig("test")
+	cfg.Regex = regex
+	op, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+	return op.(*RegexParser)
 }
 
 func TestRegexParserBuildFailure(t *testing.T) {
-	config, err := NewTestConfig(t, "^(?P<key>test)")
-	require.NoError(t, err)
-
-	parserConfig, ok := config.Builder.(*RegexParserConfig)
-	require.True(t, ok)
-
-	parserConfig.OnError = "invalid_on_error"
-	ctx := testutil.NewBuildContext(t)
-	_, err = config.Build(ctx)
+	cfg := NewRegexParserConfig("test")
+	cfg.OnError = "invalid_on_error"
+	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid `on_error` field")
 }
 
 func TestRegexParserStringFailure(t *testing.T) {
-	parser, err := NewTestParser(t, "^(?P<key>test)")
-	require.NoError(t, err)
-
-	_, err = parser.parse("invalid")
+	parser := newTestParser(t, "^(?P<key>test)")
+	_, err := parser.parse("invalid")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "regex pattern does not match")
 }
 
 func TestRegexParserByteFailure(t *testing.T) {
-	parser, err := NewTestParser(t, "^(?P<key>test)")
-	require.NoError(t, err)
-
-	_, err = parser.parse([]byte("invalid"))
+	parser := newTestParser(t, "^(?P<key>test)")
+	_, err := parser.parse([]byte("invalid"))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "regex pattern does not match")
 }
 
 func TestRegexParserInvalidType(t *testing.T) {
-	parser, err := NewTestParser(t, "^(?P<key>test)")
-	require.NoError(t, err)
-
-	_, err = parser.parse([]int{})
+	parser := newTestParser(t, "^(?P<key>test)")
+	_, err := parser.parse([]int{})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "type '[]int' cannot be parsed as regex")
-}
-
-func newFakeRegexParser() (*RegexParser, *testutil.Operator) {
-	mockOperator := testutil.Operator{}
-	return &RegexParser{
-		ParserOperator: helper.ParserOperator{
-			TransformerOperator: helper.TransformerOperator{
-				WriterOperator: helper.WriterOperator{
-					BasicOperator: helper.BasicOperator{
-						OperatorID:   "regex_parser",
-						OperatorType: "regex_parser",
-					},
-					OutputIDs:       []string{"mock_output"},
-					OutputOperators: []operator.Operator{&mockOperator},
-				},
-			},
-			ParseFrom: entry.NewRecordField(),
-			ParseTo:   entry.NewRecordField(),
-		},
-	}, &mockOperator
 }
 
 func TestParserRegex(t *testing.T) {
 	cases := []struct {
 		name         string
-		configure    func(*RegexParser)
+		configure    func(*RegexParserConfig)
 		inputRecord  interface{}
 		outputRecord interface{}
 	}{
 		{
 			"RootString",
-			func(p *RegexParser) {
-				p.regexp = regexp.MustCompile("a=(?P<a>.*)")
+			func(p *RegexParserConfig) {
+				p.Regex = "a=(?P<a>.*)"
 			},
 			"a=b",
 			map[string]interface{}{
@@ -127,8 +66,8 @@ func TestParserRegex(t *testing.T) {
 		},
 		{
 			"RootBytes",
-			func(p *RegexParser) {
-				p.regexp = regexp.MustCompile("a=(?P<a>.*)")
+			func(p *RegexParserConfig) {
+				p.Regex = "a=(?P<a>.*)"
 			},
 			[]byte("a=b"),
 			map[string]interface{}{
@@ -139,22 +78,22 @@ func TestParserRegex(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			parser, mockOutput := newFakeRegexParser()
-			tc.configure(parser)
+			cfg := NewRegexParserConfig("test")
+			cfg.OutputIDs = []string{"fake"}
+			tc.configure(cfg)
 
-			var parsedRecord interface{}
-			mockOutput.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-				parsedRecord = args.Get(1).(*entry.Entry).Record
-			})
-
-			entry := entry.Entry{
-				Record: tc.inputRecord,
-			}
-			err := parser.Process(context.Background(), &entry)
+			parser, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
 
-			require.Equal(t, tc.outputRecord, parsedRecord)
+			fake := testutil.NewFakeOutput(t)
+			parser.SetOutputs([]operator.Operator{fake})
 
+			entry := entry.New()
+			entry.Record = tc.inputRecord
+			err = parser.Process(context.Background(), entry)
+			require.NoError(t, err)
+
+			fake.ExpectRecord(t, tc.outputRecord)
 		})
 	}
 }

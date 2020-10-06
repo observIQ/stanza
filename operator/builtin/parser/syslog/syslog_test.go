@@ -8,14 +8,13 @@ import (
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSyslogParser(t *testing.T) {
 	basicConfig := func() *SyslogParserConfig {
 		cfg := NewSyslogParserConfig("test_operator_id")
-		cfg.OutputIDs = []string{"output1"}
+		cfg.OutputIDs = []string{"fake"}
 		return cfg
 	}
 
@@ -121,27 +120,20 @@ func TestSyslogParser(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			buildContext := testutil.NewBuildContext(t)
-			newOperator, err := tc.config.Build(buildContext)
+			op, err := tc.config.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
-			syslogParser := newOperator.(*SyslogParser)
 
-			mockOutput := testutil.NewMockOperator("output1")
-			entryChan := make(chan *entry.Entry, 1)
-			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-				entryChan <- args.Get(1).(*entry.Entry)
-			}).Return(nil)
-
-			err = syslogParser.SetOutputs([]operator.Operator{mockOutput})
+			fake := testutil.NewFakeOutput(t)
+			err = op.SetOutputs([]operator.Operator{fake})
 			require.NoError(t, err)
 
 			newEntry := entry.New()
 			newEntry.Record = tc.inputRecord
-			err = syslogParser.Process(context.Background(), newEntry)
+			err = op.Process(context.Background(), newEntry)
 			require.NoError(t, err)
 
 			select {
-			case e := <-entryChan:
+			case e := <-fake.Received:
 				require.Equal(t, e.Record, tc.expectedRecord)
 				require.Equal(t, tc.expectedTimestamp, e.Timestamp)
 			case <-time.After(time.Second):

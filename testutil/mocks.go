@@ -3,9 +3,11 @@ package testutil
 import (
 	context "context"
 	"testing"
+	"time"
 
 	entry "github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/stretchr/testify/require"
 	zap "go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
@@ -40,7 +42,7 @@ func (f *FakeOutput) CanOutput() bool { return false }
 func (f *FakeOutput) CanProcess() bool { return true }
 
 // ID always returns `fake` as the ID of a fake output operator
-func (f *FakeOutput) ID() string { return "fake" }
+func (f *FakeOutput) ID() string { return "$.fake" }
 
 // Logger returns the logger of a fake output
 func (f *FakeOutput) Logger() *zap.SugaredLogger { return f.SugaredLogger }
@@ -64,4 +66,26 @@ func (f *FakeOutput) Type() string { return "fake_output" }
 func (f *FakeOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	f.Received <- entry
 	return nil
+}
+
+// ExpectRecord expects that a record will be received by the fake operator within a second
+// and that it is equal to the given record
+func (f *FakeOutput) ExpectRecord(t testing.TB, record interface{}) {
+	select {
+	case e := <-f.Received:
+		require.Equal(t, record, e.Record)
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for entry")
+	}
+}
+
+// ExpectEntry expects that an entry will be received by the fake operator within a second
+// and that it is equal to the given record
+func (f *FakeOutput) ExpectEntry(t testing.TB, expected *entry.Entry) {
+	select {
+	case e := <-f.Received:
+		require.Equal(t, expected, e)
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for entry")
+	}
 }

@@ -52,20 +52,14 @@ func (c BasicConfig) Build(context operator.BuildContext) (BasicOperator, error)
 		)
 	}
 
+	namespacedID := context.PrependNamespace(c.ID())
 	operator := BasicOperator{
-		OperatorID:    c.ID(),
+		OperatorID:    namespacedID,
 		OperatorType:  c.Type(),
-		SugaredLogger: context.Logger.With("operator_id", c.ID(), "operator_type", c.Type()),
+		SugaredLogger: context.Logger.With("operator_id", namespacedID, "operator_type", c.Type()),
 	}
 
 	return operator, nil
-}
-
-// SetNamespace will namespace the operator id.
-func (c *BasicConfig) SetNamespace(namespace string, exclusions ...string) {
-	if CanNamespace(c.ID(), exclusions) {
-		c.OperatorID = AddNamespace(c.ID(), namespace)
-	}
 }
 
 // BasicOperator provides a basic implementation of an operator.
