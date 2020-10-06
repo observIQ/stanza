@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased - 2020-09-24
 ### Added
 - New Relic Logs output operator
+- Publicly available `version.GetVersion()` for consumers of the `stanza` module
 
 ## [0.12.0] - 2020-09-21
 ### Changed

@@ -7,13 +7,6 @@ PROJECT_ROOT = $(shell pwd)
 ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 
-BUILD_INFO_IMPORT_PATH=github.com/observiq/stanza/internal/version
-BUILD_X1=-X $(BUILD_INFO_IMPORT_PATH).GitHash=$(GIT_SHA)
-ifdef VERSION
-BUILD_X2=-X $(BUILD_INFO_IMPORT_PATH).Version=$(VERSION)
-endif
-BUILD_INFO=-ldflags "${BUILD_X1} ${BUILD_X2}"
-
 
 .PHONY: install-tools
 install-tools:
@@ -73,11 +66,11 @@ generate:
 
 .PHONY: build
 build:
-	(cd ./cmd/stanza && CGO_ENABLED=0 go build -o ../../artifacts/stanza_$(GOOS)_$(GOARCH) $(BUILD_INFO) .)
+	(cd ./cmd/stanza && CGO_ENABLED=0 go build -o ../../artifacts/stanza_$(GOOS)_$(GOARCH)  .)
 
 .PHONY: install
 install:
-	(cd ./cmd/stanza && CGO_ENABLED=0 go install $(BUILD_INFO) .)
+	(cd ./cmd/stanza && CGO_ENABLED=0 go install .)
 
 .PHONY: build-all
 build-all: build-darwin-amd64 build-linux-amd64 build-windows-amd64

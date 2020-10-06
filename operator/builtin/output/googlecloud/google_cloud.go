@@ -11,7 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/internal/version"
+	"github.com/observiq/stanza/version"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/flusher"
