@@ -30,21 +30,14 @@ func TestTimeUnixParser(t *testing.T) {
 		want       string
 	}{
 		{
-			name:       "unixhex now",
+			name:       "unixhex now string",
 			layoutType: helper.UnixHex,
 			layout:     ``,
 			sample:     strconv.FormatInt(time.Now().Unix(), 16),
 			want:       ``,
 		},
 		{
-			name:       "unixhex string",
-			layoutType: helper.UnixHex,
-			layout:     ``,
-			sample:     strconv.FormatInt(time.Now().Unix(), 16),
-			want:       ``,
-		},
-		{
-			name:       "unixhex byte slice",
+			name:       "unixhex now byte slice",
 			layoutType: helper.UnixHex,
 			layout:     ``,
 			sample:     []byte(strconv.FormatInt(time.Now().Unix(), 16)),
