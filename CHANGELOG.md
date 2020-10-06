@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased - 2020-09-24
 ### Added
 - New Relic Logs output operator
+- Additional resource values with parent object names (service name, replica set name, etc.) in the k8s metadata operator
 
 ## [0.12.0] - 2020-09-21
 ### Changed
