@@ -21,12 +21,12 @@ func NewConfigFromFile(file string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %s", err)
 	}
 
-	config := &Config{}
-	if err := yaml.UnmarshalStrict(contents, config); err != nil {
+	config := Config{}
+	if err := yaml.UnmarshalStrict(contents, &config); err != nil {
 		return nil, fmt.Errorf("failed to read config file as yaml: %s", err)
 	}
 
-	return config, nil
+	return &config, nil
 }
 
 // NewConfigFromGlobs will create an agent config from multiple files matching a pattern.

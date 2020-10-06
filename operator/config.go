@@ -5,80 +5,62 @@ package operator
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/observiq/stanza/database"
-	"go.uber.org/zap"
 )
 
 // Config is the configuration of an operator
 type Config struct {
-	Builder
+	MultiBuilder
 }
 
-// Builder is an entity that can build operators
-type Builder interface {
+// Identifier captures the methods needed to identify a builder or multibuilder
+type Identifier interface {
 	ID() string
 	Type() string
+}
+
+// Builder is an entity that can build a single operator
+type Builder interface {
+	Identifier
 	Build(BuildContext) (Operator, error)
-	SetNamespace(namespace string, exclude ...string)
 }
 
-// BuildContext supplies contextual resources when building an operator.
-type BuildContext struct {
-	Database   database.Database
-	Parameters map[string]interface{}
-	Logger     *zap.SugaredLogger
-}
-
-// registry is a global registry of operator types to operator builders.
-var registry = make(map[string]func() Builder)
-
-// Register will register a function to an operator type.
-// This function will return a builder for the supplied type.
-func Register(operatorType string, newBuilder func() Builder) {
-	registry[operatorType] = newBuilder
-}
-
-// IsDefined will return a boolean indicating if an operator type is registered and defined.
-func IsDefined(operatorType string) bool {
-	_, ok := registry[operatorType]
-	return ok
+// MultiBuilder is an entity that can build operators
+type MultiBuilder interface {
+	Identifier
+	BuildMulti(BuildContext) ([]Operator, error)
 }
 
 // UnmarshalJSON will unmarshal a config from JSON.
 func (c *Config) UnmarshalJSON(bytes []byte) error {
-	var baseConfig struct {
-		ID   string
+	var typeUnmarshaller struct {
 		Type string
 	}
 
-	err := json.Unmarshal(bytes, &baseConfig)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &typeUnmarshaller); err != nil {
 		return err
 	}
 
-	if baseConfig.Type == "" {
+	if typeUnmarshaller.Type == "" {
 		return fmt.Errorf("missing required field 'type'")
 	}
 
-	builderFunc, ok := registry[baseConfig.Type]
+	builderFunc, ok := DefaultRegistry.Lookup(typeUnmarshaller.Type)
 	if !ok {
-		return fmt.Errorf("unsupported type '%s'", baseConfig.Type)
+		return fmt.Errorf("unsupported type '%s'", typeUnmarshaller.Type)
 	}
 
 	builder := builderFunc()
-	err = json.Unmarshal(bytes, builder)
-	if err != nil {
-		return fmt.Errorf("unmarshal to %s: %s", baseConfig.Type, err)
+	if err := json.Unmarshal(bytes, builder); err != nil {
+		return fmt.Errorf("unmarshal to %s: %s", typeUnmarshaller.Type, err)
 	}
 
-	c.Builder = builder
+	c.MultiBuilder = builder
 	return nil
 }
 
 // MarshalJSON will marshal a config to JSON.
 func (c Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.Builder)
+	return json.Marshal(c.MultiBuilder)
 }
 
 // UnmarshalYAML will unmarshal a config from YAML.
@@ -99,22 +81,21 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("non-string type %T for field 'type'", typeInterface)
 	}
 
-	builderFunc, ok := registry[typeString]
+	builderFunc, ok := DefaultRegistry.Lookup(typeString)
 	if !ok {
 		return fmt.Errorf("unsupported type '%s'", typeString)
 	}
 
 	builder := builderFunc()
-	err = unmarshal(builder)
-	if err != nil {
+	if err = unmarshal(builder); err != nil {
 		return fmt.Errorf("unmarshal to %s: %s", typeString, err)
 	}
 
-	c.Builder = builder
+	c.MultiBuilder = builder
 	return nil
 }
 
 // MarshalYAML will marshal a config to YAML.
 func (c Config) MarshalYAML() (interface{}, error) {
-	return c.Builder, nil
+	return c.MultiBuilder, nil
 }

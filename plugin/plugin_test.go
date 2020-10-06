@@ -2,127 +2,71 @@ package plugin
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
-	"text/template"
 
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
 
-func NewTempDir(t *testing.T) string {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
-	})
-
-	return tempDir
-}
-
-func TestNewRegistry(t *testing.T) {
-	tempDir := NewTempDir(t)
-
-	test1 := []byte(`
-id: my_generator
-type: generator
-output: testoutput
-record:
-  message1: {{ .message }}
+var simple = []byte(`
+parameters:
+  message:
+    type: string
+    required: true
+pipeline:
+  id: my_generator
+  type: generator
+  output: testoutput
+  record:
+    message1: {{ .message }}
 `)
 
-	test2 := []byte(`
-id: my_generator
-type: generator
-output: testoutput
-record:
-  message2: {{ .message }}
-`)
+func TestRegisterPlugins(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		tempDir := testutil.NewTempDir(t)
 
-	err := ioutil.WriteFile(filepath.Join(tempDir, "test1.yaml"), test1, 0666)
-	require.NoError(t, err)
-	err = ioutil.WriteFile(filepath.Join(tempDir, "test2.yaml"), test2, 0666)
-	require.NoError(t, err)
-
-	registry, err := NewPluginRegistry(tempDir)
-	require.NoError(t, err)
-
-	require.Equal(t, 2, len(registry))
-	require.True(t, registry.IsDefined("test1"))
-	require.True(t, registry.IsDefined("test2"))
-}
-
-func TestNewRegistryFailure(t *testing.T) {
-	tempDir := NewTempDir(t)
-	err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.yaml"), []byte("pipeline:"), 0111)
-	require.NoError(t, err)
-
-	_, err = NewPluginRegistry(tempDir)
-	require.Error(t, err)
-}
-
-func TestRegistryRender(t *testing.T) {
-	t.Run("ErrorTypeDoesNotExist", func(t *testing.T) {
-		reg := Registry{}
-		_, err := reg.Render("unknown", map[string]interface{}{})
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "does not exist")
-	})
-
-	t.Run("ErrorExecFailure", func(t *testing.T) {
-		tmpl, err := template.New("plugintype").Parse(`{{ .panicker }}`)
+		err := ioutil.WriteFile(filepath.Join(tempDir, "test1.yaml"), simple, 0666)
 		require.NoError(t, err)
 
-		reg := Registry{
-			"plugintype": tmpl,
-		}
+		registry := operator.NewRegistry()
+		err = RegisterPlugins(tempDir, registry)
+		require.NoError(t, err)
+
+		_, ok := registry.Lookup("test1")
+		require.True(t, ok)
+	})
+
+	t.Run("Failure", func(t *testing.T) {
+		tempDir := testutil.NewTempDir(t)
+		err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.yaml"), []byte("pipeline:"), 0111)
+		require.NoError(t, err)
+
+		err = RegisterPlugins(tempDir, operator.DefaultRegistry)
+		require.Error(t, err)
+	})
+}
+
+func TestPluginRender(t *testing.T) {
+
+	t.Run("ErrorExecFailure", func(t *testing.T) {
+		plugin, err := NewPlugin("panicker", []byte(`pipeline:\n  {{ .panicker }}`))
+		require.NoError(t, err)
+
 		params := map[string]interface{}{
 			"panicker": func() {
 				panic("testpanic")
 			},
 		}
-		_, err = reg.Render("plugintype", params)
+		_, err = plugin.Render(params)
 		require.Contains(t, err.Error(), "failed to render")
 	})
 }
 
-func TestRegistryLoad(t *testing.T) {
-	t.Run("LoadAllBadGlob", func(t *testing.T) {
-		reg := Registry{}
-		err := reg.LoadAll("", `[]`)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "with glob pattern")
-	})
-
-	t.Run("AddDuplicate", func(t *testing.T) {
-		reg := Registry{}
-		operator.Register("copy", func() operator.Builder { return nil })
-		err := reg.Add("copy", "pipeline:\n")
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "already exists")
-	})
-
-	t.Run("AddBadTemplate", func(t *testing.T) {
-		reg := Registry{}
-		err := reg.Add("new", "{{ nofunc }")
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "as a plugin template")
-	})
-
-	t.Run("LoadAllWithFailures", func(t *testing.T) {
-		tempDir := NewTempDir(t)
-		pluginPath := filepath.Join(tempDir, "copy.yaml")
-		err := ioutil.WriteFile(pluginPath, []byte("pipeline:\n"), 0755)
-		require.NoError(t, err)
-
-		reg := Registry{}
-		err = reg.LoadAll(tempDir, "*.yaml")
-		require.Error(t, err)
-	})
+func clearRegistry() {
+	operator.DefaultRegistry = operator.NewRegistry()
 }
 
 func TestPluginMetadata(t *testing.T) {
@@ -152,6 +96,38 @@ parameters:
     label: Other Thing
     description: Another parameter
     type: int
+pipeline:
+`,
+		},
+		{
+			name:      "only_params",
+			expectErr: false,
+			template: `parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: int
+pipeline:
+`,
+		},
+		{
+			name:      "out_of_order",
+			expectErr: false,
+			template: `parameters:
+  path:
+    label: Path
+    description: The path to a thing
+    type: string
+  other:
+    label: Other Thing
+    description: Another parameter
+    type: int
+title: Test Plugin
+description: This is a test plugin
 pipeline:
 `,
 		},
@@ -621,15 +597,12 @@ pipeline:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			reg := Registry{}
-			err := reg.Add(tc.name, tc.template)
-			require.NoError(t, err)
-			_, err = reg.Render(tc.name, map[string]interface{}{})
+			_, err := NewPlugin(tc.name, []byte(tc.template))
 			if tc.expectErr {
 				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
+				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -646,11 +619,10 @@ parameters:
     required: true
 pipeline:
 `
-	reg := Registry{}
-	err := reg.Add("plugin", template)
-	require.NoError(t, err)
 
-	_, err = reg.Render("plugin", map[string]interface{}{})
+	plugin, err := NewPlugin("plugin", []byte(template))
+	require.NoError(t, err)
+	_, err = plugin.Render(map[string]interface{}{})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing required parameter for plugin")
 }
@@ -667,11 +639,9 @@ parameters:
     required: true
 pipeline:
 `
-	reg := Registry{}
-	err := reg.Add("plugin", template)
+	plugin, err := NewPlugin("plugin", []byte(template))
 	require.NoError(t, err)
-
-	_, err = reg.Render("plugin", map[string]interface{}{"path": "test"})
+	_, err = plugin.Render(map[string]interface{}{"path": "test"})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "plugin parameter failed validation")
 }
@@ -684,4 +654,87 @@ func TestDefaultPluginFuncWithValue(t *testing.T) {
 func TestDefaultPluginFuncWithoutValue(t *testing.T) {
 	result := defaultPluginFunc("default_value", nil)
 	require.Equal(t, "default_value", result)
+}
+
+func TestSplitPluginFile(t *testing.T) {
+	cases := map[int]struct {
+		input            string
+		expectedMetadata string
+		expectedTemplate string
+		expectError      bool
+	}{
+		0: {
+			"pipeline:\n",
+			"",
+			"pipeline:\n",
+			false,
+		},
+		1: {
+			"parameters:\npipeline:\n",
+			"parameters:\n",
+			"pipeline:\n",
+			false,
+		},
+		2: {
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+pipeline:
+  - type: stdout
+`,
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+`,
+			`pipeline:
+  - type: stdout
+`,
+			false,
+		},
+		3: {
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+
+# Defaults
+# {{ $output := true }}
+
+pipeline:
+  - type: stdout
+`,
+			`
+parameters:
+  my_param:
+		type: string
+		required: false
+`,
+			`
+# Defaults
+# {{ $output := true }}
+
+pipeline:
+  - type: stdout
+`,
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			meta, template, err := splitPluginFile([]byte(tc.input))
+			if tc.expectError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedMetadata, string(meta))
+			require.Equal(t, tc.expectedTemplate, string(template))
+		})
+	}
 }

@@ -48,14 +48,6 @@ func TestTransformerOnErrorInvalid(t *testing.T) {
 	require.Contains(t, err.Error(), "operator config has an invalid `on_error` field.")
 }
 
-func TestTransformerConfigSetNamespace(t *testing.T) {
-	cfg := NewTransformerConfig("test-id", "test-type")
-	cfg.OutputIDs = []string{"test-output"}
-	cfg.SetNamespace("test-namespace")
-	require.Equal(t, "test-namespace.test-id", cfg.OperatorID)
-	require.Equal(t, "test-namespace.test-output", cfg.OutputIDs[0])
-}
-
 func TestTransformerOperatorCanProcess(t *testing.T) {
 	cfg := NewTransformerConfig("test", "test")
 	transformer, err := cfg.Build(testutil.NewBuildContext(t))

@@ -45,9 +45,8 @@ func newTestFileOperator(t *testing.T, cfgMod func(*InputConfig), outMod func(*t
 		cfgMod(cfg)
 	}
 	pg, err := cfg.Build(testutil.NewBuildContext(t))
-	if err != nil {
-		t.Fatalf("Error building operator: %s", err)
-	}
+	require.NoError(t, err)
+
 	err = pg.SetOutputs([]operator.Operator{fakeOutput})
 	require.NoError(t, err)
 
@@ -100,7 +99,7 @@ func writeString(t testing.TB, file *os.File, s string) {
 
 func TestBuild(t *testing.T) {
 	t.Parallel()
-	fakeOutput := testutil.NewMockOperator("fake")
+	fakeOutput := testutil.NewMockOperator("$.fake")
 
 	basicConfig := func() *InputConfig {
 		cfg := NewInputConfig("testfile")

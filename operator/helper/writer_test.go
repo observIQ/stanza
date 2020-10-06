@@ -36,14 +36,6 @@ func TestWriterConfigValidBuild(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestWriterConfigSetNamespace(t *testing.T) {
-	config := WriterConfig{
-		OutputIDs: OutputIDs{"output1", "output2"},
-	}
-	config.SetNamespace("namespace")
-	require.Equal(t, OutputIDs{"namespace.output1", "namespace.output2"}, config.OutputIDs)
-}
-
 func TestWriterOperatorWrite(t *testing.T) {
 	output1 := &testutil.Operator{}
 	output1.On("Process", mock.Anything, mock.Anything).Return(nil)

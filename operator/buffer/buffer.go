@@ -9,6 +9,7 @@ import (
 	"github.com/observiq/stanza/operator"
 )
 
+// Buffer is an interface for an entry buffer
 type Buffer interface {
 	Add(context.Context, *entry.Entry) error
 	Read([]*entry.Entry) (FlushFunc, int, error)
@@ -16,26 +17,31 @@ type Buffer interface {
 	Close() error
 }
 
+// Config is a struct that wraps a Builder
 type Config struct {
-	BufferBuilder
+	Builder
 }
 
+// NewConfig returns a default Config
 func NewConfig() Config {
 	return Config{
-		BufferBuilder: NewMemoryBufferConfig(),
+		Builder: NewMemoryBufferConfig(),
 	}
 }
 
-type BufferBuilder interface {
+// Builder builds a Buffer given build context
+type Builder interface {
 	Build(context operator.BuildContext, pluginID string) (Buffer, error)
 }
 
+// UnmarshalJSON unmarshals JSON
 func (bc *Config) UnmarshalJSON(data []byte) error {
 	return bc.unmarshal(func(dst interface{}) error {
 		return json.Unmarshal(data, dst)
 	})
 }
 
+// UnmarshalYAML unmarshals YAML
 func (bc *Config) UnmarshalYAML(f func(interface{}) error) error {
 	return bc.unmarshal(f)
 }
@@ -49,14 +55,15 @@ func (bc *Config) unmarshal(unmarshal func(interface{}) error) error {
 
 	switch m["type"] {
 	case "memory":
-		bc.BufferBuilder = NewMemoryBufferConfig()
-		return unmarshal(bc.BufferBuilder)
+		bc.Builder = NewMemoryBufferConfig()
+		return unmarshal(bc.Builder)
 	case "disk":
-		bc.BufferBuilder = NewDiskBufferConfig()
-		return unmarshal(bc.BufferBuilder)
+		bc.Builder = NewDiskBufferConfig()
+		return unmarshal(bc.Builder)
 	default:
 		return fmt.Errorf("unknown buffer type '%s'", m["type"])
 	}
 }
 
+// FlushFunc is a function that can be called to mark the returned entries as flushed
 type FlushFunc func() error

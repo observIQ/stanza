@@ -89,19 +89,13 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
-	if err != nil {
-		logger.Errorw("Failed to read configs from globs", zap.Any("error", err), zap.Any("globs", flags.ConfigFiles))
-		os.Exit(1)
-	}
-	logger.Debugw("Parsed config", "config", cfg)
-
-	agent, err := agent.NewBuilder(cfg, logger).
+	agent, err := agent.NewBuilder(logger).
+		WithConfigFiles(flags.ConfigFiles).
 		WithPluginDir(flags.PluginDir).
 		WithDatabaseFile(flags.DatabaseFile).
 		Build()
 	if err != nil {
-		logger.Errorw("Failed to build agent", zap.Error(err))
+		logger.Errorw("Failed to build agent", zap.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -116,7 +110,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 
 	err = service.Run()
 	if err != nil {
-		logger.Errorw("Failed to run agent service", zap.Error(err))
+		logger.Errorw("Failed to run agent service", zap.Any("error", err))
 		os.Exit(1)
 	}
 

@@ -96,7 +96,7 @@ func (p Parameter) validateEnumValue(value interface{}) error {
 	return fmt.Errorf("parameter must be one of the following values: %v", p.ValidValues)
 }
 
-func (p Parameter) validateDefintion() error {
+func (p Parameter) validateDefinition() error {
 	if p.Required && p.Default != nil {
 		return errors.NewError(
 			"required parameter cannot have a default value",

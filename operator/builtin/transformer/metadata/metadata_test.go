@@ -10,7 +10,6 @@ import (
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,27 +17,19 @@ func TestMetadata(t *testing.T) {
 	os.Setenv("TEST_METADATA_PLUGIN_ENV", "foo")
 	defer os.Unsetenv("TEST_METADATA_PLUGIN_ENV")
 
-	baseConfig := func() *MetadataOperatorConfig {
-		cfg := NewMetadataOperatorConfig("test_operator_id")
-		cfg.OutputIDs = []string{"output1"}
-		return cfg
-	}
-
 	cases := []struct {
-		name     string
-		config   *MetadataOperatorConfig
-		input    *entry.Entry
-		expected *entry.Entry
+		name      string
+		configMod func(*MetadataOperatorConfig)
+		input     *entry.Entry
+		expected  *entry.Entry
 	}{
 		{
 			"AddLabelLiteral",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
+			func(cfg *MetadataOperatorConfig) {
 				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": "value1",
 				}
-				return cfg
-			}(),
+			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
@@ -50,13 +41,11 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddLabelExpr",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
+			func(cfg *MetadataOperatorConfig) {
 				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": `EXPR("start" + "end")`,
 				}
-				return cfg
-			}(),
+			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
@@ -68,13 +57,11 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddLabelEnv",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
+			func(cfg *MetadataOperatorConfig) {
 				cfg.Labels = map[string]helper.ExprStringConfig{
 					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
-				return cfg
-			}(),
+			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
@@ -86,13 +73,11 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddResourceLiteral",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
+			func(cfg *MetadataOperatorConfig) {
 				cfg.Resource = map[string]helper.ExprStringConfig{
 					"key1": "value1",
 				}
-				return cfg
-			}(),
+			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
@@ -104,13 +89,11 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddResourceExpr",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
+			func(cfg *MetadataOperatorConfig) {
 				cfg.Resource = map[string]helper.ExprStringConfig{
 					"key1": `EXPR("start" + "end")`,
 				}
-				return cfg
-			}(),
+			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
@@ -122,13 +105,11 @@ func TestMetadata(t *testing.T) {
 		},
 		{
 			"AddResourceEnv",
-			func() *MetadataOperatorConfig {
-				cfg := baseConfig()
+			func(cfg *MetadataOperatorConfig) {
 				cfg.Resource = map[string]helper.ExprStringConfig{
 					"key1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
-				return cfg
-			}(),
+			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
@@ -142,23 +123,21 @@ func TestMetadata(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			metadataOperator, err := tc.config.Build(testutil.NewBuildContext(t))
+			cfg := NewMetadataOperatorConfig("test_operator_id")
+			cfg.OutputIDs = []string{"fake"}
+			tc.configMod(cfg)
+			op, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
 
-			mockOutput := testutil.NewMockOperator("output1")
-			entryChan := make(chan *entry.Entry, 1)
-			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-				entryChan <- args.Get(1).(*entry.Entry)
-			}).Return(nil)
-
-			err = metadataOperator.SetOutputs([]operator.Operator{mockOutput})
+			fake := testutil.NewFakeOutput(t)
+			err = op.SetOutputs([]operator.Operator{fake})
 			require.NoError(t, err)
 
-			err = metadataOperator.Process(context.Background(), tc.input)
+			err = op.Process(context.Background(), tc.input)
 			require.NoError(t, err)
 
 			select {
-			case e := <-entryChan:
+			case e := <-fake.Received:
 				require.Equal(t, e.Labels, tc.expected.Labels)
 				require.Equal(t, e.Resource, tc.expected.Resource)
 			case <-time.After(time.Second):

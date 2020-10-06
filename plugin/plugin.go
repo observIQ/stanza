@@ -2,9 +2,9 @@ package plugin
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -15,97 +15,181 @@ import (
 
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
+	ID          string
 	Version     string
 	Title       string
 	Description string
 	Parameters  map[string]Parameter
-	Pipeline    []operator.Config
+	Template    *template.Template
 }
 
-// Registry is a registry of plugin templates.
-type Registry map[string]*template.Template
+// NewBuilder creates a new, empty config that can build into an operator
+func (p *Plugin) NewBuilder() operator.MultiBuilder {
+	return &Config{
+		plugin: p,
+	}
+}
 
-// Render will render a plugin using the params and plugin type.
-func (r Registry) Render(pluginType string, params map[string]interface{}) (Plugin, error) {
-	template, ok := r[pluginType]
-	if !ok {
-		return Plugin{}, errors.NewError(
-			"plugin type does not exist",
-			"ensure that all plugins are defined with a registered type",
-			"plugin_type", pluginType,
-		)
+// Render will render a plugin's template with the given parameters
+func (p *Plugin) Render(params map[string]interface{}) ([]byte, error) {
+	if err := p.Validate(params); err != nil {
+		return nil, err
 	}
 
 	var writer bytes.Buffer
-	if err := template.Execute(&writer, params); err != nil {
-		return Plugin{}, errors.NewError(
+	if err := p.Template.Execute(&writer, params); err != nil {
+		return nil, errors.NewError(
 			"failed to render template for plugin",
 			"ensure that all parameters are valid for the plugin",
-			"plugin_type", pluginType,
+			"plugin_type", p.ID,
 			"error_message", err.Error(),
 		)
 	}
 
-	var plugin Plugin
-	if err := yaml.UnmarshalStrict(writer.Bytes(), &plugin); err != nil {
-		return Plugin{}, errors.NewError(
-			"failed to unmarshal plugin template to plugin",
-			"ensure that the plugin template renders a valid pipeline",
-			"plugin_type", pluginType,
-			"rendered_config", writer.String(),
-			"error_message", err.Error(),
-		)
-	}
+	return writer.Bytes(), nil
+}
 
-	for name, param := range plugin.Parameters {
-		if err := param.validateDefintion(); err != nil {
-			return Plugin{}, errors.NewError(
-				"invalid parameter found in plugin",
-				"ensure that all parameters are valid for the plugin",
-				"plugin_type", pluginType,
-				"plugin_parameter", name,
-				"rendered_config", writer.String(),
-				"error_message", err.Error(),
-			)
-		}
-
+// Validate checks the provided params against the parameter definitions to ensure they are valid
+func (p *Plugin) Validate(params map[string]interface{}) error {
+	for name, param := range p.Parameters {
 		value, ok := params[name]
 		if !ok && !param.Required {
 			continue
 		}
 
 		if !ok && param.Required {
-			return Plugin{}, errors.NewError(
+			return errors.NewError(
 				"missing required parameter for plugin",
 				"ensure that the parameter is defined for the plugin",
-				"plugin_type", pluginType,
+				"plugin_type", p.ID,
 				"plugin_parameter", name,
 			)
 		}
 
 		if err := param.validateValue(value); err != nil {
-			return Plugin{}, errors.NewError(
+			return errors.NewError(
 				"plugin parameter failed validation",
 				"review the underlying error message for details",
-				"plugin_type", pluginType,
+				"plugin_type", p.ID,
 				"plugin_parameter", name,
 				"error_message", err.Error(),
 			)
 		}
 	}
 
-	return plugin, nil
+	return nil
 }
 
-// IsDefined returns a boolean indicating if a plugin is defined and registered.
-func (r Registry) IsDefined(pluginType string) bool {
-	_, ok := r[pluginType]
-	return ok
+// UnmarshalText unmarshals a plugin from a text file
+func (p *Plugin) UnmarshalText(text []byte) error {
+	metadataBytes, templateBytes, err := splitPluginFile(text)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(metadataBytes, p); err != nil {
+		return err
+	}
+
+	p.Template, err = template.New(p.Title).
+		Funcs(pluginFuncs()).
+		Parse(string(templateBytes))
+	return err
 }
 
-// LoadAll will load all plugin templates contained in a directory.
-func (r Registry) LoadAll(dir string, pattern string) error {
-	glob := filepath.Join(dir, pattern)
+func splitPluginFile(text []byte) (metadata, template []byte, err error) {
+	// Split the file into the metadata and the template by finding the pipeline,
+	// then navigating backwards until we find a non-commented, non-empty line
+	var metadataBuf bytes.Buffer
+	var templateBuf bytes.Buffer
+
+	lines := bytes.Split(text, []byte("\n"))
+	if len(lines) != 0 && len(lines[len(lines)-1]) == 0 {
+		// Delete empty trailing line
+		lines = lines[:len(lines)-1]
+	}
+
+	// Find the index of the pipeline line
+	pipelineRegex := regexp.MustCompile(`^pipeline:`)
+	pipelineIndex := -1
+	for i, line := range lines {
+		if pipelineRegex.Match(line) {
+			pipelineIndex = i
+			break
+		}
+	}
+
+	if pipelineIndex == -1 {
+		return nil, nil, errors.NewError(
+			"missing the pipeline block in plugin template",
+			"ensure that the plugin file contains a pipeline",
+		)
+	}
+
+	// Iterate backwards from the pipeline start to find the first non-commented, non-empty line
+	emptyRegexp := regexp.MustCompile(`^\s*$`)
+	commentedRegexp := regexp.MustCompile(`^\s*#`)
+	templateStartIndex := pipelineIndex
+	for i := templateStartIndex - 1; i >= 0; i-- {
+		line := lines[i]
+		if emptyRegexp.Match(line) || commentedRegexp.Match(line) {
+			templateStartIndex = i
+			continue
+		}
+		break
+	}
+
+	for _, line := range lines[:templateStartIndex] {
+		metadataBuf.Write(line)
+		metadataBuf.WriteByte('\n')
+	}
+
+	for _, line := range lines[templateStartIndex:] {
+		templateBuf.Write(line)
+		templateBuf.WriteByte('\n')
+	}
+
+	return metadataBuf.Bytes(), templateBuf.Bytes(), nil
+}
+
+// NewPluginFromFile builds a new plugin from a file
+func NewPluginFromFile(path string) (*Plugin, error) {
+	contents, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	id := strings.Split(filepath.Base(path), ".")[0]
+	return NewPlugin(id, contents)
+}
+
+// NewPlugin builds a new plugin from an ID and file contents
+func NewPlugin(id string, contents []byte) (*Plugin, error) {
+	p := &Plugin{}
+	if err := p.UnmarshalText(contents); err != nil {
+		return nil, err
+	}
+	p.ID = id
+
+	// Validate the parameter definitions
+	for name, param := range p.Parameters {
+		if err := param.validateDefinition(); err != nil {
+			return nil, errors.NewError(
+				"invalid parameter found in plugin",
+				"ensure that all parameters are valid for the plugin",
+				"plugin_type", p.ID,
+				"plugin_parameter", name,
+				"error_message", err.Error(),
+			)
+		}
+	}
+
+	return p, nil
+}
+
+// RegisterPlugins adds every plugin in a directory to the global plugin registry
+func RegisterPlugins(pluginDir string, registry *operator.Registry) error {
+	glob := filepath.Join(pluginDir, "*.yaml")
 	filePaths, err := filepath.Glob(glob)
 	if err != nil {
 		return errors.NewError(
@@ -115,59 +199,15 @@ func (r Registry) LoadAll(dir string, pattern string) error {
 		)
 	}
 
-	failures := make([]string, 0)
 	for _, path := range filePaths {
-		if err := r.Load(path); err != nil {
-			failures = append(failures, err.Error())
+		plugin, err := NewPluginFromFile(path)
+		if err != nil {
+			return errors.Wrap(err, "parse plugin file")
 		}
-	}
-
-	if len(failures) > 0 {
-		return errors.NewError(
-			"failed to load all plugins",
-			"review the list of failures for more information",
-			"failures", strings.Join(failures, ", "),
-		)
+		registry.RegisterPlugin(plugin.ID, plugin.NewBuilder)
 	}
 
 	return nil
-}
-
-// Load will load a plugin template from a file path.
-func (r Registry) Load(path string) error {
-	fileName := filepath.Base(path)
-	pluginType := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-
-	fileContents, err := ioutil.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %s", path, err)
-	}
-
-	return r.Add(pluginType, string(fileContents))
-}
-
-// Add will add a plugin to the registry.
-func (r Registry) Add(pluginType string, contents string) error {
-	if operator.IsDefined(pluginType) {
-		return fmt.Errorf("plugin type %s already exists as a builtin plugin", pluginType)
-	}
-
-	pluginTemplate, err := template.New(pluginType).Funcs(pluginFuncs()).Parse(contents)
-	if err != nil {
-		return fmt.Errorf("failed to parse %s as a plugin template: %s", pluginType, err)
-	}
-
-	r[pluginType] = pluginTemplate
-	return nil
-}
-
-// NewPluginRegistry creates a new plugin registry from a plugin directory.
-func NewPluginRegistry(dir string) (Registry, error) {
-	registry := Registry{}
-	if err := registry.LoadAll(dir, "*.yaml"); err != nil {
-		return registry, err
-	}
-	return registry, nil
 }
 
 // pluginFuncs returns a map of custom plugin functions used for templating.

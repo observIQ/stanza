@@ -135,7 +135,7 @@ func (entry *Entry) readToStringMap(field FieldInterface, dest *map[string]strin
 	case map[interface{}]interface{}:
 		newDest := make(map[string]string)
 		for k, v := range m {
-			kStr, ok := k.(string)
+			keyStr, ok := k.(string)
 			if !ok {
 				return fmt.Errorf("can not cast map key of type '%T' to string", k)
 			}
@@ -143,7 +143,7 @@ func (entry *Entry) readToStringMap(field FieldInterface, dest *map[string]strin
 			if !ok {
 				return fmt.Errorf("can not cast map value of type '%T' to string", v)
 			}
-			newDest[kStr] = vStr
+			newDest[keyStr] = vStr
 		}
 		*dest = newDest
 	}

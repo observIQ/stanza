@@ -242,11 +242,9 @@ func TestPipelineStopOrder(t *testing.T) {
 
 	err = pipeline.Start()
 	require.NoError(t, err)
-	require.True(t, pipeline.Running())
 
 	err = pipeline.Stop()
 	require.NoError(t, err)
-	require.False(t, pipeline.Running())
 	require.Equal(t, []int{1, 2, 3}, stopOrder)
 }
 
@@ -279,4 +277,24 @@ func TestPipelineRender(t *testing.T) {
  operator2 -> operator3;
 }`
 	require.Equal(t, expected, string(dotGraph))
+}
+
+func TestPipelineOperators(t *testing.T) {
+	mockOperator1 := testutil.NewMockOperator("operator1")
+	mockOperator2 := testutil.NewMockOperator("operator2")
+	mockOperator3 := testutil.NewMockOperator("operator3")
+
+	mockOperator1.On("Outputs").Return([]operator.Operator{mockOperator2})
+	mockOperator2.On("Outputs").Return([]operator.Operator{mockOperator3})
+	mockOperator3.On("Outputs").Return(nil)
+
+	mockOperator1.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator2.On("SetOutputs", mock.Anything).Return(nil)
+	mockOperator3.On("SetOutputs", mock.Anything).Return(nil)
+
+	pipeline, err := NewDirectedPipeline([]operator.Operator{mockOperator1, mockOperator2, mockOperator3})
+	require.NoError(t, err)
+
+	operators := pipeline.Operators()
+	require.ElementsMatch(t, []operator.Operator{mockOperator1, mockOperator2, mockOperator3}, operators)
 }
