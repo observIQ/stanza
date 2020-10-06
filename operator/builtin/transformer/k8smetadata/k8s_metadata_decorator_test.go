@@ -79,6 +79,7 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 		Labels: map[string]string{
 			"label1": "lab1",
 		},
+		ClusterName: "testcluster",
 		Annotations: map[string]string{
 			"annotation1": "ann1",
 		},
@@ -92,6 +93,9 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 		Annotations: map[string]string{
 			"podannotation1": "podann1",
 		},
+		AdditionalResourceValues: map[string]string{
+			"k8s.service.name": "testservice",
+		},
 	})
 
 	expected := entry.Entry{
@@ -101,11 +105,18 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 			"k8s-pod-annotation/podannotation1": "podann1",
 			"k8s-ns-annotation/annotation1":     "ann1",
 		},
+		Resource: map[string]string{
+			"k8s.pod.name":       "testpodname",
+			"k8s.namespace.name": "testnamespace",
+			"k8s.service.name":   "testservice",
+			"k8s.cluster.name":   "testcluster",
+		},
 	}
 
 	mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		entry := args.Get(1).(*entry.Entry)
 		require.Equal(t, expected.Labels, entry.Labels)
+		require.Equal(t, expected.Resource, entry.Resource)
 	}).Return(nil)
 
 	e := &entry.Entry{

@@ -10,6 +10,9 @@ import (
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
@@ -60,7 +63,9 @@ type K8sMetadataDecorator struct {
 	podNameField   entry.Field
 	namespaceField entry.Field
 
-	client *corev1.CoreV1Client
+	client      *corev1.CoreV1Client
+	appsClient  *appsv1.AppsV1Client
+	batchClient *batchv1.BatchV1Client
 
 	namespaceCache MetadataCache
 	podCache       MetadataCache
@@ -75,6 +80,8 @@ type MetadataCacheEntry struct {
 	ExpirationTime time.Time
 	Labels         map[string]string
 	Annotations    map[string]string
+
+	AdditionalResourceValues map[string]string
 }
 
 // MetadataCache is a cache of kubernetes metadata
@@ -106,10 +113,14 @@ func (k *K8sMetadataDecorator) Start() error {
 		)
 	}
 
-	k.client, err = corev1.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return errors.Wrap(err, "build client")
+		return errors.Wrap(err, "build client set")
 	}
+
+	k.client = clientset.CoreV1().(*corev1.CoreV1Client)
+	k.appsClient = clientset.AppsV1().(*appsv1.AppsV1Client)
+	k.batchClient = clientset.BatchV1().(*batchv1.BatchV1Client)
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), k.timeout)
@@ -215,11 +226,11 @@ func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, nam
 func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace, podName string) (MetadataCacheEntry, error) {
 	key := namespace + ":" + podName
 
-	ctx, cancel := context.WithTimeout(ctx, k.timeout)
+	subCtx, cancel := context.WithTimeout(ctx, k.timeout)
 	defer cancel()
 
 	// Query the API
-	podResponse, err := k.client.Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	podResponse, err := k.client.Pods(namespace).Get(subCtx, podName, metav1.GetOptions{})
 	if err != nil {
 		// Add an empty entry to the cache so we don't continuously retry
 		cacheEntry := MetadataCacheEntry{ExpirationTime: time.Now().Add(10 * time.Second)}
@@ -232,14 +243,49 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 		)
 	}
 
-	// Cache the results
+	// Create the cache entry
 	cacheEntry := MetadataCacheEntry{
 		ClusterName:    podResponse.ClusterName,
 		UID:            string(podResponse.UID),
 		ExpirationTime: time.Now().Add(k.cacheTTL),
 		Labels:         podResponse.Labels,
 		Annotations:    podResponse.Annotations,
+		AdditionalResourceValues: map[string]string{
+			"k8s.replicaset.name":            findNameOfKind(podResponse.OwnerReferences, "ReplicaSet"),
+			"k8s.daemonset.name":             findNameOfKind(podResponse.OwnerReferences, "DaemonSet"),
+			"k8s.statefulset.name":           findNameOfKind(podResponse.OwnerReferences, "StatefulSet"),
+			"k8s.job.name":                   findNameOfKind(podResponse.OwnerReferences, "Job"),
+			"k8s.replicationcontroller.name": findNameOfKind(podResponse.OwnerReferences, "ReplicationController"),
+			"k8s.service.name":               findNameOfKind(podResponse.OwnerReferences, "ServiceName"),
+		},
 	}
+
+	// Add deployment if it exists
+	rsName := cacheEntry.AdditionalResourceValues["k8s.replicaset.name"]
+	if rsName != "" {
+		subCtx, cancel := context.WithTimeout(ctx, k.timeout)
+		defer cancel()
+		replicaSetResponse, err := k.appsClient.ReplicaSets(namespace).Get(subCtx, rsName, metav1.GetOptions{})
+		if err != nil {
+			k.Errorw("Failed to get replica set metadata", "error", err)
+		} else {
+			cacheEntry.AdditionalResourceValues["k8s.deployment.name"] = findNameOfKind(replicaSetResponse.OwnerReferences, "Deployment")
+		}
+	}
+
+	// Add cron job name if it exists
+	jobName := cacheEntry.AdditionalResourceValues["k8s.job.name"]
+	if jobName != "" {
+		subCtx, cancel := context.WithTimeout(ctx, k.timeout)
+		defer cancel()
+		replicaSetResponse, err := k.batchClient.Jobs(namespace).Get(subCtx, jobName, metav1.GetOptions{})
+		if err != nil {
+			k.Errorw("Failed to get replica set metadata", "error", err)
+		} else {
+			cacheEntry.AdditionalResourceValues["k8s.cronjob.name"] = findNameOfKind(replicaSetResponse.OwnerReferences, "CronJob")
+		}
+	}
+
 	k.podCache.Store(key, cacheEntry)
 
 	return cacheEntry, nil
@@ -259,7 +305,9 @@ func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta Metadat
 	}
 
 	entry.Resource["k8s.namespace.uid"] = nsMeta.UID
-	entry.Resource["k8s.cluster.name"] = nsMeta.ClusterName
+	if nsMeta.ClusterName != "" {
+		entry.Resource["k8s.cluster.name"] = nsMeta.ClusterName
+	}
 }
 
 func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(podMeta MetadataCacheEntry, entry *entry.Entry) {
@@ -276,5 +324,22 @@ func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(podMeta MetadataCach
 	}
 
 	entry.Resource["k8s.pod.uid"] = podMeta.UID
-	entry.Resource["k8s.cluster.name"] = podMeta.ClusterName
+	if podMeta.ClusterName != "" {
+		entry.Resource["k8s.cluster.name"] = podMeta.ClusterName
+	}
+
+	for key, value := range podMeta.AdditionalResourceValues {
+		if value != "" {
+			entry.Resource[key] = value
+		}
+	}
+}
+
+func findNameOfKind(ownerRefs []metav1.OwnerReference, kind string) string {
+	for _, ref := range ownerRefs {
+		if ref.Kind == kind {
+			return ref.Name
+		}
+	}
+	return ""
 }
