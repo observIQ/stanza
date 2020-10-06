@@ -6,6 +6,7 @@ import (
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/builtin/transformer/noop"
 	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/pipeline"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -80,4 +81,37 @@ output: stdout
 	require.Equal(t, "send", noop.OnError)
 	require.Equal(t, "$.my_plugin_id", noop.OperatorID)
 	require.Equal(t, "noop", noop.OperatorType)
+}
+
+func TestBuildRecursiveFails(t *testing.T) {
+	pluginConfig1 := []byte(`
+pipeline:
+  - type: plugin2
+`)
+
+	pluginConfig2 := []byte(`
+pipeline:
+  - type: plugin1
+`)
+
+	plugin1, err := NewPlugin("plugin1", pluginConfig1)
+	require.NoError(t, err)
+	plugin2, err := NewPlugin("plugin2", pluginConfig2)
+	require.NoError(t, err)
+
+	t.Cleanup(func() { operator.DefaultRegistry = operator.NewRegistry() })
+	operator.RegisterPlugin("plugin1", plugin1.NewBuilder)
+	operator.RegisterPlugin("plugin2", plugin2.NewBuilder)
+
+	pipelineConfig := []byte(`
+- type: plugin1
+`)
+
+	var pipeline pipeline.Config
+	err = yaml.Unmarshal(pipelineConfig, &pipeline)
+	require.NoError(t, err)
+
+	_, err = pipeline.BuildOperators(operator.NewBuildContext(nil, nil))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "reached max plugin depth")
 }

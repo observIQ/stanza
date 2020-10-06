@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/pipeline"
@@ -22,6 +23,10 @@ type Config struct {
 
 // BuildMulti implements operator.MultiBuilder
 func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, error) {
+	if bc.PluginDepth > 10 {
+		return nil, errors.NewError("reached max plugin depth", "ensure that there are no recursive dependencies in plugins")
+	}
+
 	params := c.getRenderParams(bc)
 	pipelineConfigBytes, err := c.plugin.Render(params)
 	if err != nil {
@@ -35,7 +40,7 @@ func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, erro
 		return nil, err
 	}
 
-	nbc := bc.WithSubNamespace(c.ID())
+	nbc := bc.WithSubNamespace(c.ID()).WithIncrementedDepth()
 	return pipelineConfig.Pipeline.BuildOperators(nbc)
 }
 
