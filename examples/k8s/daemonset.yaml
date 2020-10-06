@@ -12,10 +12,12 @@ metadata:
   name: stanza-metadata
   namespace: default
 rules:
-  - apiGroups: [""]
+  - apiGroups: ["", "apps", "batch"]
     resources:
       - pods
       - namespaces
+      - replicasets
+      - jobs
     verbs: ["get", "list"]
 ---
 kind: ClusterRoleBinding
@@ -43,11 +45,20 @@ data:
         include:
           - /var/log/containers/*
         write_to: message
-        file_path_field: path
+        include_file_path: true
 
       - type: regex_parser
-        parse_from: path
+        parse_from: $labels.file_path
         regex: '^/var/log/containers/(?P<pod_name>.*)_(?P<namespace>.*)_(?P<service>.*)-[a-z0-9]+\.log'
+
+      - type: restructure
+        ops:
+          - move:
+              from: '$record.pod_name'
+              to: '$resource["k8s.pod.name"]'
+          - move:
+              from: '$record.namespace'
+              to: '$resource["k8s.namespace.name"]'
 
       - type: k8s_metadata_decorator
 
@@ -71,7 +82,7 @@ spec:
       serviceAccountName: stanza-metadata
       containers:
         - name: stanza
-          image: observiq/stanza:0.0.0-alpha.1
+          image: observiq/stanza:dev
           imagePullPolicy: Always
           resources:
             limits:
