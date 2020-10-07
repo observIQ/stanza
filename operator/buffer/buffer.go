@@ -65,5 +65,13 @@ func (bc *Config) unmarshal(unmarshal func(interface{}) error) error {
 	}
 }
 
+func (bc Config) MarshalYAML() (interface{}, error) {
+	return bc.Builder, nil
+}
+
+func (bc Config) MarshalJSON() ([]byte, error) {
+	return json.Marshal(bc.Builder)
+}
+
 // FlushFunc is a function that can be called to mark the returned entries as flushed
 type FlushFunc func() error

@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -17,7 +18,7 @@ var _ operator.MultiBuilder = (*Config)(nil)
 // Config is the config values for the plugin
 type Config struct {
 	helper.WriterConfig
-	plugin     *Plugin
+	Plugin     *Plugin                `json:"-" yaml:"-"`
 	Parameters map[string]interface{} `json:",squash" yaml:",squash"`
 }
 
@@ -28,7 +29,7 @@ func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, erro
 	}
 
 	params := c.getRenderParams(bc)
-	pipelineConfigBytes, err := c.plugin.Render(params)
+	pipelineConfigBytes, err := c.Plugin.Render(params)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +54,7 @@ func (c *Config) getRenderParams(bc operator.BuildContext) map[string]interface{
 
 	// Add ID and output to params
 	params["input"] = bc.PrependNamespace(c.ID())
+	params["id"] = c.ID()
 	params["output"] = c.yamlOutputs(bc)
 	return params
 }
@@ -69,6 +71,15 @@ func (c *Config) yamlOutputs(bc operator.BuildContext) string {
 	return fmt.Sprintf("[%s]", strings.Join(namespacedOutputs, ","))
 }
 
+func (c *Config) UnmarshalJSON(raw []byte) error {
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return err
+	}
+
+	return c.unmarshalMap(m)
+}
+
 // UnmarshalYAML unmarshals YAML
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var m map[string]interface{}
@@ -76,6 +87,10 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
+	return c.unmarshalMap(m)
+}
+
+func (c *Config) unmarshalMap(m map[string]interface{}) error {
 	if id, ok := m["id"]; ok {
 		if idString, ok := id.(string); ok {
 			c.OperatorID = idString
@@ -109,12 +124,21 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // MarshalYAML marshals YAML
 func (c Config) MarshalYAML() (interface{}, error) {
-	var m map[string]interface{}
+	return c.toMap(), nil
+}
+
+// MarshalJSON marshals JSON
+func (c Config) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.toMap())
+}
+
+func (c Config) toMap() map[string]interface{} {
+	m := make(map[string]interface{})
 	for k, v := range c.Parameters {
 		m[k] = v
 	}
 	m["id"] = c.ID()
 	m["type"] = c.Type()
 	m["output"] = c.OutputIDs
-	return m, nil
+	return m
 }
