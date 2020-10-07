@@ -3,7 +3,6 @@ package windows
 import (
 	"encoding/xml"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/observiq/stanza/entry"
@@ -79,100 +78,12 @@ func (e *EventXML) parseRecord() map[string]interface{} {
 
 // parseMessage will attempt to parse a message into a message and details
 func (e *EventXML) parseMessage() (string, map[string]interface{}) {
-
-	// Other channels will be parsed in a later revision
-	if e.Channel != "Security" {
+	switch e.Channel {
+	case "Security":
+		return parseSecurity(e.Message)
+	default:
 		return e.Message, nil
 	}
-
-	if e.Message == "" {
-		return "", nil
-	}
-
-	sections := strings.Split(e.Message, "\n\n")
-
-	if len(sections) == 1 {
-		return e.Message, nil
-	}
-
-	message := sections[0]
-
-	details := map[string]interface{}{}
-	moreInfo := []string{}
-	unparsed := []string{}
-	for i := 1; i < len(sections); i++ {
-
-		lines := strings.Split(sections[i], "\n")
-		if len(lines) == 1 {
-			/*
-				String
-				or
-				Key: Value
-			*/
-			keyVal := strings.Split(lines[0], ":")
-			if len(keyVal) == 1 {
-				// String
-				moreInfo = append(moreInfo, strings.TrimSpace(lines[0]))
-			} else if len(keyVal) == 2 {
-				// Key: Value
-				details[strings.TrimSpace(keyVal[0])] = strings.TrimSpace(keyVal[1])
-			} else {
-				// Unexpected format
-				unparsed = append(unparsed, strings.TrimSpace(lines[0]))
-			}
-		} else if strings.Contains(lines[0], ":") {
-			keyVal := strings.Split(strings.TrimSpace(lines[0]), ":")
-
-			if len(keyVal) == 1 || strings.TrimSpace(keyVal[1]) == "" {
-				/*
-					Key:
-						Key1:	Value1
-						Key2:	Value2
-				*/
-				m := map[string]string{}
-				for j := 1; j < len(lines); j++ {
-					kv := strings.Split(lines[j], ":")
-					if len(kv) == 1 || strings.TrimSpace(kv[1]) == "" {
-						m[strings.TrimSpace(kv[0])] = "-"
-					} else {
-						m[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
-					}
-				}
-				details[strings.TrimSpace(keyVal[0])] = m
-			} else if len(keyVal) == 2 {
-				/*
-					Key:		Item1
-								Item2
-				*/
-				a := []string{strings.TrimSpace(keyVal[1])}
-				for j := 1; j < len(lines); j++ {
-					v := strings.TrimSpace(lines[j])
-					if v != "" {
-						a = append(a, v)
-					}
-				}
-				details[strings.TrimSpace(keyVal[0])] = a
-			} else {
-				// Unexpected format
-				for j := range lines {
-					unparsed = append(unparsed, strings.TrimSpace(lines[j]))
-				}
-			}
-		} else {
-			for j := range lines {
-				moreInfo = append(moreInfo, strings.TrimSpace(lines[j]))
-			}
-		}
-	}
-	if len(moreInfo) > 0 {
-		details["Additional Context"] = moreInfo
-	}
-
-	if len(unparsed) > 0 {
-		details["Unparsed"] = unparsed
-	}
-
-	return message, details
 }
 
 // unmarshalEventXML will unmarshal EventXML from xml bytes.

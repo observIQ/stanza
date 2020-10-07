@@ -1,0 +1,16 @@
+{
+  "Object": {
+    "ApplId = {01234567-ABCD-ABCD-ABCD-0123456789AB}": "-",
+    "COM+ Catalog Collection": "Roles",
+    "Description = Administrators group": "-",
+    "Name = Administrators": "-",
+    "Object Details": "-",
+    "Object Name": "-"
+  },
+  "Subject": {
+    "Account Domain": "NT AUTHORITY",
+    "Account Name": "SYSTEM",
+    "Logon ID": "0x3E7",
+    "Security ID": "SYSTEM"
+  }
+}
