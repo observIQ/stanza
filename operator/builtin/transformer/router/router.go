@@ -37,8 +37,8 @@ type RouterOperatorRouteConfig struct {
 }
 
 // Build will build a router operator from the supplied configuration
-func (c RouterOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
-	basicOperator, err := c.BasicConfig.Build(context)
+func (c RouterOperatorConfig) Build(bc operator.BuildContext) (operator.Operator, error) {
+	basicOperator, err := c.BasicConfig.Build(bc)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (c RouterOperatorConfig) Build(context operator.BuildContext) (operator.Ope
 		route := RouterOperatorRoute{
 			Labeler:    labeler,
 			Expression: compiled,
-			OutputIDs:  routeConfig.OutputIDs,
+			OutputIDs:  routeConfig.OutputIDs.WithNamespace(bc),
 		}
 		routes = append(routes, &route)
 	}
