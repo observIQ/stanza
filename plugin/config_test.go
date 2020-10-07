@@ -26,6 +26,7 @@ func TestGetRenderParams(t *testing.T) {
 		"param1": "value1",
 		"param2": "value2",
 		"input":  "$.test",
+		"id":     "test",
 		"output": "[$.out1,$.out2]",
 	}
 	require.Equal(t, expected, params)
@@ -65,7 +66,7 @@ output: stdout
 					OperatorType: "my_plugin",
 				},
 			},
-			plugin: plugin,
+			Plugin: plugin,
 			Parameters: map[string]interface{}{
 				"unused_param": "test_unused",
 			},
