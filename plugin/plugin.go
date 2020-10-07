@@ -18,6 +18,7 @@ type Plugin struct {
 	ID          string
 	Version     string
 	Title       string
+	Type        string
 	Description string
 	Parameters  map[string]Parameter
 	Template    *template.Template
@@ -26,7 +27,7 @@ type Plugin struct {
 // NewBuilder creates a new, empty config that can build into an operator
 func (p *Plugin) NewBuilder() operator.MultiBuilder {
 	return &Config{
-		plugin: p,
+		Plugin: p,
 	}
 }
 
