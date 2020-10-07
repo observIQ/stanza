@@ -18,7 +18,6 @@ type Plugin struct {
 	ID          string
 	Version     string
 	Title       string
-	Type        string
 	Description string
 	Parameters  map[string]Parameter
 	Template    *template.Template
