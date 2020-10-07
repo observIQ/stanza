@@ -70,7 +70,7 @@ func (e *EventXML) parseRecord() map[string]interface{} {
 		"opcode":      e.Opcode,
 		"keywords":    e.Keywords,
 	}
-	if details != nil {
+	if len(details) > 0 {
 		record["details"] = details
 	}
 	return record

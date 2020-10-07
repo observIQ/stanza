@@ -6,71 +6,106 @@ import (
 
 func parseSecurity(message string) (string, map[string]interface{}) {
 
-	mp := newMessageParser(message)
+	subject, details := message, map[string]interface{}{}
 
-	t, _, subject := mp.parseNext()
-	if t != valueType {
+	mp := newMessageProcessor(message)
+
+	// First line is expected to be the first return value
+	l := mp.next()
+	switch l.t {
+	case valueType:
+		subject = l.v
+	case keyType:
+		subject = l.k
+	default:
 		return message, nil
 	}
 
-	details := map[string]interface{}{}
 	moreInfo := []string{}
 	unparsed := []string{}
 
-	for t, k, v := mp.parseNext(); t != endType; t, k, v = mp.parseNext() {
-		switch t {
-		case endType:
-			break
-		case emptyType:
-			continue
+	for mp.hasNext() {
+		l = mp.next()
+		switch l.t {
 		case valueType:
-			moreInfo = append(moreInfo, v)
+			moreInfo = append(moreInfo, l.v)
 		case keyType:
-			// expect subsequent lines to be pairs until empty/end
-			pairs := map[string]interface{}{}
-		CONSUME_PAIRS:
-			for {
-				tn, kn, vn := mp.parseNext()
-				switch tn {
-				case endType, emptyType:
-					break CONSUME_PAIRS
+			if !mp.hasNext() {
+				// line was standalone key/value pair with an empty value
+				details[l.k] = "-"
+				continue
+			}
+
+			if ln := mp.peek(); ln.t == emptyType || l.i == ln.i {
+				// line was standalone key/value pair with an empty value
+				details[l.k] = "-"
+				continue
+			}
+
+			// process indented subsection
+			sub := map[string]interface{}{}
+		CONSUME_SUBSECTION:
+			for mp.hasNext() {
+				ln := mp.next()
+				switch ln.t {
+				case emptyType:
+					break CONSUME_SUBSECTION
 				case pairType:
-					pairs[kn] = vn
+					sub[ln.k] = ln.v
 				case keyType:
-					pairs[kn] = "-" // sometimes the value is blank
-				case valueType:
-					pairs[vn] = "-" // unexpected, but handle anyways
+					if !mp.hasNext() {
+						// line was standalone key/value pair with an empty value
+						sub[ln.k] = "-"
+						continue
+					}
+
+					if lnn := mp.peek(); lnn.t == emptyType || ln.i == lnn.i {
+						// line was standalone key/value pair with an empty value
+						sub[ln.k] = "-"
+						continue
+					}
+
+					// process indented subsection as list
+					sublist := []string{}
+				CONSUME_SUBLIST:
+					for mp.hasNext() {
+						if lnn := mp.peek(); lnn.t == emptyType || ln.i == lnn.i {
+							// subsection has ended
+							break CONSUME_SUBLIST
+						}
+						lnn := mp.next()
+						switch lnn.t {
+						case valueType:
+							sublist = append(sublist, lnn.v)
+						case keyType: // not expected, but handle
+							sublist = append(sublist, lnn.k)
+						}
+					}
+					sub[ln.k] = sublist
 				}
 			}
-			details[k] = pairs
+			details[l.k] = sub
 		case pairType:
-			tn, kn, vn := mp.parseNext()
-			switch tn {
-			case endType, emptyType:
+			if !mp.hasNext() {
+				details[l.k] = l.v
+				continue
+			}
+			ln := mp.peek()
+			switch ln.t {
+			case emptyType:
 				// first line was standalone key/value pair
-				details[k] = v
+				details[l.k] = l.v
 			case pairType:
-				// first line was standalone key/value pair and so is this one
-				// presumably, next one will be same or empty, but allow outer to handle
-				details[k] = v
-				details[kn] = vn
-			case keyType:
-				details[k] = v
-				details[kn] = "-" // unexpected, but handle anyways
+				// first line was standalone key/value pair
+				details[l.k] = l.v
 			case valueType:
 				// first line was key and first value of list
-				list := []string{v, vn}
-			CONSUME_LIST:
-				for {
-					tn, kn, vn = mp.parseNext()
-					switch tn {
-					case endType, emptyType:
-						break CONSUME_LIST
-					case valueType:
-						list = append(list, vn)
-					}
+				list := []string{l.v}
+				for mp.hasNext() && mp.peek().t == valueType {
+					ln = mp.next()
+					list = append(list, ln.v)
 				}
-				details[k] = list
+				details[l.k] = list
 			}
 		}
 	}
@@ -86,9 +121,16 @@ func parseSecurity(message string) (string, map[string]interface{}) {
 	return subject, details
 }
 
-type messageParser struct {
-	lines []string
-	next  int
+type messageProcessor struct {
+	lines []*parsedLine
+	ptr   int
+}
+
+type parsedLine struct {
+	t lineType
+	i int
+	k string
+	v string
 }
 
 type lineType int
@@ -98,34 +140,68 @@ const (
 	keyType
 	valueType
 	pairType
-	endType
 )
 
-func newMessageParser(message string) *messageParser {
-	return &messageParser{lines: strings.Split(strings.TrimSpace(message), "\n")}
+func newMessageProcessor(message string) *messageProcessor {
+	unparsedLines := strings.Split(strings.TrimSpace(message), "\n")
+	parsedLines := make([]*parsedLine, len(unparsedLines))
+	for i, unparsedLine := range unparsedLines {
+		parsedLines[i] = parse(unparsedLine)
+	}
+	return &messageProcessor{lines: parsedLines}
 }
 
-func (mp *messageParser) parseNext() (lineType, string, string) {
-	if mp.next >= len(mp.lines) {
-		return endType, "", ""
+func parse(line string) *parsedLine {
+	i := countIndent(line)
+	l := strings.TrimSpace(line)
+	if l == "" {
+		return &parsedLine{t: emptyType, i: i}
 	}
-	defer func() { mp.next++ }()
 
-	line := strings.TrimSpace(mp.lines[mp.next])
-	if line == "" {
-		return emptyType, "", ""
+	if strings.Contains(l, ":\t") {
+		k, v := parseKeyValue(l)
+		// if v == "" {
+		// 	return &parsedLine{t: keyType, i: i, k: k}
+		// }
+		return &parsedLine{t: pairType, i: i, k: k, v: v}
 	}
-	if !strings.Contains(line, ":") {
-		return valueType, "", line
+
+	if strings.HasSuffix(l, ":") {
+		return &parsedLine{t: keyType, i: i, k: l[:len(l)-1]}
 	}
-	k, v := parseKeyValue(line)
-	if v == "" {
-		return keyType, k, ""
+
+	return &parsedLine{t: valueType, i: i, v: l}
+}
+
+// return next line and increment position
+func (mp *messageProcessor) next() *parsedLine {
+	defer mp.step()
+	return mp.lines[mp.ptr]
+}
+
+// return next line but do not increment position
+func (mp *messageProcessor) peek() *parsedLine {
+	return mp.lines[mp.ptr]
+}
+
+// just increment position
+func (mp *messageProcessor) step() {
+	mp.ptr++
+}
+
+func (mp *messageProcessor) hasNext() bool {
+	return mp.ptr < len(mp.lines)
+}
+
+func countIndent(line string) int {
+	i := 1
+	for pre := strings.Repeat("\t", i); strings.HasPrefix(line, pre); pre = strings.Repeat("\t", i) {
+		i++
 	}
-	return pairType, k, v
+	return i - 1
 }
 
 func parseKeyValue(line string) (string, string) {
-	kv := strings.Split(line, ":")
+	kv := strings.SplitN(line, ":\t", 2)
 	return strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
 }

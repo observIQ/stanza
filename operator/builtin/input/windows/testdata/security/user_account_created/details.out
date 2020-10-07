@@ -1,7 +1,5 @@
 {
-  "Additional Information": {
-    "Privileges\t\t-": "-"
-  },
+  "Additional Information": {},
   "Attributes": {
     "Account Expires": "\u003cnever\u003e",
     "Allowed To Delegate To": "-",
@@ -18,9 +16,9 @@
     "SID History": "-",
     "Script Path": "\u003cvalue not set\u003e",
     "User Account Control": [
-      "Normal Account - Enabled",
-      "Password Not Required - Enabled",
       "Account Disabled",
+      "'Password Not Required' - Enabled",
+      "'Normal Account' - Enabled"
     ],
     "User Parameters": "\u003cvalue not set\u003e",
     "User Principal Name": "-",

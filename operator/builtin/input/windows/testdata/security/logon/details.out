@@ -35,7 +35,7 @@
   },
   "Process Information": {
     "Process ID": "0x208",
-    "Process Name": "C"
+    "Process Name": "C:\\Windows\\System32\\services.exe"
   },
   "Subject": {
     "Account Domain": "WORKGROUP",

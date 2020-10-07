@@ -1,11 +1,13 @@
 {
   "Object": {
-    "ApplId = {01234567-ABCD-ABCD-ABCD-0123456789AB}": "-",
     "COM+ Catalog Collection": "Roles",
-    "Description = Administrators group": "-",
-    "Name = Administrators": "-",
-    "Object Details": "-",
-    "Object Name": "-"
+    "Object Details": [
+      "Description = Administrators group"
+    ],
+    "Object Name": [
+      "ApplId = {01234567-ABCD-ABCD-ABCD-0123456789AB}",
+      "Name = Administrators"
+    ]
   },
   "Subject": {
     "Account Domain": "NT AUTHORITY",

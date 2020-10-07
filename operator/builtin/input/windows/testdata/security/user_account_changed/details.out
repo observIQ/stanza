@@ -3,7 +3,6 @@
     "Privileges": "-"
   },
   "Changed Attributes": {
-    "'Password Not Required' - Disabled": "-",
     "Account Expires": "\u003cnever\u003e",
     "AllowedToDelegateTo": "-",
     "Display Name": "\u003cvalue not set\u003e",
@@ -12,13 +11,15 @@
     "Logon Hours": "All",
     "New UAC Value": "0x10",
     "Old UAC Value": "0x14",
-    "Password Last Set": "12/4/2019 11",
+    "Password Last Set": "12/4/2019 11:15:46 AM",
     "Primary Group ID": "513",
     "Profile Path": "\u003cvalue not set\u003e",
     "SAM Account Name": "Someone",
     "SID History": "-",
     "Script Path": "\u003cvalue not set\u003e",
-    "User Account Control": "-",
+    "User Account Control": [
+      "'Password Not Required' - Disabled"
+    ],
     "User Parameters": "-",
     "User Principal Name": "-",
     "User Workstations": "\u003cvalue not set\u003e"
