@@ -1,5 +1,3 @@
-// +build windows
-
 package windows
 
 import (
@@ -51,7 +49,8 @@ func (e *EventXML) parseSeverity() entry.Severity {
 
 // parseRecord will parse a record from the event.
 func (e *EventXML) parseRecord() map[string]interface{} {
-	return map[string]interface{}{
+	message, details := e.parseMessage()
+	record := map[string]interface{}{
 		"event_id": map[string]interface{}{
 			"qualifiers": e.EventID.Qualifiers,
 			"id":         e.EventID.ID,
@@ -66,10 +65,24 @@ func (e *EventXML) parseRecord() map[string]interface{} {
 		"channel":     e.Channel,
 		"record_id":   e.RecordID,
 		"level":       e.Level,
-		"message":     e.Message,
+		"message":     message,
 		"task":        e.Task,
 		"opcode":      e.Opcode,
 		"keywords":    e.Keywords,
+	}
+	if len(details) > 0 {
+		record["details"] = details
+	}
+	return record
+}
+
+// parseMessage will attempt to parse a message into a message and details
+func (e *EventXML) parseMessage() (string, map[string]interface{}) {
+	switch e.Channel {
+	case "Security":
+		return parseSecurity(e.Message)
+	default:
+		return e.Message, nil
 	}
 }
 
