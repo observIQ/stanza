@@ -66,22 +66,7 @@ func parseSecurity(message string) (string, map[string]interface{}) {
 					}
 
 					// process indented subsection as list
-					sublist := []string{}
-				CONSUME_SUBLIST:
-					for mp.hasNext() {
-						if lnn := mp.peek(); lnn.t == emptyType || ln.i == lnn.i {
-							// subsection has ended
-							break CONSUME_SUBLIST
-						}
-						lnn := mp.next()
-						switch lnn.t {
-						case valueType:
-							sublist = append(sublist, lnn.v)
-						case keyType: // not expected, but handle
-							sublist = append(sublist, lnn.k)
-						}
-					}
-					sub[ln.k] = sublist
+					sub[ln.k] = mp.consumeSublist(ln.i)
 				}
 			}
 			details[l.k] = sub
@@ -119,6 +104,24 @@ func parseSecurity(message string) (string, map[string]interface{}) {
 	}
 
 	return subject, details
+}
+
+func (mp *messageProcessor) consumeSublist(baseDepth int) []string {
+	sublist := []string{}
+	for mp.hasNext() {
+		if l := mp.peek(); l.t == emptyType || l.i == baseDepth {
+			// subsection has ended
+			return sublist
+		}
+		l := mp.next()
+		switch l.t {
+		case valueType:
+			sublist = append(sublist, l.v)
+		case keyType: // not expected, but handle
+			sublist = append(sublist, l.k)
+		}
+	}
+	return sublist
 }
 
 type messageProcessor struct {
@@ -160,9 +163,6 @@ func parse(line string) *parsedLine {
 
 	if strings.Contains(l, ":\t") {
 		k, v := parseKeyValue(l)
-		// if v == "" {
-		// 	return &parsedLine{t: keyType, i: i, k: k}
-		// }
 		return &parsedLine{t: pairType, i: i, k: k, v: v}
 	}
 
