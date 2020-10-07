@@ -22,7 +22,6 @@ func parseSecurity(message string) (string, map[string]interface{}) {
 	}
 
 	moreInfo := []string{}
-	unparsed := []string{}
 
 	for mp.hasNext() {
 		l = mp.next()
@@ -30,68 +29,20 @@ func parseSecurity(message string) (string, map[string]interface{}) {
 		case valueType:
 			moreInfo = append(moreInfo, l.v)
 		case keyType:
-			if !mp.hasNext() {
-				// line was standalone key/value pair with an empty value
+			if !mp.hasNextIndented(l.i + 1) {
+				// standalone key/value pair with empty value
 				details[l.k] = "-"
 				continue
 			}
-
-			if ln := mp.peek(); ln.t == emptyType || l.i == ln.i {
-				// line was standalone key/value pair with an empty value
-				details[l.k] = "-"
-				continue
-			}
-
-			// process indented subsection
-			sub := map[string]interface{}{}
-		CONSUME_SUBSECTION:
-			for mp.hasNext() {
-				ln := mp.next()
-				switch ln.t {
-				case emptyType:
-					break CONSUME_SUBSECTION
-				case pairType:
-					sub[ln.k] = ln.v
-				case keyType:
-					if !mp.hasNext() {
-						// line was standalone key/value pair with an empty value
-						sub[ln.k] = "-"
-						continue
-					}
-
-					if lnn := mp.peek(); lnn.t == emptyType || ln.i == lnn.i {
-						// line was standalone key/value pair with an empty value
-						sub[ln.k] = "-"
-						continue
-					}
-
-					// process indented subsection as list
-					sub[ln.k] = mp.consumeSublist(ln.i)
-				}
-			}
-			details[l.k] = sub
+			details[l.k] = mp.consumeSubsection(l.i + 1)
 		case pairType:
-			if !mp.hasNext() {
+			if !mp.hasNextIndented(l.i + 1) {
+				// standalone key/value pair
 				details[l.k] = l.v
 				continue
 			}
-			ln := mp.peek()
-			switch ln.t {
-			case emptyType:
-				// first line was standalone key/value pair
-				details[l.k] = l.v
-			case pairType:
-				// first line was standalone key/value pair
-				details[l.k] = l.v
-			case valueType:
-				// first line was key and first value of list
-				list := []string{l.v}
-				for mp.hasNext() && mp.peek().t == valueType {
-					ln = mp.next()
-					list = append(list, ln.v)
-				}
-				details[l.k] = list
-			}
+			// value was first in a list
+			details[l.k] = append([]string{l.v}, mp.consumeSublist(l.i+1)...)
 		}
 	}
 
@@ -99,18 +50,34 @@ func parseSecurity(message string) (string, map[string]interface{}) {
 		details["Additional Context"] = moreInfo
 	}
 
-	if len(unparsed) > 0 {
-		details["Unparsed"] = unparsed
-	}
-
 	return subject, details
 }
 
-func (mp *messageProcessor) consumeSublist(baseDepth int) []string {
+func (mp *messageProcessor) consumeSubsection(depth int) map[string]interface{} {
+	sub := map[string]interface{}{}
+	for mp.hasNext() {
+		l := mp.next()
+		switch l.t {
+		case emptyType:
+			return sub
+		case pairType:
+			sub[l.k] = l.v
+		case keyType:
+			if !mp.hasNextIndented(depth + 1) {
+				// standalone key/value pair with missing value
+				sub[l.k] = "-"
+				continue
+			}
+			sub[l.k] = mp.consumeSublist(depth + 1)
+		}
+	}
+	return sub
+}
+
+func (mp *messageProcessor) consumeSublist(depth int) []string {
 	sublist := []string{}
 	for mp.hasNext() {
-		if l := mp.peek(); l.t == emptyType || l.i == baseDepth {
-			// subsection has ended
+		if !mp.hasNextIndented(depth) {
 			return sublist
 		}
 		l := mp.next()
@@ -191,6 +158,19 @@ func (mp *messageProcessor) step() {
 
 func (mp *messageProcessor) hasNext() bool {
 	return mp.ptr < len(mp.lines)
+}
+
+func (mp *messageProcessor) hasNextIndented(minDepth int) bool {
+	if !mp.hasNext() || mp.ptr == 0 {
+		return false
+	}
+
+	l := mp.peek()
+	if l.t == emptyType {
+		return false
+	}
+
+	return l.i >= minDepth
 }
 
 func countIndent(line string) int {
