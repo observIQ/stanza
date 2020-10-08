@@ -34,8 +34,9 @@ func TestInputJournald(t *testing.T) {
 	cfg := NewJournaldInputConfig("my_journald_input")
 	cfg.OutputIDs = []string{"output"}
 
-	journaldInput, err := cfg.Build(testutil.NewBuildContext(t))
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
+	op := ops[0]
 
 	mockOutput := testutil.NewMockOperator("$.output")
 	received := make(chan *entry.Entry)
@@ -43,16 +44,16 @@ func TestInputJournald(t *testing.T) {
 		received <- args.Get(1).(*entry.Entry)
 	}).Return(nil)
 
-	err = journaldInput.SetOutputs([]operator.Operator{mockOutput})
+	err = op.SetOutputs([]operator.Operator{mockOutput})
 	require.NoError(t, err)
 
-	journaldInput.(*JournaldInput).newCmd = func(ctx context.Context, cursor []byte) cmd {
+	op.(*JournaldInput).newCmd = func(ctx context.Context, cursor []byte) cmd {
 		return &fakeJournaldCmd{}
 	}
 
-	err = journaldInput.Start()
+	err = op.Start()
 	require.NoError(t, err)
-	defer journaldInput.Stop()
+	defer op.Stop()
 
 	expected := map[string]interface{}{
 		"_BOOT_ID":                   "c4fa36de06824d21835c05ff80c54468",

@@ -18,16 +18,18 @@ import (
 
 func newTestParser(t *testing.T) *JSONParser {
 	config := NewJSONParserConfig("test")
-	parser, err := config.Build(testutil.NewBuildContext(t))
+	ops, err := config.Build(testutil.NewBuildContext(t))
+	op := ops[0]
 	require.NoError(t, err)
-	return parser.(*JSONParser)
+	return op.(*JSONParser)
 }
 
 func TestJSONParserConfigBuild(t *testing.T) {
 	config := NewJSONParserConfig("test")
-	parser, err := config.Build(testutil.NewBuildContext(t))
+	ops, err := config.Build(testutil.NewBuildContext(t))
+	op := ops[0]
 	require.NoError(t, err)
-	require.IsType(t, &JSONParser{}, parser)
+	require.IsType(t, &JSONParser{}, op)
 }
 
 func TestJSONParserConfigBuildFailure(t *testing.T) {

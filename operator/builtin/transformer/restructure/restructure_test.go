@@ -202,8 +202,9 @@ func TestRestructureOperator(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := NewRestructureOperatorConfig("test")
 			cfg.OutputIDs = []string{"fake"}
-			op, err := cfg.Build(testutil.NewBuildContext(t))
+			ops, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
+			op := ops[0]
 
 			restructure := op.(*RestructureOperator)
 			fake := testutil.NewFakeOutput(t)
@@ -346,53 +347,51 @@ ops:
 }`
 
 	expected := operator.Config(operator.Config{
-		MultiBuilder: &operator.MultiBuilderWrapper{
-			Builder: &RestructureOperatorConfig{
-				TransformerConfig: helper.TransformerConfig{
-					WriterConfig: helper.WriterConfig{
-						BasicConfig: helper.BasicConfig{
-							OperatorID:   "my_restructure",
-							OperatorType: "restructure",
-						},
-						OutputIDs: []string{"test_output"},
+		Builder: &RestructureOperatorConfig{
+			TransformerConfig: helper.TransformerConfig{
+				WriterConfig: helper.WriterConfig{
+					BasicConfig: helper.BasicConfig{
+						OperatorID:   "my_restructure",
+						OperatorType: "restructure",
 					},
-					OnError: helper.SendOnError,
+					OutputIDs: []string{"test_output"},
 				},
-				Ops: []Op{
-					{&OpAdd{
-						Field: entry.NewRecordField("message"),
-						Value: "val",
-					}},
-					{&OpAdd{
-						Field: entry.NewRecordField("message_suffix"),
-						ValueExpr: func() *string {
-							s := `$.message + "_suffix"`
-							return &s
-						}(),
-						program: func() *vm.Program {
-							vm, err := expr.Compile(`$.message + "_suffix"`)
-							require.NoError(t, err)
-							return vm
-						}(),
-					}},
-					{&OpRemove{
-						Field: entry.NewRecordField("message"),
-					}},
-					{&OpRetain{
-						Fields: []entry.Field{
-							entry.NewRecordField("message_retain"),
-						},
-					}},
-					{&OpFlatten{
-						Field: entry.RecordField{
-							Keys: []string{"message_flatten"},
-						},
-					}},
-					{&OpMove{
-						From: entry.NewRecordField("message1"),
-						To:   entry.NewRecordField("message2"),
-					}},
-				},
+				OnError: helper.SendOnError,
+			},
+			Ops: []Op{
+				{&OpAdd{
+					Field: entry.NewRecordField("message"),
+					Value: "val",
+				}},
+				{&OpAdd{
+					Field: entry.NewRecordField("message_suffix"),
+					ValueExpr: func() *string {
+						s := `$.message + "_suffix"`
+						return &s
+					}(),
+					program: func() *vm.Program {
+						vm, err := expr.Compile(`$.message + "_suffix"`)
+						require.NoError(t, err)
+						return vm
+					}(),
+				}},
+				{&OpRemove{
+					Field: entry.NewRecordField("message"),
+				}},
+				{&OpRetain{
+					Fields: []entry.Field{
+						entry.NewRecordField("message_retain"),
+					},
+				}},
+				{&OpFlatten{
+					Field: entry.RecordField{
+						Keys: []string{"message_flatten"},
+					},
+				}},
+				{&OpMove{
+					From: entry.NewRecordField("message1"),
+					To:   entry.NewRecordField("message2"),
+				}},
 			},
 		},
 	})

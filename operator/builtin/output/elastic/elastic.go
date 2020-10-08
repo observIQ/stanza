@@ -46,7 +46,7 @@ type ElasticOutputConfig struct {
 }
 
 // Build will build an elasticsearch output operator.
-func (c ElasticOutputConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c ElasticOutputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (c ElasticOutputConfig) Build(context operator.BuildContext) (operator.Oper
 
 	elasticOutput.flusher = c.FlusherConfig.Build(buffer, elasticOutput.ProcessMulti, elasticOutput.SugaredLogger)
 
-	return elasticOutput, nil
+	return []operator.Operator{elasticOutput}, nil
 }
 
 // ElasticOutput is an operator that sends entries to elasticsearch.

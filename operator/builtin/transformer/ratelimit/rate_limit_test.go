@@ -19,15 +19,17 @@ func TestRateLimit(t *testing.T) {
 	cfg.Burst = 1
 	cfg.Rate = 1000
 
-	rateLimit, err := cfg.Build(testutil.NewBuildContext(t))
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
+	op := ops[0]
 
 	fake := testutil.NewFakeOutput(t)
 
-	err = rateLimit.SetOutputs([]operator.Operator{fake})
+	err = op.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
-	err = rateLimit.Start()
+	err = op.Start()
+	defer op.Stop()
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -44,14 +46,14 @@ func TestRateLimit(t *testing.T) {
 
 	// Warm up
 	for i := 0; i < 100; i++ {
-		err := rateLimit.Process(context.Background(), entry.New())
+		err := op.Process(context.Background(), entry.New())
 		require.NoError(t, err)
 	}
 
 	// Measure
 	start := time.Now()
 	for i := 0; i < 1000; i++ {
-		err := rateLimit.Process(context.Background(), entry.New())
+		err := op.Process(context.Background(), entry.New())
 		require.NoError(t, err)
 	}
 	elapsed := time.Since(start)

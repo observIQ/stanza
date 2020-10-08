@@ -304,12 +304,13 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)
 
-		severityOperator, err := cfg.Build(buildContext)
+		ops, err := cfg.Build(buildContext)
 		if buildErr {
 			require.Error(t, err, "expected error when configuring operator")
 			return
 		}
 		require.NoError(t, err, "unexpected error when configuring operator")
+		op := ops[0]
 
 		mockOutput := &testutil.Operator{}
 		resultChan := make(chan *entry.Entry, 1)
@@ -317,7 +318,7 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 			resultChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		severityParser := severityOperator.(*SeverityParserOperator)
+		severityParser := op.(*SeverityParserOperator)
 		severityParser.OutputOperators = []operator.Operator{mockOutput}
 
 		err = severityParser.Process(context.Background(), ent)

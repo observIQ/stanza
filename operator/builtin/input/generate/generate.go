@@ -31,7 +31,7 @@ type GenerateInputConfig struct {
 }
 
 // Build will build a generate input operator.
-func (c *GenerateInputConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c *GenerateInputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (c *GenerateInputConfig) Build(context operator.BuildContext) (operator.Ope
 		count:         c.Count,
 		static:        c.Static,
 	}
-	return generateInput, nil
+	return []operator.Operator{generateInput}, nil
 }
 
 // GenerateInput is an operator that generates log entries.

@@ -11,11 +11,11 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/version"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/version"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -56,7 +56,7 @@ type GoogleCloudOutputConfig struct {
 }
 
 // Build will build a google cloud output operator.
-func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (operator.Operator, error) {
+func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) ([]operator.Operator, error) {
 	outputOperator, err := c.OutputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) (oper
 	newFlusher := c.FlusherConfig.Build(newBuffer, googleCloudOutput.ProcessMulti, outputOperator.SugaredLogger)
 	googleCloudOutput.flusher = newFlusher
 
-	return googleCloudOutput, nil
+	return []operator.Operator{googleCloudOutput}, nil
 }
 
 // GoogleCloudOutput is an operator that sends logs to google cloud logging.

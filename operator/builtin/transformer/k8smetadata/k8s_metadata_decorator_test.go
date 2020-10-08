@@ -56,24 +56,26 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 		timeout:        10 * time.Second,
 	}
 
-	operator, err := cfg.Build(testutil.NewBuildContext(t))
-	operator.(*K8sMetadataDecorator).SugaredLogger = nil
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
-	require.Equal(t, expected, operator)
+	op := ops[0]
+	op.(*K8sMetadataDecorator).SugaredLogger = nil
+	require.Equal(t, expected, op)
 
 }
 
 func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 
 	cfg := basicConfig()
-	pg, err := cfg.Build(testutil.NewBuildContext(t))
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
+	op := ops[0]
 
 	mockOutput := testutil.NewMockOperator("mock")
-	pg.SetOutputs([]operator.Operator{mockOutput})
+	op.SetOutputs([]operator.Operator{mockOutput})
 
 	// Preload cache so we don't hit the network
-	k8s := pg.(*K8sMetadataDecorator)
+	k8s := op.(*K8sMetadataDecorator)
 	k8s.namespaceCache.Store("testnamespace", MetadataCacheEntry{
 		ExpirationTime: time.Now().Add(time.Hour),
 		Labels: map[string]string{
@@ -125,6 +127,6 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 			"k8s.namespace.name": "testnamespace",
 		},
 	}
-	err = pg.Process(context.Background(), e)
+	err = op.Process(context.Background(), e)
 	require.NoError(t, err)
 }

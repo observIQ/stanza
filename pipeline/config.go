@@ -12,7 +12,7 @@ func (c Config) BuildOperators(bc operator.BuildContext) ([]operator.Operator, e
 	operators := make([]operator.Operator, 0, len(c))
 	for i, builder := range c {
 		nbc := getBuildContextWithDefaultOutput(c, i, bc)
-		op, err := builder.BuildMulti(nbc)
+		op, err := builder.Build(nbc)
 		if err != nil {
 			return nil, err
 		}

@@ -28,7 +28,7 @@ type TimeParserConfig struct {
 }
 
 // Build will build a time parser operator.
-func (c TimeParserConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c TimeParserConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (c TimeParserConfig) Build(context operator.BuildContext) (operator.Operato
 		TimeParser:          c.TimeParser,
 	}
 
-	return timeParser, nil
+	return []operator.Operator{timeParser}, nil
 }
 
 // TimeParserOperator is an operator that parses time from a field to an entry.

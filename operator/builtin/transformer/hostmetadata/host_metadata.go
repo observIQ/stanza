@@ -28,7 +28,7 @@ type HostMetadataConfig struct {
 }
 
 // Build will build an operator from the supplied configuration
-func (c HostMetadataConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c HostMetadataConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build transformer")
@@ -39,12 +39,12 @@ func (c HostMetadataConfig) Build(context operator.BuildContext) (operator.Opera
 		return nil, errors.Wrap(err, "failed to build host labeler")
 	}
 
-	operator := &HostMetadata{
+	op := &HostMetadata{
 		TransformerOperator: transformerOperator,
 		HostIdentifier:      hostIdentifier,
 	}
 
-	return operator, nil
+	return []operator.Operator{op}, nil
 }
 
 // HostMetadata is an operator that can add host metadata to incoming entries

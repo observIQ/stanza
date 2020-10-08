@@ -44,13 +44,14 @@ func newTestFileOperator(t *testing.T, cfgMod func(*InputConfig), outMod func(*t
 	if cfgMod != nil {
 		cfgMod(cfg)
 	}
-	pg, err := cfg.Build(testutil.NewBuildContext(t))
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+	op := ops[0]
+
+	err = op.SetOutputs([]operator.Operator{fakeOutput})
 	require.NoError(t, err)
 
-	err = pg.SetOutputs([]operator.Operator{fakeOutput})
-	require.NoError(t, err)
-
-	return pg.(*InputOperator), fakeOutput.Received, tempDir
+	return op.(*InputOperator), fakeOutput.Received, tempDir
 }
 
 func openFile(t testing.TB, path string) *os.File {
@@ -231,16 +232,17 @@ func TestBuild(t *testing.T) {
 			cfg := basicConfig()
 			tc.modifyBaseConfig(cfg)
 
-			plg, err := cfg.Build(testutil.NewBuildContext(t))
+			ops, err := cfg.Build(testutil.NewBuildContext(t))
 			tc.errorRequirement(t, err)
 			if err != nil {
 				return
 			}
+			op := ops[0]
 
-			err = plg.SetOutputs([]operator.Operator{fakeOutput})
+			err = op.SetOutputs([]operator.Operator{fakeOutput})
 			require.NoError(t, err)
 
-			fileInput := plg.(*InputOperator)
+			fileInput := op.(*InputOperator)
 			tc.validate(t, fileInput)
 		})
 	}
@@ -1253,15 +1255,16 @@ func BenchmarkFileInput(b *testing.B) {
 			cfg.Include = []string{path}
 			cfg.StartAt = "beginning"
 
-			fileOperator, err := cfg.Build(testutil.NewBuildContext(b))
+			ops, err := cfg.Build(testutil.NewBuildContext(b))
 			require.NoError(b, err)
+			op := ops[0]
 
 			fakeOutput := testutil.NewFakeOutput(b)
-			err = fileOperator.SetOutputs([]operator.Operator{fakeOutput})
+			err = op.SetOutputs([]operator.Operator{fakeOutput})
 			require.NoError(b, err)
 
-			err = fileOperator.Start()
-			defer fileOperator.Stop()
+			err = op.Start()
+			defer op.Stop()
 			require.NoError(b, err)
 
 			file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)

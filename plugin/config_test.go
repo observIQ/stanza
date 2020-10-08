@@ -58,7 +58,7 @@ output: stdout
 	require.NoError(t, err)
 
 	expected := operator.Config{
-		MultiBuilder: &Config{
+		Builder: &Config{
 			WriterConfig: helper.WriterConfig{
 				OutputIDs: []string{"stdout"},
 				BasicConfig: helper.BasicConfig{
@@ -75,7 +75,7 @@ output: stdout
 
 	require.Equal(t, expected, cfg)
 
-	operators, err := cfg.BuildMulti(testutil.NewBuildContext(t))
+	operators, err := cfg.Build(testutil.NewBuildContext(t))
 	require.Len(t, operators, 1)
 	noop, ok := operators[0].(*noop.NoopOperator)
 	require.True(t, ok)

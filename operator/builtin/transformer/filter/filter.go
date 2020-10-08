@@ -33,7 +33,7 @@ type FilterOperatorConfig struct {
 }
 
 // Build will build a filter operator from the supplied configuration
-func (c FilterOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c FilterOperatorConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	transformer, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (c FilterOperatorConfig) Build(context operator.BuildContext) (operator.Ope
 		dropRatio:           c.DropRatio,
 	}
 
-	return filterOperator, nil
+	return []operator.Operator{filterOperator}, nil
 }
 
 // FilterOperator is an operator that filters entries based on matching expressions

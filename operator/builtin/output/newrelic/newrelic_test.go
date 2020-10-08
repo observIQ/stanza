@@ -101,8 +101,9 @@ func TestNewRelicOutput(t *testing.T) {
 				tc.cfgMod(cfg)
 			}
 
-			op, err := cfg.Build(testutil.NewBuildContext(t))
+			ops, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
+			op := ops[0]
 			require.NoError(t, op.Start())
 			for _, entry := range tc.input {
 				require.NoError(t, op.Process(context.Background(), entry))
@@ -119,8 +120,9 @@ func TestNewRelicOutput(t *testing.T) {
 		cfg.BaseURI = "http://localhost/log/v1"
 		cfg.APIKey = "testkey"
 
-		op, err := cfg.Build(testutil.NewBuildContext(t))
+		ops, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
+		op := ops[0]
 		err = op.Start()
 		require.Error(t, err)
 	})

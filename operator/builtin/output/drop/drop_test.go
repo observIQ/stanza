@@ -12,9 +12,10 @@ import (
 func TestBuildValid(t *testing.T) {
 	cfg := NewDropOutputConfig("test")
 	ctx := testutil.NewBuildContext(t)
-	output, err := cfg.Build(ctx)
+	ops, err := cfg.Build(ctx)
 	require.NoError(t, err)
-	require.IsType(t, &DropOutput{}, output)
+	op := ops[0]
+	require.IsType(t, &DropOutput{}, op)
 }
 
 func TestBuildIvalid(t *testing.T) {
@@ -29,10 +30,11 @@ func TestBuildIvalid(t *testing.T) {
 func TestProcess(t *testing.T) {
 	cfg := NewDropOutputConfig("test")
 	ctx := testutil.NewBuildContext(t)
-	output, err := cfg.Build(ctx)
+	ops, err := cfg.Build(ctx)
 	require.NoError(t, err)
+	op := ops[0]
 
 	entry := entry.New()
-	result := output.Process(context.Background(), entry)
+	result := op.Process(context.Background(), entry)
 	require.Nil(t, result)
 }

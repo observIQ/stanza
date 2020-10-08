@@ -12,8 +12,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Enforce that Config implements operator.MultiBuilder
-var _ operator.MultiBuilder = (*Config)(nil)
+// Enforce that Config implements operator.Builder
+var _ operator.Builder = (*Config)(nil)
 
 // Config is the config values for the plugin
 type Config struct {
@@ -23,7 +23,7 @@ type Config struct {
 }
 
 // BuildMulti implements operator.MultiBuilder
-func (c *Config) BuildMulti(bc operator.BuildContext) ([]operator.Operator, error) {
+func (c *Config) Build(bc operator.BuildContext) ([]operator.Operator, error) {
 	if bc.PluginDepth > 10 {
 		return nil, errors.NewError("reached max plugin depth", "ensure that there are no recursive dependencies in plugins")
 	}

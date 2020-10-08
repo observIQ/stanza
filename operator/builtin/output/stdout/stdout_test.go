@@ -23,18 +23,19 @@ func TestStdoutOperator(t *testing.T) {
 		},
 	}
 
-	operator, err := cfg.Build(testutil.NewBuildContext(t))
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
+	op := ops[0]
 
 	var buf bytes.Buffer
-	operator.(*StdoutOperator).encoder = json.NewEncoder(&buf)
+	op.(*StdoutOperator).encoder = json.NewEncoder(&buf)
 
 	ts := time.Unix(1591042864, 0)
 	e := &entry.Entry{
 		Timestamp: ts,
 		Record:    "test record",
 	}
-	err = operator.Process(context.Background(), e)
+	err = op.Process(context.Background(), e)
 	require.NoError(t, err)
 
 	marshalledTimestamp, err := json.Marshal(ts)

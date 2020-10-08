@@ -41,7 +41,7 @@ type JournaldInputConfig struct {
 }
 
 // Build will build a journald input operator from the supplied configuration
-func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator.Operator, error) {
+func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) (operator
 		},
 		json: jsoniter.ConfigFastest,
 	}
-	return journaldInput, nil
+	return []operator.Operator{journaldInput}, nil
 }
 
 // JournaldInput is an operator that process logs using journald

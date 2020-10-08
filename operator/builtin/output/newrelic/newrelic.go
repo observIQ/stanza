@@ -49,7 +49,7 @@ type NewRelicOutputConfig struct {
 }
 
 // Build will build a new NewRelicOutput
-func (c NewRelicOutputConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c NewRelicOutputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (c NewRelicOutputConfig) Build(context operator.BuildContext) (operator.Ope
 
 	nro.flusher = c.FlusherConfig.Build(buffer, nro.ProcessMulti, nro.SugaredLogger)
 
-	return nro, nil
+	return []operator.Operator{nro}, nil
 }
 
 func (c NewRelicOutputConfig) getHeaders() (http.Header, error) {
