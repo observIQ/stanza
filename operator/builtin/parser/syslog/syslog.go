@@ -32,7 +32,7 @@ type SyslogParserConfig struct {
 }
 
 // Build will build a JSON parser operator.
-func (c SyslogParserConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c SyslogParserConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	if c.ParserConfig.TimeParser == nil {
 		parseFromField := entry.NewRecordField("timestamp")
 		c.ParserConfig.TimeParser = &helper.TimeParser{
@@ -55,7 +55,7 @@ func (c SyslogParserConfig) Build(context operator.BuildContext) (operator.Opera
 		protocol:       c.Protocol,
 	}
 
-	return syslogParser, nil
+	return []operator.Operator{syslogParser}, nil
 }
 
 func buildMachine(protocol string) (sl.Machine, error) {

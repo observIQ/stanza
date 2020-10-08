@@ -17,8 +17,9 @@ func TestInputGenerate(t *testing.T) {
 		Record: "test message",
 	}
 
-	op, err := cfg.Build(testutil.NewBuildContext(t))
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
+	op := ops[0]
 
 	fake := testutil.NewFakeOutput(t)
 	err = op.SetOutputs([]operator.Operator{fake})

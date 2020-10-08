@@ -19,8 +19,9 @@ type hostMetadataBenchmark struct {
 func (g *hostMetadataBenchmark) Run(b *testing.B) {
 	cfg := NewHostMetadataConfig(g.name)
 	g.cfgMod(cfg)
-	op, err := cfg.Build(testutil.NewBuildContext(b))
+	ops, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
+	op := ops[0]
 
 	fake := testutil.NewFakeOutput(b)
 	op.(*HostMetadata).OutputOperators = []operator.Operator{fake}

@@ -56,7 +56,7 @@ type MultilineConfig struct {
 }
 
 // Build will build a file input operator from the supplied configuration
-func (c InputConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (c InputConfig) Build(context operator.BuildContext) (operator.Operator, er
 		filePathField = entry.NewLabelField("file_path")
 	}
 
-	operator := &InputOperator{
+	op := &InputOperator{
 		InputOperator:    inputOperator,
 		Include:          c.Include,
 		Exclude:          c.Exclude,
@@ -130,7 +130,7 @@ func (c InputConfig) Build(context operator.BuildContext) (operator.Operator, er
 		MaxLogSize:       c.MaxLogSize,
 	}
 
-	return operator, nil
+	return []operator.Operator{op}, nil
 }
 
 var encodingOverrides = map[string]encoding.Encoding{

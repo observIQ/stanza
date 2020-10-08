@@ -32,7 +32,7 @@ type RestructureOperatorConfig struct {
 }
 
 // Build will build a restructure operator from the supplied configuration
-func (c RestructureOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c RestructureOperatorConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (c RestructureOperatorConfig) Build(context operator.BuildContext) (operato
 		ops:                 c.Ops,
 	}
 
-	return restructureOperator, nil
+	return []operator.Operator{restructureOperator}, nil
 }
 
 // RestructureOperator is an operator that can restructure incoming entries using operations

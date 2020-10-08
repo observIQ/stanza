@@ -17,11 +17,12 @@ func udpInputTest(input []byte, expected []string) func(t *testing.T) {
 		cfg := NewUDPInputConfig("test_input")
 		cfg.ListenAddress = ":0"
 
-		newOperator, err := cfg.Build(testutil.NewBuildContext(t))
+		ops, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
+		op := ops[0]
 
 		mockOutput := testutil.Operator{}
-		udpInput, ok := newOperator.(*UDPInput)
+		udpInput, ok := op.(*UDPInput)
 		require.True(t, ok)
 
 		udpInput.InputOperator.OutputOperators = []operator.Operator{&mockOutput}
@@ -71,11 +72,12 @@ func BenchmarkUdpInput(b *testing.B) {
 	cfg := NewUDPInputConfig("test_id")
 	cfg.ListenAddress = ":0"
 
-	newOperator, err := cfg.Build(testutil.NewBuildContext(b))
+	ops, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
+	op := ops[0]
 
 	fakeOutput := testutil.NewFakeOutput(b)
-	udpInput := newOperator.(*UDPInput)
+	udpInput := op.(*UDPInput)
 	udpInput.InputOperator.OutputOperators = []operator.Operator{fakeOutput}
 
 	err = udpInput.Start()

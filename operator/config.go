@@ -9,25 +9,14 @@ import (
 
 // Config is the configuration of an operator
 type Config struct {
-	MultiBuilder
-}
-
-// Identifier captures the methods needed to identify a builder or multibuilder
-type Identifier interface {
-	ID() string
-	Type() string
+	Builder
 }
 
 // Builder is an entity that can build a single operator
 type Builder interface {
-	Identifier
-	Build(BuildContext) (Operator, error)
-}
-
-// MultiBuilder is an entity that can build operators
-type MultiBuilder interface {
-	Identifier
-	BuildMulti(BuildContext) ([]Operator, error)
+	ID() string
+	Type() string
+	Build(BuildContext) ([]Operator, error)
 }
 
 // UnmarshalJSON will unmarshal a config from JSON.
@@ -54,13 +43,13 @@ func (c *Config) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("unmarshal to %s: %s", typeUnmarshaller.Type, err)
 	}
 
-	c.MultiBuilder = builder
+	c.Builder = builder
 	return nil
 }
 
 // MarshalJSON will marshal a config to JSON.
 func (c Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.MultiBuilder)
+	return json.Marshal(c.Builder)
 }
 
 // UnmarshalYAML will unmarshal a config from YAML.
@@ -91,11 +80,11 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("unmarshal to %s: %s", typeString, err)
 	}
 
-	c.MultiBuilder = builder
+	c.Builder = builder
 	return nil
 }
 
 // MarshalYAML will marshal a config to YAML.
 func (c Config) MarshalYAML() (interface{}, error) {
-	return c.MultiBuilder, nil
+	return c.Builder, nil
 }

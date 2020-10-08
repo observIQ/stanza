@@ -392,12 +392,13 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)
 
-		gotimeOperator, err := cfg.Build(buildContext)
+		ops, err := cfg.Build(buildContext)
 		if buildErr {
 			require.Error(t, err, "expected error when configuring operator")
 			return
 		}
 		require.NoError(t, err)
+		op := ops[0]
 
 		mockOutput := &testutil.Operator{}
 		resultChan := make(chan *entry.Entry, 1)
@@ -405,7 +406,7 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 			resultChan <- args.Get(1).(*entry.Entry)
 		}).Return(nil)
 
-		timeParser := gotimeOperator.(*TimeParserOperator)
+		timeParser := op.(*TimeParserOperator)
 		timeParser.OutputOperators = []operator.Operator{mockOutput}
 
 		err = timeParser.Process(context.Background(), ent)

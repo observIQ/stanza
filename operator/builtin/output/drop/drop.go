@@ -25,7 +25,7 @@ type DropOutputConfig struct {
 }
 
 // Build will build a drop output operator.
-func (c DropOutputConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c DropOutputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (c DropOutputConfig) Build(context operator.BuildContext) (operator.Operato
 		OutputOperator: outputOperator,
 	}
 
-	return dropOutput, nil
+	return []operator.Operator{dropOutput}, nil
 }
 
 // DropOutput is an operator that consumes and ignores incoming entries.

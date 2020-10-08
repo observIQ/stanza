@@ -200,7 +200,8 @@ func TestGoogleCloudOutput(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			buildContext := testutil.NewBuildContext(t)
-			cloudOutput, err := tc.config.Build(buildContext)
+			ops, err := tc.config.Build(buildContext)
+			op := ops[0]
 			require.NoError(t, err)
 
 			conn, received, stop, err := startServer()
@@ -212,11 +213,11 @@ func TestGoogleCloudOutput(t *testing.T) {
 
 			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
 			require.NoError(t, err)
-			cloudOutput.(*GoogleCloudOutput).client = client
-			cloudOutput.(*GoogleCloudOutput).flusher.Start()
-			defer cloudOutput.(*GoogleCloudOutput).flusher.Stop()
+			op.(*GoogleCloudOutput).client = client
+			op.(*GoogleCloudOutput).flusher.Start()
+			defer op.(*GoogleCloudOutput).flusher.Stop()
 
-			err = cloudOutput.Process(context.Background(), tc.input)
+			err = op.Process(context.Background(), tc.input)
 			require.NoError(t, err)
 
 			select {
@@ -396,8 +397,9 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 	if g.configMod != nil {
 		g.configMod(cfg)
 	}
-	op, err := cfg.Build(testutil.NewBuildContext(b))
+	ops, err := cfg.Build(testutil.NewBuildContext(b))
 	require.NoError(b, err)
+	op := ops[0]
 	op.(*GoogleCloudOutput).client = client
 	op.(*GoogleCloudOutput).timeout = 30 * time.Second
 	op.(*GoogleCloudOutput).flusher.Start()

@@ -32,7 +32,7 @@ type RateLimitConfig struct {
 }
 
 // Build will build a rate limit operator.
-func (c RateLimitConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c RateLimitConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (c RateLimitConfig) Build(context operator.BuildContext) (operator.Operator
 		burst:               c.Burst,
 	}
 
-	return rateLimitOperator, nil
+	return []operator.Operator{rateLimitOperator}, nil
 }
 
 // RateLimitOperator is an operator that limits the rate of log consumption between operators.

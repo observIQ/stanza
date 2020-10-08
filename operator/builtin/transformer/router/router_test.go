@@ -139,8 +139,9 @@ func TestRouterOperator(t *testing.T) {
 			cfg.Routes = tc.routes
 
 			buildContext := testutil.NewBuildContext(t)
-			newOperator, err := cfg.Build(buildContext)
+			ops, err := cfg.Build(buildContext)
 			require.NoError(t, err)
+			op := ops[0]
 
 			results := map[string]int{}
 			var labels map[string]string
@@ -160,7 +161,7 @@ func TestRouterOperator(t *testing.T) {
 				}
 			})
 
-			routerOperator := newOperator.(*RouterOperator)
+			routerOperator := op.(*RouterOperator)
 			err = routerOperator.SetOutputs([]operator.Operator{mock1, mock2})
 			require.NoError(t, err)
 

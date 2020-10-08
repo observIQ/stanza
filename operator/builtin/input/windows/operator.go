@@ -26,7 +26,7 @@ type EventLogConfig struct {
 }
 
 // Build will build a windows event log operator.
-func (c *EventLogConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c *EventLogConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (c *EventLogConfig) Build(context operator.BuildContext) (operator.Operator
 		pollInterval:  c.PollInterval,
 		offsets:       offsets,
 	}
-	return eventLogInput, nil
+	return []operator.Operator{eventLogInput}, nil
 }
 
 // NewDefaultConfig will return an event log config with default values.

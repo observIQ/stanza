@@ -30,7 +30,7 @@ type MetadataOperatorConfig struct {
 }
 
 // Build will build a metadata operator from the supplied configuration
-func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c MetadataOperatorConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	transformerOperator, err := c.TransformerConfig.Build(context)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build transformer")
@@ -52,7 +52,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) (operator.O
 		Identifier:          identifier,
 	}
 
-	return metadataOperator, nil
+	return []operator.Operator{metadataOperator}, nil
 }
 
 // MetadataOperator is an operator that can add metadata to incoming entries

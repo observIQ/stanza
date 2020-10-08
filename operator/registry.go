@@ -1,7 +1,5 @@
 package operator
 
-import "encoding/json"
-
 // DefaultRegistry is a global registry of operator types to operator builders.
 var DefaultRegistry = NewRegistry()
 
@@ -9,14 +7,14 @@ var DefaultRegistry = NewRegistry()
 // building types from IDs
 type Registry struct {
 	operators map[string]func() Builder
-	plugins   map[string]func() MultiBuilder
+	plugins   map[string]func() Builder
 }
 
 // NewRegistry creates a new registry
 func NewRegistry() *Registry {
 	return &Registry{
 		operators: make(map[string]func() Builder),
-		plugins:   make(map[string]func() MultiBuilder),
+		plugins:   make(map[string]func() Builder),
 	}
 }
 
@@ -28,17 +26,17 @@ func (r *Registry) Register(operatorType string, newBuilder func() Builder) {
 
 // RegisterPlugin will register a function to an plugin type.
 // This function will return a builder for the supplied type.
-func (r *Registry) RegisterPlugin(pluginName string, newBuilder func() MultiBuilder) {
+func (r *Registry) RegisterPlugin(pluginName string, newBuilder func() Builder) {
 	r.plugins[pluginName] = newBuilder
 }
 
 // Lookup looks up a given config type, prioritizing builtin operators
 // before looking in registered plugins. Its second return value will
 // be false if no builder is registered for that type
-func (r *Registry) Lookup(configType string) (func() MultiBuilder, bool) {
+func (r *Registry) Lookup(configType string) (func() Builder, bool) {
 	b, ok := r.operators[configType]
 	if ok {
-		return WrapBuilder(b), ok
+		return b, ok
 	}
 
 	mb, ok := r.plugins[configType]
@@ -55,52 +53,13 @@ func Register(operatorType string, newBuilder func() Builder) {
 }
 
 // RegisterPlugin will register a plugin in the default registry
-func RegisterPlugin(pluginName string, newMultiBuilder func() MultiBuilder) {
-	DefaultRegistry.RegisterPlugin(pluginName, newMultiBuilder)
+func RegisterPlugin(pluginName string, newBuilder func() Builder) {
+	DefaultRegistry.RegisterPlugin(pluginName, newBuilder)
 }
 
 // Lookup looks up a given config type, prioritizing builtin operators
 // before looking in registered plugins. Its second return value will
 // be false if no builder is registered for that type
-func Lookup(configType string) (func() MultiBuilder, bool) {
+func Lookup(configType string) (func() Builder, bool) {
 	return DefaultRegistry.Lookup(configType)
-}
-
-// WrapBuilder takes a function that would create a Builder, and
-// returns a function that makes a MultiBuilder instead
-func WrapBuilder(f func() Builder) func() MultiBuilder {
-	return func() MultiBuilder {
-		return &MultiBuilderWrapper{f()}
-	}
-}
-
-// MultiBuilderWrapper wraps a Builder to turn it into a MultiBuilder
-type MultiBuilderWrapper struct {
-	Builder
-}
-
-// BuildMulti implements MultiBuilder.BuildMulti
-func (m *MultiBuilderWrapper) BuildMulti(bc BuildContext) ([]Operator, error) {
-	op, err := m.Builder.Build(bc)
-	return []Operator{op}, err
-}
-
-// UnmarshalYAML unmarshals YAML
-func (m *MultiBuilderWrapper) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	return unmarshal(m.Builder)
-}
-
-// UnmarshalJSON unmarshals JSON
-func (m *MultiBuilderWrapper) UnmarshalJSON(bytes []byte) error {
-	return json.Unmarshal(bytes, m.Builder)
-}
-
-// MarshalJSON marshalls JSON
-func (m MultiBuilderWrapper) MarshalJSON() ([]byte, error) {
-	return json.Marshal(m.Builder)
-}
-
-// MarshalYAML marshalls YAML
-func (m MultiBuilderWrapper) MarshalYAML() (interface{}, error) {
-	return m.Builder, nil
 }

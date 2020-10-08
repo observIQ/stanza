@@ -30,7 +30,7 @@ type RegexParserConfig struct {
 }
 
 // Build will build a regex parser operator.
-func (c RegexParserConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c RegexParserConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	parserOperator, err := c.ParserConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (c RegexParserConfig) Build(context operator.BuildContext) (operator.Operat
 		regexp:         r,
 	}
 
-	return regexParser, nil
+	return []operator.Operator{regexParser}, nil
 }
 
 // RegexParser is an operator that parses regex in an entry.

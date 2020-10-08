@@ -32,16 +32,17 @@ type StdoutConfig struct {
 }
 
 // Build will build a stdout operator.
-func (c StdoutConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c StdoutConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StdoutOperator{
+	op := &StdoutOperator{
 		OutputOperator: outputOperator,
 		encoder:        json.NewEncoder(Stdout),
-	}, nil
+	}
+	return []operator.Operator{op}, nil
 }
 
 // StdoutOperator is an operator that logs entries using stdout.
