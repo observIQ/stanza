@@ -5,13 +5,13 @@ go 1.14
 require (
 	github.com/kardianos/service v1.1.0
 	github.com/observiq/stanza v0.12.1
-	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.0.0-00010101000000-000000000000
-	github.com/observiq/stanza/operator/builtin/input/windows v0.0.0-00010101000000-000000000000
-	github.com/observiq/stanza/operator/builtin/output/elastic v0.0.0-00010101000000-000000000000
-	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.0.0-00010101000000-000000000000
-	github.com/observiq/stanza/operator/builtin/output/newrelic v0.0.0-00010101000000-000000000000
-	github.com/observiq/stanza/operator/builtin/parser/syslog v0.0.0-00010101000000-000000000000
-	github.com/observiq/stanza/operator/builtin/transformer/k8smetadata v0.0.0-00010101000000-000000000000
+	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
+	github.com/observiq/stanza/operator/builtin/input/windows v0.1.1
+	github.com/observiq/stanza/operator/builtin/output/elastic v0.1.0
+	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.1.0
+	github.com/observiq/stanza/operator/builtin/output/newrelic v0.1.0
+	github.com/observiq/stanza/operator/builtin/parser/syslog v0.1.0
+	github.com/observiq/stanza/operator/builtin/transformer/k8smetadata v0.1.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.5
