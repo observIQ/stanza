@@ -29,7 +29,7 @@ type InputConfig struct {
 }
 
 // Build will build a stanza input operator.
-func (c *InputConfig) Build(context operator.BuildContext) (operator.Operator, error) {
+func (c *InputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (c *InputConfig) Build(context operator.BuildContext) (operator.Operator, e
 		InputOperator: inputOperator,
 		receiver:      receiver,
 	}
-	return input, nil
+	return []operator.Operator{input}, nil
 }
 
 // Input is an operator that receives internal stanza logs.
