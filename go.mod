@@ -5,7 +5,6 @@ go 1.14
 require (
 	github.com/antonmedv/expr v1.8.2
 	github.com/cenkalti/backoff/v4 v4.0.2
-	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -25,7 +24,6 @@ require (
 	golang.org/x/text v0.3.3
 	golang.org/x/tools v0.0.0-20200904185747-39188db58858 // indirect
 	gonum.org/v1/gonum v0.6.2
-	google.golang.org/api v0.32.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
