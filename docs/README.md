@@ -25,32 +25,33 @@ For instance, a user may read lines from a file using the `file_input` operator.
 ## What operators are available?
 
 Inputs:
-- [File input](/docs/operators/file_input.md)
-- [Windows Event Log input](/docs/operators/windows_eventlog_input.md)
-- [TCP input](/docs/operators/tcp_input.md)
-- [UDP input](/docs/operators/udp_input.md)
-- [Journald input](/docs/operators/journald_input.md)
-- [Generate input](/docs/operators/generate_input.md)
+- [File](/docs/operators/file_input.md)
+- [Windows Event Log](/docs/operators/windows_eventlog_input.md)
+- [TCP](/docs/operators/tcp_input.md)
+- [UDP](/docs/operators/udp_input.md)
+- [Journald](/docs/operators/journald_input.md)
+- [Generate](/docs/operators/generate_input.md)
 
 Parsers:
-- [JSON parser](/docs/operators/json_parser.md)
-- [Regex parser](/docs/operators/regex_parser.md)
-- [Syslog parser](/docs/operators/syslog_parser.md)
-- [Severity parser](/docs/operators/severity_parser.md)
-- [Time parser](/docs/operators/time_parser.md)
+- [JSON](/docs/operators/json_parser.md)
+- [Regex](/docs/operators/regex_parser.md)
+- [Syslog](/docs/operators/syslog_parser.md)
+- [Severity](/docs/operators/severity_parser.md)
+- [Time](/docs/operators/time_parser.md)
 
 Outputs:
 - [Google Cloud Logging](/docs/operators/google_cloud_output.md)
 - [Elasticsearch](/docs/operators/elastic_output.md)
 - [Stdout](/docs/operators/stdout.md)
+- [File](docs/operators/file_output.md)
 
 General purpose:
-- [Metadata](/docs/operators/metadata.md)
-- [Restructure records](/docs/operators/restructure.md)
-- [Router](/docs/operators/router.md)
+- [Rate Limit](/docs/operators/rate_limit.md)
 - [Filter](/docs/operators/filter.md)
-- [Kubernetes Metadata Decorator](/docs/operators/k8s_metadata_decorator.md)
+- [Router](/docs/operators/router.md)
+- [Metadata](/docs/operators/metadata.md)
+- [Restructure](/docs/operators/restructure.md)
 - [Host Metadata](/docs/operators/host_metadata.md)
-- [Rate limit](/docs/operators/rate_limit.md)
+- [Kubernetes Metadata Decorator](/docs/operators/k8s_metadata_decorator.md)
 
 Or create your own [plugins](/docs/plugins.md) for a technology-specific use case.
