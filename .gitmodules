@@ -1,0 +1,3 @@
+[submodule "operator/builtin/output/otlp/opentelemetry-proto"]
+	path = operator/builtin/output/otlp/opentelemetry-proto
+	url = git@github.com:open-telemetry/opentelemetry-proto.git

@@ -4,18 +4,19 @@ go 1.14
 
 require (
 	github.com/kardianos/service v1.1.0
-	github.com/observiq/stanza v0.12.1
+	github.com/observiq/stanza v0.12.5
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
 	github.com/observiq/stanza/operator/builtin/input/windows v0.1.1
 	github.com/observiq/stanza/operator/builtin/output/elastic v0.1.0
 	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.1.0
 	github.com/observiq/stanza/operator/builtin/output/newrelic v0.1.0
+	github.com/observiq/stanza/operator/builtin/output/otlp v0.0.0
 	github.com/observiq/stanza/operator/builtin/parser/syslog v0.1.0
 	github.com/observiq/stanza/operator/builtin/transformer/k8smetadata v0.1.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.5
-	go.uber.org/zap v1.15.0
+	go.uber.org/zap v1.16.0
 )
 
 replace github.com/observiq/stanza => ../../
@@ -33,3 +34,5 @@ replace github.com/observiq/stanza/operator/builtin/output/elastic => ../../oper
 replace github.com/observiq/stanza/operator/builtin/output/googlecloud => ../../operator/builtin/output/googlecloud
 
 replace github.com/observiq/stanza/operator/builtin/output/newrelic => ../../operator/builtin/output/newrelic
+
+replace github.com/observiq/stanza/operator/builtin/output/otlp => ../../operator/builtin/output/otlp

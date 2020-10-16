@@ -6,3 +6,4 @@ local/*
 **/coverage.html
 artifacts/*
 .vscode/*
+gen/

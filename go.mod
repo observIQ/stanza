@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/antonmedv/expr v1.8.2
 	github.com/cenkalti/backoff/v4 v4.0.2
+	github.com/golangci/golangci-lint v1.31.0 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -15,6 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.6.1
+	github.com/vektra/mockery v1.1.2 // indirect
 	go.etcd.io/bbolt v1.3.4
 	go.uber.org/zap v1.15.0
 	golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6 // indirect
@@ -26,5 +28,4 @@ require (
 	gonum.org/v1/gonum v0.6.2
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 )
