@@ -1,7 +1,11 @@
 package otlp
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -9,7 +13,6 @@ import (
 	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -22,7 +25,7 @@ func NewOTLPOutputConfig(operatorID string) *OTLPOutputConfig {
 		OutputConfig:     helper.NewOutputConfig(operatorID, "otlp_output"),
 		BufferConfig:     buffer.NewConfig(),
 		FlusherConfig:    flusher.NewConfig(),
-		GRPCClientConfig: NewGRPCClientConfig(),
+		HTTPClientConfig: NewHTTPClientConfig(),
 	}
 }
 
@@ -31,7 +34,7 @@ type OTLPOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
 	BufferConfig        buffer.Config  `json:"buffer" yaml:"buffer"`
 	FlusherConfig       flusher.Config `json:"flusher" yaml:"flusher"`
-	GRPCClientConfig    `yaml:",inline"`
+	HTTPClientConfig    `yaml:",inline"`
 }
 
 // Build will build a new OTLPOutput
@@ -47,20 +50,21 @@ func (c OTLPOutputConfig) Build(context operator.BuildContext) ([]operator.Opera
 		return nil, err
 	}
 
-	dialOpts, err := c.ToDialOptions()
+	client, err := c.HTTPClientConfig.ToClient()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "create client")
 	}
 
-	clientConn, err := grpc.Dial(c.Endpoint, dialOpts...)
+	url, err := url.Parse(c.HTTPClientConfig.Endpoint)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "'endpoint' is not a valid URL")
 	}
 
 	otlp := &OTLPOutput{
-		OutputOperator:   outputOperator,
-		buffer:           buffer,
-		grpcClientConfig: c.GRPCClientConfig,
+		OutputOperator: outputOperator,
+		buffer:         buffer,
+		client:         client,
+		url:            url,
 	}
 
 	otlp.flusher = c.FlusherConfig.Build(buffer, otlp.ProcessMulti, otlp.SugaredLogger)
@@ -68,24 +72,17 @@ func (c OTLPOutputConfig) Build(context operator.BuildContext) ([]operator.Opera
 	return []operator.Operator{otlp}, nil
 }
 
-// OTLPOutput is an operator that sends entries to the New Relic Logs platform
+// OTLPOutput is an operator that sends entries to the OTLP recevier
 type OTLPOutput struct {
 	helper.OutputOperator
-	buffer           buffer.Buffer
-	flusher          *flusher.Flusher
-	grpcClientConfig GRPCClientConfig
-	client           *grpc.ClientConn
+	buffer  buffer.Buffer
+	flusher *flusher.Flusher
+	client  *http.Client
+	url     *url.URL
 }
 
-// Start tests the connection to New Relic and begins flushing entries
+// Start flushing entries
 func (o *OTLPOutput) Start() error {
-	// Test connection
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	if err := o.ProcessMulti(ctx, nil); err != nil {
-		return errors.Wrap(err, "test connection")
-	}
-
 	o.flusher.Start()
 	return nil
 }
@@ -101,20 +98,38 @@ func (o *OTLPOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	return o.buffer.Add(ctx, entry)
 }
 
-// ProcessMulti will send a chunk of entries to New Relic
+// ProcessMulti will send a chunk of entries
 func (o *OTLPOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
 
-	// TODO convert from entries to payload
+	logs := convert(entries)
+	protoBytes, err := logs.ToOtlpProtoBytes()
+	if err != nil {
+		return errors.Wrap(err, "convert logs to proto bytes")
+	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	req, err := o.newRequest(ctx, lp)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, o.url.String(), bytes.NewReader(protoBytes))
 	if err != nil {
 		return errors.Wrap(err, "create request")
 	}
+	req.Header.Set("Content-Type", "application/x-protobuf")
 
-	callOpts := grpc.WaitForReady(o.grpcClientConfig.WaitForReady)
-	return o.client.Invoke(ctx, "/opentelemetry.proto.collector.logs.v1.LogsService/Export", request, response, callOpts)
-	// TODO possibly interpret error
+	res, err := o.client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "send request")
+	}
+
+	o.handleResponse(res)
+	return err
+}
+
+func (o *OTLPOutput) handleResponse(res *http.Response) {
+	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			o.Errorw("Request returned a non-zero status code", "status", res.Status)
+		} else {
+			o.Errorw("Request returned a non-zero status code", "status", res.Status, "body", body)
+		}
+	}
+	res.Body.Close()
 }

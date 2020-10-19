@@ -4,45 +4,49 @@ import (
 	"encoding/json"
 
 	"github.com/mitchellh/mapstructure"
-	"go.opentelemetry.io/collector/config/configgrpc"
+	"go.opentelemetry.io/collector/config/confighttp"
 )
 
-// GRPCClientConfig contains all
-type GRPCClientConfig struct {
-	configgrpc.GRPCClientSettings
+// HTTPClientConfig contains all
+type HTTPClientConfig struct {
+	confighttp.HTTPClientSettings
 }
 
-// NewGRPCClientConfig
-func NewGRPCClientConfig() GRPCClientConfig {
-	return GRPCClientConfig{configgrpc.GRPCClientSettings{}}
+// NewHTTPClientConfig
+func NewHTTPClientConfig() HTTPClientConfig {
+	return HTTPClientConfig{confighttp.HTTPClientSettings{}}
 }
 
-// UnmarshalJSON will unmarshal json into a GRPCClientConfig struct
-func (g *GRPCClientConfig) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON will unmarshal json into a HTTPClientConfig struct
+func (g *HTTPClientConfig) UnmarshalJSON(data []byte) error {
 	any := make(map[string]interface{})
 	if err := json.Unmarshal(data, &any); err != nil {
 		return err
 	}
 
-	settings := configgrpc.GRPCClientSettings{}
+	settings := confighttp.HTTPClientSettings{
+		Endpoint: "http://localhost:55681/v1/logs",
+	}
 	if err := mapstructure.Decode(any, &settings); err != nil {
 		return err
 	}
-	g.GRPCClientSettings = settings
+	g.HTTPClientSettings = settings
 	return nil
 }
 
-// UnmarshalYAML will unmarshal json into a GRPCClientConfig struct
-func (g *GRPCClientConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// UnmarshalYAML will unmarshal json into a HTTPClientConfig struct
+func (g *HTTPClientConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var any interface{}
 	if err := unmarshal(&any); err != nil {
 		return err
 	}
 
-	settings := configgrpc.GRPCClientSettings{}
+	settings := confighttp.HTTPClientSettings{
+		Endpoint: "http://localhost:55681/v1/logs",
+	}
 	if err := mapstructure.Decode(any, &settings); err != nil {
 		return err
 	}
-	g.GRPCClientSettings = settings
+	g.HTTPClientSettings = settings
 	return nil
 }
