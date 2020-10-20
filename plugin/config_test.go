@@ -9,6 +9,7 @@ import (
 	"github.com/observiq/stanza/pipeline"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -112,7 +113,7 @@ pipeline:
 	err = yaml.Unmarshal(pipelineConfig, &pipeline)
 	require.NoError(t, err)
 
-	_, err = pipeline.BuildOperators(operator.NewBuildContext(nil, nil))
+	_, err = pipeline.BuildOperators(operator.NewBuildContext(nil, zaptest.NewLogger(t).Sugar()))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "reached max plugin depth")
 }

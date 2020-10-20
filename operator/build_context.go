@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/observiq/stanza/database"
+	"github.com/observiq/stanza/logger"
 	"go.uber.org/zap"
 )
 
@@ -12,7 +13,7 @@ import (
 type BuildContext struct {
 	Database         database.Database
 	Parameters       map[string]interface{}
-	Logger           *zap.SugaredLogger
+	Logger           *logger.Logger
 	Namespace        string
 	DefaultOutputIDs []string
 	PluginDepth      int
@@ -64,11 +65,11 @@ func (bc BuildContext) Copy() BuildContext {
 
 // NewBuildContext creates a new build context with the given database, logger, and the
 // default namespace
-func NewBuildContext(db database.Database, logger *zap.SugaredLogger) BuildContext {
+func NewBuildContext(db database.Database, lg *zap.SugaredLogger) BuildContext {
 	return BuildContext{
 		Database:         db,
 		Parameters:       nil,
-		Logger:           logger,
+		Logger:           logger.New(lg),
 		Namespace:        "$",
 		DefaultOutputIDs: []string{},
 	}
