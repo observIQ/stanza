@@ -25,7 +25,7 @@ Configuration:
 ```yaml
 - type: regex_parser
   parse_from: message
-  regexp: '^Host=(?P<host>[^,]+), Type=(?P<type>.*)$'
+  regex: '^Host=(?P<host>[^,]+), Type=(?P<type>.*)$'
 ```
 
 <table>
@@ -66,7 +66,7 @@ Configuration:
 - type: regex_parser
   parse_from: message.embedded
   parse_to: parsed
-  regexp: '^Host=(?P<host>[^,]+), Type=(?P<type>.*)$'
+  regex: '^Host=(?P<host>[^,]+), Type=(?P<type>.*)$'
   preserve: true
 ```
 
@@ -114,7 +114,7 @@ Configuration:
 Configuration:
 ```yaml
 - type: regex_parser
-  regexp: '^Time=(?P<timestamp_field>\d{4}-\d{2}-\d{2}), Host=(?P<host>[^,]+), Type=(?P<type>.*)$'
+  regex: '^Time=(?P<timestamp_field>\d{4}-\d{2}-\d{2}), Host=(?P<host>[^,]+), Type=(?P<type>.*)$'
   timestamp:
     parse_from: timestamp_field
     layout_type: strptime
