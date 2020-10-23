@@ -16,12 +16,19 @@ const (
 
 // Parameter is a basic description of a plugin's parameter.
 type Parameter struct {
-	Label       string
-	Description string
-	Required    bool
-	Type        string      // "string", "int", "bool", "strings", or "enum"
-	ValidValues []string    `yaml:"valid_values"` // only useable if Type == "enum"
-	Default     interface{} // Must be valid according to Type & ValidValues
+	Label       string `json:"label" yaml:"label"`
+	Description string `json:"description" yaml:"description"`
+	Required    bool   `json:"required" yaml:"required"`
+
+	// "string", "int", "bool", "strings", or "enum"
+	Type string `json:"type" yaml:"type"`
+
+	// only useable if Type == "enum"
+	ValidValues []string `json:"validValues" yaml:"valid_values"`
+
+	// Must be valid according to Type & ValidValues
+	Default    interface{}                       `json:"default" yaml:"default"`
+	RelevantIf map[string]map[string]interface{} `json:"relevantIf" yaml:"relevant_if"`
 }
 
 func (p Parameter) validateValue(value interface{}) error {
@@ -115,6 +122,8 @@ func (p Parameter) validateDefinition() error {
 	if err := p.validateDefault(); err != nil {
 		return err
 	}
+
+	// TODO validate relevant_if
 
 	return nil
 }

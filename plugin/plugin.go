@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"text/template"
 
 	"github.com/observiq/stanza/errors"
@@ -15,12 +14,19 @@ import (
 
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
-	ID          string
-	Version     string
-	Title       string
-	Description string
-	Parameters  map[string]Parameter
-	Template    *template.Template
+	PluginDefinition `yaml:",inline"`
+	Template         *template.Template
+}
+
+// PluginDefinition contains metadata for rendering the plugin
+type PluginDefinition struct {
+	ID               string               `json:"id"          yaml:"id"`
+	Version          string               `json:"version"     yaml:"version"`
+	Title            string               `json:"title"       yaml:"title"`
+	Description      string               `json:"description" yaml:"description"`
+	Parameters       map[string]Parameter `json:"parameters"  yaml:"parameters"`
+	MinStanzaVersion *string              `json:"minStanzaVersion" yaml:"min_stanza_version"`
+	MaxStanzaVersion *string              `json:"minStanzaVerion" yaml:"max_stanza_version"`
 }
 
 // NewBuilder creates a new, empty config that can build into an operator
@@ -49,8 +55,22 @@ func (p *Plugin) Render(params map[string]interface{}) ([]byte, error) {
 	return writer.Bytes(), nil
 }
 
+var versionRegex = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+
 // Validate checks the provided params against the parameter definitions to ensure they are valid
 func (p *Plugin) Validate(params map[string]interface{}) error {
+	if !versionRegex.MatchString(p.Version) {
+		return errors.NewError("invalid plugin version", "", "plugin_type", p.ID)
+	}
+
+	if p.MaxStanzaVersion != nil && !versionRegex.MatchString(*p.MaxStanzaVersion) {
+		return errors.NewError("invalid max stanza version", "", "plugin_type", p.ID)
+	}
+
+	if p.MinStanzaVersion != nil && !versionRegex.MatchString(*p.MinStanzaVersion) {
+		return errors.NewError("invalid min stanza version", "", "plugin_type", p.ID)
+	}
+
 	for name, param := range p.Parameters {
 		value, ok := params[name]
 		if !ok && !param.Required {
@@ -159,17 +179,15 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 		return nil, err
 	}
 
-	id := strings.Split(filepath.Base(path), ".")[0]
-	return NewPlugin(id, contents)
+	return NewPlugin(contents)
 }
 
 // NewPlugin builds a new plugin from an ID and file contents
-func NewPlugin(id string, contents []byte) (*Plugin, error) {
+func NewPlugin(contents []byte) (*Plugin, error) {
 	p := &Plugin{}
 	if err := p.UnmarshalText(contents); err != nil {
 		return nil, err
 	}
-	p.ID = id
 
 	// Validate the parameter definitions
 	for name, param := range p.Parameters {
