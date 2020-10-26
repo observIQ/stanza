@@ -12,6 +12,7 @@ import (
 )
 
 var simple = []byte(`
+id: test1
 parameters:
   message:
     type: string
@@ -52,7 +53,7 @@ func TestRegisterPlugins(t *testing.T) {
 func TestPluginRender(t *testing.T) {
 
 	t.Run("ErrorExecFailure", func(t *testing.T) {
-		plugin, err := NewPlugin("panicker", []byte(`pipeline:\n  {{ .panicker }}`))
+		plugin, err := NewPlugin([]byte("id: panicker\npipeline:\n  {{ .panicker }}"))
 		require.NoError(t, err)
 
 		params := map[string]interface{}{
@@ -135,6 +136,7 @@ pipeline:
 			name:      "bad_version",
 			expectErr: true,
 			template: `version: []
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -153,6 +155,7 @@ pipeline:
 			name:      "bad_title",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: []
 description: This is a test plugin
 parameters:
@@ -171,6 +174,7 @@ pipeline:
 			name:      "bad_description",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: []
 parameters:
@@ -189,6 +193,7 @@ pipeline:
 			name:      "bad_parameters",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters: hello
@@ -198,6 +203,7 @@ parameters: hello
 			name:      "bad_parameter_structure",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -209,6 +215,7 @@ pipeline:
 			name:      "bad_parameter_label",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -223,6 +230,7 @@ pipeline:
 			name:      "bad_parameter_description",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -237,6 +245,7 @@ pipeline:
 			name:      "bad_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -251,6 +260,7 @@ pipeline:
 			name:      "empty_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -262,6 +272,7 @@ pipeline:
 			name:      "unknown_parameter",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -276,6 +287,7 @@ pipeline:
 			name:      "string_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -290,6 +302,7 @@ pipeline:
 			name:      "string_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -305,6 +318,7 @@ pipeline:
 			name:      "string_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -320,6 +334,7 @@ pipeline:
 			name:      "strings_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -334,6 +349,7 @@ pipeline:
 			name:      "strings_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -350,6 +366,7 @@ pipeline:
 			name:      "strings_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -366,6 +383,7 @@ pipeline:
 			name:      "int_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -380,6 +398,7 @@ pipeline:
 			name:      "int_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -395,6 +414,7 @@ pipeline:
 			name:      "int_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -410,6 +430,7 @@ pipeline:
 			name:      "bool_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -424,6 +445,7 @@ pipeline:
 			name:      "bool_parameter_default_true",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -439,6 +461,7 @@ pipeline:
 			name:      "bool_parameter_default_false",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -454,6 +477,7 @@ pipeline:
 			name:      "bool_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -469,6 +493,7 @@ pipeline:
 			name:      "enum_parameter",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -484,6 +509,7 @@ pipeline:
 			name:      "enum_parameter_alternate",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -501,6 +527,7 @@ pipeline:
 			name:      "enum_parameter_default",
 			expectErr: false,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -519,6 +546,7 @@ pipeline:
 			name:      "enum_parameter_default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -537,6 +565,7 @@ pipeline:
 			name:      "enum_parameter_no_valid_values",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -551,6 +580,7 @@ pipeline:
 			name:      "default_invalid",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -566,6 +596,7 @@ pipeline:
 			name:      "required_default",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -582,6 +613,7 @@ pipeline:
 			name:      "non_enum_valid_values",
 			expectErr: true,
 			template: `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -597,7 +629,7 @@ pipeline:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := NewPlugin(tc.name, []byte(tc.template))
+			_, err := NewPlugin([]byte(tc.template))
 			if tc.expectErr {
 				require.Error(t, err)
 				return
@@ -609,6 +641,7 @@ pipeline:
 
 func TestRenderWithMissingRequired(t *testing.T) {
 	template := `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -620,7 +653,7 @@ parameters:
 pipeline:
 `
 
-	plugin, err := NewPlugin("plugin", []byte(template))
+	plugin, err := NewPlugin([]byte(template))
 	require.NoError(t, err)
 	_, err = plugin.Render(map[string]interface{}{})
 	require.Error(t, err)
@@ -629,6 +662,7 @@ pipeline:
 
 func TestRenderWithInvalidParameter(t *testing.T) {
 	template := `version: 0.0.0
+id: plugin
 title: Test Plugin
 description: This is a test plugin
 parameters:
@@ -639,7 +673,7 @@ parameters:
     required: true
 pipeline:
 `
-	plugin, err := NewPlugin("plugin", []byte(template))
+	plugin, err := NewPlugin([]byte(template))
 	require.NoError(t, err)
 	_, err = plugin.Render(map[string]interface{}{"path": "test"})
 	require.Error(t, err)

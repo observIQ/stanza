@@ -35,6 +35,7 @@ func TestGetRenderParams(t *testing.T) {
 
 func TestPlugin(t *testing.T) {
 	pluginContent := []byte(`
+id: my_plugin
 parameters:
 pipeline:
   - id: {{ .input }}
@@ -49,10 +50,10 @@ unused_param: test_unused
 output: stdout
 `)
 
-	plugin, err := NewPlugin("my_plugin", pluginContent)
+	plugin, err := NewPlugin(pluginContent)
 	require.NoError(t, err)
 
-	operator.RegisterPlugin("my_plugin", plugin.NewBuilder)
+	operator.RegisterPlugin(plugin.ID, plugin.NewBuilder)
 
 	var cfg operator.Config
 	err = yaml.Unmarshal(configContent, &cfg)
@@ -77,6 +78,7 @@ output: stdout
 	require.Equal(t, expected, cfg)
 
 	operators, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
 	require.Len(t, operators, 1)
 	noop, ok := operators[0].(*noop.NoopOperator)
 	require.True(t, ok)
@@ -87,23 +89,25 @@ output: stdout
 
 func TestBuildRecursiveFails(t *testing.T) {
 	pluginConfig1 := []byte(`
+id: plugin1
 pipeline:
   - type: plugin2
 `)
 
 	pluginConfig2 := []byte(`
+id: plugin2
 pipeline:
   - type: plugin1
 `)
 
-	plugin1, err := NewPlugin("plugin1", pluginConfig1)
+	plugin1, err := NewPlugin(pluginConfig1)
 	require.NoError(t, err)
-	plugin2, err := NewPlugin("plugin2", pluginConfig2)
+	plugin2, err := NewPlugin(pluginConfig2)
 	require.NoError(t, err)
 
 	t.Cleanup(func() { operator.DefaultRegistry = operator.NewRegistry() })
-	operator.RegisterPlugin("plugin1", plugin1.NewBuilder)
-	operator.RegisterPlugin("plugin2", plugin2.NewBuilder)
+	operator.RegisterPlugin(plugin1.ID, plugin1.NewBuilder)
+	operator.RegisterPlugin(plugin2.ID, plugin2.NewBuilder)
 
 	pipelineConfig := []byte(`
 - type: plugin1

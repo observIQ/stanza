@@ -15,7 +15,7 @@ import (
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
 	Definition `yaml:",inline"`
-	Template         *template.Template
+	Template   *template.Template
 }
 
 // PluginDefinition contains metadata for rendering the plugin
@@ -59,7 +59,7 @@ var versionRegex = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 // Validate checks the provided params against the parameter definitions to ensure they are valid
 func (p *Plugin) Validate(params map[string]interface{}) error {
-	if !versionRegex.MatchString(p.Version) {
+	if p.Version != "" && !versionRegex.MatchString(p.Version) {
 		return errors.NewError("invalid plugin version", "", "plugin_type", p.ID)
 	}
 
