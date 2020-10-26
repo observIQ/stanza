@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"text/template"
 
 	"github.com/observiq/stanza/errors"
@@ -15,12 +16,12 @@ import (
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
 	Definition `yaml:",inline"`
-	Template         *template.Template
+	ID         string `json:"id" yaml:"id"`
+	Template   *template.Template
 }
 
 // PluginDefinition contains metadata for rendering the plugin
 type Definition struct {
-	ID               string               `json:"id"          yaml:"id"`
 	Version          string               `json:"version"     yaml:"version"`
 	Title            string               `json:"title"       yaml:"title"`
 	Description      string               `json:"description" yaml:"description"`
@@ -179,12 +180,15 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 		return nil, err
 	}
 
-	return NewPlugin(contents)
+	pluginID := strings.TrimSuffix(filepath.Base(path), ".yaml")
+	return NewPlugin(pluginID, contents)
 }
 
 // NewPlugin builds a new plugin from an ID and file contents
-func NewPlugin(contents []byte) (*Plugin, error) {
-	p := &Plugin{}
+func NewPlugin(pluginID string, contents []byte) (*Plugin, error) {
+	p := &Plugin{
+		ID: pluginID,
+	}
 	if err := p.UnmarshalText(contents); err != nil {
 		return nil, err
 	}
