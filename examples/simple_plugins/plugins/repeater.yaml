@@ -1,4 +1,3 @@
-id: repeater
 # This plugin is registered as the type 'repeater'.
 # The type comes from the filename.
 # It will generate exactly 5 entries with the same
