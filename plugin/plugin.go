@@ -60,7 +60,7 @@ var versionRegex = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 // Validate checks the provided params against the parameter definitions to ensure they are valid
 func (p *Plugin) Validate(params map[string]interface{}) error {
-	if !versionRegex.MatchString(p.Version) {
+	if p.Version != "" && !versionRegex.MatchString(p.Version) {
 		return errors.NewError("invalid plugin version", "", "plugin_type", p.ID)
 	}
 
@@ -186,12 +186,11 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 
 // NewPlugin builds a new plugin from an ID and file contents
 func NewPlugin(pluginID string, contents []byte) (*Plugin, error) {
-	p := &Plugin{
-		ID: pluginID,
-	}
+	p := &Plugin{}
 	if err := p.UnmarshalText(contents); err != nil {
 		return nil, err
 	}
+	p.ID = pluginID
 
 	// Validate the parameter definitions
 	for name, param := range p.Parameters {

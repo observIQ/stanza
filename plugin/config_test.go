@@ -52,7 +52,7 @@ output: stdout
 	plugin, err := NewPlugin("my_plugin", pluginContent)
 	require.NoError(t, err)
 
-	operator.RegisterPlugin("my_plugin", plugin.NewBuilder)
+	operator.RegisterPlugin(plugin.ID, plugin.NewBuilder)
 
 	var cfg operator.Config
 	err = yaml.Unmarshal(configContent, &cfg)
@@ -77,6 +77,7 @@ output: stdout
 	require.Equal(t, expected, cfg)
 
 	operators, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
 	require.Len(t, operators, 1)
 	noop, ok := operators[0].(*noop.NoopOperator)
 	require.True(t, ok)
