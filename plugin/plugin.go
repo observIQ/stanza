@@ -14,12 +14,12 @@ import (
 
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
-	PluginDefinition `yaml:",inline"`
+	Definition `yaml:",inline"`
 	Template         *template.Template
 }
 
 // PluginDefinition contains metadata for rendering the plugin
-type PluginDefinition struct {
+type Definition struct {
 	ID               string               `json:"id"          yaml:"id"`
 	Version          string               `json:"version"     yaml:"version"`
 	Title            string               `json:"title"       yaml:"title"`
