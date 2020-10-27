@@ -136,6 +136,7 @@ func TestConvertMapBody(t *testing.T) {
 		"uint64":  uint64(1),
 		"float32": float32(1),
 		"float64": float64(1),
+		"strings": []string{"foo", "bar"},
 	}
 
 	result := recordToBody(structuredRecord).MapVal()
@@ -157,6 +158,11 @@ func TestConvertMapBody(t *testing.T) {
 		v, _ = result.Get(k)
 		require.Equal(t, float64(1), v.DoubleVal())
 	}
+
+	v, _ = result.Get("strings")
+	require.Equal(t, 2, v.ArrayVal().Len())
+	require.Equal(t, "foo", v.ArrayVal().At(0).StringVal())
+	require.Equal(t, "bar", v.ArrayVal().At(1).StringVal())
 }
 
 func TestConvertArrayBody(t *testing.T) {
@@ -179,6 +185,7 @@ func TestConvertArrayBody(t *testing.T) {
 		float64(1),
 		[]interface{}{"string", 1},
 		map[string]interface{}{"one": 1, "yes": true},
+		map[string]string{"foo": "bar"},
 	}
 
 	result := recordToBody(structuredRecord).ArrayVal()
@@ -211,6 +218,10 @@ func TestConvertArrayBody(t *testing.T) {
 	require.Equal(t, int64(1), v.IntVal())
 	v, _ = nestedMap.Get("yes")
 	require.True(t, v.BoolVal())
+
+	stringsMap := result.At(18).MapVal()
+	v, _ = stringsMap.Get("foo")
+	require.Equal(t, "bar", v.StringVal())
 }
 
 func TestConvertUnknownBody(t *testing.T) {

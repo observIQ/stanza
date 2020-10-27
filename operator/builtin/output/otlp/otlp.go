@@ -50,13 +50,13 @@ func (c OTLPOutputConfig) Build(context operator.BuildContext) ([]operator.Opera
 		return nil, err
 	}
 
+	if err := c.cleanEndpoint(); err != nil {
+		return nil, err
+	}
+
 	client, err := c.HTTPClientConfig.ToClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "create client")
-	}
-
-	if err := c.cleanEndpoint(); err != nil {
-		return nil, err
 	}
 
 	url, err := url.Parse(c.HTTPClientConfig.Endpoint)

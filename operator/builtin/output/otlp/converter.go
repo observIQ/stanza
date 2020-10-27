@@ -77,7 +77,9 @@ func groupByResource(entries []*entry.Entry) [][]*entry.Entry {
 		if resourceEntries, ok := resourceMap[resourceHash]; ok {
 			resourceEntries = append(resourceEntries, ent)
 		} else {
-			resourceMap[resourceHash] = []*entry.Entry{ent}
+			resourceEntries = make([]*entry.Entry, 0, 8)
+			resourceEntries = append(resourceEntries, ent)
+			resourceMap[resourceHash] = resourceEntries
 		}
 	}
 
@@ -120,8 +122,23 @@ func insertToAttributeVal(value interface{}, dest pdata.AttributeValue) {
 		dest.SetDoubleVal(t)
 	case float32:
 		dest.SetDoubleVal(float64(t))
+	case map[string]string:
+		attMap := pdata.NewAttributeMap()
+		attMap.InitEmptyWithCapacity(len(t))
+		for k, v := range t {
+			attMap.InsertString(k, v)
+		}
+		dest.SetMapVal(attMap)
 	case map[string]interface{}:
 		dest.SetMapVal(toAttributeMap(t))
+	case []string:
+		arr := pdata.NewAnyValueArray()
+		for _, v := range t {
+			attVal := pdata.NewAttributeValue()
+			attVal.SetStringVal(v)
+			arr.Append(attVal)
+		}
+		dest.SetArrayVal(arr)
 	case []interface{}:
 		dest.SetArrayVal(toAttributeArray(t))
 	default:
@@ -164,11 +181,30 @@ func toAttributeMap(obsMap map[string]interface{}) pdata.AttributeMap {
 			attMap.InsertDouble(k, t)
 		case float32:
 			attMap.InsertDouble(k, float64(t))
+		case map[string]string:
+			subMap := pdata.NewAttributeMap()
+			subMap.InitEmptyWithCapacity(len(t))
+			for k, v := range t {
+				subMap.InsertString(k, v)
+			}
+			subMapVal := pdata.NewAttributeValueMap()
+			subMapVal.SetMapVal(subMap)
+			attMap.Insert(k, subMapVal)
 		case map[string]interface{}:
 			subMap := toAttributeMap(t)
 			subMapVal := pdata.NewAttributeValueMap()
 			subMapVal.SetMapVal(subMap)
 			attMap.Insert(k, subMapVal)
+		case []string:
+			arr := pdata.NewAnyValueArray()
+			for _, v := range t {
+				attVal := pdata.NewAttributeValue()
+				insertToAttributeVal(v, attVal)
+				arr.Append(attVal)
+			}
+			arrVal := pdata.NewAttributeValueArray()
+			arrVal.SetArrayVal(arr)
+			attMap.Insert(k, arrVal)
 		case []interface{}:
 			arr := toAttributeArray(t)
 			arrVal := pdata.NewAttributeValueArray()
