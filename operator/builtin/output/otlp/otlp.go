@@ -55,6 +55,10 @@ func (c OTLPOutputConfig) Build(context operator.BuildContext) ([]operator.Opera
 		return nil, errors.Wrap(err, "create client")
 	}
 
+	if err := c.cleanEndpoint(); err != nil {
+		return nil, err
+	}
+
 	url, err := url.Parse(c.HTTPClientConfig.Endpoint)
 	if err != nil {
 		return nil, errors.Wrap(err, "'endpoint' is not a valid URL")
@@ -101,7 +105,7 @@ func (o *OTLPOutput) Process(ctx context.Context, entry *entry.Entry) error {
 // ProcessMulti will send a chunk of entries
 func (o *OTLPOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
 
-	logs := convert(entries)
+	logs := Convert(entries)
 	protoBytes, err := logs.ToOtlpProtoBytes()
 	if err != nil {
 		return errors.Wrap(err, "convert logs to proto bytes")

@@ -9,7 +9,8 @@ import (
 	"go.opentelemetry.io/collector/consumer/pdata"
 )
 
-func convert(entries []*entry.Entry) pdata.Logs {
+// Convert converts a slice of entries to pdata.Logs format
+func Convert(entries []*entry.Entry) pdata.Logs {
 
 	out := pdata.NewLogs()
 	logs := out.ResourceLogs()
