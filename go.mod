@@ -26,5 +26,5 @@ require (
 	gonum.org/v1/gonum v0.6.2
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
+	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
 )
