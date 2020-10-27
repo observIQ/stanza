@@ -18,8 +18,7 @@ func init() {
 func newDefaultLoggerAt(level zapcore.Level, path string) *zap.SugaredLogger {
 	logCfg := zap.NewProductionConfig()
 	logCfg.Level = zap.NewAtomicLevelAt(level)
-	logCfg.Sampling.Initial = 5
-	logCfg.Sampling.Thereafter = 100
+	logCfg.Sampling = nil
 	logCfg.EncoderConfig.CallerKey = ""
 	logCfg.EncoderConfig.StacktraceKey = ""
 	logCfg.EncoderConfig.TimeKey = "timestamp"

@@ -52,9 +52,9 @@ func LogMessageFromEntry(entry *entry.Entry, messageField entry.Field) *LogMessa
 	err := entry.Read(messageField, &message)
 	if err == nil {
 		logMessage.Message = message
-		entry.Delete(messageField)
 	}
 
+	logMessage.Attributes["record"] = entry.Record
 	logMessage.Attributes["resource"] = entry.Resource
 	logMessage.Attributes["labels"] = entry.Labels
 	logMessage.Attributes["severity"] = entry.Severity.String()

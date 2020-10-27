@@ -66,7 +66,7 @@ func TestTransformerDropOnError(t *testing.T) {
 			BasicOperator: BasicOperator{
 				OperatorID:    "test-id",
 				OperatorType:  "test-type",
-				SugaredLogger: buildContext.Logger,
+				SugaredLogger: buildContext.Logger.SugaredLogger,
 			},
 			OutputOperators: []operator.Operator{output},
 			OutputIDs:       []string{"test-output"},
@@ -94,7 +94,7 @@ func TestTransformerSendOnError(t *testing.T) {
 			BasicOperator: BasicOperator{
 				OperatorID:    "test-id",
 				OperatorType:  "test-type",
-				SugaredLogger: buildContext.Logger,
+				SugaredLogger: buildContext.Logger.SugaredLogger,
 			},
 			OutputOperators: []operator.Operator{output},
 			OutputIDs:       []string{"test-output"},
@@ -122,7 +122,7 @@ func TestTransformerProcessWithValid(t *testing.T) {
 			BasicOperator: BasicOperator{
 				OperatorID:    "test-id",
 				OperatorType:  "test-type",
-				SugaredLogger: buildContext.Logger,
+				SugaredLogger: buildContext.Logger.SugaredLogger,
 			},
 			OutputOperators: []operator.Operator{output},
 			OutputIDs:       []string{"test-output"},

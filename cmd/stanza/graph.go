@@ -28,44 +28,44 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 }
 
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
-	var logger *zap.SugaredLogger
+	var sugaredLogger *zap.SugaredLogger
 	if flags.Debug {
-		logger = newDefaultLoggerAt(zapcore.DebugLevel, "")
+		sugaredLogger = newDefaultLoggerAt(zapcore.DebugLevel, "")
 	} else {
-		logger = newDefaultLoggerAt(zapcore.InfoLevel, "")
+		sugaredLogger = newDefaultLoggerAt(zapcore.InfoLevel, "")
 	}
 	defer func() {
-		_ = logger.Sync()
+		_ = sugaredLogger.Sync()
 	}()
 
 	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
+		sugaredLogger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	if err := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); err != nil {
-		logger.Errorw("Failed to register plugins", zap.Any("error", err))
+		sugaredLogger.Errorw("Failed to register plugins", zap.Any("error", err))
 		os.Exit(1)
 	}
 
-	buildContext := operator.NewBuildContext(database.NewStubDatabase(), logger)
+	buildContext := operator.NewBuildContext(database.NewStubDatabase(), sugaredLogger)
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
 	if err != nil {
-		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
+		sugaredLogger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	dotGraph, err := pipeline.Render()
 	if err != nil {
-		logger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
+		sugaredLogger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	dotGraph = append(dotGraph, '\n')
 	_, err = stdout.Write(dotGraph)
 	if err != nil {
-		logger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))
+		sugaredLogger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))
 		os.Exit(1)
 	}
 }

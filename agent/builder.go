@@ -1,11 +1,14 @@
 package agent
 
 import (
+	"time"
+
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/plugin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // LogAgentBuilder is a construct used to build a log agent
@@ -79,7 +82,13 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 		}
 	}
 
-	buildContext := operator.NewBuildContext(db, b.logger)
+	sampledLogger := b.logger.Desugar().WithOptions(
+		zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+			return zapcore.NewSamplerWithOptions(core, time.Second, 5, 100)
+		}),
+	).Sugar()
+
+	buildContext := operator.NewBuildContext(db, sampledLogger)
 	pipeline, err := b.config.Pipeline.BuildPipeline(buildContext, b.defaultOutput)
 	if err != nil {
 		return nil, err

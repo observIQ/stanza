@@ -21,7 +21,7 @@ type DiskBufferConfig struct {
 	Type string `json:"type" yaml:"type"`
 
 	// MaxSize is the maximum size in bytes of the data file on disk
-	MaxSize int `json:"max_size" yaml:"max_size"`
+	MaxSize int64 `json:"max_size" yaml:"max_size"`
 
 	// Path is a path to a directory which contains the data and metadata files
 	Path string `json:"path" yaml:"path"`
@@ -90,7 +90,7 @@ type DiskBuffer struct {
 }
 
 // NewDiskBuffer creates a new DiskBuffer
-func NewDiskBuffer(maxDiskSize int) *DiskBuffer {
+func NewDiskBuffer(maxDiskSize int64) *DiskBuffer {
 	return &DiskBuffer{
 		maxBytes:          int64(maxDiskSize),
 		entryAdded:        make(chan int64, 1),

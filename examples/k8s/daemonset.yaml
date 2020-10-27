@@ -41,26 +41,7 @@ apiVersion: v1
 data:
   config.yaml: |2-
     pipeline:
-      - type: file_input
-        include:
-          - /var/log/containers/*
-        write_to: message
-        include_file_path: true
-
-      - type: regex_parser
-        parse_from: $labels.file_path
-        regex: '^/var/log/containers/(?P<pod_name>.*)_(?P<namespace>.*)_(?P<service>.*)-[a-z0-9]+\.log'
-
-      - type: restructure
-        ops:
-          - move:
-              from: '$record.pod_name'
-              to: '$resource["k8s.pod.name"]'
-          - move:
-              from: '$record.namespace'
-              to: '$resource["k8s.namespace.name"]'
-
-      - type: k8s_metadata_decorator
+      - type: kubernetes
 
       - type: file_output
         path: /tmp/test.out
@@ -82,7 +63,7 @@ spec:
       serviceAccountName: stanza-metadata
       containers:
         - name: stanza
-          image: observiq/stanza:dev
+          image: observiq/stanza:latest
           imagePullPolicy: Always
           resources:
             limits:
