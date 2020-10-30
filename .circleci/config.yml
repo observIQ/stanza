@@ -139,7 +139,7 @@ jobs:
           name: Unit Tests
           shell: powershell.exe
           command: >
-            Push-Location; Set-Location ./operator/builtin/input/file; go test -race ./... -count 100; Pop-Location;
+            Push-Location; Set-Location ./operator/builtin/input/file; go test -race ./... -count 20; Pop-Location;
 
   run-benchmark:
     parameters:
