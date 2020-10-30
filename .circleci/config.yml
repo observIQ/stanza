@@ -139,7 +139,7 @@ jobs:
           name: Unit Tests
           shell: powershell.exe
           command: >
-            Push-Location; Set-Location ./operator/builtin/input/file; go test -race ./... -count 100; Pop-Location; `
+            Push-Location; Set-Location ./operator/builtin/input/file; go test -race ./... -count 100; Pop-Location;
 
   run-benchmark:
     parameters:
@@ -303,84 +303,84 @@ jobs:
 workflows:
   version: 2
 
-  benchmark:
-    jobs:
-      - run-benchmark:
-          name: f1-1000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-1000
-          rate: 1000
-          files: 1
-      - run-benchmark:
-          name: f1-5000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-5000
-          rate: 5000
-          files: 1
-      - run-benchmark:
-          name: f1-10000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-10000
-          rate: 10000
-          files: 1
-      - run-benchmark:
-          name: f1-50000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-50000
-          rate: 50000
-          files: 1
-      - run-benchmark:
-          name: f1-100000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f1-100000
-          rate: 100000
-          files: 1
-      - run-benchmark:
-          name: f10-100
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-100
-          rate: 100
-          files: 10
-      - run-benchmark:
-          name: f10-500
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-500
-          rate: 500
-          files: 10
-      - run-benchmark:
-          name: f10-1000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-1000
-          rate: 1000
-          files: 10
-      - run-benchmark:
-          name: f10-5000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-5000
-          rate: 5000
-          files: 10
-      - run-benchmark:
-          name: f10-10000
-          context: logagent-benchmark
-          instance: circleci-<< pipeline.number >>-f10-10000
-          rate: 10000
-          files: 10
-      - report-benchmark:
-          requires:
-            - f1-1000
-            - f1-5000
-            - f1-10000
-            - f1-50000
-            - f1-100000
-            - f10-100
-            - f10-500
-            - f10-1000
-            - f10-5000
-            - f10-10000
-          filters:
-            branches:
-              ignore:
-                - master
+  # benchmark:
+  #   jobs:
+      # - run-benchmark:
+      #     name: f1-1000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f1-1000
+      #     rate: 1000
+      #     files: 1
+      # - run-benchmark:
+      #     name: f1-5000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f1-5000
+      #     rate: 5000
+      #     files: 1
+      # - run-benchmark:
+      #     name: f1-10000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f1-10000
+      #     rate: 10000
+      #     files: 1
+      # - run-benchmark:
+      #     name: f1-50000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f1-50000
+      #     rate: 50000
+      #     files: 1
+      # - run-benchmark:
+      #     name: f1-100000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f1-100000
+      #     rate: 100000
+      #     files: 1
+      # - run-benchmark:
+      #     name: f10-100
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f10-100
+      #     rate: 100
+      #     files: 10
+      # - run-benchmark:
+      #     name: f10-500
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f10-500
+      #     rate: 500
+      #     files: 10
+      # - run-benchmark:
+      #     name: f10-1000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f10-1000
+      #     rate: 1000
+      #     files: 10
+      # - run-benchmark:
+      #     name: f10-5000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f10-5000
+      #     rate: 5000
+      #     files: 10
+      # - run-benchmark:
+      #     name: f10-10000
+      #     context: logagent-benchmark
+      #     instance: circleci-<< pipeline.number >>-f10-10000
+      #     rate: 10000
+      #     files: 10
+      # - report-benchmark:
+      #     requires:
+      #       - f1-1000
+      #       - f1-5000
+      #       - f1-10000
+      #       - f1-50000
+      #       - f1-100000
+      #       - f10-100
+      #       - f10-500
+      #       - f10-1000
+      #       - f10-5000
+      #       - f10-10000
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - master
 
   test_build_release:
     jobs:
