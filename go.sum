@@ -45,6 +45,8 @@ github.com/observiq/ctimefmt v1.0.0 h1:r7vTJ+Slkrt9fZ67mkf+mA6zAdR5nGIJRMTzkUyvi
 github.com/observiq/ctimefmt v1.0.0/go.mod h1:mxi62//WbSpG/roCO1c6MqZ7zQTvjVtYheqHN3eOjvc=
 github.com/observiq/nanojack v0.0.0-20200910202758-a0af1c611319 h1:33Fh2cXMUKlnSxYAqt9+BHZRdK01/P6lJNfXttwmIjk=
 github.com/observiq/nanojack v0.0.0-20200910202758-a0af1c611319/go.mod h1:f+QQxL9zFpO5q44o7rf+TOEtEmlMQUI9snW9ZADIku0=
+github.com/observiq/nanojack v0.0.0-20201023134036-af42faaa8c21 h1:PA8C5DNqp15/7X974cZGfUbTWrQQ3mmIHIii4k0hefc=
+github.com/observiq/nanojack v0.0.0-20201023134036-af42faaa8c21/go.mod h1:WXIHwGy+c7/IK2PiJ4oxuTHkpnkSut7TNFpKnI5llPU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

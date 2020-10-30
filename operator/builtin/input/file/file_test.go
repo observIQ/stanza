@@ -76,7 +76,7 @@ func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
 	return file
 }
 
-func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, copyTruncate bool) *log.Logger {
+func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, copyTruncate, sequential bool) *log.Logger {
 	file, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
 	require.NoError(t, file.Close()) // will be managed by rotator
@@ -86,6 +86,7 @@ func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, c
 		MaxLines:     maxLines,
 		MaxBackups:   maxBackups,
 		CopyTruncate: copyTruncate,
+		Sequential:   sequential,
 	}
 
 	t.Cleanup(func() { _ = rotator.Close() })
@@ -732,7 +733,7 @@ func (rt rotationTest) expectEphemeralLines() bool {
 	return maxBackupsExceeded && rt.pollInterval > minTimeToLive
 }
 
-func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T) {
+func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		operator, logReceived, tempDir := newTestFileOperator(t,
 			func(cfg *InputConfig) {
@@ -742,7 +743,7 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T
 				out.Received = make(chan *entry.Entry, tc.totalLines)
 			},
 		)
-		logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate)
+		logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate, sequential)
 
 		expected := make([]string, 0, tc.totalLines)
 		for i := 0; i < tc.totalLines; i++ {
@@ -852,8 +853,10 @@ func TestRotation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(fmt.Sprintf("%s/MoveCreate", tc.name), tc.run(tc, false))
-		t.Run(fmt.Sprintf("%s/CopyTruncate", tc.name), tc.run(tc, false))
+		t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
+		t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
+		t.Run(fmt.Sprintf("%s/CopyTruncateTimestamped", tc.name), tc.run(tc, true, false))
+		t.Run(fmt.Sprintf("%s/CopyTruncateSequential", tc.name), tc.run(tc, true, true))
 	}
 }
 
