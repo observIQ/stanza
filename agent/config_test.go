@@ -33,7 +33,7 @@ func TestNewConfigWithMissingFile(t *testing.T) {
 
 	_, err := NewConfigFromFile(configFile)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "no such file or directory")
+	require.Contains(t, err.Error(), "could not find config file")
 }
 
 func TestNewConfigWithInvalidYAML(t *testing.T) {
