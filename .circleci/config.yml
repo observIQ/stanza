@@ -138,8 +138,7 @@ jobs:
       - run:
           name: Unit Tests
           shell: powershell.exe
-          command: >
-            Push-Location; Set-Location ./operator/builtin/input/file; go test -race ./... -count 20; Pop-Location;
+          command: (Get-Childitem -Include go.mod -Recurse) | ForEach-Object { cd (Split-Path $_ -Parent); go test -race ./...; if ($LastExitCode -gt 0) { exit $LastExitCode } }
 
   run-benchmark:
     parameters:
