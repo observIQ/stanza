@@ -46,7 +46,7 @@ func TestRegisterPlugins(t *testing.T) {
 
 		err = RegisterPlugins(tempDir, operator.DefaultRegistry)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "parse plugin file")
+		require.Contains(t, err.Error(), "could not unmarshal plugin file")
 	})
 }
 

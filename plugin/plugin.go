@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
@@ -177,7 +178,7 @@ func splitPluginFile(text []byte) (metadata, template []byte, err error) {
 func NewPluginFromFile(path string) (*Plugin, error) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not read plugin file: %s", err)
 	}
 
 	pluginID := strings.TrimSuffix(filepath.Base(path), ".yaml")
@@ -188,7 +189,7 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 func NewPlugin(pluginID string, contents []byte) (*Plugin, error) {
 	p := &Plugin{}
 	if err := p.UnmarshalText(contents); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not unmarshal plugin file: %s", err)
 	}
 	p.ID = pluginID
 
