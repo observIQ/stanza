@@ -41,12 +41,12 @@ func TestRegisterPlugins(t *testing.T) {
 
 	t.Run("Failure", func(t *testing.T) {
 		tempDir := testutil.NewTempDir(t)
-		err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.yaml"), []byte("pipeline:"), 0200)
+		err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.yaml"), []byte("pipeline:\n-typo: not_a_type"), 0666)
 		require.NoError(t, err)
 
 		err = RegisterPlugins(tempDir, operator.DefaultRegistry)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "could not read plugin file")
+		require.Contains(t, err.Error(), "could not unmarshal plugin file")
 	})
 }
 
