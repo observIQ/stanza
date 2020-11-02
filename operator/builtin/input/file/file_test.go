@@ -785,7 +785,7 @@ func TestRotation(t *testing.T) {
 
 	cases := []rotationTest{
 		{
-			name:            "NoRotation",
+			name:            "Fast/NoRotation",
 			totalLines:      10,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
@@ -793,7 +793,7 @@ func TestRotation(t *testing.T) {
 			pollInterval:    time.Millisecond,
 		},
 		{
-			name:            "NoDeletion",
+			name:            "Fast/NoDeletion",
 			totalLines:      20,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
@@ -801,7 +801,7 @@ func TestRotation(t *testing.T) {
 			pollInterval:    time.Millisecond,
 		},
 		{
-			name:            "Deletion",
+			name:            "Fast/Deletion",
 			totalLines:      30,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
@@ -810,13 +810,45 @@ func TestRotation(t *testing.T) {
 			ephemeralLines:  true,
 		},
 		{
-			name:            "Deletion/ExceedFingerprint",
+			name:            "Fast/Deletion/ExceedFingerprint",
 			totalLines:      300,
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
 			pollInterval:    time.Millisecond,
 			ephemeralLines:  true,
+		},
+		{
+			name:            "Slow/NoRotation",
+			totalLines:      10,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   10 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
+		},
+		{
+			name:            "Slow/NoDeletion",
+			totalLines:      20,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   10 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
+		},
+		{
+			name:            "Slow/Deletion",
+			totalLines:      30,
+			maxLinesPerFile: 10,
+			maxBackupFiles:  1,
+			writeInterval:   10 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
+		},
+		{
+			name:            "Slow/Deletion/ExceedFingerprint",
+			totalLines:      300,
+			maxLinesPerFile: 100,
+			maxBackupFiles:  1,
+			writeInterval:   10 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 	}
 
