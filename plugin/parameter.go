@@ -16,6 +16,7 @@ const (
 
 // Parameter is a basic description of a plugin's parameter.
 type Parameter struct {
+	Name        string `json:"name" yaml:"name"`
 	Label       string `json:"label" yaml:"label"`
 	Description string `json:"description" yaml:"description"`
 	Required    bool   `json:"required" yaml:"required"`
