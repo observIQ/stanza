@@ -790,7 +790,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 		{
 			name:            "Fast/NoDeletion",
@@ -798,7 +798,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 		{
 			name:            "Fast/Deletion",
@@ -806,7 +806,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -815,7 +815,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -823,8 +823,8 @@ func TestRotation(t *testing.T) {
 			totalLines:      10,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
-			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			writeInterval:   10 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 		{
 			name:            "Slow/NoDeletion",
@@ -832,7 +832,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion",
@@ -840,7 +840,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion/ExceedFingerprint",
@@ -848,15 +848,15 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 		{
 			name:            "Slow/ManyRotations",
-			totalLines:      100,
-			maxLinesPerFile: 10,
+			totalLines:      1000,
+			maxLinesPerFile: 100,
 			maxBackupFiles:  5,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			writeInterval:   5 * time.Millisecond,
+			pollInterval:    time.Millisecond,
 		},
 	}
 
