@@ -102,7 +102,17 @@ func (f *InputOperator) poll(ctx context.Context) {
 
 	// Open the files first to minimize the time between listing and opening
 	files := make([]*os.File, 0, len(matches))
+	retries := make([]string, 0, len(matches))
 	for _, path := range matches {
+		file, err := os.Open(path)
+		if err != nil {
+			retries = append(retries, path)
+			continue
+		}
+		files = append(files, file)
+	}
+
+	for _, path := range retries {
 		file, err := os.Open(path)
 		if err != nil {
 			f.Errorw("Failed to open file", zap.Error(err))
