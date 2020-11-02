@@ -785,7 +785,7 @@ func TestRotation(t *testing.T) {
 
 	cases := []rotationTest{
 		{
-			name:            "Fast/NoRotation",
+			name:            "NoRotation",
 			totalLines:      10,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
@@ -793,7 +793,7 @@ func TestRotation(t *testing.T) {
 			pollInterval:    time.Millisecond,
 		},
 		{
-			name:            "Fast/NoDeletion",
+			name:            "NoDeletion",
 			totalLines:      20,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
@@ -801,7 +801,7 @@ func TestRotation(t *testing.T) {
 			pollInterval:    time.Millisecond,
 		},
 		{
-			name:            "Fast/Deletion",
+			name:            "Deletion",
 			totalLines:      30,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
@@ -810,7 +810,7 @@ func TestRotation(t *testing.T) {
 			ephemeralLines:  true,
 		},
 		{
-			name:            "Fast/Deletion/ExceedFingerprint",
+			name:            "Deletion/ExceedFingerprint",
 			totalLines:      300,
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
@@ -818,46 +818,6 @@ func TestRotation(t *testing.T) {
 			pollInterval:    time.Millisecond,
 			ephemeralLines:  true,
 		},
-		{
-			name:            "Slow/NoRotation",
-			totalLines:      10,
-			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    time.Millisecond,
-		},
-		{
-			name:            "Slow/NoDeletion",
-			totalLines:      20,
-			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    time.Millisecond,
-		},
-		{
-			name:            "Slow/Deletion",
-			totalLines:      30,
-			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    time.Millisecond,
-		},
-		{
-			name:            "Slow/Deletion/ExceedFingerprint",
-			totalLines:      300,
-			maxLinesPerFile: 100,
-			maxBackupFiles:  1,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    time.Millisecond,
-		},
-		// {
-		// 	name:            "Slow/ManyRotations",
-		// 	totalLines:      1000,
-		// 	maxLinesPerFile: 100,
-		// 	maxBackupFiles:  5,
-		// 	writeInterval:   5 * time.Millisecond,
-		// 	pollInterval:    time.Millisecond,
-		// },
 	}
 
 	for _, tc := range cases {
