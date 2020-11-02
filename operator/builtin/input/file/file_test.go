@@ -850,14 +850,14 @@ func TestRotation(t *testing.T) {
 			writeInterval:   10 * time.Millisecond,
 			pollInterval:    time.Millisecond,
 		},
-		{
-			name:            "Slow/ManyRotations",
-			totalLines:      1000,
-			maxLinesPerFile: 100,
-			maxBackupFiles:  5,
-			writeInterval:   5 * time.Millisecond,
-			pollInterval:    time.Millisecond,
-		},
+		// {
+		// 	name:            "Slow/ManyRotations",
+		// 	totalLines:      1000,
+		// 	maxLinesPerFile: 100,
+		// 	maxBackupFiles:  5,
+		// 	writeInterval:   5 * time.Millisecond,
+		// 	pollInterval:    time.Millisecond,
+		// },
 	}
 
 	for _, tc := range cases {
