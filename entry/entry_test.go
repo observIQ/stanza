@@ -121,6 +121,7 @@ func TestRead(t *testing.T) {
 func TestCopy(t *testing.T) {
 	entry := New()
 	entry.Severity = Severity(0)
+	entry.SeverityText = "ok"
 	entry.Timestamp = time.Time{}
 	entry.Record = "test"
 	entry.Labels = map[string]string{"label": "value"}
@@ -128,6 +129,7 @@ func TestCopy(t *testing.T) {
 	copy := entry.Copy()
 
 	entry.Severity = Severity(1)
+	entry.SeverityText = "1"
 	entry.Timestamp = time.Now()
 	entry.Record = "new"
 	entry.Labels = map[string]string{"label": "new value"}
@@ -135,6 +137,7 @@ func TestCopy(t *testing.T) {
 
 	require.Equal(t, time.Time{}, copy.Timestamp)
 	require.Equal(t, Severity(0), copy.Severity)
+	require.Equal(t, "ok", copy.SeverityText)
 	require.Equal(t, map[string]string{"label": "value"}, copy.Labels)
 	require.Equal(t, map[string]string{"resource": "value"}, copy.Resource)
 	require.Equal(t, "test", copy.Record)

@@ -134,7 +134,4 @@ const (
 
 	// Catastrophe indicates that it is already too late
 	Catastrophe Severity = 100
-
-	// Nil is used to signal that severity is unknown or ambiguous
-	Nil Severity = -1
 )

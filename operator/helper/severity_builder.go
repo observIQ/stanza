@@ -142,9 +142,9 @@ func (c *SeverityParserConfig) Build(context operator.BuildContext) (SeverityPar
 }
 
 func validateSeverity(severity interface{}) (entry.Severity, error) {
-	if sev, err := getBuiltinMapping("aliases").find(severity); err != nil {
-		return entry.Nil, err
-	} else if sev != entry.Nil {
+	if sev, _, err := getBuiltinMapping("aliases").find(severity); err != nil {
+		return entry.Default, err
+	} else if sev != entry.Default {
 		return sev, nil
 	}
 
@@ -156,15 +156,15 @@ func validateSeverity(severity interface{}) (entry.Severity, error) {
 	case string:
 		i, err := strconv.ParseInt(s, 10, 8)
 		if err != nil {
-			return entry.Nil, fmt.Errorf("%s cannot be used as a severity", severity)
+			return entry.Default, fmt.Errorf("%s cannot be used as a severity", severity)
 		}
 		intSev = int(i)
 	default:
-		return entry.Nil, fmt.Errorf("type %T cannot be used as a severity (%v)", severity, severity)
+		return entry.Default, fmt.Errorf("type %T cannot be used as a severity (%v)", severity, severity)
 	}
 
 	if intSev < minSeverity || intSev > maxSeverity {
-		return entry.Nil, fmt.Errorf("severity must be between %d and %d", minSeverity, maxSeverity)
+		return entry.Default, fmt.Errorf("severity must be between %d and %d", minSeverity, maxSeverity)
 	}
 	return entry.Severity(intSev), nil
 }

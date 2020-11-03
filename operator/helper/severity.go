@@ -28,14 +28,13 @@ func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
 		)
 	}
 
-	severity, err := p.Mapping.find(value)
+	severity, sevText, err := p.Mapping.find(value)
 	if err != nil {
 		return errors.Wrap(err, "parse")
 	}
-	if severity == entry.Nil {
-		severity = entry.Default
-	}
+
 	ent.Severity = severity
+	ent.SeverityText = sevText
 
 	if !p.Preserve {
 		ent.Delete(p.ParseFrom)
@@ -46,24 +45,29 @@ func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
 
 type severityMap map[string]entry.Severity
 
-func (m severityMap) find(value interface{}) (entry.Severity, error) {
+// accepts various stringifyable input types and returns
+//   1) severity level if found, or default level
+//   2) string version of input value
+//   3) error if invalid input type
+func (m severityMap) find(value interface{}) (entry.Severity, string, error) {
 	switch v := value.(type) {
 	case int:
-		if severity, ok := m[strconv.Itoa(v)]; ok {
-			return severity, nil
+		strV := strconv.Itoa(v)
+		if severity, ok := m[strV]; ok {
+			return severity, strV, nil
 		}
-		return entry.Nil, nil
+		return entry.Default, strV, nil
 	case string:
 		if severity, ok := m[strings.ToLower(v)]; ok {
-			return severity, nil
+			return severity, v, nil
 		}
-		return entry.Nil, nil
+		return entry.Default, v, nil
 	case []byte:
 		if severity, ok := m[strings.ToLower(string(v))]; ok {
-			return severity, nil
+			return severity, string(v), nil
 		}
-		return entry.Nil, nil
+		return entry.Default, string(v), nil
 	default:
-		return entry.Nil, fmt.Errorf("type %T cannot be a severity", v)
+		return entry.Default, "", fmt.Errorf("type %T cannot be a severity", v)
 	}
 }
