@@ -33,9 +33,36 @@ func getBuiltinMapping(name string) severityMap {
 		}
 	default:
 		mapping := getBuiltinMapping("aliases")
+
+		mapping.add(entry.Trace2, "trace2")
+		mapping.add(entry.Trace3, "trace3")
+		mapping.add(entry.Trace4, "trace4")
+
+		mapping.add(entry.Debug2, "debug2")
+		mapping.add(entry.Debug3, "debug3")
+		mapping.add(entry.Debug4, "debug4")
+
+		mapping.add(entry.Info2, "info2")
+		mapping.add(entry.Info3, "info3")
+		mapping.add(entry.Info4, "info4")
+
 		mapping.add(entry.Warning, "warn")
+		mapping.add(entry.Warning2, "warning2", "warn2")
+		mapping.add(entry.Warning3, "warning3", "warn3")
+		mapping.add(entry.Warning4, "warning4", "warn4")
+
 		mapping.add(entry.Error, "err")
+		mapping.add(entry.Error2, "error2")
+		mapping.add(entry.Error3, "error3")
+		mapping.add(entry.Error4, "error4")
+
 		mapping.add(entry.Critical, "crit")
+
+		mapping.add(entry.Emergency, "fatal")
+		mapping.add(entry.Emergency2, "emergency2", "fatal2")
+		mapping.add(entry.Emergency3, "emergency3", "fatal3")
+		mapping.add(entry.Emergency4, "emergency4", "fatal4")
+
 		return mapping
 	}
 }

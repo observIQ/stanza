@@ -2,6 +2,8 @@ package helper
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/observiq/stanza/entry"
@@ -17,6 +19,61 @@ type severityTestCase struct {
 	buildErr   bool
 	parseErr   bool
 	expected   entry.Severity
+}
+
+func otlpSevCases() []severityTestCase {
+	mustParse := map[string]entry.Severity{
+		"tRaCe":  entry.Trace,
+		"tRaCe2": entry.Trace2,
+		"tRaCe3": entry.Trace3,
+		"tRaCe4": entry.Trace4,
+		"dEbUg":  entry.Debug,
+		"dEbUg2": entry.Debug2,
+		"dEbUg3": entry.Debug3,
+		"dEbUg4": entry.Debug4,
+		"iNFo":   entry.Info,
+		"iNFo2":  entry.Info2,
+		"iNFo3":  entry.Info3,
+		"iNFo4":  entry.Info4,
+		"wARn":   entry.Warning,
+		"wARn2":  entry.Warning2,
+		"wARn3":  entry.Warning3,
+		"wARn4":  entry.Warning4,
+		"eRrOr":  entry.Error,
+		"eRrOr2": entry.Error2,
+		"eRrOr3": entry.Error3,
+		"eRrOr4": entry.Error4,
+		"fAtAl":  entry.Emergency,
+		"fAtAl2": entry.Emergency2,
+		"fAtAl3": entry.Emergency3,
+		"fAtAl4": entry.Emergency4,
+	}
+
+	cases := []severityTestCase{}
+	for k, v := range mustParse {
+		cases = append(cases,
+			severityTestCase{
+				name:     fmt.Sprintf("otlp-sev-%s-mIxEd", k),
+				sample:   k,
+				expected: v,
+			},
+			severityTestCase{
+				name:     fmt.Sprintf("otlp-sev-%s-lower", k),
+				sample:   strings.ToLower(k),
+				expected: v,
+			},
+			severityTestCase{
+				name:     fmt.Sprintf("otlp-sev-%s-upper", k),
+				sample:   strings.ToUpper(k),
+				expected: v,
+			},
+			severityTestCase{
+				name:     fmt.Sprintf("otlp-sev-%s-title", k),
+				sample:   strings.ToTitle(k),
+				expected: v,
+			})
+	}
+	return cases
 }
 
 func TestSeverityParser(t *testing.T) {
@@ -279,6 +336,8 @@ func TestSeverityParser(t *testing.T) {
 		},
 	}
 
+	testCases = append(testCases, otlpSevCases()...)
+
 	rootField := entry.NewRecordField()
 	someField := entry.NewRecordField("some_field")
 
@@ -293,6 +352,8 @@ func TestSeverityParser(t *testing.T) {
 func (tc severityTestCase) run(t *testing.T, parseFrom entry.Field) func(*testing.T) {
 
 	return func(t *testing.T) {
+		t.Parallel()
+
 		buildContext := testutil.NewBuildContext(t)
 
 		cfg := &SeverityParserConfig{
