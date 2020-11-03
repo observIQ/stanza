@@ -81,7 +81,7 @@ func TestConvertMetadata(t *testing.T) {
 	require.Equal(t, now.UnixNano(), int64(log.Timestamp()))
 
 	require.Equal(t, pdata.SeverityNumberERROR, log.SeverityNumber())
-	require.Equal(t, "Error", log.SeverityText())
+	require.Equal(t, "", log.SeverityText())
 
 	atts := log.Attributes()
 	require.Equal(t, 1, atts.Len(), "expected 1 attribute")
@@ -271,29 +271,52 @@ func TestConvertSeverity(t *testing.T) {
 	cases := []struct {
 		severity       entry.Severity
 		expectedNumber pdata.SeverityNumber
-		expectedText   string
 	}{
-		{entry.Default, pdata.SeverityNumberUNDEFINED, "Undefined"},
-		{5, pdata.SeverityNumberTRACE, "Trace"},
-		{entry.Trace, pdata.SeverityNumberTRACE2, "Trace"},
-		{15, pdata.SeverityNumberTRACE3, "Trace"},
-		{entry.Debug, pdata.SeverityNumberDEBUG, "Debug"},
-		{25, pdata.SeverityNumberDEBUG2, "Debug"},
-		{entry.Info, pdata.SeverityNumberINFO, "Info"},
-		{35, pdata.SeverityNumberINFO2, "Info"},
-		{entry.Notice, pdata.SeverityNumberINFO3, "Info"},
-		{45, pdata.SeverityNumberINFO3, "Info"},
-		{entry.Warning, pdata.SeverityNumberINFO4, "Info"},
-		{55, pdata.SeverityNumberINFO4, "Info"},
-		{entry.Error, pdata.SeverityNumberERROR, "Error"},
-		{65, pdata.SeverityNumberERROR2, "Error"},
-		{entry.Critical, pdata.SeverityNumberERROR2, "Error"},
-		{75, pdata.SeverityNumberERROR3, "Error"},
-		{entry.Alert, pdata.SeverityNumberERROR3, "Error"},
-		{85, pdata.SeverityNumberERROR4, "Error"},
-		{entry.Emergency, pdata.SeverityNumberFATAL, "Error"},
-		{95, pdata.SeverityNumberFATAL2, "Fatal"},
-		{entry.Catastrophe, pdata.SeverityNumberFATAL4, "Fatal"},
+		{entry.Default, pdata.SeverityNumberUNDEFINED},
+		{5, pdata.SeverityNumberTRACE},
+		{entry.Trace, pdata.SeverityNumberTRACE},
+		{11, pdata.SeverityNumberTRACE},
+		{entry.Trace2, pdata.SeverityNumberTRACE2},
+		{entry.Trace3, pdata.SeverityNumberTRACE3},
+		{entry.Trace4, pdata.SeverityNumberTRACE4},
+		{15, pdata.SeverityNumberTRACE4},
+		{entry.Debug, pdata.SeverityNumberDEBUG},
+		{21, pdata.SeverityNumberDEBUG},
+		{entry.Debug2, pdata.SeverityNumberDEBUG2},
+		{entry.Debug3, pdata.SeverityNumberDEBUG3},
+		{entry.Debug4, pdata.SeverityNumberDEBUG4},
+		{25, pdata.SeverityNumberDEBUG4},
+		{entry.Info, pdata.SeverityNumberINFO},
+		{31, pdata.SeverityNumberINFO},
+		{entry.Info2, pdata.SeverityNumberINFO2},
+		{entry.Info3, pdata.SeverityNumberINFO3},
+		{entry.Info4, pdata.SeverityNumberINFO4},
+		{35, pdata.SeverityNumberINFO4},
+		{entry.Notice, pdata.SeverityNumberINFO4},
+		{45, pdata.SeverityNumberINFO4},
+		{entry.Warning, pdata.SeverityNumberWARN},
+		{51, pdata.SeverityNumberWARN},
+		{entry.Warning2, pdata.SeverityNumberWARN2},
+		{entry.Warning3, pdata.SeverityNumberWARN3},
+		{entry.Warning4, pdata.SeverityNumberWARN4},
+		{55, pdata.SeverityNumberWARN4},
+		{entry.Error, pdata.SeverityNumberERROR},
+		{61, pdata.SeverityNumberERROR},
+		{entry.Error2, pdata.SeverityNumberERROR2},
+		{entry.Error3, pdata.SeverityNumberERROR3},
+		{entry.Error4, pdata.SeverityNumberERROR4},
+		{65, pdata.SeverityNumberERROR4},
+		{entry.Critical, pdata.SeverityNumberERROR4},
+		{75, pdata.SeverityNumberERROR4},
+		{entry.Alert, pdata.SeverityNumberERROR4},
+		{85, pdata.SeverityNumberERROR4},
+		{entry.Emergency, pdata.SeverityNumberFATAL},
+		{91, pdata.SeverityNumberFATAL},
+		{entry.Emergency2, pdata.SeverityNumberFATAL2},
+		{entry.Emergency3, pdata.SeverityNumberFATAL3},
+		{entry.Emergency4, pdata.SeverityNumberFATAL4},
+		{95, pdata.SeverityNumberFATAL4},
+		{entry.Catastrophe, pdata.SeverityNumberFATAL4},
 	}
 
 	for _, tc := range cases {
@@ -302,11 +325,6 @@ func TestConvertSeverity(t *testing.T) {
 			entry.Severity = tc.severity
 			log := convertAndDrill(entry)
 			require.Equal(t, tc.expectedNumber, log.SeverityNumber())
-			require.Equal(t, tc.expectedText, log.SeverityText())
 		})
 	}
-}
-
-func TestGroupSameResource(t *testing.T) {
-
 }
