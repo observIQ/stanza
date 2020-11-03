@@ -26,8 +26,8 @@ type Definition struct {
 	Title            string      `json:"title"       yaml:"title"`
 	Description      string      `json:"description" yaml:"description"`
 	Parameters       []Parameter `json:"parameters"  yaml:"parameters"`
-	MinStanzaVersion *string     `json:"minStanzaVersion" yaml:"min_stanza_version"`
-	MaxStanzaVersion *string     `json:"minStanzaVerion" yaml:"max_stanza_version"`
+	MinStanzaVersion string      `json:"minStanzaVersion" yaml:"min_stanza_version"`
+	MaxStanzaVersion string      `json:"minStanzaVerion" yaml:"max_stanza_version"`
 }
 
 // NewBuilder creates a new, empty config that can build into an operator
@@ -64,11 +64,11 @@ func (p *Plugin) Validate(params map[string]interface{}) error {
 		return errors.NewError("invalid plugin version", "", "plugin_type", p.ID)
 	}
 
-	if p.MaxStanzaVersion != nil && !versionRegex.MatchString(*p.MaxStanzaVersion) {
+	if p.MaxStanzaVersion != "" && !versionRegex.MatchString(p.MaxStanzaVersion) {
 		return errors.NewError("invalid max stanza version", "", "plugin_type", p.ID)
 	}
 
-	if p.MinStanzaVersion != nil && !versionRegex.MatchString(*p.MinStanzaVersion) {
+	if p.MinStanzaVersion != "" && !versionRegex.MatchString(p.MinStanzaVersion) {
 		return errors.NewError("invalid min stanza version", "", "plugin_type", p.ID)
 	}
 
