@@ -7,12 +7,12 @@ import (
 
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
-	Timestamp    time.Time         `json:"timestamp"          yaml:"timestamp"`
-	Severity     Severity          `json:"severity"           yaml:"severity"`
-	SeverityText string            `json:"severity_text"      yaml:"severity_text"`
-	Labels       map[string]string `json:"labels,omitempty"   yaml:"labels,omitempty"`
-	Resource     map[string]string `json:"resource,omitempty" yaml:"resource,omitempty"`
-	Record       interface{}       `json:"record"             yaml:"record"`
+	Timestamp    time.Time         `json:"timestamp"               yaml:"timestamp"`
+	Severity     Severity          `json:"severity"                yaml:"severity"`
+	SeverityText string            `json:"severity_text,omitempty" yaml:"severity_text,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"        yaml:"labels,omitempty"`
+	Resource     map[string]string `json:"resource,omitempty"      yaml:"resource,omitempty"`
+	Record       interface{}       `json:"record"                  yaml:"record"`
 }
 
 // New will create a new log entry with current timestamp and an empty record.

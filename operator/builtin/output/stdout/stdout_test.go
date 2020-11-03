@@ -41,6 +41,6 @@ func TestStdoutOperator(t *testing.T) {
 	marshalledTimestamp, err := json.Marshal(ts)
 	require.NoError(t, err)
 
-	expected := `{"timestamp":` + string(marshalledTimestamp) + `,"severity":0,"severity_text":"","record":"test record"}` + "\n"
+	expected := `{"timestamp":` + string(marshalledTimestamp) + `,"severity":0,"record":"test record"}` + "\n"
 	require.Equal(t, expected, buf.String())
 }

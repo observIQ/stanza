@@ -111,11 +111,11 @@ func TestSimplePluginsExample(t *testing.T) {
 	}()
 	defer func() { <-done }()
 
-	expected := `{"timestamp":"2006-01-02T15:04:05Z","severity":0,"severity_text":"","labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"severity_text":"","labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"severity_text":"","labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"severity_text":"","labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"severity_text":"","labels":{"decorated":"my_decorated_value"},"record":"test record"}
+	expected := `{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
 `
 
 	timeout := time.After(5 * time.Second)
