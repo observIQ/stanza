@@ -15,6 +15,7 @@ func NewParserConfig(operatorID, operatorType string) ParserConfig {
 		ParseFrom:         entry.NewRecordField(),
 		ParseTo:           entry.NewRecordField(),
 		Preserve:          false,
+		PreserveAt:        nil,
 	}
 }
 
@@ -25,6 +26,7 @@ type ParserConfig struct {
 	ParseFrom            entry.Field           `json:"parse_from" yaml:"parse_from"`
 	ParseTo              entry.Field           `json:"parse_to"   yaml:"parse_to"`
 	Preserve             bool                  `json:"preserve"   yaml:"preserve"`
+	PreserveAt           *entry.Field          `json:"preserve_at" yaml:"preserve_at"`
 	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
@@ -48,7 +50,7 @@ func (c ParserConfig) Build(context operator.BuildContext) (ParserOperator, erro
 		TransformerOperator: transformerOperator,
 		ParseFrom:           c.ParseFrom,
 		ParseTo:             c.ParseTo,
-		Preserve:            c.Preserve,
+		PreserveAt:          c.PreserveAt,
 	}
 
 	if c.TimeParser != nil {
@@ -74,7 +76,7 @@ type ParserOperator struct {
 	TransformerOperator
 	ParseFrom      entry.Field
 	ParseTo        entry.Field
-	Preserve       bool
+	PreserveAt     *entry.Field
 	TimeParser     *TimeParser
 	SeverityParser *SeverityParser
 }
@@ -96,12 +98,16 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 		return p.HandleEntryError(ctx, entry, err)
 	}
 
-	if !p.Preserve {
-		entry.Delete(p.ParseFrom)
-	}
+	original, _ := entry.Delete(p.ParseFrom)
 
 	if err := entry.Set(p.ParseTo, newValue); err != nil {
 		return p.HandleEntryError(ctx, entry, errors.Wrap(err, "set parse_to"))
+	}
+
+	if p.PreserveAt != nil {
+		if err := entry.Set(p.PreserveAt, original); err != nil {
+			return p.HandleEntryError(ctx, entry, errors.Wrap(err, "set preserve_at"))
+		}
 	}
 
 	var timeParseErr error

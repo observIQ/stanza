@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -278,81 +279,49 @@ func TestParserOutput(t *testing.T) {
 }
 
 func TestParserWithPreserve(t *testing.T) {
-	output := &testutil.Operator{}
-	output.On("ID").Return("test-output")
-	output.On("Process", mock.Anything, mock.Anything).Return(nil)
-	buildContext := testutil.NewBuildContext(t)
-	parser := ParserOperator{
-		TransformerOperator: TransformerOperator{
-			OnError: DropOnError,
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
-				},
-				OutputOperators: []operator.Operator{output},
-			},
-		},
-		ParseFrom: entry.NewRecordField("parse_from"),
-		ParseTo:   entry.NewRecordField("parse_to"),
-		Preserve:  true,
-	}
+	cfg := NewParserConfig("test-id", "test-type")
+	preserveField := entry.NewRecordField("original")
+	cfg.PreserveAt = &preserveField
+	parser, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+
 	parse := func(i interface{}) (interface{}, error) {
-		return i, nil
+		return map[string]interface{}{"parsed": "val"}, nil
 	}
-	ctx := context.Background()
 	testEntry := entry.New()
-	err := testEntry.Set(parser.ParseFrom, "test-value")
+	err = testEntry.Set(parser.ParseFrom, "prefixed-test")
 	require.NoError(t, err)
 
-	err = parser.ProcessWith(ctx, testEntry, parse)
+	err = parser.ProcessWith(context.Background(), testEntry, parse)
 	require.NoError(t, err)
 
-	actualValue, ok := testEntry.Get(parser.ParseFrom)
+	originalValue, ok := testEntry.Get(preserveField)
 	require.True(t, ok)
-	require.Equal(t, "test-value", actualValue)
+	require.Equal(t, "prefixed-test", originalValue)
 
-	actualValue, ok = testEntry.Get(parser.ParseTo)
+	parsedValue, ok := testEntry.Get(entry.NewRecordField("parsed"))
 	require.True(t, ok)
-	require.Equal(t, "test-value", actualValue)
+	require.Equal(t, "val", parsedValue)
 }
 
-func TestParserWithoutPreserve(t *testing.T) {
-	output := &testutil.Operator{}
-	output.On("ID").Return("test-output")
-	output.On("Process", mock.Anything, mock.Anything).Return(nil)
-	buildContext := testutil.NewBuildContext(t)
-	parser := ParserOperator{
-		TransformerOperator: TransformerOperator{
-			OnError: DropOnError,
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
-				},
-				OutputOperators: []operator.Operator{output},
-			},
-		},
-		ParseFrom: entry.NewRecordField("parse_from"),
-		ParseTo:   entry.NewRecordField("parse_to"),
-		Preserve:  false,
-	}
+func TestParserWithOverwritingPreserve(t *testing.T) {
+	cfg := NewParserConfig("test-id", "test-type")
+	preserveField := entry.NewRecordField()
+	cfg.PreserveAt = &preserveField
+	parser, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+
 	parse := func(i interface{}) (interface{}, error) {
-		return i, nil
+		return strings.TrimPrefix(i.(string), "prefixed-"), nil
 	}
-	ctx := context.Background()
 	testEntry := entry.New()
-	err := testEntry.Set(parser.ParseFrom, "test-value")
-	require.NoError(t, err)
-	err = parser.ProcessWith(ctx, testEntry, parse)
+	err = testEntry.Set(parser.ParseFrom, "prefixed-test")
 	require.NoError(t, err)
 
-	_, ok := testEntry.Get(parser.ParseFrom)
-	require.False(t, ok)
+	err = parser.ProcessWith(context.Background(), testEntry, parse)
+	require.NoError(t, err)
 
-	actualValue, ok := testEntry.Get(parser.ParseTo)
+	originalValue, ok := testEntry.Get(preserveField)
 	require.True(t, ok)
-	require.Equal(t, "test-value", actualValue)
+	require.Equal(t, "prefixed-test", originalValue)
 }
