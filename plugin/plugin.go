@@ -15,12 +15,19 @@ import (
 
 // Plugin is the rendered result of a plugin template.
 type Plugin struct {
-	ID          string
-	Version     string
-	Title       string
-	Description string
-	Parameters  map[string]Parameter
-	Template    *template.Template
+	Definition `yaml:",inline"`
+	ID         string `json:"id" yaml:"id"`
+	Template   *template.Template
+}
+
+// PluginDefinition contains metadata for rendering the plugin
+type Definition struct {
+	Version          string      `json:"version"     yaml:"version"`
+	Title            string      `json:"title"       yaml:"title"`
+	Description      string      `json:"description" yaml:"description"`
+	Parameters       []Parameter `json:"parameters"  yaml:"parameters"`
+	MinStanzaVersion string      `json:"minStanzaVersion" yaml:"min_stanza_version"`
+	MaxStanzaVersion string      `json:"minStanzaVerion" yaml:"max_stanza_version"`
 }
 
 // NewBuilder creates a new, empty config that can build into an operator
@@ -49,10 +56,24 @@ func (p *Plugin) Render(params map[string]interface{}) ([]byte, error) {
 	return writer.Bytes(), nil
 }
 
+var versionRegex = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+
 // Validate checks the provided params against the parameter definitions to ensure they are valid
 func (p *Plugin) Validate(params map[string]interface{}) error {
-	for name, param := range p.Parameters {
-		value, ok := params[name]
+	if p.Version != "" && !versionRegex.MatchString(p.Version) {
+		return errors.NewError("invalid plugin version", "", "plugin_type", p.ID)
+	}
+
+	if p.MaxStanzaVersion != "" && !versionRegex.MatchString(p.MaxStanzaVersion) {
+		return errors.NewError("invalid max stanza version", "", "plugin_type", p.ID)
+	}
+
+	if p.MinStanzaVersion != "" && !versionRegex.MatchString(p.MinStanzaVersion) {
+		return errors.NewError("invalid min stanza version", "", "plugin_type", p.ID)
+	}
+
+	for _, param := range p.Parameters {
+		value, ok := params[param.Name]
 		if !ok && !param.Required {
 			continue
 		}
@@ -62,7 +83,7 @@ func (p *Plugin) Validate(params map[string]interface{}) error {
 				"missing required parameter for plugin",
 				"ensure that the parameter is defined for the plugin",
 				"plugin_type", p.ID,
-				"plugin_parameter", name,
+				"plugin_parameter", param.Name,
 			)
 		}
 
@@ -71,7 +92,7 @@ func (p *Plugin) Validate(params map[string]interface{}) error {
 				"plugin parameter failed validation",
 				"review the underlying error message for details",
 				"plugin_type", p.ID,
-				"plugin_parameter", name,
+				"plugin_parameter", param.Name,
 				"error_message", err.Error(),
 			)
 		}
@@ -159,26 +180,26 @@ func NewPluginFromFile(path string) (*Plugin, error) {
 		return nil, err
 	}
 
-	id := strings.Split(filepath.Base(path), ".")[0]
-	return NewPlugin(id, contents)
+	pluginID := strings.TrimSuffix(filepath.Base(path), ".yaml")
+	return NewPlugin(pluginID, contents)
 }
 
 // NewPlugin builds a new plugin from an ID and file contents
-func NewPlugin(id string, contents []byte) (*Plugin, error) {
+func NewPlugin(pluginID string, contents []byte) (*Plugin, error) {
 	p := &Plugin{}
 	if err := p.UnmarshalText(contents); err != nil {
 		return nil, err
 	}
-	p.ID = id
+	p.ID = pluginID
 
 	// Validate the parameter definitions
-	for name, param := range p.Parameters {
+	for _, param := range p.Parameters {
 		if err := param.validateDefinition(); err != nil {
 			return nil, errors.NewError(
 				"invalid parameter found in plugin",
 				"ensure that all parameters are valid for the plugin",
 				"plugin_type", p.ID,
-				"plugin_parameter", name,
+				"plugin_parameter", param.Name,
 				"error_message", err.Error(),
 			)
 		}
@@ -202,7 +223,7 @@ func RegisterPlugins(pluginDir string, registry *operator.Registry) error {
 	for _, path := range filePaths {
 		plugin, err := NewPluginFromFile(path)
 		if err != nil {
-			return errors.Wrap(err, "parse plugin file")
+			return errors.Wrap(err, "parse plugin file").WithDetails("path", path)
 		}
 		registry.RegisterPlugin(plugin.ID, plugin.NewBuilder)
 	}

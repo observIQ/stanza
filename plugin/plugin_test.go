@@ -13,7 +13,7 @@ import (
 
 var simple = []byte(`
 parameters:
-  message:
+  - name: message
     type: string
     required: true
 pipeline:
@@ -88,11 +88,11 @@ func TestPluginMetadata(t *testing.T) {
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: string
-  other:
+  - name: other
     label: Other Thing
     description: Another parameter
     type: int
@@ -103,11 +103,11 @@ pipeline:
 			name:      "only_params",
 			expectErr: false,
 			template: `parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: string
-  other:
+  - name: other
     label: Other Thing
     description: Another parameter
     type: int
@@ -118,11 +118,11 @@ pipeline:
 			name:      "out_of_order",
 			expectErr: false,
 			template: `parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: string
-  other:
+  - name: other
     label: Other Thing
     description: Another parameter
     type: int
@@ -138,11 +138,11 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: string
-  other:
+  - name: other
     label: Other Thing
     description: Another parameter
     type: int
@@ -156,11 +156,11 @@ pipeline:
 title: []
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: string
-  other:
+  - name: other
     label: Other Thing
     description: Another parameter
     type: int
@@ -174,11 +174,11 @@ pipeline:
 title: Test Plugin
 description: []
 parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: string
-  other:
+  - name: other
     label: Other Thing
     description: Another parameter
     type: int
@@ -212,7 +212,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: []
     description: The path to a thing
     type: string
@@ -226,7 +226,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Path
     description: []
     type: string
@@ -240,7 +240,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Path
     description: The path to a thing
     type: {}
@@ -254,7 +254,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
 pipeline:
 `,
 		},
@@ -265,7 +265,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: custom
@@ -279,7 +279,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: string
@@ -293,7 +293,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: string
@@ -308,7 +308,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: string
@@ -323,7 +323,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: strings
@@ -337,7 +337,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: strings
@@ -353,7 +353,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: strings
@@ -369,7 +369,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: int
@@ -383,7 +383,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: int
@@ -398,7 +398,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: int
@@ -413,7 +413,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: bool
@@ -427,7 +427,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: bool
@@ -442,7 +442,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: bool
@@ -457,7 +457,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: bool
@@ -472,7 +472,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: enum
@@ -487,7 +487,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: enum
@@ -504,7 +504,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: enum
@@ -522,7 +522,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: enum
@@ -540,7 +540,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: enum
@@ -554,7 +554,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: int
@@ -569,7 +569,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     required: true
@@ -585,7 +585,7 @@ pipeline:
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: The thing of the thing
     type: int
@@ -612,7 +612,7 @@ func TestRenderWithMissingRequired(t *testing.T) {
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: A parameter
     type: int
@@ -632,7 +632,7 @@ func TestRenderWithInvalidParameter(t *testing.T) {
 title: Test Plugin
 description: This is a test plugin
 parameters:
-  path:
+  - name: path
     label: Parameter
     description: A parameter
     type: int
@@ -678,7 +678,7 @@ func TestSplitPluginFile(t *testing.T) {
 		2: {
 			`
 parameters:
-  my_param:
+  - name: my_param
 		type: string
 		required: false
 pipeline:
@@ -686,7 +686,7 @@ pipeline:
 `,
 			`
 parameters:
-  my_param:
+  - name: my_param
 		type: string
 		required: false
 `,
@@ -698,7 +698,7 @@ parameters:
 		3: {
 			`
 parameters:
-  my_param:
+  - name: my_param
 		type: string
 		required: false
 
@@ -710,7 +710,7 @@ pipeline:
 `,
 			`
 parameters:
-  my_param:
+  - name: my_param
 		type: string
 		required: false
 `,
