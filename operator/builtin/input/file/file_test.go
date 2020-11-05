@@ -613,18 +613,18 @@ func TestMultiFileRotateSlow(t *testing.T) {
 	var wg sync.WaitGroup
 	for fileNum := 0; fileNum < numFiles; fileNum++ {
 		wg.Add(1)
-		go func(fileNum int) {
+		go func(fn int) {
 			defer wg.Done()
 
 			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
-				file := openFile(t, baseFileName(fileNum))
+				file := openFile(t, baseFileName(fn))
 				for messageNum := 0; messageNum < numMessages; messageNum++ {
-					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					writeString(t, file, getMessage(fn, rotationNum, messageNum)+"\n")
 					time.Sleep(5 * time.Millisecond)
 				}
 
 				file.Close()
-				require.NoError(t, os.Rename(baseFileName(fileNum), fileName(fileNum, rotationNum)))
+				require.NoError(t, os.Rename(baseFileName(fn), fileName(fn, rotationNum)))
 			}
 		}(fileNum)
 	}
@@ -661,19 +661,19 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	var wg sync.WaitGroup
 	for fileNum := 0; fileNum < numFiles; fileNum++ {
 		wg.Add(1)
-		go func(fileNum int) {
+		go func(fn int) {
 			defer wg.Done()
 
 			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
-				file := openFile(t, baseFileName(fileNum))
+				file := openFile(t, baseFileName(fn))
 				for messageNum := 0; messageNum < numMessages; messageNum++ {
-					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					writeString(t, file, getMessage(fn, rotationNum, messageNum)+"\n")
 					time.Sleep(5 * time.Millisecond)
 				}
 
 				_, err := file.Seek(0, 0)
 				require.NoError(t, err)
-				dst := openFile(t, fileName(fileNum, rotationNum))
+				dst := openFile(t, fileName(fn, rotationNum))
 				_, err = io.Copy(dst, file)
 				require.NoError(t, err)
 				require.NoError(t, dst.Close())
