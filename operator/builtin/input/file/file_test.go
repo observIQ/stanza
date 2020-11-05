@@ -853,8 +853,14 @@ func TestRotation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
-		t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
+
+		if runtime.GOOS != "windows" {
+			// Windows has very poor support for moving active files, so rotation is less commonly used
+			// This may possibly be handled better in Go 1.16: https://github.com/golang/go/issues/35358
+			// We actually handle this quite well, and could probably test that we only lose 1-2 lines per file
+			t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
+			t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
+		}
 		t.Run(fmt.Sprintf("%s/CopyTruncateTimestamped", tc.name), tc.run(tc, true, false))
 		t.Run(fmt.Sprintf("%s/CopyTruncateSequential", tc.name), tc.run(tc, true, true))
 	}
