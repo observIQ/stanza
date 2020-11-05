@@ -11,7 +11,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/observiq/ctimefmt v1.0.0
-	github.com/observiq/nanojack v0.0.0-20201023134036-af42faaa8c21
+	github.com/observiq/nanojack v0.0.0-20201105205701-ae73d1345f60
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.6.1
