@@ -221,14 +221,13 @@ OUTER:
 func (f *InputOperator) saveCurrent(readers []*Reader) {
 	// Rotate current into old
 	for _, reader := range readers {
-		f.knownFiles = append(f.knownFiles, reader)
-	}
-
-	// Clear out old readers
-	for i := 0; i < len(f.knownFiles); i++ {
-		if reader := f.knownFiles[i]; reader.generation > 100 {
-			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
+		if reader.generation > 10 {
+			continue
 		}
+		if reader.generation == 0 {
+			f.Debugf("Found new file: %s", reader.file.Name())
+		}
+		f.knownFiles = append(f.knownFiles, reader)
 	}
 }
 
