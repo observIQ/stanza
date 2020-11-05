@@ -128,6 +128,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		cancel:           func() {},
 		knownFiles:       make([]*Reader, 0, 10),
 		MaxLogSize:       c.MaxLogSize,
+		SeenPaths:        make(map[string]struct{}, 100),
 	}
 
 	return []operator.Operator{op}, nil

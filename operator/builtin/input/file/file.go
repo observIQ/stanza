@@ -28,6 +28,7 @@ type InputOperator struct {
 	PollInterval  time.Duration
 	SplitFunc     bufio.SplitFunc
 	MaxLogSize    int
+	SeenPaths     map[string]struct{}
 
 	persist helper.Persister
 
@@ -103,6 +104,10 @@ func (f *InputOperator) poll(ctx context.Context) {
 	// Open the files first to minimize the time between listing and opening
 	files := make([]*os.File, 0, len(matches))
 	for _, path := range matches {
+		if _, ok := f.SeenPaths[path]; !ok {
+			f.Infow("Started watching file", "path", path)
+			f.SeenPaths[path] = struct{}{}
+		}
 		file, err := os.Open(path)
 		if err != nil {
 			f.Errorw("Failed to open file", zap.Error(err))
