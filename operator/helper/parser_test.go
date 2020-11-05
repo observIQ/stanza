@@ -278,50 +278,93 @@ func TestParserOutput(t *testing.T) {
 	output.AssertCalled(t, "Process", mock.Anything, mock.Anything)
 }
 
-func TestParserWithPreserve(t *testing.T) {
-	cfg := NewParserConfig("test-id", "test-type")
-	preserveField := entry.NewRecordField("original")
-	cfg.PreserveTo = &preserveField
-	parser, err := cfg.Build(testutil.NewBuildContext(t))
-	require.NoError(t, err)
+func TestParserPreserve(t *testing.T) {
+	cases := []struct {
+		name         string
+		cfgMod       func(*ParserConfig)
+		inputRecord  interface{}
+		outputRecord interface{}
+	}{
+		{
+			"NoPreserve",
+			func(cfg *ParserConfig) {},
+			"key:value",
+			map[string]interface{}{"key": "value"},
+		},
+		{
+			"PreserveToSubkey",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("original")
+				cfg.PreserveTo = &dst
+			},
+			"key:value",
+			map[string]interface{}{"key": "value", "original": "key:value"},
+		},
+		{
+			"PreserveToOverwrite",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("key")
+				cfg.PreserveTo = &dst
+			},
+			"key:value",
+			map[string]interface{}{"key": "key:value"},
+		},
+		{
+			"PreserveToRoot",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField()
+				cfg.PreserveTo = &dst
+			},
+			"key:value",
+			"key:value",
+		},
+		{
+			"AlternativeParseFrom",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("source")
+				cfg.PreserveTo = &dst
+				cfg.ParseFrom = dst
+			},
+			map[string]interface{}{"source": "key:value"},
+			map[string]interface{}{"source": "key:value", "key": "value"},
+		},
+		{
+			"AlternativeParseTo",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("original")
+				cfg.PreserveTo = &dst
+				cfg.ParseTo = entry.NewRecordField("source_parsed")
+			},
+			"key:value",
+			map[string]interface{}{
+				"source_parsed": map[string]interface{}{
+					"key": "value",
+				},
+				"original": "key:value",
+			},
+		},
+	}
 
 	parse := func(i interface{}) (interface{}, error) {
-		return map[string]interface{}{"parsed": "val"}, nil
+		split := strings.Split(i.(string), ":")
+		return map[string]interface{}{split[0]: split[1]}, nil
 	}
-	testEntry := entry.New()
-	err = testEntry.Set(parser.ParseFrom, "prefixed-test")
-	require.NoError(t, err)
 
-	err = parser.ProcessWith(context.Background(), testEntry, parse)
-	require.NoError(t, err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := NewParserConfig("test-id", "test-type")
+			tc.cfgMod(&cfg)
 
-	originalValue, ok := testEntry.Get(preserveField)
-	require.True(t, ok)
-	require.Equal(t, "prefixed-test", originalValue)
+			parser, err := cfg.Build(testutil.NewBuildContext(t))
+			require.NoError(t, err)
 
-	parsedValue, ok := testEntry.Get(entry.NewRecordField("parsed"))
-	require.True(t, ok)
-	require.Equal(t, "val", parsedValue)
-}
+			e := entry.New()
+			e.Record = tc.inputRecord
 
-func TestParserWithOverwritingPreserve(t *testing.T) {
-	cfg := NewParserConfig("test-id", "test-type")
-	preserveField := entry.NewRecordField()
-	cfg.PreserveTo = &preserveField
-	parser, err := cfg.Build(testutil.NewBuildContext(t))
-	require.NoError(t, err)
+			err = parser.ProcessWith(context.Background(), e, parse)
+			require.NoError(t, err)
 
-	parse := func(i interface{}) (interface{}, error) {
-		return strings.TrimPrefix(i.(string), "prefixed-"), nil
+			require.Equal(t, tc.outputRecord, e.Record)
+		})
 	}
-	testEntry := entry.New()
-	err = testEntry.Set(parser.ParseFrom, "prefixed-test")
-	require.NoError(t, err)
-
-	err = parser.ProcessWith(context.Background(), testEntry, parse)
-	require.NoError(t, err)
-
-	originalValue, ok := testEntry.Get(preserveField)
-	require.True(t, ok)
-	require.Equal(t, "prefixed-test", originalValue)
 }
