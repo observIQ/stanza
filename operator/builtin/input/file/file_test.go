@@ -586,6 +586,12 @@ func TestMultiFileRotate(t *testing.T) {
 }
 
 func TestMultiFileRotateSlow(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Windows has very poor support for moving active files, so rotation is less commonly used
+		// This may possibly be handled better in Go 1.16: https://github.com/golang/go/issues/35358
+		t.Skip()
+	}
+
 	t.Parallel()
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
