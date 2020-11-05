@@ -52,7 +52,7 @@ func (f *Reader) Copy(file *os.File) (*Reader, error) {
 		return nil, err
 	}
 	reader.Offset = f.Offset
-	reader.generation = f.generation
+	reader.generation = f.generation + 1
 	return reader, nil
 }
 
