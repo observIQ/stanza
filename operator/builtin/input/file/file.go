@@ -221,9 +221,6 @@ OUTER:
 func (f *InputOperator) saveCurrent(readers []*Reader) {
 	// Rotate current into old
 	for _, reader := range readers {
-		if reader.generation > 10 {
-			continue
-		}
 		if reader.generation == 0 {
 			f.Debugf("Found new file: %s", reader.file.Name())
 		}
