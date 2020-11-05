@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Changed
-- Removed `preserve` in favor of `preserve_at` to make it more clear that it may overwrite parsed fields
+- Removed `preserve` in favor of `preserve_to` to make it more clear that it may overwrite parsed fields
 
 ## [0.12.5] - 2020-10-07
 ### Added

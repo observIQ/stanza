@@ -14,8 +14,7 @@ func NewParserConfig(operatorID, operatorType string) ParserConfig {
 		TransformerConfig: NewTransformerConfig(operatorID, operatorType),
 		ParseFrom:         entry.NewRecordField(),
 		ParseTo:           entry.NewRecordField(),
-		Preserve:          false,
-		PreserveAt:        nil,
+		PreserveTo:        nil,
 	}
 }
 
@@ -25,8 +24,7 @@ type ParserConfig struct {
 
 	ParseFrom            entry.Field           `json:"parse_from" yaml:"parse_from"`
 	ParseTo              entry.Field           `json:"parse_to"   yaml:"parse_to"`
-	Preserve             bool                  `json:"preserve"   yaml:"preserve"`
-	PreserveAt           *entry.Field          `json:"preserve_at" yaml:"preserve_at"`
+	PreserveTo           *entry.Field          `json:"preserve_to" yaml:"preserve_to"`
 	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
@@ -38,19 +36,11 @@ func (c ParserConfig) Build(context operator.BuildContext) (ParserOperator, erro
 		return ParserOperator{}, err
 	}
 
-	if c.ParseFrom.String() == c.ParseTo.String() && c.Preserve {
-		transformerOperator.Warnw(
-			"preserve is true, but parse_to is set to the same field as parse_from, "+
-				"which will cause the original value to be overwritten",
-			"operator_id", c.ID(),
-		)
-	}
-
 	parserOperator := ParserOperator{
 		TransformerOperator: transformerOperator,
 		ParseFrom:           c.ParseFrom,
 		ParseTo:             c.ParseTo,
-		PreserveAt:          c.PreserveAt,
+		PreserveTo:          c.PreserveTo,
 	}
 
 	if c.TimeParser != nil {
@@ -76,7 +66,7 @@ type ParserOperator struct {
 	TransformerOperator
 	ParseFrom      entry.Field
 	ParseTo        entry.Field
-	PreserveAt     *entry.Field
+	PreserveTo     *entry.Field
 	TimeParser     *TimeParser
 	SeverityParser *SeverityParser
 }
@@ -104,9 +94,9 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 		return p.HandleEntryError(ctx, entry, errors.Wrap(err, "set parse_to"))
 	}
 
-	if p.PreserveAt != nil {
-		if err := entry.Set(p.PreserveAt, original); err != nil {
-			return p.HandleEntryError(ctx, entry, errors.Wrap(err, "set preserve_at"))
+	if p.PreserveTo != nil {
+		if err := entry.Set(p.PreserveTo, original); err != nil {
+			return p.HandleEntryError(ctx, entry, errors.Wrap(err, "set preserve_to"))
 		}
 	}
 

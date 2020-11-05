@@ -281,7 +281,7 @@ func TestParserOutput(t *testing.T) {
 func TestParserWithPreserve(t *testing.T) {
 	cfg := NewParserConfig("test-id", "test-type")
 	preserveField := entry.NewRecordField("original")
-	cfg.PreserveAt = &preserveField
+	cfg.PreserveTo = &preserveField
 	parser, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 
@@ -307,7 +307,7 @@ func TestParserWithPreserve(t *testing.T) {
 func TestParserWithOverwritingPreserve(t *testing.T) {
 	cfg := NewParserConfig("test-id", "test-type")
 	preserveField := entry.NewRecordField()
-	cfg.PreserveAt = &preserveField
+	cfg.PreserveTo = &preserveField
 	parser, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 
