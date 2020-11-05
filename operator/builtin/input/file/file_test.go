@@ -623,7 +623,7 @@ func TestMultiFileRotateSlow(t *testing.T) {
 					time.Sleep(5 * time.Millisecond)
 				}
 
-				file.Close()
+				require.NoError(t, file.Close())
 				require.NoError(t, os.Rename(baseFileName(fn), fileName(fn, rotationNum)))
 			}
 		}(fileNum)
