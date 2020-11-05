@@ -227,7 +227,7 @@ func (f *InputOperator) saveCurrent(readers []*Reader) {
 	// Clear out old readers
 	for i := 0; i < len(f.knownFiles); {
 		reader := f.knownFiles[i]
-		if reader.generation >= 3 {
+		if reader.generation > 0 {
 			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
 		}
 		reader.generation++
