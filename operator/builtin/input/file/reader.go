@@ -21,9 +21,9 @@ type Reader struct {
 	Offset      int64
 	Path        string
 
-	generation    int
-	fileInput     *InputOperator
-	file          *os.File
+	generation int
+	fileInput  *InputOperator
+	file       *os.File
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
@@ -52,6 +52,7 @@ func (f *Reader) Copy(file *os.File) (*Reader, error) {
 		return nil, err
 	}
 	reader.Offset = f.Offset
+	reader.generation = f.generation
 	return reader, nil
 }
 
