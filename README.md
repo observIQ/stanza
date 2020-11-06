@@ -1,9 +1,8 @@
-<p align="center"><img src="https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true"></p>
-
 [![<observIQ>](https://circleci.com/gh/observIQ/stanza.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/stanza)
 [![codecov](https://codecov.io/gh/observIQ/stanza/branch/master/graph/badge.svg)](https://codecov.io/gh/observIQ/stanza)
 [![Go Report Card](https://goreportcard.com/badge/github.com/observIQ/stanza)](https://goreportcard.com/report/github.com/observIQ/stanza)
 
+<p align="center"><img src="https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true"></p>
 
 # About Stanza
 
@@ -17,7 +16,7 @@ Want to get started right away? Check out our [Quick Start Guide](./docs/README.
 
 ## Community
 
-Stanza is an open source project. If you'd like to contribute, check out our First, take a look at our [contribution guidelines](./CONTRIBUTING.md) and [developer guide](./docs/development.md). We look forward to building with you.
+Stanza is an open source project. If you'd like to contribute, take a look at our [contribution guidelines](./CONTRIBUTING.md) and [developer guide](./docs/development.md). We look forward to building with you.
 
 
 ## Roadmap
