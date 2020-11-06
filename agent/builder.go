@@ -84,7 +84,7 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 
 	sampledLogger := b.logger.Desugar().WithOptions(
 		zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-			return zapcore.NewSamplerWithOptions(core, time.Second, 5, 100)
+			return zapcore.NewSamplerWithOptions(core, time.Second, 1, 10000)
 		}),
 	).Sugar()
 
