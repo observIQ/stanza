@@ -684,6 +684,7 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 				require.NoError(t, file.Truncate(0))
 				_, err = file.Seek(0, 0)
 				require.NoError(t, err)
+				file.Close()
 			}
 		}(fileNum)
 	}
