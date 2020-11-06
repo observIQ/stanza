@@ -15,6 +15,8 @@ import (
 	"golang.org/x/text/transform"
 )
 
+const fingerPrintSize = 1000 // bytes
+
 // Reader manages a single file
 type Reader struct {
 	Fingerprint *Fingerprint
@@ -165,7 +167,7 @@ func NewFingerprintUpdatingReader(r io.Reader, offset int64, f *Fingerprint) *Fi
 }
 
 // FingerprintUpdatingReader wraps another reader, and updates the fingerprint
-// with each read in the first 1000 bytes
+// with each read in the first fingerPrintSize bytes
 type FingerprintUpdatingReader struct {
 	fingerprint *Fingerprint
 	reader      io.Reader
@@ -174,11 +176,11 @@ type FingerprintUpdatingReader struct {
 
 // Read reads from the wrapped reader, saving the read bytes to the fingerprint
 func (f *FingerprintUpdatingReader) Read(dst []byte) (int, error) {
-	if len(f.fingerprint.FirstBytes) == 1000 {
+	if len(f.fingerprint.FirstBytes) == fingerPrintSize {
 		return f.reader.Read(dst)
 	}
 	n, err := f.reader.Read(dst)
-	appendCount := min0(n, 1000-int(f.offset))
+	appendCount := min0(n, fingerPrintSize-int(f.offset))
 	f.fingerprint.FirstBytes = append(f.fingerprint.FirstBytes[:f.offset], dst[:appendCount]...)
 	f.offset += int64(n)
 	return n, err
@@ -191,7 +193,7 @@ type Fingerprint struct {
 
 // Copy creates a new copy of hte fingerprint
 func (f Fingerprint) Copy() *Fingerprint {
-	buf := make([]byte, 1000)
+	buf := make([]byte, fingerPrintSize)
 	n := copy(buf, f.FirstBytes)
 	return &Fingerprint{
 		FirstBytes: buf[:n],
@@ -200,7 +202,7 @@ func (f Fingerprint) Copy() *Fingerprint {
 
 // NewFingerprint creates a new fingerprint from an open file
 func NewFingerprint(file *os.File) (*Fingerprint, error) {
-	buf := make([]byte, 1000)
+	buf := make([]byte, fingerPrintSize)
 	n, err := file.Read(buf)
 	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("reading fingerprint bytes: %s", err)

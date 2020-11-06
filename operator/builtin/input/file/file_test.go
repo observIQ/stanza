@@ -752,8 +752,9 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 		logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate, sequential)
 
 		expected := make([]string, 0, tc.totalLines)
+		baseStr := stringWithLength(46) // + ' 123'
 		for i := 0; i < tc.totalLines; i++ {
-			expected = append(expected, fmt.Sprintf("this is a fifty char log entry with the number %3d", i))
+			expected = append(expected, fmt.Sprintf("%s %3d", baseStr, i))
 		}
 
 		require.NoError(t, operator.Start())
@@ -830,7 +831,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    10 * time.Millisecond,
+			pollInterval:    7 * time.Millisecond,
 		},
 		{
 			name:            "Slow/NoDeletion",
@@ -838,35 +839,35 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    10 * time.Millisecond,
+			pollInterval:    7 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion",
-			totalLines:      30,
+			totalLines:      50,
 			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
+			maxBackupFiles:  3,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    10 * time.Millisecond,
+			pollInterval:    7 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion/ExceedFingerprint",
-			totalLines:      300,
-			maxLinesPerFile: 100,
-			maxBackupFiles:  1,
+			totalLines:      100,
+			maxLinesPerFile: 25, // ~20 is just enough to exceed 1000 bytes fingerprint at 50 chars per line
+			maxBackupFiles:  2,
 			writeInterval:   10 * time.Millisecond,
-			pollInterval:    10 * time.Millisecond,
+			pollInterval:    7 * time.Millisecond,
 		},
 	}
 
 	for _, tc := range cases {
 
-		if runtime.GOOS != "windows" {
-			// Windows has very poor support for moving active files, so rotation is less commonly used
-			// This may possibly be handled better in Go 1.16: https://github.com/golang/go/issues/35358
-			// We actually handle this quite well, and could probably test that we only lose 1-2 lines per file
-			t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
-			t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
-		}
+		// if runtime.GOOS != "windows" {
+		// Windows has very poor support for moving active files, so rotation is less commonly used
+		// This may possibly be handled better in Go 1.16: https://github.com/golang/go/issues/35358
+		// We actually handle this quite well, and could probably test that we only lose 1-2 lines per file
+		t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
+		t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
+		// }
 		t.Run(fmt.Sprintf("%s/CopyTruncateTimestamped", tc.name), tc.run(tc, true, false))
 		t.Run(fmt.Sprintf("%s/CopyTruncateSequential", tc.name), tc.run(tc, true, true))
 	}
