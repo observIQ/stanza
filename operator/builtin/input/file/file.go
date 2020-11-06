@@ -93,19 +93,29 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
+
 	// Get the list of paths on disk
 	matches := getMatches(f.Include, f.Exclude)
 	if f.firstCheck && len(matches) == 0 {
 		f.Warnw("no files match the configured include patterns", "include", f.Include)
 	}
 
-	newReaders := make(chan *Reader, 5)
-	go f.generateReaders(matches, newReaders)
+	// Open the files first to minimize the time between listing and opening
+	files := make([]*os.File, 0, len(matches))
+	for _, path := range matches {
+		file, err := os.Open(path)
+		if err != nil {
+			f.Errorw("Failed to open file", zap.Error(err))
+			continue
+		}
+		files = append(files, file)
+	}
+
+	readers := f.makeReaders(files)
+	f.firstCheck = false
 
 	var wg sync.WaitGroup
-	readers := make([]*Reader, 0, len(matches))
-	for reader := range newReaders {
-		readers = append(readers, reader)
+	for _, reader := range readers {
 		wg.Add(1)
 		go func(r *Reader) {
 			defer wg.Done()
@@ -115,7 +125,11 @@ func (f *InputOperator) poll(ctx context.Context) {
 
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
-	f.firstCheck = false
+
+	// Close all files
+	for _, file := range files {
+		file.Close()
+	}
 
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
@@ -147,60 +161,89 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-func (f *InputOperator) generateReaders(paths []string, newReaders chan *Reader) {
-	defer close(newReaders)
-	seenFingerprints := make([]*Fingerprint, 0, len(paths))
-OUTER:
-	for _, path := range paths {
-		file, err := os.Open(path)
-		if err != nil {
-			f.Errorw("Failed to open file", zap.Error(err))
-			file.Close()
-			continue
-		}
-
+// makeReaders takes a list of paths, then creates readers from each of those paths,
+// discarding any that have a duplicate fingerprint to other files that have already
+// been read this polling interval
+func (f *InputOperator) makeReaders(files []*os.File) []*Reader {
+	// Get fingerprints for each file
+	fps := make([]*Fingerprint, 0, len(files))
+	for _, file := range files {
 		fp, err := NewFingerprint(file)
 		if err != nil {
-			f.Errorw("Failed to fingerprint file", zap.Error(err))
-			file.Close()
+			f.Errorw("Failed creating fingerprint", zap.Error(err))
 			continue
 		}
+		fps = append(fps, fp)
+	}
 
-		// Skip empty file until we can compare its fingerprint
+	// Make a copy of the files so we don't modify the original
+	filesCopy := make([]*os.File, len(files))
+	copy(filesCopy, files)
+
+	// Exclude any empty fingerprints or duplicate fingerprints to avoid doubling up on copy-truncate files
+OUTER:
+	for i := 0; i < len(fps); {
+		fp := fps[i]
 		if len(fp.FirstBytes) == 0 {
-			file.Close()
-			continue
+			// Empty file, don't read it until we can compare its fingerprint
+			fps = append(fps[:i], fps[i+1:]...)
+			filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
+
 		}
 
-		for _, seenFp := range seenFingerprints {
-			if fp.Matches(seenFp) || seenFp.Matches(fp) {
-				file.Close()
+		for j := 0; j < len(fps); j++ {
+			if i == j {
+				// Skip checking itself
+				continue
+			}
+
+			fp2 := fps[j]
+			if fp.Matches(fp2) || fp2.Matches(fp) {
+				// Exclude
+				fps = append(fps[:i], fps[i+1:]...)
+				filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
 				continue OUTER
 			}
 		}
-		seenFingerprints = append(seenFingerprints, fp)
-
-		reader, err := f.newReader(file, fp.Copy(), f.firstCheck)
-		if err != nil {
-			f.Errorw("Failed to create new reader", zap.Error(err))
-		}
-		newReaders <- reader
+		i++
 	}
+
+	readers := make([]*Reader, 0, len(fps))
+	for i := 0; i < len(fps); i++ {
+		reader, err := f.newReader(filesCopy[i], fps[i], f.firstCheck)
+		if err != nil {
+			f.Errorw("Failed to create reader", zap.Error(err))
+			continue
+		}
+		readers = append(readers, reader)
+	}
+
+	return readers
 }
 
+// saveCurrent adds the readers from this polling interval to this list of
+// known files, then increments the generation of all tracked old readers
+// before clearing out readers that have existed for 3 generations.
 func (f *InputOperator) saveCurrent(readers []*Reader) {
+	// Add readers from the current, completed poll interval to the list of known files
 	for _, reader := range readers {
 		f.knownFiles = append(f.knownFiles, reader)
 	}
 
-	// Clear out old readers
-	for i := 0; i < len(f.knownFiles); {
+	// Clear out old readers. They are sorted such that they are oldest first,
+	// so we can just find the first reader whose generation is less than our
+	// max, and keep every reader after that
+	for i := 0; i < len(f.knownFiles); i++ {
 		reader := f.knownFiles[i]
-		if reader.generation >= 3 {
-			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
+		if reader.generation <= 3 {
+			f.knownFiles = f.knownFiles[i:]
+			break
 		}
-		reader.generation++
-		i++
+	}
+
+	// Increment the generation on all the remaining readers
+	for i := 0; i < len(f.knownFiles); i++ {
+		f.knownFiles[i].generation++
 	}
 }
 
