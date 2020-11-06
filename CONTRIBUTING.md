@@ -71,7 +71,7 @@ Best practices for developing a builtin operator are documented below, but for c
 
 ### Operator Development
 
-In order to write a builtin operator, follow these three steps:
+In order to write an operator, follow these three steps:
 1. Build a unique struct that satisfies the [`Operator`](operator/operator.go) interface. This struct will define what your operator does when executed in the pipeline.
 
 ```go
