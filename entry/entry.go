@@ -7,11 +7,12 @@ import (
 
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
-	Timestamp time.Time         `json:"timestamp"        yaml:"timestamp"`
-	Severity  Severity          `json:"severity"         yaml:"severity"`
-	Labels    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Resource  map[string]string `json:"resource,omitempty" yaml:"resource,omitempty"`
-	Record    interface{}       `json:"record"           yaml:"record"`
+	Timestamp    time.Time         `json:"timestamp"               yaml:"timestamp"`
+	Severity     Severity          `json:"severity"                yaml:"severity"`
+	SeverityText string            `json:"severity_text,omitempty" yaml:"severity_text,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"        yaml:"labels,omitempty"`
+	Resource     map[string]string `json:"resource,omitempty"      yaml:"resource,omitempty"`
+	Record       interface{}       `json:"record"                  yaml:"record"`
 }
 
 // New will create a new log entry with current timestamp and an empty record.
@@ -154,10 +155,11 @@ func (entry *Entry) readToStringMap(field FieldInterface, dest *map[string]strin
 // Copy will return a deep copy of the entry.
 func (entry *Entry) Copy() *Entry {
 	return &Entry{
-		Timestamp: entry.Timestamp,
-		Severity:  entry.Severity,
-		Labels:    copyStringMap(entry.Labels),
-		Resource:  copyStringMap(entry.Resource),
-		Record:    copyValue(entry.Record),
+		Timestamp:    entry.Timestamp,
+		Severity:     entry.Severity,
+		SeverityText: entry.SeverityText,
+		Labels:       copyStringMap(entry.Labels),
+		Resource:     copyStringMap(entry.Resource),
+		Record:       copyValue(entry.Record),
 	}
 }

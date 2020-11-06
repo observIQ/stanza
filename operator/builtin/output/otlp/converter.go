@@ -43,9 +43,8 @@ func Convert(entries []*entry.Entry) pdata.Logs {
 			lr.InitEmpty()
 			lr.SetTimestamp(pdata.TimestampUnixNano(entry.Timestamp.UnixNano()))
 
-			sevText, sevNum := convertSeverity(entry.Severity)
-			lr.SetSeverityText(sevText)
-			lr.SetSeverityNumber(sevNum)
+			lr.SetSeverityNumber(convertSeverity(entry.Severity))
+			lr.SetSeverityText(entry.SeverityText)
 
 			if len(entry.Labels) > 0 {
 				attributes := lr.Attributes()
@@ -227,54 +226,71 @@ func toAttributeArray(obsArr []interface{}) pdata.AnyValueArray {
 	return arr
 }
 
-func convertSeverity(s entry.Severity) (string, pdata.SeverityNumber) {
-	switch {
+var namedLevels = map[entry.Severity]pdata.SeverityNumber{
+	entry.Default:     pdata.SeverityNumberUNDEFINED,
+	entry.Trace:       pdata.SeverityNumberTRACE,
+	entry.Trace2:      pdata.SeverityNumberTRACE2,
+	entry.Trace3:      pdata.SeverityNumberTRACE3,
+	entry.Trace4:      pdata.SeverityNumberTRACE4,
+	entry.Debug:       pdata.SeverityNumberDEBUG,
+	entry.Debug2:      pdata.SeverityNumberDEBUG2,
+	entry.Debug3:      pdata.SeverityNumberDEBUG3,
+	entry.Debug4:      pdata.SeverityNumberDEBUG4,
+	entry.Info:        pdata.SeverityNumberINFO,
+	entry.Info2:       pdata.SeverityNumberINFO2,
+	entry.Info3:       pdata.SeverityNumberINFO3,
+	entry.Info4:       pdata.SeverityNumberINFO4,
+	entry.Notice:      pdata.SeverityNumberINFO4,
+	entry.Warning:     pdata.SeverityNumberWARN,
+	entry.Warning2:    pdata.SeverityNumberWARN2,
+	entry.Warning3:    pdata.SeverityNumberWARN3,
+	entry.Warning4:    pdata.SeverityNumberWARN4,
+	entry.Error:       pdata.SeverityNumberERROR,
+	entry.Error2:      pdata.SeverityNumberERROR2,
+	entry.Error3:      pdata.SeverityNumberERROR3,
+	entry.Error4:      pdata.SeverityNumberERROR4,
+	entry.Critical:    pdata.SeverityNumberERROR4,
+	entry.Alert:       pdata.SeverityNumberERROR4,
+	entry.Emergency:   pdata.SeverityNumberFATAL,
+	entry.Emergency2:  pdata.SeverityNumberFATAL2,
+	entry.Emergency3:  pdata.SeverityNumberFATAL3,
+	entry.Emergency4:  pdata.SeverityNumberFATAL4,
+	entry.Catastrophe: pdata.SeverityNumberFATAL4,
+}
 
-	// Handle standard severity levels
-	case s == entry.Catastrophe:
-		return "Fatal", pdata.SeverityNumberFATAL4
-	case s == entry.Emergency:
-		return "Error", pdata.SeverityNumberFATAL
-	case s == entry.Alert:
-		return "Error", pdata.SeverityNumberERROR3
-	case s == entry.Critical:
-		return "Error", pdata.SeverityNumberERROR2
-	case s == entry.Error:
-		return "Error", pdata.SeverityNumberERROR
-	case s == entry.Warning:
-		return "Info", pdata.SeverityNumberINFO4
-	case s == entry.Notice:
-		return "Info", pdata.SeverityNumberINFO3
-	case s == entry.Info:
-		return "Info", pdata.SeverityNumberINFO
-	case s == entry.Debug:
-		return "Debug", pdata.SeverityNumberDEBUG
-	case s == entry.Trace:
-		return "Trace", pdata.SeverityNumberTRACE2
+func convertSeverity(s entry.Severity) pdata.SeverityNumber {
+	// Handle named severity levels
+	if sev, ok := namedLevels[s]; ok {
+		return sev
+	}
 
 	// Handle custom severity levels
+	switch {
+	case s > entry.Emergency4:
+		return pdata.SeverityNumberFATAL4
 	case s > entry.Emergency:
-		return "Fatal", pdata.SeverityNumberFATAL2
-	case s > entry.Alert:
-		return "Error", pdata.SeverityNumberERROR4
-	case s > entry.Critical:
-		return "Error", pdata.SeverityNumberERROR3
+		return pdata.SeverityNumberFATAL
+	case s > entry.Error4:
+		return pdata.SeverityNumberERROR4
 	case s > entry.Error:
-		return "Error", pdata.SeverityNumberERROR2
+		return pdata.SeverityNumberERROR
+	case s > entry.Warning4:
+		return pdata.SeverityNumberWARN4
 	case s > entry.Warning:
-		return "Info", pdata.SeverityNumberINFO4
-	case s > entry.Notice:
-		return "Info", pdata.SeverityNumberINFO3
+		return pdata.SeverityNumberWARN
+	case s > entry.Info4:
+		return pdata.SeverityNumberINFO4
 	case s > entry.Info:
-		return "Info", pdata.SeverityNumberINFO2
+		return pdata.SeverityNumberINFO
+	case s > entry.Debug4:
+		return pdata.SeverityNumberDEBUG4
 	case s > entry.Debug:
-		return "Debug", pdata.SeverityNumberDEBUG2
-	case s > entry.Trace:
-		return "Trace", pdata.SeverityNumberTRACE3
+		return pdata.SeverityNumberDEBUG
+	case s > entry.Trace4:
+		return pdata.SeverityNumberTRACE4
 	case s > entry.Default:
-		return "Trace", pdata.SeverityNumberTRACE
-
+		return pdata.SeverityNumberTRACE
 	default:
-		return "Undefined", pdata.SeverityNumberUNDEFINED
+		return pdata.SeverityNumberUNDEFINED
 	}
 }
