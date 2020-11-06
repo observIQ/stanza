@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - OTLP severity level recognition
 - Severity Text field on Entry
+### Changed
+- Removed `preserve` in favor of `preserve_to` to make it more clear that it may overwrite parsed fields
 
 ## [0.12.5] - 2020-10-07
 ### Added

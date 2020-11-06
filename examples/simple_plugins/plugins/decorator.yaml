@@ -2,7 +2,7 @@ version: 0.0.0
 title: Decorator
 description: A decorator plugin
 parameters:
-  value:
+  - name: value
     label: Value
     description: A value to decorate the entries
     type: string

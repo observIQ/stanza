@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -277,82 +278,93 @@ func TestParserOutput(t *testing.T) {
 	output.AssertCalled(t, "Process", mock.Anything, mock.Anything)
 }
 
-func TestParserWithPreserve(t *testing.T) {
-	output := &testutil.Operator{}
-	output.On("ID").Return("test-output")
-	output.On("Process", mock.Anything, mock.Anything).Return(nil)
-	buildContext := testutil.NewBuildContext(t)
-	parser := ParserOperator{
-		TransformerOperator: TransformerOperator{
-			OnError: DropOnError,
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
+func TestParserPreserve(t *testing.T) {
+	cases := []struct {
+		name         string
+		cfgMod       func(*ParserConfig)
+		inputRecord  interface{}
+		outputRecord interface{}
+	}{
+		{
+			"NoPreserve",
+			func(cfg *ParserConfig) {},
+			"key:value",
+			map[string]interface{}{"key": "value"},
+		},
+		{
+			"PreserveToSubkey",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("original")
+				cfg.PreserveTo = &dst
+			},
+			"key:value",
+			map[string]interface{}{"key": "value", "original": "key:value"},
+		},
+		{
+			"PreserveToOverwrite",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("key")
+				cfg.PreserveTo = &dst
+			},
+			"key:value",
+			map[string]interface{}{"key": "key:value"},
+		},
+		{
+			"PreserveToRoot",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField()
+				cfg.PreserveTo = &dst
+			},
+			"key:value",
+			"key:value",
+		},
+		{
+			"AlternativeParseFrom",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("source")
+				cfg.PreserveTo = &dst
+				cfg.ParseFrom = dst
+			},
+			map[string]interface{}{"source": "key:value"},
+			map[string]interface{}{"source": "key:value", "key": "value"},
+		},
+		{
+			"AlternativeParseTo",
+			func(cfg *ParserConfig) {
+				dst := entry.NewRecordField("original")
+				cfg.PreserveTo = &dst
+				cfg.ParseTo = entry.NewRecordField("source_parsed")
+			},
+			"key:value",
+			map[string]interface{}{
+				"source_parsed": map[string]interface{}{
+					"key": "value",
 				},
-				OutputOperators: []operator.Operator{output},
+				"original": "key:value",
 			},
 		},
-		ParseFrom: entry.NewRecordField("parse_from"),
-		ParseTo:   entry.NewRecordField("parse_to"),
-		Preserve:  true,
 	}
+
 	parse := func(i interface{}) (interface{}, error) {
-		return i, nil
+		split := strings.Split(i.(string), ":")
+		return map[string]interface{}{split[0]: split[1]}, nil
 	}
-	ctx := context.Background()
-	testEntry := entry.New()
-	err := testEntry.Set(parser.ParseFrom, "test-value")
-	require.NoError(t, err)
 
-	err = parser.ProcessWith(ctx, testEntry, parse)
-	require.NoError(t, err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := NewParserConfig("test-id", "test-type")
+			tc.cfgMod(&cfg)
 
-	actualValue, ok := testEntry.Get(parser.ParseFrom)
-	require.True(t, ok)
-	require.Equal(t, "test-value", actualValue)
+			parser, err := cfg.Build(testutil.NewBuildContext(t))
+			require.NoError(t, err)
 
-	actualValue, ok = testEntry.Get(parser.ParseTo)
-	require.True(t, ok)
-	require.Equal(t, "test-value", actualValue)
-}
+			e := entry.New()
+			e.Record = tc.inputRecord
 
-func TestParserWithoutPreserve(t *testing.T) {
-	output := &testutil.Operator{}
-	output.On("ID").Return("test-output")
-	output.On("Process", mock.Anything, mock.Anything).Return(nil)
-	buildContext := testutil.NewBuildContext(t)
-	parser := ParserOperator{
-		TransformerOperator: TransformerOperator{
-			OnError: DropOnError,
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
-				},
-				OutputOperators: []operator.Operator{output},
-			},
-		},
-		ParseFrom: entry.NewRecordField("parse_from"),
-		ParseTo:   entry.NewRecordField("parse_to"),
-		Preserve:  false,
+			err = parser.ProcessWith(context.Background(), e, parse)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.outputRecord, e.Record)
+		})
 	}
-	parse := func(i interface{}) (interface{}, error) {
-		return i, nil
-	}
-	ctx := context.Background()
-	testEntry := entry.New()
-	err := testEntry.Set(parser.ParseFrom, "test-value")
-	require.NoError(t, err)
-	err = parser.ProcessWith(ctx, testEntry, parse)
-	require.NoError(t, err)
-
-	_, ok := testEntry.Get(parser.ParseFrom)
-	require.False(t, ok)
-
-	actualValue, ok := testEntry.Get(parser.ParseTo)
-	require.True(t, ok)
-	require.Equal(t, "test-value", actualValue)
 }
