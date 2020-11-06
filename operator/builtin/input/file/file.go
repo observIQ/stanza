@@ -93,29 +93,19 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
-
 	// Get the list of paths on disk
 	matches := getMatches(f.Include, f.Exclude)
 	if f.firstCheck && len(matches) == 0 {
 		f.Warnw("no files match the configured include patterns", "include", f.Include)
 	}
 
-	// Open the files first to minimize the time between listing and opening
-	files := make([]*os.File, 0, len(matches))
-	for _, path := range matches {
-		file, err := os.Open(path)
-		if err != nil {
-			f.Errorw("Failed to open file", zap.Error(err))
-			continue
-		}
-		files = append(files, file)
-	}
-
-	readers := f.makeReaders(files)
-	f.firstCheck = false
+	newReaders := make(chan *Reader, 5)
+	go f.generateReaders(matches, newReaders)
 
 	var wg sync.WaitGroup
-	for _, reader := range readers {
+	readers := make([]*Reader, 0, len(matches))
+	for reader := range newReaders {
+		readers = append(readers, reader)
 		wg.Add(1)
 		go func(r *Reader) {
 			defer wg.Done()
@@ -125,11 +115,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
-
-	// Close all files
-	for _, file := range files {
-		file.Close()
-	}
+	f.firstCheck = false
 
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
@@ -161,70 +147,59 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
-func (f *InputOperator) makeReaders(files []*os.File) []*Reader {
-	// Get fingerprints for each file
-	fps := make([]*Fingerprint, 0, len(files))
-	for _, file := range files {
+func (f *InputOperator) generateReaders(paths []string, newReaders chan *Reader) {
+	defer close(newReaders)
+	seenFingerprints := make([]*Fingerprint, 0, len(paths))
+	for _, path := range paths {
+		file, err := os.Open(path)
+		if err != nil {
+			f.Errorw("Failed to open file", zap.Error(err))
+			file.Close()
+			continue
+		}
+
 		fp, err := NewFingerprint(file)
 		if err != nil {
-			f.Errorw("Failed creating fingerprint", zap.Error(err))
+			f.Errorw("Failed to fingerprint file", zap.Error(err))
+			file.Close()
 			continue
 		}
-		fps = append(fps, fp)
-	}
 
-	// Make a copy of the files so we don't modify the original
-	filesCopy := make([]*os.File, len(files))
-	copy(filesCopy, files)
-
-	// Exclude any empty fingerprints or duplicate fingerprints to avoid doubling up on copy-truncate files
-OUTER:
-	for i := 0; i < len(fps); {
-		fp := fps[i]
+		// Skip empty file until we can compare its fingerprint
 		if len(fp.FirstBytes) == 0 {
-			// Empty file, don't read it until we can compare its fingerprint
-			fps = append(fps[:i], fps[i+1:]...)
-			filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
-
+			file.Close()
+			continue
 		}
 
-		for j := 0; j < len(fps); j++ {
-			if i == j {
-				// Skip checking itself
+		for _, seenFp := range seenFingerprints {
+			if fp.Matches(seenFp) || seenFp.Matches(fp) {
+				file.Close()
 				continue
 			}
-
-			fp2 := fps[j]
-			if fp.Matches(fp2) || fp2.Matches(fp) {
-				// Exclude
-				fps = append(fps[:i], fps[i+1:]...)
-				filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
-				continue OUTER
-			}
 		}
-		i++
-	}
+		seenFingerprints = append(seenFingerprints, fp)
 
-	readers := make([]*Reader, 0, len(fps))
-	for i := 0; i < len(fps); i++ {
-		reader, err := f.newReader(filesCopy[i], fps[i], f.firstCheck)
+		reader, err := f.newReader(file, fp, f.firstCheck)
 		if err != nil {
-			f.Errorw("Failed to create reader", zap.Error(err))
-			continue
+			f.Errorw("Failed to create new reader", zap.Error(err))
 		}
-		readers = append(readers, reader)
+		newReaders <- reader
 	}
-
-	return readers
 }
 
 func (f *InputOperator) saveCurrent(readers []*Reader) {
-	// Rotate current into old
 	for _, reader := range readers {
-		if reader.generation == 0 {
-			f.Debugf("Found new file: %s", reader.file.Name())
-		}
 		f.knownFiles = append(f.knownFiles, reader)
+	}
+
+	// Clear out old readers
+	for i := 0; i < len(f.knownFiles); {
+		reader := f.knownFiles[i]
+		if reader.generation >= 3 {
+			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
+		}
+		reader.generation++
+		i++
 	}
 }
 

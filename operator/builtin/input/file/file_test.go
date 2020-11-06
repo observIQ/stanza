@@ -640,8 +640,6 @@ func TestMultiFileRotateSlow(t *testing.T) {
 }
 
 func TestMultiCopyTruncateSlow(t *testing.T) {
-	t.Parallel()
-
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }

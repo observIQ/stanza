@@ -54,7 +54,6 @@ func (f *Reader) Copy(file *os.File) (*Reader, error) {
 		return nil, err
 	}
 	reader.Offset = f.Offset
-	reader.generation = f.generation + 1
 	return reader, nil
 }
 
@@ -73,6 +72,8 @@ func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
+	defer f.file.Close()
+
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
 		return
