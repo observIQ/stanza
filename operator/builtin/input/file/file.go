@@ -150,6 +150,7 @@ func getMatches(includes, excludes []string) []string {
 func (f *InputOperator) generateReaders(paths []string, newReaders chan *Reader) {
 	defer close(newReaders)
 	seenFingerprints := make([]*Fingerprint, 0, len(paths))
+OUTER:
 	for _, path := range paths {
 		file, err := os.Open(path)
 		if err != nil {
@@ -174,7 +175,7 @@ func (f *InputOperator) generateReaders(paths []string, newReaders chan *Reader)
 		for _, seenFp := range seenFingerprints {
 			if fp.Matches(seenFp) || seenFp.Matches(fp) {
 				file.Close()
-				continue
+				continue OUTER
 			}
 		}
 		seenFingerprints = append(seenFingerprints, fp)
