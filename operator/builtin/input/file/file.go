@@ -179,7 +179,7 @@ func (f *InputOperator) generateReaders(paths []string, newReaders chan *Reader)
 		}
 		seenFingerprints = append(seenFingerprints, fp)
 
-		reader, err := f.newReader(file, fp, f.firstCheck)
+		reader, err := f.newReader(file, fp.Copy(), f.firstCheck)
 		if err != nil {
 			f.Errorw("Failed to create new reader", zap.Error(err))
 		}
