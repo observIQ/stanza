@@ -795,7 +795,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 		},
 		{
 			name:            "Fast/NoDeletion",
@@ -803,7 +803,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 		},
 		{
 			name:            "Fast/Deletion",
@@ -811,7 +811,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -820,7 +820,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -828,8 +828,8 @@ func TestRotation(t *testing.T) {
 			totalLines:      10,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    7 * time.Millisecond,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 		},
 		{
 			name:            "Slow/NoDeletion",
@@ -844,28 +844,22 @@ func TestRotation(t *testing.T) {
 			totalLines:      50,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  3,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    7 * time.Millisecond,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion/ExceedFingerprint",
 			totalLines:      100,
 			maxLinesPerFile: 25, // ~20 is just enough to exceed 1000 bytes fingerprint at 50 chars per line
 			maxBackupFiles:  2,
-			writeInterval:   10 * time.Millisecond,
-			pollInterval:    7 * time.Millisecond,
+			writeInterval:   3 * time.Millisecond,
+			pollInterval:    20 * time.Millisecond,
 		},
 	}
 
 	for _, tc := range cases {
-
-		// if runtime.GOOS != "windows" {
-		// Windows has very poor support for moving active files, so rotation is less commonly used
-		// This may possibly be handled better in Go 1.16: https://github.com/golang/go/issues/35358
-		// We actually handle this quite well, and could probably test that we only lose 1-2 lines per file
 		t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
 		t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
-		// }
 		t.Run(fmt.Sprintf("%s/CopyTruncateTimestamped", tc.name), tc.run(tc, true, false))
 		t.Run(fmt.Sprintf("%s/CopyTruncateSequential", tc.name), tc.run(tc, true, true))
 	}
