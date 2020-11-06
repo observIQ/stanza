@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/observIQ/stanza/docs/images/logo_small.png?raw=true"></p>
+<p align="center"><img src="https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true"></p>
 
 [![<observIQ>](https://circleci.com/gh/observIQ/stanza.svg?style=shield&circle-token=980a514f9dc5a48ac2b8e61a4cdb7555ea5646ca)](https://app.circleci.com/pipelines/github/observIQ/stanza)
 [![codecov](https://codecov.io/gh/observIQ/stanza/branch/master/graph/badge.svg)](https://codecov.io/gh/observIQ/stanza)
