@@ -1,6 +1,6 @@
 # Plugins
 
-Plugins can be defined by using a file that contains a templated set of operators.
+A plugin is a templated set of operators. Plugins are defined by using a file with a name that corresponds to the plugin's `type`.
 
 For example, a very simple plugin for monitoring Apache Tomcat access logs could look like this:
 `tomcat.yaml`:
@@ -16,7 +16,7 @@ pipeline:
     regex: '(?P<remote_host>[^\s]+) - (?P<remote_user>[^\s]+) \[(?P<timestamp>[^\]]+)\] "(?P<http_method>[A-Z]+) (?P<path>[^\s]+)[^"]+" (?P<http_status>\d+) (?P<bytes_sent>[^\s]+)'
 ```
 
-Once a plugin config has been defined, it can be used in the stanza config file with a `type` matching the filename of the plugin.
+Plugins can be used in the stanza config file with a `type` matching the filename of the plugin.
 
 `config.yaml`:
 ```yaml
@@ -28,7 +28,8 @@ pipeline:
   - type: stdout
 ```
 
-The `tomcat_access` plugin is replaced with the operators from the rendered config in `tomcat.yaml`.
+The `tomcat` plugin is replaced with the operators from the rendered config in `tomcat.yaml`.
+
 
 ## Building a plugin
 
