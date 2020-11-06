@@ -15,21 +15,21 @@ Stanza is a fast and lightweight log transport and processing agent. It's design
 Want to get started right away? Check out our [Quick Start Guide](./docs/README.md)!
 
 
-# Community
+## Community
 
 Stanza is an open source project. If you'd like to contribute, check out our First, take a look at our [contribution guidelines](./CONTRIBUTING.md) and [developer guide](./docs/development.md). We look forward to building with you.
 
 
-# Roadmap
+## Roadmap
 
 Stanza uses GitHub [projects](https://github.com/observIQ/stanza/projects) to organize future work. There's a lot to do, and more use cases are identified almost daily. We'll keep it organized and moving forward the best we can, but we're always looking for great ideas and contributions of all sizes.
 
 
-# Code of Conduct
+## Code of Conduct
 
 Stanza follows the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md). Please report violations of the Code of Conduct to any or all [maintainers](MAINTAINERS.md).
 
 
-# Other questions?
+## Other questions?
 
 Check out our [FAQ](/docs/faq.md), or open an issue with your question. We'd love to hear from you.

@@ -1,7 +1,7 @@
 
 # Quick Start Guide
 
-## How do I install the agent?
+## Installation
 
 We recommend using our single-line installer provided with each release:
 
@@ -18,10 +18,10 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
-Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
+#### Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
 
 
-## How do I run the agent?
+## Running Stanza
 
 If you installed the agent using the single-line installer above, it's already running as a service! If you'd like to start or stop the agent, here's how:
 
@@ -99,7 +99,7 @@ pipeline:
 ...
 ```
 
-Once you've confirmed you're able to send a log entry, you'll want to connect stanza to a log file you're interested in monitoring. We've included a sample `file_input` configuration in the config file to use (stanza also provide options for UDP, TCP, syslog, and other input streams. They're available [here](./docs/README.md)).
+Once you've confirmed you're able to send a log entry, you'll want to connect stanza to a log file you're interested in monitoring. We've included a sample `file_input` configuration in the config file to use (stanza also provide options for UDP, TCP, syslog, and other input streams. They're available [here](./README.md)).
 ```yaml
 ...
 pipeline:
@@ -125,6 +125,6 @@ That's it! You should have logs streaming to Elasticsearch. From here you can ex
 
 ## Next Steps
 
-- Check out stanza's list of [operators](./docs/operator/README.md).
-- Check out the [FAQ](./docs/faq.md).
-- Let us know what you think! Contact us [directly](mailto:stanza@observiqlabs.com), or open a GitHub issue.
+- Check out stanza's list of [operators](./operator/README.md).
+- Check out the [FAQ](./faq.md).
+- Let us know what you think! [Email us](mailto:stanza@observiqlabs.com), or open a GitHub issue.
