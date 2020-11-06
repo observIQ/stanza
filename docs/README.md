@@ -125,6 +125,6 @@ That's it! You should have logs streaming to Elasticsearch. From here you can ex
 
 ## Next Steps
 
-- Check out stanza's list of [operators](./operator/README.md).
+- Check out stanza's list of [operators](./operators/README.md).
 - Check out the [FAQ](./faq.md).
 - Let us know what you think! [Email us](mailto:stanza@observiqlabs.com), or open a GitHub issue.
