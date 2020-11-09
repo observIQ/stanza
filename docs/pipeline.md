@@ -144,9 +144,9 @@ pipeline:
   # Route based on log type
   - type: router
     routes:
-      - expr: '$.looks_like == "format_one"'
+      - expr: '$record startsWith "prefix_one"'
         output: format_one_parser
-      - expr: '$.looks_like == "format_two"'
+      - expr: '$record startsWith "prefix_two"'
         output: format_two_parser
 
   # Parse logs with format one
