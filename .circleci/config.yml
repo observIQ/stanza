@@ -138,7 +138,7 @@ jobs:
       - run:
           name: Unit Tests
           shell: powershell.exe
-          command: (Get-Childitem -Include file_test.go -Recurse) | ForEach-Object { cd (Split-Path $_ -Parent); go test -race ./...; if ($LastExitCode -gt 0) { exit $LastExitCode } }
+          command: (Get-Childitem -Include go.mod -Recurse) | ForEach-Object { cd (Split-Path $_ -Parent); go test -race ./...; if ($LastExitCode -gt 0) { exit $LastExitCode } }
 
   run-benchmark:
     parameters:
