@@ -3,7 +3,7 @@
 A pipeline is made up of [operators](/docs/operators/README.md). The pipeline defines how stanza should input, process, and output logs. 
 
 
-## Liner Pipelines
+## Linear Pipelines
 
 Many `stanza` pipelines are a linear sequence of operators. Logs flow from one operator to the next, according to the order in which they are defined.v
 
