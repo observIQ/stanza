@@ -5,7 +5,7 @@ A pipeline is made up of [operators](/docs/operators/README.md). The pipeline de
 
 ## Linear Pipelines
 
-Many `stanza` pipelines are a linear sequence of operators. Logs flow from one operator to the next, according to the order in which they are defined.v
+Many stanza pipelines are a linear sequence of operators. Logs flow from one operator to the next, according to the order in which they are defined.
 
 For example, the following pipeline will read logs from a file, parse them as `json`, and print them to `stdout`:
 ```yaml
@@ -22,7 +22,7 @@ Notice that every operator has a `type` field. The `type` of operator must alway
 
 ## `id` and `output`
 
-Linear pipelines are sufficient for many use cases, but `stanza` is also capabile of processing non-linear pipelines as well. In order to use non-linear pipelines, the `id` and `output` fields must be understood. Let's take a close look at these.
+Linear pipelines are sufficient for many use cases, but stanza is also capabile of processing non-linear pipelines as well. In order to use non-linear pipelines, the `id` and `output` fields must be understood. Let's take a close look at these.
 
 Each operator in a pipeline has a unique `id`. By default, `id` will take the same value as `type`. Alternately, you can specify an `id` for any operator. If your pipeline contains multiple operators of the same type, then the `id` field must be used.
 
@@ -90,7 +90,7 @@ pipeline:
 
 ## Non-Linear Pipelines
 
-Now that we understand how `id` and `output` work together, we can configure `stanza` to run more complex pipelines. Technically, the structure of a `stanza` pipeline is limited only in that it must be a [directed, acyclic, graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+Now that we understand how `id` and `output` work together, we can configure stanza to run more complex pipelines. Technically, the structure of a stanza pipeline is limited only in that it must be a [directed, acyclic, graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
 Let's consider a pipeline with two inputs and one output:
 ```yaml
