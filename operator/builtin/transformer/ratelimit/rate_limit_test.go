@@ -65,6 +65,6 @@ func TestRateLimit(t *testing.T) {
 		t.Log("Using a wider acceptable range on darwin because of slow CI servers")
 		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.6)
 	} else {
-		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.2)
+		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.4)
 	}
 }
