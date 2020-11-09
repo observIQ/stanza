@@ -144,21 +144,21 @@ pipeline:
   # Route based on log type
   - type: router
     routes:
-      - expr: '$record startsWith "prefix_one"'
-        output: format_one_parser
-      - expr: '$record startsWith "prefix_two"'
-        output: format_two_parser
+      - expr: '$record startsWith "ERROR"'
+        output: error_parser
+      - expr: '$record startsWith "INFO"'
+        output: info_parser
 
   # Parse logs with format one
   - type: regex_parser
-    id: format_one_parser
-    regex: ... # regex appropriate to format one
+    id: error_parser
+    regex: ... # regex appropriate to parsing error logs
     output: stdout # flow directly to stdout
 
   # Parse logs with format two
   - type: regex_parser
-    id: format_two_parser
-    regex: ... # regex appropriate to format two
+    id: info_parser
+    regex: ... # regex appropriate to parsing info logs
     output: stdout # flow directly to stdout
 
   # Print
