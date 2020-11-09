@@ -125,7 +125,7 @@ That's it! You should have logs streaming to Elasticsearch. From here you can ex
 
 ## Next Steps
 
-- Read up on how to write a stanza [pipeline](/docs/pipeline.md) 
+- Read up on how to write a stanza [pipeline](/docs/pipeline.md).
 - Check out stanza's list of [operators](/docs/operators/README.md).
 - Check out the [FAQ](/docs/faq.md).
 - Let us know what you think! [Email us](mailto:stanza@observiqlabs.com), or open a GitHub issue.
