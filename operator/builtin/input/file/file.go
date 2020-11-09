@@ -105,7 +105,11 @@ func (f *InputOperator) poll(ctx context.Context) {
 	files := make([]*os.File, 0, len(matches))
 	for _, path := range matches {
 		if _, ok := f.SeenPaths[path]; !ok {
-			f.Infow("Started watching file", "path", path)
+			if f.startAtBeginning {
+				f.Infow("Started watching file", "path", path)
+			} else {
+				f.Infow("Started watching file from end. To read preexisting logs, configure the argument 'start_at' to 'beginning'", "path", path)
+			}
 			f.SeenPaths[path] = struct{}{}
 		}
 		file, err := os.Open(path)
