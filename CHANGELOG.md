@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Removed `preserve` in favor of `preserve_to` to make it more clear that it may overwrite parsed fields
 - Updated our internal log sampling numbers to more aggressively sample repeated logs
+### Added
+- Log message whenever a new file is detected
 
 ## [0.12.5] - 2020-10-07
 ### Added
