@@ -99,7 +99,7 @@ pipeline:
 ...
 ```
 
-Once you've confirmed you're able to send a log entry, you'll want to connect stanza to a log file you're interested in monitoring. We've included a sample `file_input` configuration in the config file to use (stanza also provide options for UDP, TCP, syslog, and other input streams. They're available [here](./README.md)).
+Once you've confirmed you're able to send a log entry, you'll want to connect stanza to a log file you're interested in monitoring. We've included a sample `file_input` configuration in the config file to use (stanza also provide options for UDP, TCP, syslog, and other input streams. They're available [here](/docs/operators/README.md)).
 ```yaml
 ...
 pipeline:
@@ -125,6 +125,7 @@ That's it! You should have logs streaming to Elasticsearch. From here you can ex
 
 ## Next Steps
 
-- Check out stanza's list of [operators](./operators/README.md).
-- Check out the [FAQ](./faq.md).
+- Read up on how to write a stanza [pipeline](/docs/pipeline.md).
+- Check out stanza's list of [operators](/docs/operators/README.md).
+- Check out the [FAQ](/docs/faq.md).
 - Let us know what you think! [Email us](mailto:stanza@observiqlabs.com), or open a GitHub issue.
