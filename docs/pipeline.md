@@ -24,7 +24,7 @@ Notice that every operator has a `type` field. The `type` of operator must alway
 
 Linear pipelines are sufficient for many use cases, but stanza is also capabile of processing non-linear pipelines as well. In order to use non-linear pipelines, the `id` and `output` fields must be understood. Let's take a close look at these.
 
-Each operator in a pipeline has a unique `id`. By default, `id` will take the same value as `type`. Alternately, you can specify an `id` for any operator. If your pipeline contains multiple operators of the same type, then the `id` field must be used.
+Each operator in a pipeline has a unique `id`. By default, `id` will take the same value as `type`. Alternately, you can specify an `id` for any operator. If your pipeline contains multiple operators of the same `type`, then the `id` field must be used.
 
 All operators (except output operators) support an `output` field. By default, the output field takes the value of the next operator's `id`.
 
@@ -99,8 +99,11 @@ pipeline:
     includes: 
       - my-log.json
     output: stdout # flow directly to stdout
+
   - type: windows_eventlog_input
     channel: security
+    # implicitly flow to stdout
+
   - type: stdout
 ```
 
@@ -109,6 +112,7 @@ Here's another, where we read from two files that should be parsed differently:
 pipeline:
   # Read and parse a JSON file
   - type: file_input
+    id: file_input_one
     includes: 
       - my-log.json
   - type: json_parser
@@ -116,11 +120,12 @@ pipeline:
   
   # Read and parse a text file
   - type: file_input
+    id: file_input_two
     includes: 
       - my-other-log.txt
   - type: regex_parser
     regex: ... # regex appropriate to file format
-    output: stdout
+    # implicitly flow to stdout
 
   # Print
   - type: stdout
