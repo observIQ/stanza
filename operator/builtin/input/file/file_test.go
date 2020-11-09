@@ -76,7 +76,7 @@ func openTempWithPattern(t testing.TB, tempDir, pattern string) *os.File {
 	return file
 }
 
-func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, copyTruncate bool) *log.Logger {
+func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, copyTruncate, sequential bool) *log.Logger {
 	file, err := ioutil.TempFile(tempDir, "")
 	require.NoError(t, err)
 	require.NoError(t, file.Close()) // will be managed by rotator
@@ -86,6 +86,7 @@ func getRotatingLogger(t testing.TB, tempDir string, maxLines, maxBackups int, c
 		MaxLines:     maxLines,
 		MaxBackups:   maxBackups,
 		CopyTruncate: copyTruncate,
+		Sequential:   sequential,
 	}
 
 	t.Cleanup(func() { _ = rotator.Close() })
@@ -585,6 +586,12 @@ func TestMultiFileRotate(t *testing.T) {
 }
 
 func TestMultiFileRotateSlow(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Windows has very poor support for moving active files, so rotation is less commonly used
+		// This may possibly be handled better in Go 1.16: https://github.com/golang/go/issues/35358
+		t.Skip()
+	}
+
 	t.Parallel()
 
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
@@ -612,18 +619,18 @@ func TestMultiFileRotateSlow(t *testing.T) {
 	var wg sync.WaitGroup
 	for fileNum := 0; fileNum < numFiles; fileNum++ {
 		wg.Add(1)
-		go func(fileNum int) {
+		go func(fn int) {
 			defer wg.Done()
 
 			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
-				file := openFile(t, baseFileName(fileNum))
+				file := openFile(t, baseFileName(fn))
 				for messageNum := 0; messageNum < numMessages; messageNum++ {
-					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					writeString(t, file, getMessage(fn, rotationNum, messageNum)+"\n")
 					time.Sleep(5 * time.Millisecond)
 				}
 
-				file.Close()
-				require.NoError(t, os.Rename(baseFileName(fileNum), fileName(fileNum, rotationNum)))
+				require.NoError(t, file.Close())
+				require.NoError(t, os.Rename(baseFileName(fn), fileName(fn, rotationNum)))
 			}
 		}(fileNum)
 	}
@@ -633,8 +640,6 @@ func TestMultiFileRotateSlow(t *testing.T) {
 }
 
 func TestMultiCopyTruncateSlow(t *testing.T) {
-	t.Parallel()
-
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	getMessage := func(f, k, m int) string { return fmt.Sprintf("file %d-%d, message %d", f, k, m) }
@@ -660,25 +665,26 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	var wg sync.WaitGroup
 	for fileNum := 0; fileNum < numFiles; fileNum++ {
 		wg.Add(1)
-		go func(fileNum int) {
+		go func(fn int) {
 			defer wg.Done()
 
 			for rotationNum := 0; rotationNum < numRotations; rotationNum++ {
-				file := openFile(t, baseFileName(fileNum))
+				file := openFile(t, baseFileName(fn))
 				for messageNum := 0; messageNum < numMessages; messageNum++ {
-					writeString(t, file, getMessage(fileNum, rotationNum, messageNum)+"\n")
+					writeString(t, file, getMessage(fn, rotationNum, messageNum)+"\n")
 					time.Sleep(5 * time.Millisecond)
 				}
 
 				_, err := file.Seek(0, 0)
 				require.NoError(t, err)
-				dst := openFile(t, fileName(fileNum, rotationNum))
+				dst := openFile(t, fileName(fn, rotationNum))
 				_, err = io.Copy(dst, file)
 				require.NoError(t, err)
 				require.NoError(t, dst.Close())
 				require.NoError(t, file.Truncate(0))
 				_, err = file.Seek(0, 0)
 				require.NoError(t, err)
+				file.Close()
 			}
 		}(fileNum)
 	}
@@ -732,7 +738,7 @@ func (rt rotationTest) expectEphemeralLines() bool {
 	return maxBackupsExceeded && rt.pollInterval > minTimeToLive
 }
 
-func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T) {
+func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		operator, logReceived, tempDir := newTestFileOperator(t,
 			func(cfg *InputConfig) {
@@ -742,11 +748,12 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate bool) func(t *testing.T
 				out.Received = make(chan *entry.Entry, tc.totalLines)
 			},
 		)
-		logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate)
+		logger := getRotatingLogger(t, tempDir, tc.maxLinesPerFile, tc.maxBackupFiles, copyTruncate, sequential)
 
 		expected := make([]string, 0, tc.totalLines)
+		baseStr := stringWithLength(46) // + ' 123'
 		for i := 0; i < tc.totalLines; i++ {
-			expected = append(expected, fmt.Sprintf("this is a fifty char log entry with the number %3d", i))
+			expected = append(expected, fmt.Sprintf("%s %3d", baseStr, i))
 		}
 
 		require.NoError(t, operator.Start())
@@ -843,17 +850,19 @@ func TestRotation(t *testing.T) {
 		},
 		{
 			name:            "Slow/Deletion/ExceedFingerprint",
-			totalLines:      300,
-			maxLinesPerFile: 100,
-			maxBackupFiles:  1,
+			totalLines:      100,
+			maxLinesPerFile: 25, // ~20 is just enough to exceed 1000 bytes fingerprint at 50 chars per line
+			maxBackupFiles:  2,
 			writeInterval:   3 * time.Millisecond,
 			pollInterval:    20 * time.Millisecond,
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(fmt.Sprintf("%s/MoveCreate", tc.name), tc.run(tc, false))
-		t.Run(fmt.Sprintf("%s/CopyTruncate", tc.name), tc.run(tc, false))
+		t.Run(fmt.Sprintf("%s/MoveCreateTimestamped", tc.name), tc.run(tc, false, false))
+		t.Run(fmt.Sprintf("%s/MoveCreateSequential", tc.name), tc.run(tc, false, true))
+		t.Run(fmt.Sprintf("%s/CopyTruncateTimestamped", tc.name), tc.run(tc, true, false))
+		t.Run(fmt.Sprintf("%s/CopyTruncateSequential", tc.name), tc.run(tc, true, true))
 	}
 }
 

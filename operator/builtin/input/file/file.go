@@ -170,6 +170,9 @@ func getMatches(includes, excludes []string) []string {
 	return all
 }
 
+// makeReaders takes a list of paths, then creates readers from each of those paths,
+// discarding any that have a duplicate fingerprint to other files that have already
+// been read this polling interval
 func (f *InputOperator) makeReaders(files []*os.File) []*Reader {
 	// Get fingerprints for each file
 	fps := make([]*Fingerprint, 0, len(files))
@@ -227,20 +230,29 @@ OUTER:
 	return readers
 }
 
+// saveCurrent adds the readers from this polling interval to this list of
+// known files, then increments the generation of all tracked old readers
+// before clearing out readers that have existed for 3 generations.
 func (f *InputOperator) saveCurrent(readers []*Reader) {
-	// Rotate current into old
+	// Add readers from the current, completed poll interval to the list of known files
 	for _, reader := range readers {
 		f.knownFiles = append(f.knownFiles, reader)
 	}
 
-	// Clear out old readers
-	for i := 0; i < len(f.knownFiles); {
+	// Clear out old readers. They are sorted such that they are oldest first,
+	// so we can just find the first reader whose generation is less than our
+	// max, and keep every reader after that
+	for i := 0; i < len(f.knownFiles); i++ {
 		reader := f.knownFiles[i]
-		if reader.generation >= 3 {
-			f.knownFiles = append(f.knownFiles[:i], f.knownFiles[i+1:]...)
+		if reader.generation <= 3 {
+			f.knownFiles = f.knownFiles[i:]
+			break
 		}
-		reader.generation++
-		i++
+	}
+
+	// Increment the generation on all the remaining readers
+	for i := 0; i < len(f.knownFiles); i++ {
+		f.knownFiles[i].generation++
 	}
 }
 
