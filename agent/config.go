@@ -18,7 +18,7 @@ type Config struct {
 func NewConfigFromFile(file string) (*Config, error) {
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %s", err)
+		return nil, fmt.Errorf("could not find config file: %s", err)
 	}
 
 	config := Config{}

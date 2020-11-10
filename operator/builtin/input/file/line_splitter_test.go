@@ -252,8 +252,23 @@ func TestNewlineSplitFunc(t *testing.T) {
 			},
 		},
 		{
+			Name: "OneLogCarriageReturn",
+			Raw:  []byte("my log\r\n"),
+			ExpectedTokenized: []string{
+				`my log`,
+			},
+		},
+		{
 			Name: "TwoLogsSimple",
 			Raw:  []byte("log1\nlog2\n"),
+			ExpectedTokenized: []string{
+				`log1`,
+				`log2`,
+			},
+		},
+		{
+			Name: "TwoLogsCarriageReturn",
+			Raw:  []byte("log1\r\nlog2\r\n"),
 			ExpectedTokenized: []string{
 				`log1`,
 				`log2`,
