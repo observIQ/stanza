@@ -56,14 +56,13 @@ func TestBuildAgentFailureOnPluginRegistry(t *testing.T) {
 	mockDatabaseFile := ""
 	mockOutput := testutil.NewFakeOutput(t)
 
-	agent, err := NewBuilder(mockLogger).
+	_, err := NewBuilder(mockLogger).
 		WithConfig(&mockCfg).
 		WithPluginDir(mockPluginDir).
 		WithDatabaseFile(mockDatabaseFile).
 		WithDefaultOutput(mockOutput).
 		Build()
-	require.Error(t, err)
-	require.Nil(t, agent)
+	require.NoError(t, err)
 }
 
 func TestBuildAgentFailureNoConfigOrGlobs(t *testing.T) {
