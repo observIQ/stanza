@@ -12,14 +12,14 @@ import (
 
 // SeverityParser is a helper that parses severity onto an entry.
 type SeverityParser struct {
-	ParseFrom entry.Field
-	Preserve  bool
-	Mapping   severityMap
+	ParseFrom  entry.Field
+	PreserveTo *entry.Field
+	Mapping    severityMap
 }
 
 // Parse will parse severity from a field and attach it to the entry
 func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
-	value, ok := ent.Get(p.ParseFrom)
+	value, ok := ent.Delete(p.ParseFrom)
 	if !ok {
 		return errors.NewError(
 			"log entry does not have the expected parse_from field",
@@ -36,8 +36,10 @@ func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
 	ent.Severity = severity
 	ent.SeverityText = sevText
 
-	if !p.Preserve {
-		ent.Delete(p.ParseFrom)
+	if p.PreserveTo != nil {
+		if err := ent.Set(p.PreserveTo, value); err != nil {
+			return errors.Wrap(err, "set preserve_to")
+		}
 	}
 
 	return nil

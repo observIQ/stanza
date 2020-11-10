@@ -67,9 +67,9 @@ func getBuiltinMapping(name string) severityMap {
 	}
 }
 
-func (s severityMap) add(severity entry.Severity, parseableValues ...string) {
+func (m severityMap) add(severity entry.Severity, parseableValues ...string) {
 	for _, str := range parseableValues {
-		s[str] = severity
+		m[str] = severity
 	}
 }
 
@@ -94,10 +94,10 @@ func NewSeverityParserConfig() SeverityParserConfig {
 
 // SeverityParserConfig allows users to specify how to parse a severity from a field.
 type SeverityParserConfig struct {
-	ParseFrom *entry.Field                `json:"parse_from,omitempty" yaml:"parse_from,omitempty"`
-	Preserve  bool                        `json:"preserve,omitempty"   yaml:"preserve,omitempty"`
-	Preset    string                      `json:"preset,omitempty"     yaml:"preset,omitempty"`
-	Mapping   map[interface{}]interface{} `json:"mapping,omitempty"    yaml:"mapping,omitempty"`
+	ParseFrom  *entry.Field                `json:"parse_from,omitempty"  yaml:"parse_from,omitempty"`
+	PreserveTo *entry.Field                `json:"preserve_to,omitempty" yaml:"preserve_to,omitempty"`
+	Preset     string                      `json:"preset,omitempty"      yaml:"preset,omitempty"`
+	Mapping    map[interface{}]interface{} `json:"mapping,omitempty"     yaml:"mapping,omitempty"`
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
@@ -133,9 +133,9 @@ func (c *SeverityParserConfig) Build(context operator.BuildContext) (SeverityPar
 	}
 
 	p := SeverityParser{
-		ParseFrom: *c.ParseFrom,
-		Preserve:  c.Preserve,
-		Mapping:   operatorMapping,
+		ParseFrom:  *c.ParseFrom,
+		PreserveTo: c.PreserveTo,
+		Mapping:    operatorMapping,
 	}
 
 	return p, nil
