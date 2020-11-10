@@ -14,13 +14,13 @@ import (
 )
 
 func init() {
-	operator.Register("stdin_input", func() operator.Builder { return NewStdinInputConfig("") })
+	operator.Register("stdin", func() operator.Builder { return NewStdinInputConfig("") })
 }
 
 // NewStdinInputConfig creates a new stdin input config with default values
 func NewStdinInputConfig(operatorID string) *StdinInputConfig {
 	return &StdinInputConfig{
-		InputConfig: helper.NewInputConfig(operatorID, "stdin_input"),
+		InputConfig: helper.NewInputConfig(operatorID, "stdin"),
 	}
 }
 
