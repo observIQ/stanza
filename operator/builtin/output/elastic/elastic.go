@@ -25,8 +25,9 @@ func init() {
 // NewElasticOutputConfig creates a new elastic output config with default values
 func NewElasticOutputConfig(operatorID string) *ElasticOutputConfig {
 	return &ElasticOutputConfig{
-		OutputConfig: helper.NewOutputConfig(operatorID, "elastic_output"),
-		BufferConfig: buffer.NewConfig(),
+		OutputConfig:  helper.NewOutputConfig(operatorID, "elastic_output"),
+		BufferConfig:  buffer.NewConfig(),
+		FlusherConfig: flusher.NewConfig(),
 	}
 }
 
