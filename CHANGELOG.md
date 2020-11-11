@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 - A plugin that fails to parse will now log an error, but will not cause stanza to fail to start
+### Added
+- New `stdin` operator
 
 ## [0.13.0] - 2020-11-09
 ### Added
