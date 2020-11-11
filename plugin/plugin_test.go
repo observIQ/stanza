@@ -32,8 +32,8 @@ func TestRegisterPlugins(t *testing.T) {
 		require.NoError(t, err)
 
 		registry := operator.NewRegistry()
-		err = RegisterPlugins(tempDir, registry)
-		require.NoError(t, err)
+		errs := RegisterPlugins(tempDir, registry)
+		require.Len(t, errs, 0)
 
 		_, ok := registry.Lookup("test1")
 		require.True(t, ok)
@@ -44,9 +44,9 @@ func TestRegisterPlugins(t *testing.T) {
 		err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.yaml"), []byte("pipepipe:"), 0666)
 		require.NoError(t, err)
 
-		err = RegisterPlugins(tempDir, operator.DefaultRegistry)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "missing the pipeline block")
+		errs := RegisterPlugins(tempDir, operator.DefaultRegistry)
+		require.Len(t, errs, 1)
+		require.Contains(t, errs[0].Error(), "missing the pipeline block")
 	})
 }
 

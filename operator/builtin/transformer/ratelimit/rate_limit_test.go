@@ -17,7 +17,7 @@ func TestRateLimit(t *testing.T) {
 	cfg := NewRateLimitConfig("my_rate_limit")
 	cfg.OutputIDs = []string{"fake"}
 	cfg.Burst = 1
-	cfg.Rate = 1000
+	cfg.Rate = 100
 
 	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
@@ -52,7 +52,7 @@ func TestRateLimit(t *testing.T) {
 
 	// Measure
 	start := time.Now()
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 500; i++ {
 		err := op.Process(context.Background(), entry.New())
 		require.NoError(t, err)
 	}
@@ -63,8 +63,8 @@ func TestRateLimit(t *testing.T) {
 
 	if runtime.GOOS == "darwin" {
 		t.Log("Using a wider acceptable range on darwin because of slow CI servers")
-		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.6)
+		require.InEpsilon(t, elapsed.Nanoseconds(), 5*time.Second.Nanoseconds(), 0.6)
 	} else {
-		require.InEpsilon(t, elapsed.Nanoseconds(), time.Second.Nanoseconds(), 0.4)
+		require.InEpsilon(t, elapsed.Nanoseconds(), 5*time.Second.Nanoseconds(), 0.4)
 	}
 }
