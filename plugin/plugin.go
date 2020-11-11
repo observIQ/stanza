@@ -23,12 +23,13 @@ type Plugin struct {
 
 // PluginDefinition contains metadata for rendering the plugin
 type Definition struct {
-	Version          string      `json:"version"     yaml:"version"`
-	Title            string      `json:"title"       yaml:"title"`
-	Description      string      `json:"description" yaml:"description"`
-	Parameters       []Parameter `json:"parameters"  yaml:"parameters"`
-	MinStanzaVersion string      `json:"minStanzaVersion" yaml:"min_stanza_version"`
-	MaxStanzaVersion string      `json:"minStanzaVerion" yaml:"max_stanza_version"`
+	Version            string      `json:"version"     yaml:"version"`
+	Title              string      `json:"title"       yaml:"title"`
+	Description        string      `json:"description" yaml:"description"`
+	Parameters         []Parameter `json:"parameters"  yaml:"parameters"`
+	MinStanzaVersion   string      `json:"minStanzaVersion" yaml:"min_stanza_version"`
+	MaxStanzaVersion   string      `json:"minStanzaVerion" yaml:"max_stanza_version"`
+	SupportedPlatforms []string    `json:"supportedPlatforms" yaml:"supported_platforms"`
 }
 
 // NewBuilder creates a new, empty config that can build into an operator
