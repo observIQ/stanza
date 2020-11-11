@@ -995,6 +995,14 @@ display_results()
     info "Stop Command:   $(fg_cyan "$shutdown_cmd")$(reset)"
     decrease_indent
 
+    banner 'Troubleshooting'
+    increase_indent
+    info "To troubleshoot issues, stanza can be run manually for faster iteration."
+    info "1) Stop the stanza service: $(fg_cyan "$shutdown_cmd")"
+    info "2) Navigate to the stanza home directory: $(fg_cyan "cd $agent_home")"
+    info "3) Run stanza manually: $(fg_cyan "./stanza --debug")"
+    decrease_indent
+
     banner "$(fg_green Installation Complete!)"
     return 0
 }
