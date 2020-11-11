@@ -624,6 +624,7 @@ pipeline:
   # This will finish the install by printing out the results.
   function Complete-Install {
     Show-AgentInfo
+    Show-Troubleshooting
     Show-InstallComplete
   }
 
@@ -636,7 +637,16 @@ pipeline:
     Show-ColorText 'Start On Boot: ' '' "$script:autostart" DarkCyan
     Show-ColorText 'Start Command: ' '' "$script:startup_cmd" DarkCyan
     Show-ColorText 'Stop Command:  ' '' "$script:shutdown_cmd" DarkCyan
-    Complete
+    Remove-Indent
+  }
+
+  function Show-Troubleshooting {
+    Show-Header 'Troubleshooting'
+    Add-Indent
+    Show-ColorText "To troubleshoot issues, stanza can be run manually for faster iteration."
+    Show-ColorText '1) Stop the stanza service: ' '' "$script:shutdown_cmd" DarkCyan
+    Show-ColorText '2) Navigate to the stanza home directory: ' '' "cd $script:agent_home" DarkCyan
+    Show-ColorText '3) Run stanza manually: ' '' '.\stanza.exe --debug' DarkCyan
     Remove-Indent
   }
 
