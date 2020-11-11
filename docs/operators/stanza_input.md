@@ -8,7 +8,7 @@ Care should be taken when doing any additional processing of logs coming from th
 
 | Field             | Default          | Description                                                                                      |
 | ---               | ---              | ---                                                                                              |
-| `id`              | `journald_input` | A unique identifier for the operator                                                             |
+| `id`              | `stanza_input`   | A unique identifier for the operator                                                             |
 | `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
 | `buffer_size`          | 100 | The number of entries to buffer before dropping entries because we aren't processing fast enough |
 

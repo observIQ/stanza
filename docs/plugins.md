@@ -34,10 +34,10 @@ pipeline:
   - type: stdout
 ```
 
-When `stanza` builds the above pipeline the following is happening:
-1. `stanza` looks for an operator or plugin of type `tomcat`. There is no builtin `tomcat` operator, but `tomcat.yaml` was found in the specified plugin directory, so `stanza` will render this plugin.
+When stanza builds the above pipeline the following is happening:
+1. stanza looks for an operator or plugin of type `tomcat`. There is no builtin `tomcat` operator, but `tomcat.yaml` was found in the specified plugin directory, so stanza will render this plugin.
 2. Parameters are passed into the `tomcat` plugin. In this case, there are actually two parameters - `path` and `output`. `path` is explicitly declared, but the `output` parameter was omitted, so it has taken a default value of `stdout`. If you're not sure why this is, it's highly recommended that you take a moment to read about output parameters [here](/docs/pipeline.md).
-3. `stanza` substitutes the parameters into the plugin template. In the above example, `{{ .path }}` is replaced with `/var/log/tomcat/access.log`, and `{{ .output }}` is replaced with `stdout`.
+3. stanza substitutes the parameters into the plugin template. In the above example, `{{ .path }}` is replaced with `/var/log/tomcat/access.log`, and `{{ .output }}` is replaced with `stdout`.
 4. The "rendered" plugin replaces the `tomcat` block. It doesn't overwrite the file - this is just what is logically happening behind the scenes.
 5. The resulting pipeline is now the same as the following configuration:
 ```yaml

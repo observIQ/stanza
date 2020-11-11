@@ -11,7 +11,7 @@ For example, the following pipeline will read logs from a file, parse them as `j
 ```yaml
 pipeline:
   - type: file_input
-    includes: 
+    include: 
       - my-log.json
   - type: json_parser
   - type: stdout
@@ -34,7 +34,7 @@ Let's look at how these default values work together by considering the linear p
 pipeline:
   - type: file_input 
     id: file_input
-    includes: 
+    include: 
       - my-log.json
     output: json_parser
   - type: json_parser
@@ -50,7 +50,7 @@ Additionally, we could accomplish the same task using custom `id`'s.
 pipeline:
   - type: file_input
     id: my_file
-    includes: 
+    include: 
       - my-log.json
     output: my_parser
   - type: json_parser
@@ -71,7 +71,7 @@ pipeline:
     output: my_out
   - type: file_input  # 1st operator
     id: my_file
-    includes: 
+    include: 
       - my-log.json
     output: my_parser
 ```
@@ -83,7 +83,7 @@ pipeline:
   - type: json_parser # 2nd operator
   - type: stdout      # 3rd operator
   - type: file_input  # 1st operator
-    includes: 
+    include: 
       - my-log.json
     output: json_parser
 ```
@@ -96,7 +96,7 @@ Let's consider a pipeline with two inputs and one output:
 ```yaml
 pipeline:
   - type: file_input
-    includes: 
+    include: 
       - my-log.json
     output: stdout # flow directly to stdout
 
@@ -113,7 +113,7 @@ pipeline:
   # Read and parse a JSON file
   - type: file_input
     id: file_input_one
-    includes: 
+    include: 
       - my-log.json
   - type: json_parser
     output: stdout # flow directly to stdout
@@ -121,7 +121,7 @@ pipeline:
   # Read and parse a text file
   - type: file_input
     id: file_input_two
-    includes: 
+    include: 
       - my-other-log.txt
   - type: regex_parser
     regex: ... # regex appropriate to file format
@@ -138,7 +138,7 @@ Finally, in some cases, you might expect multiple log formats to come from a sin
 pipeline:
   # Read log file
   - type: file_input
-    includes: 
+    include: 
       - my-log.txt
 
   # Route based on log type
