@@ -38,7 +38,7 @@ type TimeParser struct {
 	ParseFrom  *entry.Field `json:"parse_from,omitempty"  yaml:"parse_from,omitempty"`
 	Layout     string       `json:"layout,omitempty"      yaml:"layout,omitempty"`
 	LayoutType string       `json:"layout_type,omitempty" yaml:"layout_type,omitempty"`
-	Preserve   bool         `json:"preserve"              yaml:"preserve"`
+	PreserveTo *entry.Field `json:"preserve_to,omitempty" yaml:"preserve_to,omitempty"`
 }
 
 // IsZero returns true if the TimeParser is not a valid config
@@ -90,7 +90,7 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 
 // Parse will parse time from a field and attach it to the entry
 func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
-	value, ok := entry.Get(t.ParseFrom)
+	value, ok := entry.Delete(t.ParseFrom)
 	if !ok {
 		return errors.NewError(
 			"log entry does not have the expected parse_from field",
@@ -122,8 +122,10 @@ func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
 		return fmt.Errorf("unsupported layout type: %s", t.LayoutType)
 	}
 
-	if !t.Preserve {
-		entry.Delete(t.ParseFrom)
+	if t.PreserveTo != nil {
+		if err := entry.Set(t.PreserveTo, value); err != nil {
+			return errors.Wrap(err, "set preserve_to")
+		}
 	}
 
 	return nil
