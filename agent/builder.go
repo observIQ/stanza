@@ -66,8 +66,8 @@ func (b *LogAgentBuilder) Build() (*LogAgent, error) {
 	}
 
 	if b.pluginDir != "" {
-		if err := plugin.RegisterPlugins(b.pluginDir, operator.DefaultRegistry); err != nil {
-			return nil, err
+		if errs := plugin.RegisterPlugins(b.pluginDir, operator.DefaultRegistry); len(errs) != 0 {
+			b.logger.Errorw("Got errors parsing plugins", "errors", errs)
 		}
 	}
 

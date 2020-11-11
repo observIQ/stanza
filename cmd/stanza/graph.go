@@ -44,9 +44,8 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	if err := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); err != nil {
-		sugaredLogger.Errorw("Failed to register plugins", zap.Any("error", err))
-		os.Exit(1)
+	if errs := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); len(errs) != 0 {
+		sugaredLogger.Errorw("Got errors parsing parsing", "errors", err)
 	}
 
 	buildContext := operator.NewBuildContext(database.NewStubDatabase(), sugaredLogger)

@@ -21,7 +21,7 @@ type Plugin struct {
 	Template   *template.Template
 }
 
-// PluginDefinition contains metadata for rendering the plugin
+// Definition contains metadata for rendering the plugin
 type Definition struct {
 	Version            string      `json:"version"     yaml:"version"`
 	Title              string      `json:"title"       yaml:"title"`
@@ -211,26 +211,29 @@ func NewPlugin(pluginID string, contents []byte) (*Plugin, error) {
 }
 
 // RegisterPlugins adds every plugin in a directory to the global plugin registry
-func RegisterPlugins(pluginDir string, registry *operator.Registry) error {
+func RegisterPlugins(pluginDir string, registry *operator.Registry) []error {
+	errs := []error{}
 	glob := filepath.Join(pluginDir, "*.yaml")
 	filePaths, err := filepath.Glob(glob)
 	if err != nil {
-		return errors.NewError(
+		errs = append(errs, errors.NewError(
 			"failed to find plugins with glob pattern",
 			"ensure that the plugin directory and file pattern are valid",
 			"glob_pattern", glob,
-		)
+		))
+		return errs
 	}
 
 	for _, path := range filePaths {
 		plugin, err := NewPluginFromFile(path)
 		if err != nil {
-			return errors.Wrap(err, "parse plugin file").WithDetails("path", path)
+			errs = append(errs, errors.Wrap(err, "parse plugin file").WithDetails("path", path))
+			continue
 		}
 		registry.RegisterPlugin(plugin.ID, plugin.NewBuilder)
 	}
 
-	return nil
+	return errs
 }
 
 // pluginFuncs returns a map of custom plugin functions used for templating.
