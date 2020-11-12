@@ -49,9 +49,9 @@ func (c *Config) Build(buf buffer.Buffer, f FlushFunc, logger *zap.SugaredLogger
 		maxConcurrent = 4
 	}
 
-  maxWait := c.MaxWait.Raw()
-  if maxWait == time.Duration(0) {
-    maxWait = time.Second
+	maxWait := c.MaxWait.Raw()
+	if maxWait == time.Duration(0) {
+		maxWait = time.Second
 	}
 
 	maxChunkEntries := c.MaxChunkEntries
