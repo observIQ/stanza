@@ -44,15 +44,30 @@ func NewConfig() Config {
 
 // Build uses a Config to build a new Flusher
 func (c *Config) Build(buf buffer.Buffer, f FlushFunc, logger *zap.SugaredLogger) *Flusher {
+	maxConcurrent := c.MaxConcurrent
+	if maxConcurrent == 0 {
+		maxConcurrent = 4
+	}
+
+  maxWait := c.MaxWait.Raw()
+  if maxWait == time.Duration(0) {
+    maxWait = time.Second
+	}
+
+	maxChunkEntries := c.MaxChunkEntries
+	if maxChunkEntries == 0 {
+		maxChunkEntries = 1000
+	}
+
 	return &Flusher{
 		buffer:        buf,
-		sem:           semaphore.NewWeighted(int64(c.MaxConcurrent)),
+		sem:           semaphore.NewWeighted(int64(maxConcurrent)),
 		flush:         f,
 		SugaredLogger: logger,
-		waitTime:      c.MaxWait.Duration,
+		waitTime:      maxWait,
 		entrySlicePool: sync.Pool{
 			New: func() interface{} {
-				slice := make([]*entry.Entry, c.MaxChunkEntries)
+				slice := make([]*entry.Entry, maxChunkEntries)
 				return &slice
 			},
 		},
