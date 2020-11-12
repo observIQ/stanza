@@ -368,3 +368,78 @@ func TestParserPreserve(t *testing.T) {
 		})
 	}
 }
+
+func TestParserIf(t *testing.T) {
+	cases := []struct {
+		name        string
+		ifExpr      string
+		inputRecord string
+		expected    string
+	}{
+		{
+			"NoIf",
+			"",
+			"test",
+			"parsed",
+		},
+		{
+			"TrueIf",
+			"true",
+			"test",
+			"parsed",
+		},
+		{
+			"FalseIf",
+			"false",
+			"test",
+			"test",
+		},
+		{
+			"EvaluatedTrue",
+			"$record == 'test'",
+			"test",
+			"parsed",
+		},
+		{
+			"EvaluatedFalse",
+			"$record == 'notest'",
+			"test",
+			"test",
+		},
+		{
+			"FailingExpressionEvaluation",
+			"$record.test.noexist == 'notest'",
+			"test",
+			"test",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := NewParserConfig("test", "test")
+			cfg.IfExpr = tc.ifExpr
+
+			parser, err := cfg.Build(testutil.NewBuildContext(t))
+			require.NoError(t, err)
+
+			fake := testutil.NewFakeOutput(t)
+			parser.OutputOperators = []operator.Operator{fake}
+
+			e := entry.New()
+			e.Record = tc.inputRecord
+			err = parser.ProcessWith(context.Background(), e, func(interface{}) (interface{}, error) {
+				return "parsed", nil
+			})
+			require.NoError(t, err)
+
+			fake.ExpectRecord(t, tc.expected)
+		})
+	}
+
+	t.Run("InvalidIfExpr", func(t *testing.T) {
+		cfg := NewParserConfig("test", "test")
+		cfg.IfExpr = "'nonbool'"
+		_, err := cfg.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+	})
+}
