@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - New parameter `if` to parser plugins to allow for easy conditional parsing without routers
+- New `default` parameter to the router to explicitly send unmatched entries to a specific operator(s)
 
 ## [0.13.1] - 2020-11-11
 ### Fixed
