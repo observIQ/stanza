@@ -74,8 +74,8 @@ func TestTransformerDropOnError(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	transform := func(e *entry.Entry) (*entry.Entry, error) {
-		return e, fmt.Errorf("Failure")
+	transform := func(e *entry.Entry) error {
+		return fmt.Errorf("Failure")
 	}
 
 	err := transformer.ProcessWith(ctx, testEntry, transform)
@@ -102,8 +102,8 @@ func TestTransformerSendOnError(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	transform := func(e *entry.Entry) (*entry.Entry, error) {
-		return e, fmt.Errorf("Failure")
+	transform := func(e *entry.Entry) error {
+		return fmt.Errorf("Failure")
 	}
 
 	err := transformer.ProcessWith(ctx, testEntry, transform)
@@ -130,11 +130,87 @@ func TestTransformerProcessWithValid(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	transform := func(e *entry.Entry) (*entry.Entry, error) {
-		return e, nil
+	transform := func(e *entry.Entry) error {
+		return nil
 	}
 
 	err := transformer.ProcessWith(ctx, testEntry, transform)
 	require.NoError(t, err)
 	output.AssertCalled(t, "Process", mock.Anything, mock.Anything)
+}
+
+func TestTransformerIf(t *testing.T) {
+	cases := []struct {
+		name        string
+		ifExpr      string
+		inputRecord string
+		expected    string
+	}{
+		{
+			"NoIf",
+			"",
+			"test",
+			"parsed",
+		},
+		{
+			"TrueIf",
+			"true",
+			"test",
+			"parsed",
+		},
+		{
+			"FalseIf",
+			"false",
+			"test",
+			"test",
+		},
+		{
+			"EvaluatedTrue",
+			"$record == 'test'",
+			"test",
+			"parsed",
+		},
+		{
+			"EvaluatedFalse",
+			"$record == 'notest'",
+			"test",
+			"test",
+		},
+		{
+			"FailingExpressionEvaluation",
+			"$record.test.noexist == 'notest'",
+			"test",
+			"test",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := NewTransformerConfig("test", "test")
+			cfg.IfExpr = tc.ifExpr
+
+			transformer, err := cfg.Build(testutil.NewBuildContext(t))
+			require.NoError(t, err)
+
+			fake := testutil.NewFakeOutput(t)
+			transformer.OutputOperators = []operator.Operator{fake}
+
+			e := entry.New()
+			e.Record = tc.inputRecord
+			err = transformer.ProcessWith(context.Background(), e, func(e *entry.Entry) error {
+				e.Record = "parsed"
+				return nil
+			})
+			require.NoError(t, err)
+
+			fake.ExpectRecord(t, tc.expected)
+		})
+	}
+
+	t.Run("InvalidIfExpr", func(t *testing.T) {
+		cfg := NewTransformerConfig("test", "test")
+		cfg.IfExpr = "'nonbool'"
+		_, err := cfg.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+	})
 }

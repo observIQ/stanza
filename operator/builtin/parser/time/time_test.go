@@ -1,7 +1,6 @@
 package time
 
 import (
-	"context"
 	"math"
 	"testing"
 	"time"
@@ -409,20 +408,15 @@ func runLossyTimeParseTest(t *testing.T, cfg *TimeParserConfig, ent *entry.Entry
 		timeParser := op.(*TimeParserOperator)
 		timeParser.OutputOperators = []operator.Operator{mockOutput}
 
-		err = timeParser.Process(context.Background(), ent)
+		err = timeParser.Parse(ent)
 		if parseErr {
 			require.Error(t, err, "expected error when configuring operator")
 			return
 		}
 		require.NoError(t, err)
 
-		select {
-		case e := <-resultChan:
-			diff := time.Duration(math.Abs(float64(expected.Sub(e.Timestamp))))
-			require.True(t, diff <= maxLoss)
-		case <-time.After(time.Second):
-			require.FailNow(t, "Timed out waiting for entry to be processed")
-		}
+		diff := time.Duration(math.Abs(float64(expected.Sub(ent.Timestamp))))
+		require.True(t, diff <= maxLoss)
 	}
 }
 

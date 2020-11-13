@@ -68,14 +68,14 @@ func (p *MetadataOperator) Process(ctx context.Context, entry *entry.Entry) erro
 }
 
 // Transform will transform an entry using the labeler and tagger.
-func (p *MetadataOperator) Transform(entry *entry.Entry) (*entry.Entry, error) {
+func (p *MetadataOperator) Transform(entry *entry.Entry) error {
 	if err := p.Label(entry); err != nil {
-		return entry, errors.Wrap(err, "failed to add labels to entry")
+		return errors.Wrap(err, "failed to add labels to entry")
 	}
 
 	if err := p.Identify(entry); err != nil {
-		return entry, errors.Wrap(err, "failed to add resource keys to entry")
+		return errors.Wrap(err, "failed to add resource keys to entry")
 	}
 
-	return entry, nil
+	return nil
 }

@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -89,7 +88,7 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 }
 
 // Parse will parse time from a field and attach it to the entry
-func (t *TimeParser) Parse(ctx context.Context, entry *entry.Entry) error {
+func (t *TimeParser) Parse(entry *entry.Entry) error {
 	value, ok := entry.Delete(t.ParseFrom)
 	if !ok {
 		return errors.NewError(

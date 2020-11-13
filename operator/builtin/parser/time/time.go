@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 )
@@ -59,9 +58,6 @@ func (t *TimeParserOperator) CanOutput() bool {
 
 // Process will parse time from an entry.
 func (t *TimeParserOperator) Process(ctx context.Context, entry *entry.Entry) error {
-	if err := t.Parse(ctx, entry); err != nil {
-		return errors.Wrap(err, "parse timestamp")
-	}
-	t.Write(ctx, entry)
+	t.ProcessWith(ctx, entry, t.TimeParser.Parse)
 	return nil
 }

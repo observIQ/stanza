@@ -1,9 +1,7 @@
 package severity
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
@@ -321,19 +319,14 @@ func runSeverityParseTest(t *testing.T, cfg *SeverityParserConfig, ent *entry.En
 		severityParser := op.(*SeverityParserOperator)
 		severityParser.OutputOperators = []operator.Operator{mockOutput}
 
-		err = severityParser.Process(context.Background(), ent)
+		err = severityParser.Parse(ent)
 		if parseErr {
 			require.Error(t, err, "expected error when parsing sample")
 			return
 		}
 		require.NoError(t, err)
 
-		select {
-		case e := <-resultChan:
-			require.Equal(t, expected, e.Severity)
-		case <-time.After(time.Second):
-			require.FailNow(t, "Timed out waiting for entry to be processed")
-		}
+		require.Equal(t, expected, ent.Severity)
 	}
 }
 

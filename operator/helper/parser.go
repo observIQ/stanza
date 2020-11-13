@@ -22,11 +22,11 @@ func NewParserConfig(operatorID, operatorType string) ParserConfig {
 type ParserConfig struct {
 	TransformerConfig `yaml:",inline"`
 
-	ParseFrom            entry.Field           `json:"parse_from" yaml:"parse_from"`
-	ParseTo              entry.Field           `json:"parse_to"   yaml:"parse_to"`
-	PreserveTo           *entry.Field          `json:"preserve_to" yaml:"preserve_to"`
+	ParseFrom            entry.Field           `json:"parse_from"          yaml:"parse_from"`
+	ParseTo              entry.Field           `json:"parse_to"            yaml:"parse_to"`
+	PreserveTo           *entry.Field          `json:"preserve_to"         yaml:"preserve_to"`
 	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
-	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty" yaml:"severity,omitempty"`
+	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty"  yaml:"severity,omitempty"`
 }
 
 // Build will build a parser operator.
@@ -73,6 +73,16 @@ type ParserOperator struct {
 
 // ProcessWith will process an entry with a parser function.
 func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, parse ParseFunction) error {
+	// Short circuit if the "if" condition does not match
+	skip, err := p.Skip(ctx, entry)
+	if err != nil {
+		return p.HandleEntryError(ctx, entry, err)
+	}
+	if skip {
+		p.Write(ctx, entry)
+		return nil
+	}
+
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
 		err := errors.NewError(
@@ -102,12 +112,12 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 
 	var timeParseErr error
 	if p.TimeParser != nil {
-		timeParseErr = p.TimeParser.Parse(ctx, entry)
+		timeParseErr = p.TimeParser.Parse(entry)
 	}
 
 	var severityParseErr error
 	if p.SeverityParser != nil {
-		severityParseErr = p.SeverityParser.Parse(ctx, entry)
+		severityParseErr = p.SeverityParser.Parse(entry)
 	}
 
 	// Handle time or severity parsing errors after attempting to parse both

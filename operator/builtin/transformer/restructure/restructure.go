@@ -58,14 +58,14 @@ func (p *RestructureOperator) Process(ctx context.Context, entry *entry.Entry) e
 }
 
 // Transform will apply the restructure operations to an entry
-func (p *RestructureOperator) Transform(entry *entry.Entry) (*entry.Entry, error) {
+func (p *RestructureOperator) Transform(entry *entry.Entry) error {
 	for _, op := range p.ops {
 		err := op.Apply(entry)
 		if err != nil {
-			return entry, err
+			return err
 		}
 	}
-	return entry, nil
+	return nil
 }
 
 /*****************

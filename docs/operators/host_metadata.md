@@ -4,13 +4,14 @@ The `host_metadata` operator adds hostname and ip to the resource of incoming en
 
 ### Configuration Fields
 
-| Field              | Default          | Description                                                                                     |
-| ---                | ---              | ---                                                                                             |
-| `id`               | `host_metadata`  | A unique identifier for the operator                                                            |
-| `output`           | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
-| `include_hostname` | `true`           | Whether to set the `hostname` on the resource of incoming entries                               |
-| `include_ip`       | `true`           | Whether to set the `ip` on the resource of incoming entries                                     |
-| `on_error`         | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
+| Field              | Default          | Description                                                                                                                                                                                                                            |
+| ---                | ---              | ---                                                                                                                                                                                                                                    |
+| `id`               | `host_metadata`  | A unique identifier for the operator                                                                                                                                                                                                   |
+| `output`           | Next in pipeline | The connected operator(s) that will receive all outbound entries                                                                                                                                                                       |
+| `include_hostname` | `true`           | Whether to set the `hostname` on the resource of incoming entries                                                                                                                                                                      |
+| `include_ip`       | `true`           | Whether to set the `ip` on the resource of incoming entries                                                                                                                                                                            |
+| `on_error`         | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                                                                                        |
+| `if`               |                  | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this parser should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 
 ### Example Configurations
 
