@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 )
@@ -55,10 +54,5 @@ type SeverityParserOperator struct {
 
 // Process will parse time from an entry.
 func (p *SeverityParserOperator) Process(ctx context.Context, entry *entry.Entry) error {
-	if err := p.Parse(ctx, entry); err != nil {
-		return errors.Wrap(err, "parse severity")
-	}
-
-	p.Write(ctx, entry)
-	return nil
+	return p.ProcessWith(ctx, entry, p.Parse)
 }

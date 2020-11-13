@@ -59,7 +59,7 @@ func (h *HostMetadata) Process(ctx context.Context, entry *entry.Entry) error {
 }
 
 // Transform will transform an entry, adding the configured host metadata.
-func (h *HostMetadata) Transform(entry *entry.Entry) (*entry.Entry, error) {
+func (h *HostMetadata) Transform(entry *entry.Entry) error {
 	h.HostIdentifier.Identify(entry)
-	return entry, nil
+	return nil
 }

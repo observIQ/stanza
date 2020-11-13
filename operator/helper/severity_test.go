@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -371,7 +370,7 @@ func (tc severityTestCase) run(t *testing.T, parseFrom entry.Field) func(*testin
 
 		ent := entry.New()
 		ent.Set(parseFrom, tc.sample)
-		err = severityParser.Parse(context.Background(), ent)
+		err = severityParser.Parse(ent)
 		if tc.parseErr {
 			require.Error(t, err, "expected error when parsing sample")
 			return

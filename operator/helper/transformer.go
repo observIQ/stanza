@@ -2,7 +2,10 @@ package helper
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/antonmedv/expr"
+	"github.com/antonmedv/expr/vm"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
@@ -21,6 +24,7 @@ func NewTransformerConfig(operatorID, operatorType string) TransformerConfig {
 type TransformerConfig struct {
 	WriterConfig `yaml:",inline"`
 	OnError      string `json:"on_error" yaml:"on_error"`
+	IfExpr       string `json:"if"                  yaml:"if"`
 }
 
 // Build will build a transformer operator.
@@ -45,6 +49,14 @@ func (c TransformerConfig) Build(context operator.BuildContext) (TransformerOper
 		OnError:        c.OnError,
 	}
 
+	if c.IfExpr != "" {
+		compiled, err := expr.Compile(c.IfExpr, expr.AsBool(), expr.AllowUndefinedVariables())
+		if err != nil {
+			return TransformerOperator{}, fmt.Errorf("failed to compile expression '%s': %w", c.IfExpr, err)
+		}
+		transformerOperator.IfExpr = compiled
+	}
+
 	return transformerOperator, nil
 }
 
@@ -52,6 +64,7 @@ func (c TransformerConfig) Build(context operator.BuildContext) (TransformerOper
 type TransformerOperator struct {
 	WriterOperator
 	OnError string
+	IfExpr  *vm.Program
 }
 
 // CanProcess will always return true for a transformer operator.
@@ -61,11 +74,20 @@ func (t *TransformerOperator) CanProcess() bool {
 
 // ProcessWith will process an entry with a transform function.
 func (t *TransformerOperator) ProcessWith(ctx context.Context, entry *entry.Entry, transform TransformFunction) error {
-	newEntry, err := transform(entry)
+	// Short circuit if the "if" condition does not match
+	skip, err := t.Skip(ctx, entry)
 	if err != nil {
 		return t.HandleEntryError(ctx, entry, err)
 	}
-	t.Write(ctx, newEntry)
+	if skip {
+		t.Write(ctx, entry)
+		return nil
+	}
+
+	if err := transform(entry); err != nil {
+		return t.HandleEntryError(ctx, entry, err)
+	}
+	t.Write(ctx, entry)
 	return nil
 }
 
@@ -79,8 +101,24 @@ func (t *TransformerOperator) HandleEntryError(ctx context.Context, entry *entry
 	return err
 }
 
+func (t *TransformerOperator) Skip(ctx context.Context, entry *entry.Entry) (bool, error) {
+	if t.IfExpr == nil {
+		return false, nil
+	}
+
+	env := GetExprEnv(entry)
+	defer PutExprEnv(env)
+
+	matches, err := vm.Run(t.IfExpr, env)
+	if err != nil {
+		return false, fmt.Errorf("running if expr: %s", err)
+	}
+
+	return !matches.(bool), nil
+}
+
 // TransformFunction is function that transforms an entry.
-type TransformFunction = func(*entry.Entry) (*entry.Entry, error)
+type TransformFunction = func(*entry.Entry) error
 
 // SendOnError specifies an on_error mode for sending entries after an error.
 const SendOnError = "send"

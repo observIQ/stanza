@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,7 +17,7 @@ type SeverityParser struct {
 }
 
 // Parse will parse severity from a field and attach it to the entry
-func (p *SeverityParser) Parse(ctx context.Context, ent *entry.Entry) error {
+func (p *SeverityParser) Parse(ent *entry.Entry) error {
 	value, ok := ent.Delete(p.ParseFrom)
 	if !ok {
 		return errors.NewError(

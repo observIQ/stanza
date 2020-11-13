@@ -2,10 +2,7 @@ package helper
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/antonmedv/expr"
-	"github.com/antonmedv/expr/vm"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
@@ -30,7 +27,6 @@ type ParserConfig struct {
 	PreserveTo           *entry.Field          `json:"preserve_to"         yaml:"preserve_to"`
 	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty"  yaml:"severity,omitempty"`
-	IfExpr               string                `json:"if"                  yaml:"if"`
 }
 
 // Build will build a parser operator.
@@ -62,14 +58,6 @@ func (c ParserConfig) Build(context operator.BuildContext) (ParserOperator, erro
 		parserOperator.SeverityParser = &severityParser
 	}
 
-	if c.IfExpr != "" {
-		compiled, err := expr.Compile(c.IfExpr, expr.AsBool(), expr.AllowUndefinedVariables())
-		if err != nil {
-			return ParserOperator{}, fmt.Errorf("failed to compile expression '%s': %w", c.IfExpr, err)
-		}
-		parserOperator.IfExpr = compiled
-	}
-
 	return parserOperator, nil
 }
 
@@ -81,7 +69,6 @@ type ParserOperator struct {
 	PreserveTo     *entry.Field
 	TimeParser     *TimeParser
 	SeverityParser *SeverityParser
-	IfExpr         *vm.Program
 }
 
 // ProcessWith will process an entry with a parser function.
@@ -125,12 +112,12 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 
 	var timeParseErr error
 	if p.TimeParser != nil {
-		timeParseErr = p.TimeParser.Parse(ctx, entry)
+		timeParseErr = p.TimeParser.Parse(entry)
 	}
 
 	var severityParseErr error
 	if p.SeverityParser != nil {
-		severityParseErr = p.SeverityParser.Parse(ctx, entry)
+		severityParseErr = p.SeverityParser.Parse(entry)
 	}
 
 	// Handle time or severity parsing errors after attempting to parse both
@@ -143,22 +130,6 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 
 	p.Write(ctx, entry)
 	return nil
-}
-
-func (p *ParserOperator) Skip(ctx context.Context, entry *entry.Entry) (bool, error) {
-	if p.IfExpr != nil {
-		env := GetExprEnv(entry)
-		defer PutExprEnv(env)
-
-		matches, err := vm.Run(p.IfExpr, env)
-		if err != nil {
-			return false, fmt.Errorf("running if expr: %s", err)
-		}
-
-		return !matches.(bool), nil
-	}
-
-	return false, nil
 }
 
 // ParseFunction is function that parses a raw value.

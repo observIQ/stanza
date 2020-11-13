@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"context"
 	"math"
 	"testing"
 	"time"
@@ -436,7 +435,7 @@ func runLossyTimeParseTest(t *testing.T, timeParser *TimeParser, ent *entry.Entr
 		}
 		require.NoError(t, err)
 
-		err = timeParser.Parse(context.Background(), ent)
+		err = timeParser.Parse(ent)
 		if parseErr {
 			require.Error(t, err, "expected error when configuring operator")
 			return
