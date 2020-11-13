@@ -30,6 +30,7 @@ func TestRouterOperator(t *testing.T) {
 		name           string
 		input          *entry.Entry
 		routes         []*RouterOperatorRouteConfig
+		defaultOutput  helper.OutputIDs
 		expectedCounts map[string]int
 		expectedLabels map[string]string
 	}{
@@ -43,6 +44,7 @@ func TestRouterOperator(t *testing.T) {
 					[]string{"output1"},
 				},
 			},
+			nil,
 			map[string]int{"output1": 1},
 			nil,
 		},
@@ -56,6 +58,7 @@ func TestRouterOperator(t *testing.T) {
 					[]string{"output1"},
 				},
 			},
+			nil,
 			map[string]int{},
 			nil,
 		},
@@ -78,6 +81,7 @@ func TestRouterOperator(t *testing.T) {
 					[]string{"output2"},
 				},
 			},
+			nil,
 			map[string]int{"output2": 1},
 			nil,
 		},
@@ -104,6 +108,7 @@ func TestRouterOperator(t *testing.T) {
 					[]string{"output2"},
 				},
 			},
+			nil,
 			map[string]int{"output2": 1},
 			map[string]string{
 				"label-key": "label-value",
@@ -128,6 +133,43 @@ func TestRouterOperator(t *testing.T) {
 					[]string{"output2"},
 				},
 			},
+			nil,
+			map[string]int{"output1": 1},
+			nil,
+		},
+		{
+			"UseDefault",
+			&entry.Entry{
+				Record: map[string]interface{}{
+					"message": "test_message",
+				},
+			},
+			[]*RouterOperatorRouteConfig{
+				{
+					helper.NewLabelerConfig(),
+					`false`,
+					[]string{"output1"},
+				},
+			},
+			[]string{"output2"},
+			map[string]int{"output2": 1},
+			nil,
+		},
+		{
+			"MatchBeforeDefault",
+			&entry.Entry{
+				Record: map[string]interface{}{
+					"message": "test_message",
+				},
+			},
+			[]*RouterOperatorRouteConfig{
+				{
+					helper.NewLabelerConfig(),
+					`true`,
+					[]string{"output1"},
+				},
+			},
+			[]string{"output2"},
 			map[string]int{"output1": 1},
 			nil,
 		},
@@ -137,6 +179,7 @@ func TestRouterOperator(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := basicConfig()
 			cfg.Routes = tc.routes
+			cfg.Default = tc.defaultOutput
 
 			buildContext := testutil.NewBuildContext(t)
 			ops, err := cfg.Build(buildContext)
@@ -153,6 +196,7 @@ func TestRouterOperator(t *testing.T) {
 					labels = entry.Labels
 				}
 			})
+
 			mock2 := testutil.NewMockOperator("$.output2")
 			mock2.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 				results["output2"] = results["output2"] + 1
