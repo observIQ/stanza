@@ -10,10 +10,11 @@ An entry that does not match any of the routes is dropped and not processed furt
 
 ### Configuration Fields
 
-| Field    | Default  | Description                              |
-| ---      | ---      | ---                                      |
-| `id`     | `router` | A unique identifier for the operator     |
-| `routes` | required | A list of routes. See below for details  |
+| Field    | Default  | Description                                                                                                                                                                                                                              |
+| ---      | ---      | ---                                                                                                                                                                                                                                      |
+| `id`     | `router` | A unique identifier for the operator                                                                                                                                                                                                     |
+| `routes` | required | A list of routes. See below for details                                                                                                                                                                                                  |
+| `if`     |          | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 
 #### Route configuration
 

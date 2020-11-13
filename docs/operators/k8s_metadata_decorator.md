@@ -4,14 +4,15 @@ The `k8s_metadata_decorator` operator adds labels and annotations to the entry u
 
 ### Configuration Fields
 
-| Field             | Default                  | Description                                                                                                |
-| ---               | ---                      | ---                                                                                                        |
-| `id`              | `k8s_metadata_decorator` | A unique identifier for the operator                                                                       |
-| `output`          | Next in pipeline         | The connected operator(s) that will receive all outbound entries                                           |
-| `namespace_field` | `namespace`              | A [field](/docs/types/field.md) that contains the k8s namespace associated with the log entry              |
-| `pod_name_field`  | `pod_name`               | A [field](/docs/types/field.md) that contains the k8s pod name associated with the log entry               |
-| `cache_ttl`       | 10m                      | A [duration](/docs/types/duration.md) indicating the time it takes for a cached entry to expire            |
-| `timeout`         | 10s                      | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out |
+| Field             | Default                  | Description                                                                                                                                                                                                                              |
+| ---               | ---                      | ---                                                                                                                                                                                                                                      |
+| `id`              | `k8s_metadata_decorator` | A unique identifier for the operator                                                                                                                                                                                                     |
+| `output`          | Next in pipeline         | The connected operator(s) that will receive all outbound entries                                                                                                                                                                         |
+| `namespace_field` | `namespace`              | A [field](/docs/types/field.md) that contains the k8s namespace associated with the log entry                                                                                                                                            |
+| `pod_name_field`  | `pod_name`               | A [field](/docs/types/field.md) that contains the k8s pod name associated with the log entry                                                                                                                                             |
+| `cache_ttl`       | 10m                      | A [duration](/docs/types/duration.md) indicating the time it takes for a cached entry to expire                                                                                                                                          |
+| `timeout`         | 10s                      | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out                                                                                                                               |
+| `if`              |                          | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 
 ### Example Configurations
 
