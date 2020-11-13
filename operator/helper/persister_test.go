@@ -22,7 +22,7 @@ func TestPersisterLoad(t *testing.T) {
 	db, err := database.OpenDatabase(filepath.Join(tempDir, "test.db"))
 	persister := NewScopedDBPersister(db, "test")
 	persister.Set("key", []byte("value"))
-	
+
 	err = persister.Sync()
 	require.NoError(t, err)
 

@@ -43,10 +43,15 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 
 // Build creates a new Buffer from a DiskBufferConfig
 func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
+	maxSize := c.MaxSize
+	if maxSize == 0 {
+		maxSize = 1 << 32
+	}
+
 	if c.Path == "" {
 		return nil, fmt.Errorf("missing required field 'path'")
 	}
-	b := NewDiskBuffer(c.MaxSize)
+	b := NewDiskBuffer(maxSize)
 	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err
 	}
