@@ -157,7 +157,12 @@ func (f *Flusher) flushWithRetry(ctx context.Context, entries []*entry.Entry) er
 			f.Errorw("Reached max backoff time during chunk flush retry. Dropping logs in chunk", "chunk_id", chunkID)
 			return nil
 		}
-		f.Warnw("Failed flushing chunk. Waiting before retry", "error", err, "wait_time", waitTime)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			f.Warnw("Failed flushing chunk. Waiting before retry", "error", err, "wait_time", waitTime)
+		}
 
 		select {
 		case <-ctx.Done():
