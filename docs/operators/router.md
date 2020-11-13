@@ -10,10 +10,10 @@ An entry that does not match any of the routes is dropped and not processed furt
 
 ### Configuration Fields
 
-| Field    | Default  | Description                                                                                                                                                                                                                              |
-| ---      | ---      | ---                                                                                                                                                                                                                                      |
-| `id`     | `router` | A unique identifier for the operator                                                                                                                                                                                                     |
-| `routes` | required | A list of routes. See below for details                                                                                                                                                                                                  |
+| Field     | Default  | Description                                                                    | | ---       | ---      | ---                                                                            |
+| `id`      | `router` | A unique identifier for the operator                                           |
+| `routes`  | required | A list of routes. See below for details                                        |
+| `default` |          | The operator(s) that will receive any entries not matched by any of the routes |
 
 #### Route configuration
 
