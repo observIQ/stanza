@@ -3,8 +3,10 @@ package buffer
 import (
 	"encoding/json"
 	"testing"
+  "time"
 
 	"github.com/stretchr/testify/require"
+  "github.com/observiq/stanza/operator/helper"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -24,6 +26,7 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 				Builder: &MemoryBufferConfig{
 					Type:       "memory",
 					MaxEntries: 30,
+          MaxChunkDelay: helper.NewDuration(time.Second),
 				},
 			},
 			false,
@@ -38,6 +41,7 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
 					Sync:    true,
+          MaxChunkDelay: helper.NewDuration(time.Second),
 				},
 			},
 			false,
@@ -52,7 +56,8 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
 					Sync:    true,
-				},
+          MaxChunkDelay: helper.NewDuration(time.Second),
+        },
 			},
 			true,
 		},
@@ -66,6 +71,7 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 					MaxSize: 1234,
 					Path:    "/var/log/testpath",
 					Sync:    true,
+          MaxChunkDelay: helper.NewDuration(time.Second),
 				},
 			},
 			true,
@@ -106,6 +112,7 @@ func TestBuffer(t *testing.T) {
 			Builder: &MemoryBufferConfig{
 				Type:       "memory",
 				MaxEntries: 1 << 20,
+        MaxChunkDelay: helper.NewDuration(time.Second),
 			},
 		}
 		require.Equal(t, expected, cfg)

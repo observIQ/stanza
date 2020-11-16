@@ -188,7 +188,7 @@ func (e *ElasticOutput) createRequest(entries []*entry.Entry) *esapi.BulkRequest
 
 func (e *ElasticOutput) feedFlusher(ctx context.Context) {
   for {
-		entries, flushFunc, err := e.buffer.ReadChunk(ctx, 1000)
+		entries, clearer, err := e.buffer.ReadChunk(ctx, 1000)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -216,7 +216,7 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
         )
       }
 
-			if err = flushFunc(); err != nil {
+			if err = clearer.MarkAllAsFlushed(); err != nil {
 				e.Errorw("Failed to mark entries as flushed", zap.Error(err))
 			}
       return nil

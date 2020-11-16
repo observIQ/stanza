@@ -169,7 +169,7 @@ func (nro *NewRelicOutput) testConnection() error {
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, flushFunc, err := nro.buffer.ReadChunk(ctx, 1000)
+		entries, clearer, err := nro.buffer.ReadChunk(ctx, 1000)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -194,7 +194,7 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
         return err
       }
 
-      if err = flushFunc(); err != nil {
+      if err = clearer.MarkAllAsFlushed(); err != nil {
         nro.Errorw("Failed to mark entries as flushed", zap.Error(err)) 
       }
       return nil

@@ -192,10 +192,10 @@ func TestDiskBuffer(t *testing.T) {
 
 		// Read, flush, and compact
 		dst := make([]*entry.Entry, 1)
-		f, n, err := b.Read(dst)
+		c, n, err := b.Read(dst)
 		require.NoError(t, err)
 		require.Equal(t, 1, n)
-		f()
+    c.MarkAllAsFlushed()
 		require.NoError(t, b.Compact())
 
 		// Now there should be space for another entry
@@ -227,9 +227,9 @@ func TestDiskBuffer(t *testing.T) {
 					writes++
 				case j < 990:
 					readCount := (writes - reads) / 2
-					f := readN(t, b, readCount, reads)
+					c := readN(t, b, readCount, reads)
 					if j%2 == 0 {
-						f()
+            c.MarkAllAsFlushed()
 					}
 					reads += readCount
 				default:
@@ -280,11 +280,11 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			ctx := context.Background()
 			for i := 0; i < b.N; {
 				ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-				flush, n, err := buffer.ReadWait(ctx, dst)
+				c, n, err := buffer.ReadWait(ctx, dst)
 				cancel()
 				panicOnErr(err)
 				i += n
-				flush()
+        c.MarkAllAsFlushed()
 			}
 		}()
 
@@ -318,11 +318,11 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			ctx := context.Background()
 			for i := 0; i < b.N; {
 				ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-				flush, n, err := buffer.ReadWait(ctx, dst)
+				c, n, err := buffer.ReadWait(ctx, dst)
 				cancel()
 				panicOnErr(err)
 				i += n
-				flush()
+        c.MarkAllAsFlushed()
 			}
 		}()
 

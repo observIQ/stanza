@@ -12,9 +12,9 @@ import (
 // Buffer is an interface for an entry buffer
 type Buffer interface {
 	Add(context.Context, *entry.Entry) error
-	Read([]*entry.Entry) (FlushFunc, int, error)
-	ReadWait(context.Context, []*entry.Entry) (FlushFunc, int, error)
-	ReadChunk(context.Context, int) ([]*entry.Entry, FlushFunc, error)
+	Read([]*entry.Entry) (Clearer, int, error)
+	ReadWait(context.Context, []*entry.Entry) (Clearer, int, error)
+	ReadChunk(context.Context, int) ([]*entry.Entry, Clearer, error)
 	Close() error
 }
 
@@ -74,5 +74,7 @@ func (bc Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(bc.Builder)
 }
 
-// FlushFunc is a function that can be called to mark the returned entries as flushed
-type FlushFunc func() error
+type Clearer interface {
+  MarkAllAsFlushed() error
+  MarkRangeAsFlushed(uint, uint) error
+}

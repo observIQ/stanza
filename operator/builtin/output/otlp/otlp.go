@@ -119,7 +119,7 @@ func (o *OTLPOutput) Stop() error {
 func (o *OTLPOutput) feedFlusher(ctx context.Context) {
 	for {
     // Get the next chunk of entries
-		entries, flushFunc, err := o.buffer.ReadChunk(ctx, 1000)
+		entries, clearer, err := o.buffer.ReadChunk(ctx, 1000)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -138,7 +138,7 @@ func (o *OTLPOutput) feedFlusher(ctx context.Context) {
         return err
       }
 
-			if err = flushFunc(); err != nil {
+			if err = clearer.MarkAllAsFlushed(); err != nil {
 				o.Errorw("Failed to mark entries as flushed", zap.Error(err))
 			}
 			return nil

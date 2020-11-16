@@ -173,10 +173,10 @@ func TestMemoryBuffer(t *testing.T) {
 
 		// Read and flush
 		dst := make([]*entry.Entry, 1)
-		f, n, err := b.Read(dst)
+		c, n, err := b.Read(dst)
 		require.NoError(t, err)
 		require.Equal(t, 1, n)
-		f()
+    c.MarkAllAsFlushed()
 
 		// Now there should be space for another entry
 		err = b.Add(context.Background(), entry.New())
@@ -204,9 +204,9 @@ func TestMemoryBuffer(t *testing.T) {
 					writes++
 				default:
 					readCount := (writes - reads) / 2
-					f := readN(t, b, readCount, reads)
+					c := readN(t, b, readCount, reads)
 					if j%2 == 0 {
-						f()
+            c.MarkAllAsFlushed()
 					}
 					reads += readCount
 				}
@@ -258,13 +258,13 @@ func BenchmarkMemoryBuffer(b *testing.B) {
 		ctx := context.Background()
 		for i := 0; i < b.N; {
 			ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-			flush, n, err := buffer.ReadWait(ctx, dst)
+			c, n, err := buffer.ReadWait(ctx, dst)
 			cancel()
 			panicOnErr(err)
 			i += n
 			go func() {
 				time.Sleep(50 * time.Millisecond)
-				flush()
+        c.MarkAllAsFlushed()
 			}()
 		}
 	}()

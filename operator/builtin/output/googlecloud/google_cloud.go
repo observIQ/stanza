@@ -214,7 +214,7 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 
 func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 	for {
-    entries, flushFunc, err := g.buffer.ReadChunk(ctx, 1000)
+    entries, clearer, err := g.buffer.ReadChunk(ctx, 1000)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -228,7 +228,7 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 			if err != nil {
 				return err
 			}
-			if err = flushFunc(); err != nil {
+			if err = clearer.MarkAllAsFlushed(); err != nil {
 				g.Errorw("Failed to mark entries as flushed", zap.Error(err))
 			}
 			return nil

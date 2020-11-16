@@ -79,7 +79,7 @@ func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 // Read reads entries until either there are no entries left in the buffer
 // or the destination slice is full. The returned function must be called
 // once the entries are flushed to remove them from the memory buffer.
-func (m *MemoryBuffer) Read(dst []*entry.Entry) (FlushFunc, int, error) {
+func (m *MemoryBuffer) Read(dst []*entry.Entry) (Clearer, int, error) {
 	inFlight := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -92,15 +92,15 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (FlushFunc, int, error) {
 			m.inFlightMux.Unlock()
 			inFlight[i] = id
 		default:
-			return m.newFlushFunc(inFlight[:i]), i, nil
+			return m.newClearer(inFlight[:i]), i, nil
 		}
 	}
 
-	return m.newFlushFunc(inFlight[:i]), i, nil
+	return m.newClearer(inFlight[:i]), i, nil
 }
 
 // ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
-func (m *MemoryBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry, FlushFunc, error) {
+func (m *MemoryBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry, Clearer, error) {
 	entries := make([]*entry.Entry, count)
 	for {
 		select {
@@ -121,7 +121,7 @@ func (m *MemoryBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry
 // ReadWait reads entries until either the destination slice is full, or the context passed to it
 // is cancelled. The returned function must be called once the entries are flushed to remove them
 // from the memory buffer
-func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushFunc, int, error) {
+func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Clearer, int, error) {
 	inFlightIDs := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -134,24 +134,50 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushF
 			m.inFlightMux.Unlock()
 			inFlightIDs[i] = id
 		case <-ctx.Done():
-			return m.newFlushFunc(inFlightIDs[:i]), i, nil
+			return m.newClearer(inFlightIDs[:i]), i, nil
 		}
 	}
 
-	return m.newFlushFunc(inFlightIDs[:i]), i, nil
+	return m.newClearer(inFlightIDs[:i]), i, nil
 }
 
+type memoryClearer struct {
+  buffer *MemoryBuffer
+  ids []uint64
+}
+
+func (mc *memoryClearer) MarkAllAsFlushed() error {
+  mc.buffer.inFlightMux.Lock()
+  for _, id := range mc.ids {
+    delete(mc.buffer.inFlight, id)
+  }
+  mc.buffer.inFlightMux.Unlock()
+  mc.buffer.sem.Release(int64(len(mc.ids)))
+  return nil
+} 
+
+func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
+  if int(end) > len(mc.ids) || int(start) > len(mc.ids) {
+    return fmt.Errorf("invalid range")
+  }
+
+  mc.buffer.inFlightMux.Lock()
+  for _, id := range mc.ids[start:end] {
+    delete(mc.buffer.inFlight, id)
+  }
+  mc.buffer.inFlightMux.Unlock()
+  mc.buffer.sem.Release(int64(len(mc.ids)))
+  return nil
+} 
+
+
+
 // newFlushFunc returns a function that will remove the entries identified by `ids` from the buffer
-func (m *MemoryBuffer) newFlushFunc(ids []uint64) FlushFunc {
-	return func() error {
-		m.inFlightMux.Lock()
-		for _, id := range ids {
-			delete(m.inFlight, id)
-		}
-		m.inFlightMux.Unlock()
-		m.sem.Release(int64(len(ids)))
-		return nil
-	}
+func (m *MemoryBuffer) newClearer(ids []uint64) Clearer {
+  return &memoryClearer{
+    buffer: m,
+    ids: ids,
+  }
 }
 
 // Close closes the memory buffer, saving all entries currently in the memory buffer to the
