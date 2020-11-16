@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+  "sync"
 	"time"
 
 	"github.com/observiq/stanza/entry"
@@ -17,6 +18,7 @@ import (
 	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -49,8 +51,8 @@ type NewRelicOutputConfig struct {
 }
 
 // Build will build a new NewRelicOutput
-func (c NewRelicOutputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
-	outputOperator, err := c.OutputConfig.Build(context)
+func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(bc)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +62,7 @@ func (c NewRelicOutputConfig) Build(context operator.BuildContext) ([]operator.O
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(context, c.ID())
+	buffer, err := c.BufferConfig.Build(bc, c.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -70,17 +72,21 @@ func (c NewRelicOutputConfig) Build(context operator.BuildContext) ([]operator.O
 		return nil, errors.Wrap(err, "'base_uri' is not a valid URL")
 	}
 
+	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
+  ctx, cancel := context.WithCancel(context.Background())
+
 	nro := &NewRelicOutput{
 		OutputOperator: outputOperator,
 		buffer:         buffer,
+		flusher:        flusher,
 		client:         &http.Client{},
 		headers:        headers,
 		url:            url,
 		timeout:        c.Timeout.Raw(),
 		messageField:   c.MessageField,
+    ctx: ctx, 
+    cancel: cancel,
 	}
-
-	nro.flusher = c.FlusherConfig.Build(buffer, nro.ProcessMulti, nro.SugaredLogger)
 
 	return []operator.Operator{nro}, nil
 }
@@ -113,23 +119,31 @@ type NewRelicOutput struct {
 	headers      http.Header
 	timeout      time.Duration
 	messageField entry.Field
+
+  ctx context.Context
+  cancel context.CancelFunc
+  wg sync.WaitGroup
 }
 
 // Start tests the connection to New Relic and begins flushing entries
 func (nro *NewRelicOutput) Start() error {
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
-	defer cancel()
-	if err := nro.ProcessMulti(ctx, nil); err != nil {
-		return errors.Wrap(err, "test connection")
-	}
+  if err := nro.testConnection(); err != nil {
+    return fmt.Errorf("test connection: %s", err)
+  }
 
-	nro.flusher.Start()
+  nro.wg.Add(1)
+  go func() {
+    defer nro.wg.Done()
+    nro.feedFlusher(nro.ctx)
+  }()
+
 	return nil
 }
 
 // Stop tells the NewRelicOutput to stop gracefully
 func (nro *NewRelicOutput) Stop() error {
+  nro.cancel()
+  nro.wg.Wait()
 	nro.flusher.Stop()
 	return nro.buffer.Close()
 }
@@ -139,23 +153,53 @@ func (nro *NewRelicOutput) Process(ctx context.Context, entry *entry.Entry) erro
 	return nro.buffer.Add(ctx, entry)
 }
 
-// ProcessMulti will send a chunk of entries to New Relic
-func (nro *NewRelicOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
-	lp := LogPayloadFromEntries(entries, nro.messageField)
-
-	ctx, cancel := context.WithTimeout(ctx, nro.timeout)
+func (nro *NewRelicOutput) testConnection() error {
+	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
 	defer cancel()
-	req, err := nro.newRequest(ctx, lp)
-	if err != nil {
-		return errors.Wrap(err, "create request")
-	}
 
-	res, err := nro.client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "execute request")
+  payload := LogPayloadFromEntries(nil, nro.messageField)
+  req, err := nro.newRequest(ctx, payload)
+  if err != nil {
+    return err
+  }
+
+  _, err = nro.client.Do(req)
+  return err
+}
+
+func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
+	for {
+		entries, flushFunc, err := nro.buffer.ReadChunk(ctx, 1000)
+		if err != nil && err == context.Canceled {
+			return
+		} else if err != nil {
+			nro.Errorf("Failed to read chunk", zap.Error(err))
+			continue
+		}
+
+		payload := LogPayloadFromEntries(entries, nro.messageField)
+		req, err := nro.newRequest(ctx, payload)
+		if err != nil {
+			nro.Errorw("Failed to create request from payload", zap.Error(err))
+			continue
+		}
+
+		nro.flusher.Do(func(ctx context.Context) error {
+      res, err := nro.client.Do(req)
+      if err != nil {
+        return err
+      }
+
+      if err := nro.handleResponse(res); err != nil {
+        return err
+      }
+
+      if err = flushFunc(); err != nil {
+        nro.Errorw("Failed to mark entries as flushed", zap.Error(err)) 
+      }
+      return nil
+    })
 	}
-	nro.handleResponse(res)
-	return nil
 }
 
 // newRequest creates a new http.Request with the given context and payload
@@ -179,14 +223,16 @@ func (nro *NewRelicOutput) newRequest(ctx context.Context, payload LogPayload) (
 	return req, nil
 }
 
-func (nro *NewRelicOutput) handleResponse(res *http.Response) {
+func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			nro.Errorw("Request returned a non-zero status code", "status", res.Status)
+			return errors.NewError("unexpected status code", "", "status", res.Status)
 		} else {
-			nro.Errorw("Request returned a non-zero status code", "status", res.Status, "body", body)
+      res.Body.Close()
+      return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
 	}
 	res.Body.Close()
+  return nil
 }

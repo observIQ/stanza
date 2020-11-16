@@ -13,6 +13,7 @@ import (
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -30,6 +31,8 @@ type DiskBufferConfig struct {
 	// in cases like power failures or unclean shutdowns, logs may be lost or the
 	// database may become corrupted.
 	Sync bool `json:"sync" yaml:"sync"`
+
+  MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
@@ -38,6 +41,7 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 		Type:    "disk",
 		MaxSize: 1 << 32, // 4GiB
 		Sync:    true,
+    MaxChunkDelay: helper.NewDuration(time.Second),
 	}
 }
 
@@ -92,6 +96,8 @@ type DiskBuffer struct {
 
 	// copyBuffer is a pre-allocated byte slice that is used during compaction
 	copyBuffer []byte
+
+  readTimeout time.Duration
 }
 
 // NewDiskBuffer creates a new DiskBuffer
@@ -227,6 +233,25 @@ LOOP:
 	}
 
 	return d.Read(dst)
+}
+
+// ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
+func (d *DiskBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry, FlushFunc, error) {
+	entries := make([]*entry.Entry, count)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		default:
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, d.readTimeout)
+		defer cancel()
+		flushFunc, n, err := d.ReadWait(ctx, entries)
+		if n > 0 {
+			return entries[:n], flushFunc, err
+		}
+	}
 }
 
 // Read copies entries from the disk into the destination buffer. It returns a function that,

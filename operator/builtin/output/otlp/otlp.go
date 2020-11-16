@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+  "sync"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -13,6 +14,7 @@ import (
 	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
+  "go.uber.org/zap"
 )
 
 func init() {
@@ -38,17 +40,19 @@ type OTLPOutputConfig struct {
 }
 
 // Build will build a new OTLPOutput
-func (c OTLPOutputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
+func (c OTLPOutputConfig) Build(bc operator.BuildContext) ([]operator.Operator, error) {
 
-	outputOperator, err := c.OutputConfig.Build(context)
+	outputOperator, err := c.OutputConfig.Build(bc)
 	if err != nil {
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(context, c.ID())
+	buffer, err := c.BufferConfig.Build(bc, c.ID())
 	if err != nil {
 		return nil, err
 	}
+
+  flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
 
 	if err := c.cleanEndpoint(); err != nil {
 		return nil, err
@@ -64,14 +68,18 @@ func (c OTLPOutputConfig) Build(context operator.BuildContext) ([]operator.Opera
 		return nil, errors.Wrap(err, "'endpoint' is not a valid URL")
 	}
 
+  ctx, cancel := context.WithCancel(context.Background())
+
 	otlp := &OTLPOutput{
 		OutputOperator: outputOperator,
 		buffer:         buffer,
+    flusher: flusher,
 		client:         client,
 		url:            url,
+    ctx: ctx,
+    cancel: cancel,
 	}
 
-	otlp.flusher = c.FlusherConfig.Build(buffer, otlp.ProcessMulti, otlp.SugaredLogger)
 
 	return []operator.Operator{otlp}, nil
 }
@@ -83,18 +91,59 @@ type OTLPOutput struct {
 	flusher *flusher.Flusher
 	client  *http.Client
 	url     *url.URL
+
+  ctx context.Context
+  cancel context.CancelFunc
+  wg sync.WaitGroup
 }
 
 // Start flushing entries
 func (o *OTLPOutput) Start() error {
-	o.flusher.Start()
+  o.wg.Add(1)
+  go func() {
+    defer o.wg.Done()
+    o.feedFlusher(o.ctx)
+  }()
+
 	return nil
 }
 
 // Stop tells the OTLPOutput to stop gracefully
 func (o *OTLPOutput) Stop() error {
+  o.cancel()
+  o.wg.Wait()
 	o.flusher.Stop()
 	return o.buffer.Close()
+}
+
+func (o *OTLPOutput) feedFlusher(ctx context.Context) {
+	for {
+    // Get the next chunk of entries
+		entries, flushFunc, err := o.buffer.ReadChunk(ctx, 1000)
+		if err != nil && err == context.Canceled {
+			return
+		} else if err != nil {
+			o.Errorf("Failed to read chunk", zap.Error(err))
+			continue
+		}
+
+		req, err := o.createRequest(ctx, entries)
+		o.flusher.Do(func(ctx context.Context) error {
+      res, err := o.client.Do(req)
+      if err != nil {
+        return errors.Wrap(err, "send request")
+      }
+
+      if err := o.handleResponse(res); err != nil {
+        return err
+      }
+
+			if err = flushFunc(); err != nil {
+				o.Errorw("Failed to mark entries as flushed", zap.Error(err))
+			}
+			return nil
+		})
+	}
 }
 
 // Process adds an entry to the output's buffer
@@ -103,37 +152,31 @@ func (o *OTLPOutput) Process(ctx context.Context, entry *entry.Entry) error {
 }
 
 // ProcessMulti will send a chunk of entries
-func (o *OTLPOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
-
+func (o *OTLPOutput) createRequest(ctx context.Context, entries []*entry.Entry) (*http.Request, error) {
 	logs := Convert(entries)
 	protoBytes, err := logs.ToOtlpProtoBytes()
 	if err != nil {
-		return errors.Wrap(err, "convert logs to proto bytes")
+		return nil, errors.Wrap(err, "convert logs to proto bytes")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, o.url.String(), bytes.NewReader(protoBytes))
 	if err != nil {
-		return errors.Wrap(err, "create request")
+		return nil, errors.Wrap(err, "create request")
 	}
 	req.Header.Set("Content-Type", "application/x-protobuf")
-
-	res, err := o.client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "send request")
-	}
-
-	o.handleResponse(res)
-	return err
+  return req, nil
 }
 
-func (o *OTLPOutput) handleResponse(res *http.Response) {
+func (o *OTLPOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			o.Errorw("Request returned a non-zero status code", "status", res.Status)
+      return errors.NewError("non-success status code", "", "status", string(res.StatusCode))
 		} else {
-			o.Errorw("Request returned a non-zero status code", "status", res.Status, "body", body)
+      res.Body.Close()
+      return errors.NewError("non-success status code", "", "status", string(res.StatusCode), "body", string(body))
 		}
 	}
-	res.Body.Close()
+  res.Body.Close()
+  return nil
 }

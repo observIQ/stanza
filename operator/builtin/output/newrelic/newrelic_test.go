@@ -12,6 +12,7 @@ import (
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -94,8 +95,14 @@ func TestNewRelicOutput(t *testing.T) {
 			defer ln.stop()
 
 			cfg := NewNewRelicOutputConfig("test")
+      cfg.BufferConfig = buffer.Config{
+        Builder: func() buffer.Builder {
+          cfg := buffer.NewMemoryBufferConfig()    
+          cfg.MaxChunkDelay = helper.NewDuration(50 * time.Millisecond)
+          return cfg
+        }(),
+      }
 			cfg.BaseURI = fmt.Sprintf("http://%s/log/v1", addr)
-			cfg.FlusherConfig.MaxWait = helper.NewDuration(time.Millisecond)
 			cfg.APIKey = "testkey"
 			if tc.cfgMod != nil {
 				tc.cfgMod(cfg)
