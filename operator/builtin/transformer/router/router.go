@@ -27,6 +27,7 @@ func NewRouterOperatorConfig(operatorID string) *RouterOperatorConfig {
 type RouterOperatorConfig struct {
 	helper.BasicConfig `yaml:",inline"`
 	Routes             []*RouterOperatorRouteConfig `json:"routes" yaml:"routes"`
+	Default            helper.OutputIDs             `json:"default" yaml:"default"`
 }
 
 // RouterOperatorRouteConfig is the configuration of a route on a router operator
@@ -41,6 +42,14 @@ func (c RouterOperatorConfig) Build(bc operator.BuildContext) ([]operator.Operat
 	basicOperator, err := c.BasicConfig.Build(bc)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.Default != nil {
+		defaultRoute := &RouterOperatorRouteConfig{
+			Expression: "true",
+			OutputIDs:  c.Default,
+		}
+		c.Routes = append(c.Routes, defaultRoute)
 	}
 
 	routes := make([]*RouterOperatorRoute, 0, len(c.Routes))
@@ -142,6 +151,7 @@ func (p *RouterOperator) SetOutputs(operators []operator.Operator) error {
 		}
 		route.OutputOperators = outputOperators
 	}
+
 	return nil
 }
 
