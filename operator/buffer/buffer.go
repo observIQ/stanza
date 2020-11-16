@@ -75,6 +75,6 @@ func (bc Config) MarshalJSON() ([]byte, error) {
 }
 
 type Clearer interface {
-  MarkAllAsFlushed() error
-  MarkRangeAsFlushed(uint, uint) error
+	MarkAllAsFlushed() error
+	MarkRangeAsFlushed(uint, uint) error
 }

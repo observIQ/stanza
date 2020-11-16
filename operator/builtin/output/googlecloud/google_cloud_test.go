@@ -13,9 +13,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/testutil"
-	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/operator/buffer"
+	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
@@ -34,9 +34,9 @@ type googleCloudTestCase struct {
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
-  bufferCfg := buffer.NewMemoryBufferConfig()
-  bufferCfg.MaxChunkDelay = helper.NewDuration(50 * time.Millisecond)
-  cfg.BufferConfig = buffer.Config{Builder: bufferCfg}
+	bufferCfg := buffer.NewMemoryBufferConfig()
+	bufferCfg.MaxChunkDelay = helper.NewDuration(50 * time.Millisecond)
+	cfg.BufferConfig = buffer.Config{Builder: bufferCfg}
 	return cfg
 }
 
@@ -217,8 +217,8 @@ func TestGoogleCloudOutput(t *testing.T) {
 			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
 			require.NoError(t, err)
 			op.(*GoogleCloudOutput).client = client
-      op.(*GoogleCloudOutput).startFlushing()
-      defer op.Stop()
+			op.(*GoogleCloudOutput).startFlushing()
+			defer op.Stop()
 
 			err = op.Process(context.Background(), tc.input)
 			require.NoError(t, err)

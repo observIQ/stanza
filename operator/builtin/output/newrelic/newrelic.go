@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-  "sync"
+	"sync"
 	"time"
 
 	"github.com/observiq/stanza/entry"
@@ -73,7 +73,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 	}
 
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
-  ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
 	nro := &NewRelicOutput{
 		OutputOperator: outputOperator,
@@ -84,8 +84,8 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		url:            url,
 		timeout:        c.Timeout.Raw(),
 		messageField:   c.MessageField,
-    ctx: ctx, 
-    cancel: cancel,
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 
 	return []operator.Operator{nro}, nil
@@ -120,30 +120,30 @@ type NewRelicOutput struct {
 	timeout      time.Duration
 	messageField entry.Field
 
-  ctx context.Context
-  cancel context.CancelFunc
-  wg sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // Start tests the connection to New Relic and begins flushing entries
 func (nro *NewRelicOutput) Start() error {
-  if err := nro.testConnection(); err != nil {
-    return fmt.Errorf("test connection: %s", err)
-  }
+	if err := nro.testConnection(); err != nil {
+		return fmt.Errorf("test connection: %s", err)
+	}
 
-  nro.wg.Add(1)
-  go func() {
-    defer nro.wg.Done()
-    nro.feedFlusher(nro.ctx)
-  }()
+	nro.wg.Add(1)
+	go func() {
+		defer nro.wg.Done()
+		nro.feedFlusher(nro.ctx)
+	}()
 
 	return nil
 }
 
 // Stop tells the NewRelicOutput to stop gracefully
 func (nro *NewRelicOutput) Stop() error {
-  nro.cancel()
-  nro.wg.Wait()
+	nro.cancel()
+	nro.wg.Wait()
 	nro.flusher.Stop()
 	return nro.buffer.Close()
 }
@@ -157,22 +157,22 @@ func (nro *NewRelicOutput) testConnection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
 	defer cancel()
 
-  req, err := nro.newRequest(ctx, nil)
-  if err != nil {
-    return err
-  }
+	req, err := nro.newRequest(ctx, nil)
+	if err != nil {
+		return err
+	}
 
-  res, err := nro.client.Do(req)
-  if err != nil {
-    return err
-  }
+	res, err := nro.client.Do(req)
+	if err != nil {
+		return err
+	}
 
-  return nro.handleResponse(res)
+	return nro.handleResponse(res)
 }
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
-    entries, clearer, err := nro.buffer.ReadChunk(ctx)
+		entries, clearer, err := nro.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -187,26 +187,26 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 		}
 
 		nro.flusher.Do(func(ctx context.Context) error {
-      res, err := nro.client.Do(req)
-      if err != nil {
-        return err
-      }
+			res, err := nro.client.Do(req)
+			if err != nil {
+				return err
+			}
 
-      if err := nro.handleResponse(res); err != nil {
-        return err
-      }
+			if err := nro.handleResponse(res); err != nil {
+				return err
+			}
 
-      if err = clearer.MarkAllAsFlushed(); err != nil {
-        nro.Errorw("Failed to mark entries as flushed", zap.Error(err)) 
-      }
-      return nil
-    })
+			if err = clearer.MarkAllAsFlushed(); err != nil {
+				nro.Errorw("Failed to mark entries as flushed", zap.Error(err))
+			}
+			return nil
+		})
 	}
 }
 
 // newRequest creates a new http.Request with the given context and entries
 func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entry) (*http.Request, error) {
-  payload := LogPayloadFromEntries(entries, nro.messageField)
+	payload := LogPayloadFromEntries(entries, nro.messageField)
 
 	var buf bytes.Buffer
 	wr := gzip.NewWriter(&buf)
@@ -233,10 +233,10 @@ func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
 		if err != nil {
 			return errors.NewError("unexpected status code", "", "status", res.Status)
 		} else {
-      res.Body.Close()
-      return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
+			res.Body.Close()
+			return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
 	}
 	res.Body.Close()
-  return nil
+	return nil
 }

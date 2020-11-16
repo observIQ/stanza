@@ -50,7 +50,7 @@ func readWaitN(t testing.TB, buffer Buffer, n, start int) Clearer {
 
 func flushN(t testing.TB, buffer Buffer, n, start int) {
 	f := readN(t, buffer, n, start)
-  f.MarkAllAsFlushed()
+	f.MarkAllAsFlushed()
 }
 
 func panicOnErr(err error) {

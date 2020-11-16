@@ -12,8 +12,8 @@ import (
 
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"go.etcd.io/bbolt"
 	"golang.org/x/sync/semaphore"
 )
@@ -22,17 +22,17 @@ import (
 type MemoryBufferConfig struct {
 	Type          string          `json:"type"        yaml:"type"`
 	MaxEntries    int             `json:"max_entries" yaml:"max_entries"`
-  MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
-  MaxChunkSize uint `json:"max_chunk_size" yaml:"max_chunk_size"`
+	MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
+	MaxChunkSize  uint            `json:"max_chunk_size" yaml:"max_chunk_size"`
 }
 
 // NewMemoryBufferConfig creates a new default MemoryBufferConfig
 func NewMemoryBufferConfig() *MemoryBufferConfig {
 	return &MemoryBufferConfig{
-		Type:       "memory",
-		MaxEntries: 1 << 20,
-    MaxChunkDelay: helper.NewDuration(time.Second),
-    MaxChunkSize: 1000,
+		Type:          "memory",
+		MaxEntries:    1 << 20,
+		MaxChunkDelay: helper.NewDuration(time.Second),
+		MaxChunkSize:  1000,
 	}
 }
 
@@ -40,13 +40,13 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 // back into memory
 func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
 	mb := &MemoryBuffer{
-		db:       context.Database,
-		pluginID: pluginID,
-		buf:      make(chan *entry.Entry, c.MaxEntries),
-		sem:      semaphore.NewWeighted(int64(c.MaxEntries)),
-		inFlight: make(map[uint64]*entry.Entry, c.MaxEntries),
-    maxChunkDelay: c.MaxChunkDelay.Raw(),
-    maxChunkSize: c.MaxChunkSize,
+		db:            context.Database,
+		pluginID:      pluginID,
+		buf:           make(chan *entry.Entry, c.MaxEntries),
+		sem:           semaphore.NewWeighted(int64(c.MaxEntries)),
+		inFlight:      make(map[uint64]*entry.Entry, c.MaxEntries),
+		maxChunkDelay: c.MaxChunkDelay.Raw(),
+		maxChunkSize:  c.MaxChunkSize,
 	}
 	if err := mb.loadFromDB(); err != nil {
 		return nil, err
@@ -59,15 +59,15 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 // at which point it saves the entries into a database. It provides no guarantees about
 // lost entries if shut down uncleanly.
 type MemoryBuffer struct {
-	db          database.Database
-	pluginID    string
-	buf         chan *entry.Entry
-	inFlight    map[uint64]*entry.Entry
-	inFlightMux sync.Mutex
-	entryID     uint64
-	sem         *semaphore.Weighted
-  maxChunkDelay time.Duration
-  maxChunkSize uint
+	db            database.Database
+	pluginID      string
+	buf           chan *entry.Entry
+	inFlight      map[uint64]*entry.Entry
+	inFlightMux   sync.Mutex
+	entryID       uint64
+	sem           *semaphore.Weighted
+	maxChunkDelay time.Duration
+	maxChunkSize  uint
 }
 
 // Add inserts an entry into the memory database, blocking until there is space
@@ -146,42 +146,40 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Cleare
 }
 
 type memoryClearer struct {
-  buffer *MemoryBuffer
-  ids []uint64
+	buffer *MemoryBuffer
+	ids    []uint64
 }
 
 func (mc *memoryClearer) MarkAllAsFlushed() error {
-  mc.buffer.inFlightMux.Lock()
-  for _, id := range mc.ids {
-    delete(mc.buffer.inFlight, id)
-  }
-  mc.buffer.inFlightMux.Unlock()
-  mc.buffer.sem.Release(int64(len(mc.ids)))
-  return nil
-} 
+	mc.buffer.inFlightMux.Lock()
+	for _, id := range mc.ids {
+		delete(mc.buffer.inFlight, id)
+	}
+	mc.buffer.inFlightMux.Unlock()
+	mc.buffer.sem.Release(int64(len(mc.ids)))
+	return nil
+}
 
 func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
-  if int(end) > len(mc.ids) || int(start) > len(mc.ids) {
-    return fmt.Errorf("invalid range")
-  }
+	if int(end) > len(mc.ids) || int(start) > len(mc.ids) {
+		return fmt.Errorf("invalid range")
+	}
 
-  mc.buffer.inFlightMux.Lock()
-  for _, id := range mc.ids[start:end] {
-    delete(mc.buffer.inFlight, id)
-  }
-  mc.buffer.inFlightMux.Unlock()
-  mc.buffer.sem.Release(int64(len(mc.ids)))
-  return nil
-} 
-
-
+	mc.buffer.inFlightMux.Lock()
+	for _, id := range mc.ids[start:end] {
+		delete(mc.buffer.inFlight, id)
+	}
+	mc.buffer.inFlightMux.Unlock()
+	mc.buffer.sem.Release(int64(len(mc.ids)))
+	return nil
+}
 
 // newFlushFunc returns a function that will remove the entries identified by `ids` from the buffer
 func (m *MemoryBuffer) newClearer(ids []uint64) Clearer {
-  return &memoryClearer{
-    buffer: m,
-    ids: ids,
-  }
+	return &memoryClearer{
+		buffer: m,
+		ids:    ids,
+	}
 }
 
 // Close closes the memory buffer, saving all entries currently in the memory buffer to the

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
-  "sync"
+	"sync"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -76,9 +76,9 @@ func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		return nil, err
 	}
 
-  flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
+	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
 
-  ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
 	elasticOutput := &ElasticOutput{
 		OutputOperator: outputOperator,
@@ -86,9 +86,9 @@ func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		client:         client,
 		indexField:     c.IndexField,
 		idField:        c.IDField,
-    flusher: flusher,
-    ctx: ctx,
-    cancel: cancel,
+		flusher:        flusher,
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 
 	return []operator.Operator{elasticOutput}, nil
@@ -104,26 +104,26 @@ type ElasticOutput struct {
 	indexField *entry.Field
 	idField    *entry.Field
 
-  ctx context.Context
-  cancel context.CancelFunc
-  wg sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // Start signals to the ElasticOutput to begin flushing
 func (e *ElasticOutput) Start() error {
-  e.wg.Add(1)
-  go func() {
-    defer e.wg.Done()
-    e.feedFlusher(e.ctx) 
-  }()
+	e.wg.Add(1)
+	go func() {
+		defer e.wg.Done()
+		e.feedFlusher(e.ctx)
+	}()
 
 	return nil
 }
 
 // Stop tells the ElasticOutput to stop gracefully
 func (e *ElasticOutput) Stop() error {
-  e.cancel()
-  e.wg.Wait()
+	e.cancel()
+	e.wg.Wait()
 	e.flusher.Stop()
 	return e.buffer.Close()
 }
@@ -183,11 +183,11 @@ func (e *ElasticOutput) createRequest(entries []*entry.Entry) *esapi.BulkRequest
 		Body: bytes.NewReader(buffer.Bytes()),
 	}
 
-  return request
+	return request
 }
 
 func (e *ElasticOutput) feedFlusher(ctx context.Context) {
-  for {
+	for {
 		entries, clearer, err := e.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
@@ -196,32 +196,32 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-    req := e.createRequest(entries)
-    e.flusher.Do(func(ctx context.Context) error {
-      res, err := req.Do(ctx, e.client)
-      if err != nil {
-        return errors.NewError(
-          "Client failed to submit request to elasticsearch.",
-          "Review the underlying error message to troubleshoot the issue",
-          "underlying_error", err.Error(),
-        )
-      }
+		req := e.createRequest(entries)
+		e.flusher.Do(func(ctx context.Context) error {
+			res, err := req.Do(ctx, e.client)
+			if err != nil {
+				return errors.NewError(
+					"Client failed to submit request to elasticsearch.",
+					"Review the underlying error message to troubleshoot the issue",
+					"underlying_error", err.Error(),
+				)
+			}
 
-      if res.IsError() {
-        return errors.NewError(
-          "Request to elasticsearch returned a failure code.",
-          "Review status and status code for further details.",
-          "status_code", strconv.Itoa(res.StatusCode),
-          "status", res.Status(),
-        )
-      }
+			if res.IsError() {
+				return errors.NewError(
+					"Request to elasticsearch returned a failure code.",
+					"Review status and status code for further details.",
+					"status_code", strconv.Itoa(res.StatusCode),
+					"status", res.Status(),
+				)
+			}
 
 			if err = clearer.MarkAllAsFlushed(); err != nil {
 				e.Errorw("Failed to mark entries as flushed", zap.Error(err))
 			}
-      return nil
-    })
-  }
+			return nil
+		})
+	}
 }
 
 // FindIndex will find an index that will represent an entry in elasticsearch.

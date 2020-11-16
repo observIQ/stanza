@@ -32,18 +32,18 @@ type DiskBufferConfig struct {
 	// database may become corrupted.
 	Sync bool `json:"sync" yaml:"sync"`
 
-  MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
-  MaxChunkSize uint `json:"max_chunk_size" yaml:"max_chunk_size"`
+	MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
+	MaxChunkSize  uint            `json:"max_chunk_size" yaml:"max_chunk_size"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
 func NewDiskBufferConfig() *DiskBufferConfig {
 	return &DiskBufferConfig{
-		Type:    "disk",
-		MaxSize: 1 << 32, // 4GiB
-		Sync:    true,
-    MaxChunkDelay: helper.NewDuration(time.Second),
-    MaxChunkSize: 1000,
+		Type:          "disk",
+		MaxSize:       1 << 32, // 4GiB
+		Sync:          true,
+		MaxChunkDelay: helper.NewDuration(time.Second),
+		MaxChunkSize:  1000,
 	}
 }
 
@@ -61,8 +61,8 @@ func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer
 	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err
 	}
-  b.maxChunkSize = c.MaxChunkSize
-  b.maxChunkDelay = c.MaxChunkDelay.Raw()
+	b.maxChunkSize = c.MaxChunkSize
+	b.maxChunkDelay = c.MaxChunkDelay.Raw()
 	return b, nil
 }
 
@@ -101,8 +101,8 @@ type DiskBuffer struct {
 	// copyBuffer is a pre-allocated byte slice that is used during compaction
 	copyBuffer []byte
 
-  maxChunkDelay time.Duration
-  maxChunkSize uint
+	maxChunkDelay time.Duration
+	maxChunkSize  uint
 }
 
 // NewDiskBuffer creates a new DiskBuffer
@@ -315,42 +315,40 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f Clearer, i int, err error) {
 
 // newFlushFunc returns a function that marks read entries as flushed
 func (d *DiskBuffer) newClearer(newRead []*readEntry) Clearer {
-  return &diskClearer{
-    buffer: d,
-    readEntries: newRead,
-  }
+	return &diskClearer{
+		buffer:      d,
+		readEntries: newRead,
+	}
 }
 
 type diskClearer struct {
-  buffer *DiskBuffer
-  readEntries []*readEntry
+	buffer      *DiskBuffer
+	readEntries []*readEntry
 }
 
 func (dc *diskClearer) MarkAllAsFlushed() error {
-  dc.buffer.Lock()
-  for _, entry := range dc.readEntries {
-    entry.flushed = true
-    dc.buffer.flushedBytes += entry.length
-  }
-  dc.buffer.Unlock()
-  return dc.buffer.checkCompact()
-} 
+	dc.buffer.Lock()
+	for _, entry := range dc.readEntries {
+		entry.flushed = true
+		dc.buffer.flushedBytes += entry.length
+	}
+	dc.buffer.Unlock()
+	return dc.buffer.checkCompact()
+}
 
 func (dc *diskClearer) MarkRangeAsFlushed(start, end uint) error {
-  if int(end) > len(dc.readEntries) || int(start) > len(dc.readEntries) {
-    return fmt.Errorf("invalid range")
-  }
+	if int(end) > len(dc.readEntries) || int(start) > len(dc.readEntries) {
+		return fmt.Errorf("invalid range")
+	}
 
-  dc.buffer.Lock()
-  for _, entry := range dc.readEntries[start:end] {
-    entry.flushed = true
-    dc.buffer.flushedBytes += entry.length
-  }
-  dc.buffer.Unlock()
-  return dc.buffer.checkCompact()
-} 
-
-
+	dc.buffer.Lock()
+	for _, entry := range dc.readEntries[start:end] {
+		entry.flushed = true
+		dc.buffer.flushedBytes += entry.length
+	}
+	dc.buffer.Unlock()
+	return dc.buffer.checkCompact()
+}
 
 // checkCompact checks if a compaction should be performed, then kicks one off
 func (d *DiskBuffer) checkCompact() error {

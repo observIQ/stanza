@@ -173,7 +173,7 @@ func (g *GoogleCloudOutput) Start() error {
 		return err
 	}
 
-  g.startFlushing()
+	g.startFlushing()
 	return nil
 }
 
@@ -214,7 +214,7 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 
 func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 	for {
-    entries, clearer, err := g.buffer.ReadChunk(ctx)
+		entries, clearer, err := g.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
