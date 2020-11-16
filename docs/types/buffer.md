@@ -12,9 +12,13 @@ cleanly, they will be saved to the agent's database.
 
 ### Memory Buffer Configuration
 
-Memory buffers are configured by setting the `type` field of the `buffer` block on an output to `memory`. The only other
-configurable field is `max_entries`, which is maximum number of entries that will be held in memory before blocking and
-waiting for some entries to be flushed. The default value of `max_entries` is `1048576` (2^20).
+Memory buffers are configured by setting the `type` field of the `buffer` block on an output to `memory`. 
+
+| Field             | Default          | Description                                                                      |
+| ---               | ---              | ---                                                                              |
+| `max_entries`     | `1048576` (2^20) | The maximum number of entries stored in the memory buffer                        |
+| `max_chunk_size`  | 1000             | The maximum number of entries that are read from the buffer by default           |
+| `max_chunk_delay` | 1s               | The maximum amount of time that a reader will wait to batch entries into a chunk |
 
 Example:
 ```yaml
@@ -23,6 +27,8 @@ Example:
   buffer:
     type: memory
     max_entries: 10000
+    max_chunk_delay: 1s
+    max_chunk_size: 1000
 ```
 
 
@@ -43,11 +49,13 @@ be logs that are lost or a corruption of the database.
 
 Disk buffers are configured by setting the `type` field of the `buffer` block on an output to `disk`. Other fields are described below:
 
-| Field      | Default             | Description                                                                                                                              |
-| ---        | ---                 | ---                                                                                                                                      |
-| `max_size` | `4294967296` (4GiB) | The maximum size of the disk buffer file in bytes                                                                                        |
-| `path`     | required            | The path to the directory which will contain the disk buffer data                                                                        |
-| `sync`     | `true`              | Whether to open the database files with the O_SYNC flag. Disabling this improves performance, but relaxes guarantees about log delivery. |
+| Field             | Default             | Description                                                                                                                              |
+| ---               | ---                 | ---                                                                                                                                      |
+| `max_size`        | `4294967296` (4GiB) | The maximum size of the disk buffer file in bytes                                                                                        |
+| `max_chunk_size`  | 1000                | The maximum number of entries that are read from the buffer by default                                                                   |
+| `max_chunk_delay` | 1s                  | The maximum amount of time that a reader will wait to batch entries into a chunk                                                         |
+| `path`            | required            | The path to the directory which will contain the disk buffer data                                                                        |
+| `sync`            | `true`              | Whether to open the database files with the O_SYNC flag. Disabling this improves performance, but relaxes guarantees about log delivery. |
 
 Example:
 ```yaml
@@ -58,4 +66,6 @@ Example:
     max_size: 10000000 # 10MB
     path: /tmp/stanza_buffer
     sync: true
+    max_chunk_delay: 1s
+    max_chunk_size: 1000
 ```
