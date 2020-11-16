@@ -14,7 +14,7 @@ type Buffer interface {
 	Add(context.Context, *entry.Entry) error
 	Read([]*entry.Entry) (Clearer, int, error)
 	ReadWait(context.Context, []*entry.Entry) (Clearer, int, error)
-	ReadChunk(context.Context, int) ([]*entry.Entry, Clearer, error)
+	ReadChunk(context.Context) ([]*entry.Entry, Clearer, error)
 	Close() error
 }
 

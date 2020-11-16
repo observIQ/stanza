@@ -33,6 +33,7 @@ type DiskBufferConfig struct {
 	Sync bool `json:"sync" yaml:"sync"`
 
   MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
+  MaxChunkSize uint `json:"max_chunk_size" yaml:"max_chunk_size"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
@@ -42,6 +43,7 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 		MaxSize: 1 << 32, // 4GiB
 		Sync:    true,
     MaxChunkDelay: helper.NewDuration(time.Second),
+    MaxChunkSize: 1000,
 	}
 }
 
@@ -59,6 +61,8 @@ func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer
 	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err
 	}
+  b.maxChunkSize = c.MaxChunkSize
+  b.maxChunkDelay = c.MaxChunkDelay.Raw()
 	return b, nil
 }
 
@@ -97,7 +101,8 @@ type DiskBuffer struct {
 	// copyBuffer is a pre-allocated byte slice that is used during compaction
 	copyBuffer []byte
 
-  readTimeout time.Duration
+  maxChunkDelay time.Duration
+  maxChunkSize uint
 }
 
 // NewDiskBuffer creates a new DiskBuffer
@@ -236,8 +241,8 @@ LOOP:
 }
 
 // ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
-func (d *DiskBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry, Clearer, error) {
-	entries := make([]*entry.Entry, count)
+func (d *DiskBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
+	entries := make([]*entry.Entry, d.maxChunkSize)
 	for {
 		select {
 		case <-ctx.Done():
@@ -245,7 +250,7 @@ func (d *DiskBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry, 
 		default:
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, d.readTimeout)
+		ctx, cancel := context.WithTimeout(ctx, d.maxChunkDelay)
 		defer cancel()
 		flushFunc, n, err := d.ReadWait(ctx, entries)
 		if n > 0 {

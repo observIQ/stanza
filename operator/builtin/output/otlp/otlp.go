@@ -119,7 +119,7 @@ func (o *OTLPOutput) Stop() error {
 func (o *OTLPOutput) feedFlusher(ctx context.Context) {
 	for {
     // Get the next chunk of entries
-		entries, clearer, err := o.buffer.ReadChunk(ctx, 1000)
+		entries, clearer, err := o.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {

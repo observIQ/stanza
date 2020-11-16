@@ -188,7 +188,7 @@ func (e *ElasticOutput) createRequest(entries []*entry.Entry) *esapi.BulkRequest
 
 func (e *ElasticOutput) feedFlusher(ctx context.Context) {
   for {
-		entries, clearer, err := e.buffer.ReadChunk(ctx, 1000)
+		entries, clearer, err := e.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {

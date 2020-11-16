@@ -23,6 +23,7 @@ type MemoryBufferConfig struct {
 	Type          string          `json:"type"        yaml:"type"`
 	MaxEntries    int             `json:"max_entries" yaml:"max_entries"`
   MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
+  MaxChunkSize uint `json:"max_chunk_size" yaml:"max_chunk_size"`
 }
 
 // NewMemoryBufferConfig creates a new default MemoryBufferConfig
@@ -31,6 +32,7 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 		Type:       "memory",
 		MaxEntries: 1 << 20,
     MaxChunkDelay: helper.NewDuration(time.Second),
+    MaxChunkSize: 1000,
 	}
 }
 
@@ -43,7 +45,8 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 		buf:      make(chan *entry.Entry, c.MaxEntries),
 		sem:      semaphore.NewWeighted(int64(c.MaxEntries)),
 		inFlight: make(map[uint64]*entry.Entry, c.MaxEntries),
-    readTimeout: c.MaxChunkDelay.Raw(),
+    maxChunkDelay: c.MaxChunkDelay.Raw(),
+    maxChunkSize: c.MaxChunkSize,
 	}
 	if err := mb.loadFromDB(); err != nil {
 		return nil, err
@@ -63,7 +66,8 @@ type MemoryBuffer struct {
 	inFlightMux sync.Mutex
 	entryID     uint64
 	sem         *semaphore.Weighted
-  readTimeout time.Duration
+  maxChunkDelay time.Duration
+  maxChunkSize uint
 }
 
 // Add inserts an entry into the memory database, blocking until there is space
@@ -100,8 +104,8 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (Clearer, int, error) {
 }
 
 // ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
-func (m *MemoryBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry, Clearer, error) {
-	entries := make([]*entry.Entry, count)
+func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
+	entries := make([]*entry.Entry, m.maxChunkSize)
 	for {
 		select {
 		case <-ctx.Done():
@@ -109,7 +113,7 @@ func (m *MemoryBuffer) ReadChunk(ctx context.Context, count int) ([]*entry.Entry
 		default:
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, m.readTimeout)
+		ctx, cancel := context.WithTimeout(ctx, m.maxChunkDelay)
 		defer cancel()
 		flushFunc, n, err := m.ReadWait(ctx, entries)
 		if n > 0 {

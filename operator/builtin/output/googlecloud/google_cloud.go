@@ -214,7 +214,7 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 
 func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 	for {
-    entries, clearer, err := g.buffer.ReadChunk(ctx, 1000)
+    entries, clearer, err := g.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {

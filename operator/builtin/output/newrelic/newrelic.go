@@ -157,19 +157,22 @@ func (nro *NewRelicOutput) testConnection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
 	defer cancel()
 
-  payload := LogPayloadFromEntries(nil, nro.messageField)
-  req, err := nro.newRequest(ctx, payload)
+  req, err := nro.newRequest(ctx, nil)
   if err != nil {
     return err
   }
 
-  _, err = nro.client.Do(req)
-  return err
+  res, err := nro.client.Do(req)
+  if err != nil {
+    return err
+  }
+
+  return nro.handleResponse(res)
 }
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := nro.buffer.ReadChunk(ctx, 1000)
+    entries, clearer, err := nro.buffer.ReadChunk(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -177,8 +180,7 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		payload := LogPayloadFromEntries(entries, nro.messageField)
-		req, err := nro.newRequest(ctx, payload)
+		req, err := nro.newRequest(ctx, entries)
 		if err != nil {
 			nro.Errorw("Failed to create request from payload", zap.Error(err))
 			continue
@@ -202,8 +204,10 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	}
 }
 
-// newRequest creates a new http.Request with the given context and payload
-func (nro *NewRelicOutput) newRequest(ctx context.Context, payload LogPayload) (*http.Request, error) {
+// newRequest creates a new http.Request with the given context and entries
+func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entry) (*http.Request, error) {
+  payload := LogPayloadFromEntries(entries, nro.messageField)
+
 	var buf bytes.Buffer
 	wr := gzip.NewWriter(&buf)
 	enc := json.NewEncoder(wr)
