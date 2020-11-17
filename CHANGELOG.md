@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased 
+### Added
+- New operators `forward_output` and `forward_input` to easily send log entries between stanza instances.
+
 ## [0.13.2] - 2020-11-17
 ### Added
 - New parameter `if` to parser plugins to allow for easy conditional parsing without routers
