@@ -3,7 +3,7 @@ module github.com/observiq/stanza/cmd/stanza
 go 1.14
 
 require (
-	github.com/kardianos/service v1.1.0
+	github.com/kardianos/service v1.2.0
 	github.com/observiq/stanza v0.12.5
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
 	github.com/observiq/stanza/operator/builtin/input/windows v0.1.1
