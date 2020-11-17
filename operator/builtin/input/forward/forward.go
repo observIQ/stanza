@@ -1,14 +1,15 @@
 package forward
 
 import (
-  "net"
-  "encoding/json"
-	"github.com/observiq/stanza/operator"
-  "net/http"
-	"github.com/observiq/stanza/operator/helper"
+	"context"
+	"encoding/json"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
-  "go.uber.org/zap"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
+	"go.uber.org/zap"
+	"net"
+	"net/http"
 )
 
 func init() {
@@ -25,14 +26,14 @@ func NewForwardInputConfig(operatorID string) *ForwardInputConfig {
 // ForwardInputConfig is the configuration of a forward input operator
 type ForwardInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
-  ListenAddress      string     `json:"listen_address" yaml:"listen_address"`
-  TLS                *TLSConfig `json:"tls"            yaml:"tls"`
+	ListenAddress      string     `json:"listen_address" yaml:"listen_address"`
+	TLS                *TLSConfig `json:"tls"            yaml:"tls"`
 }
 
 // TLSConfig is a configuration struct for forward input TLS
 type TLSConfig struct {
-    CertFile string `json:"cert_file" yaml:"cert_file"`
-    KeyFile  string `json:"key_file"  yaml:"key_file"`
+	CertFile string `json:"cert_file" yaml:"cert_file"`
+	KeyFile  string `json:"key_file"  yaml:"key_file"`
 }
 
 // Build will build a forward input operator.
@@ -42,16 +43,15 @@ func (c *ForwardInputConfig) Build(context operator.BuildContext) ([]operator.Op
 		return nil, err
 	}
 
-
 	forwardInput := &ForwardInput{
 		InputOperator: inputOperator,
-    tls: c.TLS,
+		tls:           c.TLS,
 	}
 
-  forwardInput.srv = &http.Server{
-    Addr: c.ListenAddress,
-    Handler: forwardInput,
-  }
+	forwardInput.srv = &http.Server{
+		Addr:    c.ListenAddress,
+		Handler: forwardInput,
+	}
 
 	return []operator.Operator{forwardInput}, nil
 }
@@ -60,8 +60,9 @@ func (c *ForwardInputConfig) Build(context operator.BuildContext) ([]operator.Op
 type ForwardInput struct {
 	helper.InputOperator
 
-  srv *http.Server
-  tls *TLSConfig
+	srv *http.Server
+	ln  net.Listener
+	tls *TLSConfig
 }
 
 // Start will start generating log entries.
@@ -75,36 +76,39 @@ func (f *ForwardInput) Start() error {
 	if err != nil {
 		return errors.Wrap(err, "start listener")
 	}
-   
-  go func() {
-    if f.tls != nil {
-      err = f.srv.ServeTLS(ln, f.tls.CertFile, f.tls.KeyFile)
-    } else {
-      err = f.srv.Serve(ln)
-    }
-    if err != nil && err != http.ErrServerClosed {
-      f.Errorw("Serve error", zap.Error(err))
-    }
-  }()
 
-  return nil
+	// Save the listener so we can use a dynamic port for tests
+	f.ln = ln
+
+	go func() {
+		if f.tls != nil {
+			err = f.srv.ServeTLS(ln, f.tls.CertFile, f.tls.KeyFile)
+		} else {
+			err = f.srv.Serve(ln)
+		}
+		if err != nil && err != http.ErrServerClosed {
+			f.Errorw("Serve error", zap.Error(err))
+		}
+	}()
+
+	return nil
 }
 
 // Stop will stop generating logs.
 func (f *ForwardInput) Stop() error {
-	return nil
+	return f.srv.Shutdown(context.Background())
 }
 
 func (f *ForwardInput) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
-  dec := json.NewDecoder(req.Body)
+	dec := json.NewDecoder(req.Body)
 
-  var entries []*entry.Entry
-  if err := dec.Decode(&entries); err != nil {
-    wr.WriteHeader(http.StatusBadRequest) 
-    return
-  }
+	var entries []*entry.Entry
+	if err := dec.Decode(&entries); err != nil {
+		wr.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-  for _, entry := range entries {
-    f.Write(req.Context(), entry)
-  }
+	for _, entry := range entries {
+		f.Write(req.Context(), entry)
+	}
 }

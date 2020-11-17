@@ -29,9 +29,9 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/output/drop"
 	_ "github.com/observiq/stanza/operator/builtin/output/elastic"
 	_ "github.com/observiq/stanza/operator/builtin/output/file"
+	_ "github.com/observiq/stanza/operator/builtin/output/forward"
 	_ "github.com/observiq/stanza/operator/builtin/output/googlecloud"
 	_ "github.com/observiq/stanza/operator/builtin/output/newrelic"
 	_ "github.com/observiq/stanza/operator/builtin/output/otlp"
 	_ "github.com/observiq/stanza/operator/builtin/output/stdout"
-	_ "github.com/observiq/stanza/operator/builtin/output/forward"
 )

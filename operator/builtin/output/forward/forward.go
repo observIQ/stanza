@@ -3,10 +3,10 @@ package elastic
 import (
 	"bytes"
 	"context"
-  "net/http"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"sync"
-  "io/ioutil"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -35,7 +35,7 @@ type ForwardOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
 	BufferConfig        buffer.Config  `json:"buffer"  yaml:"buffer"`
 	FlusherConfig       flusher.Config `json:"flusher" yaml:"flusher"`
-  Address             string         `json:"address" yaml:"address"`
+	Address             string         `json:"address" yaml:"address"`
 }
 
 // Build will build an forward output operator.
@@ -60,8 +60,8 @@ func (c ForwardOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		flusher:        flusher,
 		ctx:            ctx,
 		cancel:         cancel,
-    client: &http.Client{},
-    address: c.Address,
+		client:         &http.Client{},
+		address:        c.Address,
 	}
 
 	return []operator.Operator{forwardOutput}, nil
@@ -73,8 +73,8 @@ type ForwardOutput struct {
 	buffer  buffer.Buffer
 	flusher *flusher.Flusher
 
-  client *http.Client
-  address string
+	client  *http.Client
+	address string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -107,14 +107,14 @@ func (f *ForwardOutput) Process(ctx context.Context, entry *entry.Entry) error {
 
 // ProcessMulti will send entries to elasticsearch.
 func (f *ForwardOutput) createRequest(ctx context.Context, entries []*entry.Entry) (*http.Request, error) {
-  var b bytes.Buffer
-  enc := json.NewEncoder(&b)
-  err := enc.Encode(entries)
-  if err != nil {
-    return nil, err
-  }
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	err := enc.Encode(entries)
+	if err != nil {
+		return nil, err
+	}
 
-  return http.NewRequestWithContext(ctx, "POST", f.address, &b)
+	return http.NewRequestWithContext(ctx, "POST", f.address, &b)
 }
 
 func (f *ForwardOutput) feedFlusher(ctx context.Context) {
@@ -128,10 +128,10 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 		}
 
 		req, err := f.createRequest(ctx, entries)
-    if err != nil {
-      f.Errorf("Failed to create request", zap.Error(err))
-      continue
-    }
+		if err != nil {
+			f.Errorf("Failed to create request", zap.Error(err))
+			continue
+		}
 
 		f.flusher.Do(func(ctx context.Context) error {
 			res, err := f.client.Do(req)
@@ -139,9 +139,9 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 				return errors.Wrap(err, "send request")
 			}
 
-      if err := f.handleResponse(res); err != nil {
-        return err
-      }
+			if err := f.handleResponse(res); err != nil {
+				return err
+			}
 
 			if err = clearer.MarkAllAsFlushed(); err != nil {
 				f.Errorw("Failed to mark entries as flushed", zap.Error(err))
