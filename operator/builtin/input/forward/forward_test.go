@@ -172,6 +172,7 @@ QMxKLNBgkOReCJdVpTbhyzfQ68wJN4EhXu5F3DsV3V1Rn95MqvyY/eUFyCg=
 -----END RSA PRIVATE KEY-----`)
 
 // openssl req -new -x509 -sha256 -days 1825 -key private.key -out public.crt
+// All default options, but with Common Name: localhost
 var publicCrt = []byte(`-----BEGIN CERTIFICATE-----
 MIIEpDCCAowCCQCxsoq2/xOeGzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAls
 b2NhbGhvc3QwHhcNMjAxMTE3MjEzNjQ1WhcNMjUxMTE2MjEzNjQ1WjAUMRIwEAYD
