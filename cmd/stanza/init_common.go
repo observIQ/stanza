@@ -3,6 +3,7 @@ package main
 import (
 	// Load packages when importing input operators
 	_ "github.com/observiq/stanza/operator/builtin/input/file"
+	_ "github.com/observiq/stanza/operator/builtin/input/forward"
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	_ "github.com/observiq/stanza/operator/builtin/input/k8sevent"
 	_ "github.com/observiq/stanza/operator/builtin/input/stanza"
@@ -32,4 +33,5 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/output/newrelic"
 	_ "github.com/observiq/stanza/operator/builtin/output/otlp"
 	_ "github.com/observiq/stanza/operator/builtin/output/stdout"
+	_ "github.com/observiq/stanza/operator/builtin/output/forward"
 )
