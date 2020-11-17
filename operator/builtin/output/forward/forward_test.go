@@ -50,7 +50,7 @@ func TestForwardOutput(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &entries))
 		require.Len(t, entries, 1)
 		e := entries[0]
-		require.Equal(t, newEntry.Timestamp.String(), e.Timestamp.String())
+		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
 		require.Equal(t, newEntry.Record, e.Record)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)

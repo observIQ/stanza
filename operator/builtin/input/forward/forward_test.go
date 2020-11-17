@@ -52,7 +52,7 @@ func TestForwardInput(t *testing.T) {
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for entry to be received")
 	case e := <-fake.Received:
-		require.Equal(t, newEntry.Timestamp.String(), e.Timestamp.String())
+		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
 		require.Equal(t, newEntry.Record, e.Record)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
@@ -111,7 +111,7 @@ func TestForwardInputTLS(t *testing.T) {
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for entry to be received")
 	case e := <-fake.Received:
-		require.Equal(t, newEntry.Timestamp.String(), e.Timestamp.String())
+		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
 		require.Equal(t, newEntry.Record, e.Record)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
