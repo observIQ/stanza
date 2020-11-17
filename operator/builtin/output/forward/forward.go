@@ -50,6 +50,10 @@ func (c ForwardOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		return nil, err
 	}
 
+	if c.Address == "" {
+		return nil, errors.NewError("missing required parameter 'address'", "")
+	}
+
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
 
 	ctx, cancel := context.WithCancel(context.Background())
