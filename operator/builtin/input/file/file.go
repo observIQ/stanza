@@ -21,14 +21,15 @@ import (
 type InputOperator struct {
 	helper.InputOperator
 
-	Include       []string
-	Exclude       []string
-	FilePathField entry.Field
-	FileNameField entry.Field
-	PollInterval  time.Duration
-	SplitFunc     bufio.SplitFunc
-	MaxLogSize    int
-	SeenPaths     map[string]struct{}
+	Include            []string
+	Exclude            []string
+	FilePathField      entry.Field
+	FileNameField      entry.Field
+	PollInterval       time.Duration
+	SplitFunc          bufio.SplitFunc
+	MaxLogSize         int
+	MaxConcurrentFiles int
+	SeenPaths          map[string]struct{}
 
 	persist helper.Persister
 
@@ -37,7 +38,8 @@ type InputOperator struct {
 
 	fingerprintBytes int64
 
-	encoding encoding.Encoding
+	queuedMatches []string
+	encoding      encoding.Encoding
 
 	wg         sync.WaitGroup
 	readerWg   sync.WaitGroup
@@ -95,10 +97,19 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
 
-	// Get the list of paths on disk
-	matches := getMatches(f.Include, f.Exclude)
-	if f.firstCheck && len(matches) == 0 {
-		f.Warnw("no files match the configured include patterns", "include", f.Include)
+	var matches []string
+	if len(f.queuedMatches) > f.MaxConcurrentFiles {
+		matches, f.queuedMatches = f.queuedMatches[:f.MaxConcurrentFiles], f.queuedMatches[f.MaxConcurrentFiles:]
+	} else if len(f.queuedMatches) > 0 {
+		matches, f.queuedMatches = f.queuedMatches, make([]string, 0)
+	} else {
+		// Get the list of paths on disk
+		matches = getMatches(f.Include, f.Exclude)
+		if f.firstCheck && len(matches) == 0 {
+			f.Warnw("no files match the configured include patterns", "include", f.Include)
+		} else if len(matches) > f.MaxConcurrentFiles {
+			matches, f.queuedMatches = matches[:f.MaxConcurrentFiles], matches[f.MaxConcurrentFiles:]
+		}
 	}
 
 	// Open the files first to minimize the time between listing and opening
