@@ -213,8 +213,9 @@ func NewFingerprint(file *os.File) (*Fingerprint, error) {
 	}, nil
 }
 
-// Matches returns true if the fingerprints are the same
-func (f Fingerprint) Matches(old *Fingerprint) bool {
+// StartsWith returns true if the fingerprints are the same
+// or if the new fingerprint starts with the old one
+func (f Fingerprint) StartsWith(old *Fingerprint) bool {
 	l0 := len(old.FirstBytes)
 	if l0 == 0 {
 		return false

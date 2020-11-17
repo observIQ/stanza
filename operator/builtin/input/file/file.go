@@ -33,13 +33,14 @@ type InputOperator struct {
 
 	persist helper.Persister
 
-	knownFiles       []*Reader
+	knownFiles    []*Reader
+	queuedMatches []string
+
 	startAtBeginning bool
 
 	fingerprintBytes int64
 
-	queuedMatches []string
-	encoding      encoding.Encoding
+	encoding encoding.Encoding
 
 	wg         sync.WaitGroup
 	readerWg   sync.WaitGroup
@@ -103,6 +104,12 @@ func (f *InputOperator) poll(ctx context.Context) {
 	} else if len(f.queuedMatches) > 0 {
 		matches, f.queuedMatches = f.queuedMatches, make([]string, 0)
 	} else {
+		// Increment the generation on all known readers
+		// This is done here because the next generation is about to start
+		for i := 0; i < len(f.knownFiles); i++ {
+			f.knownFiles[i].generation++
+		}
+
 		// Get the list of paths on disk
 		matches = getMatches(f.Include, f.Exclude)
 		if f.firstCheck && len(matches) == 0 {
@@ -218,7 +225,7 @@ OUTER:
 			}
 
 			fp2 := fps[j]
-			if fp.Matches(fp2) || fp2.Matches(fp) {
+			if fp.StartsWith(fp2) || fp2.StartsWith(fp) {
 				// Exclude
 				fps = append(fps[:i], fps[i+1:]...)
 				filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
@@ -260,11 +267,6 @@ func (f *InputOperator) saveCurrent(readers []*Reader) {
 			break
 		}
 	}
-
-	// Increment the generation on all the remaining readers
-	for i := 0; i < len(f.knownFiles); i++ {
-		f.knownFiles[i].generation++
-	}
 }
 
 func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
@@ -294,7 +296,7 @@ func (f *InputOperator) findFingerprintMatch(fp *Fingerprint) (*Reader, bool) {
 	// Iterate backwards to match newest first
 	for i := len(f.knownFiles) - 1; i >= 0; i-- {
 		oldReader := f.knownFiles[i]
-		if fp.Matches(oldReader.Fingerprint) {
+		if fp.StartsWith(oldReader.Fingerprint) {
 			return oldReader, true
 		}
 	}
