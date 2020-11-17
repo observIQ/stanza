@@ -3,13 +3,14 @@ package forward
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"net/http"
+
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
-	"net"
-	"net/http"
 )
 
 func init() {
