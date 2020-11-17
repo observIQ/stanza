@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"sync"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -47,8 +48,8 @@ type ElasticOutputConfig struct {
 }
 
 // Build will build an elasticsearch output operator.
-func (c ElasticOutputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
-	outputOperator, err := c.OutputConfig.Build(context)
+func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(bc)
 	if err != nil {
 		return nil, err
 	}
@@ -70,10 +71,14 @@ func (c ElasticOutputConfig) Build(context operator.BuildContext) ([]operator.Op
 		)
 	}
 
-	buffer, err := c.BufferConfig.Build(context, c.ID())
+	buffer, err := c.BufferConfig.Build(bc, c.ID())
 	if err != nil {
 		return nil, err
 	}
+
+	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	elasticOutput := &ElasticOutput{
 		OutputOperator: outputOperator,
@@ -81,9 +86,10 @@ func (c ElasticOutputConfig) Build(context operator.BuildContext) ([]operator.Op
 		client:         client,
 		indexField:     c.IndexField,
 		idField:        c.IDField,
+		flusher:        flusher,
+		ctx:            ctx,
+		cancel:         cancel,
 	}
-
-	elasticOutput.flusher = c.FlusherConfig.Build(buffer, elasticOutput.ProcessMulti, elasticOutput.SugaredLogger)
 
 	return []operator.Operator{elasticOutput}, nil
 }
@@ -97,16 +103,27 @@ type ElasticOutput struct {
 	client     *elasticsearch.Client
 	indexField *entry.Field
 	idField    *entry.Field
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // Start signals to the ElasticOutput to begin flushing
 func (e *ElasticOutput) Start() error {
-	e.flusher.Start()
+	e.wg.Add(1)
+	go func() {
+		defer e.wg.Done()
+		e.feedFlusher(e.ctx)
+	}()
+
 	return nil
 }
 
 // Stop tells the ElasticOutput to stop gracefully
 func (e *ElasticOutput) Stop() error {
+	e.cancel()
+	e.wg.Wait()
 	e.flusher.Stop()
 	return e.buffer.Close()
 }
@@ -117,7 +134,7 @@ func (e *ElasticOutput) Process(ctx context.Context, entry *entry.Entry) error {
 }
 
 // ProcessMulti will send entries to elasticsearch.
-func (e *ElasticOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
+func (e *ElasticOutput) createRequest(entries []*entry.Entry) *esapi.BulkRequest {
 	type indexDirective struct {
 		Index struct {
 			Index string `json:"_index"`
@@ -162,31 +179,49 @@ func (e *ElasticOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry
 		buffer.Write([]byte("\n"))
 	}
 
-	request := esapi.BulkRequest{
+	request := &esapi.BulkRequest{
 		Body: bytes.NewReader(buffer.Bytes()),
 	}
 
-	res, err := request.Do(ctx, e.client)
-	if err != nil {
-		return errors.NewError(
-			"Client failed to submit request to elasticsearch.",
-			"Review the underlying error message to troubleshoot the issue",
-			"underlying_error", err.Error(),
-		)
+	return request
+}
+
+func (e *ElasticOutput) feedFlusher(ctx context.Context) {
+	for {
+		entries, clearer, err := e.buffer.ReadChunk(ctx)
+		if err != nil && err == context.Canceled {
+			return
+		} else if err != nil {
+			e.Errorf("Failed to read chunk", zap.Error(err))
+			continue
+		}
+
+		req := e.createRequest(entries)
+		e.flusher.Do(func(ctx context.Context) error {
+			res, err := req.Do(ctx, e.client)
+			if err != nil {
+				return errors.NewError(
+					"Client failed to submit request to elasticsearch.",
+					"Review the underlying error message to troubleshoot the issue",
+					"underlying_error", err.Error(),
+				)
+			}
+
+			if res.IsError() {
+				return errors.NewError(
+					"Request to elasticsearch returned a failure code.",
+					"Review status and status code for further details.",
+					"status_code", strconv.Itoa(res.StatusCode),
+					"status", res.Status(),
+				)
+			}
+
+			if err = clearer.MarkAllAsFlushed(); err != nil {
+				e.Errorw("Failed to mark entries as flushed", zap.Error(err))
+			}
+			return nil
+		})
 	}
-
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return errors.NewError(
-			"Request to elasticsearch returned a failure code.",
-			"Review status and status code for further details.",
-			"status_code", strconv.Itoa(res.StatusCode),
-			"status", res.Status(),
-		)
-	}
-
-	return nil
 }
 
 // FindIndex will find an index that will represent an entry in elasticsearch.

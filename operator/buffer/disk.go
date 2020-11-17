@@ -13,6 +13,7 @@ import (
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -30,14 +31,19 @@ type DiskBufferConfig struct {
 	// in cases like power failures or unclean shutdowns, logs may be lost or the
 	// database may become corrupted.
 	Sync bool `json:"sync" yaml:"sync"`
+
+	MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
+	MaxChunkSize  uint            `json:"max_chunk_size" yaml:"max_chunk_size"`
 }
 
 // NewDiskBufferConfig creates a new default disk buffer config
 func NewDiskBufferConfig() *DiskBufferConfig {
 	return &DiskBufferConfig{
-		Type:    "disk",
-		MaxSize: 1 << 32, // 4GiB
-		Sync:    true,
+		Type:          "disk",
+		MaxSize:       1 << 32, // 4GiB
+		Sync:          true,
+		MaxChunkDelay: helper.NewDuration(time.Second),
+		MaxChunkSize:  1000,
 	}
 }
 
@@ -55,6 +61,8 @@ func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer
 	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err
 	}
+	b.maxChunkSize = c.MaxChunkSize
+	b.maxChunkDelay = c.MaxChunkDelay.Raw()
 	return b, nil
 }
 
@@ -92,6 +100,9 @@ type DiskBuffer struct {
 
 	// copyBuffer is a pre-allocated byte slice that is used during compaction
 	copyBuffer []byte
+
+	maxChunkDelay time.Duration
+	maxChunkSize  uint
 }
 
 // NewDiskBuffer creates a new DiskBuffer
@@ -209,7 +220,7 @@ func (d *DiskBuffer) addUnreadCount(i int64) {
 // buffer to fill dst or the context is cancelled. This amortizes the cost of reading from the
 // disk. It returns a function that, when called, marks the read entries as flushed, the
 // number of entries read, and an error.
-func (d *DiskBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushFunc, int, error) {
+func (d *DiskBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Clearer, int, error) {
 	d.readerLock.Lock()
 	defer d.readerLock.Unlock()
 
@@ -229,15 +240,34 @@ LOOP:
 	return d.Read(dst)
 }
 
+// ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
+func (d *DiskBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
+	entries := make([]*entry.Entry, d.maxChunkSize)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		default:
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, d.maxChunkDelay)
+		defer cancel()
+		flushFunc, n, err := d.ReadWait(ctx, entries)
+		if n > 0 {
+			return entries[:n], flushFunc, err
+		}
+	}
+}
+
 // Read copies entries from the disk into the destination buffer. It returns a function that,
 // when called, marks the entries as flushed, the number of entries read, and an error.
-func (d *DiskBuffer) Read(dst []*entry.Entry) (f FlushFunc, i int, err error) {
+func (d *DiskBuffer) Read(dst []*entry.Entry) (f Clearer, i int, err error) {
 	d.Lock()
 	defer d.Unlock()
 
 	// Return fast if there are no unread entries
 	if d.metadata.unreadCount == 0 {
-		return d.newFlushFunc(nil), 0, nil
+		return d.newClearer(nil), 0, nil
 	}
 
 	// Seek to the start of the range of unread entries
@@ -280,20 +310,44 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f FlushFunc, i int, err error) {
 	// Remove the read entries from the unread count
 	d.addUnreadCount(-int64(readCount))
 
-	return d.newFlushFunc(newRead), readCount, nil
+	return d.newClearer(newRead), readCount, nil
 }
 
 // newFlushFunc returns a function that marks read entries as flushed
-func (d *DiskBuffer) newFlushFunc(newRead []*readEntry) FlushFunc {
-	return func() error {
-		d.Lock()
-		for _, entry := range newRead {
-			entry.flushed = true
-			d.flushedBytes += entry.length
-		}
-		d.Unlock()
-		return d.checkCompact()
+func (d *DiskBuffer) newClearer(newRead []*readEntry) Clearer {
+	return &diskClearer{
+		buffer:      d,
+		readEntries: newRead,
 	}
+}
+
+type diskClearer struct {
+	buffer      *DiskBuffer
+	readEntries []*readEntry
+}
+
+func (dc *diskClearer) MarkAllAsFlushed() error {
+	dc.buffer.Lock()
+	for _, entry := range dc.readEntries {
+		entry.flushed = true
+		dc.buffer.flushedBytes += entry.length
+	}
+	dc.buffer.Unlock()
+	return dc.buffer.checkCompact()
+}
+
+func (dc *diskClearer) MarkRangeAsFlushed(start, end uint) error {
+	if int(end) > len(dc.readEntries) || int(start) > len(dc.readEntries) {
+		return fmt.Errorf("invalid range")
+	}
+
+	dc.buffer.Lock()
+	for _, entry := range dc.readEntries[start:end] {
+		entry.flushed = true
+		dc.buffer.flushedBytes += entry.length
+	}
+	dc.buffer.Unlock()
+	return dc.buffer.checkCompact()
 }
 
 // checkCompact checks if a compaction should be performed, then kicks one off

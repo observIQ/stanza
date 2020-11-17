@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
@@ -33,7 +34,9 @@ type googleCloudTestCase struct {
 func googleCloudBasicConfig() *GoogleCloudOutputConfig {
 	cfg := NewGoogleCloudOutputConfig("test_id")
 	cfg.ProjectID = "test_project_id"
-	cfg.FlusherConfig.MaxWait = helper.Duration{Duration: 10 * time.Millisecond}
+	bufferCfg := buffer.NewMemoryBufferConfig()
+	bufferCfg.MaxChunkDelay = helper.NewDuration(50 * time.Millisecond)
+	cfg.BufferConfig = buffer.Config{Builder: bufferCfg}
 	return cfg
 }
 
@@ -214,8 +217,8 @@ func TestGoogleCloudOutput(t *testing.T) {
 			client, err := vkit.NewClient(ctx, option.WithGRPCConn(conn))
 			require.NoError(t, err)
 			op.(*GoogleCloudOutput).client = client
-			op.(*GoogleCloudOutput).flusher.Start()
-			defer op.(*GoogleCloudOutput).flusher.Stop()
+			op.(*GoogleCloudOutput).startFlushing()
+			defer op.Stop()
 
 			err = op.Process(context.Background(), tc.input)
 			require.NoError(t, err)
@@ -393,7 +396,6 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 
 	cfg := NewGoogleCloudOutputConfig(g.name)
 	cfg.ProjectID = "test_project_id"
-	cfg.FlusherConfig.MaxWait = helper.NewDuration(10 * time.Millisecond)
 	if g.configMod != nil {
 		g.configMod(cfg)
 	}
@@ -402,7 +404,6 @@ func (g *googleCloudOutputBenchmark) Run(b *testing.B) {
 	op := ops[0]
 	op.(*GoogleCloudOutput).client = client
 	op.(*GoogleCloudOutput).timeout = 30 * time.Second
-	op.(*GoogleCloudOutput).flusher.Start()
 	defer op.(*GoogleCloudOutput).flusher.Stop()
 
 	b.ResetTimer()

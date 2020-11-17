@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
@@ -75,9 +76,9 @@ func TestOTLPOutput(t *testing.T) {
 			defer ln.stop()
 
 			cfg := NewOTLPOutputConfig("test")
+			cfg.BufferConfig.Builder.(*buffer.MemoryBufferConfig).MaxChunkDelay = helper.NewDuration(50 * time.Millisecond)
 			cfg.Endpoint = addr
 			cfg.TLSSetting.Insecure = true
-			cfg.FlusherConfig.MaxWait = helper.NewDuration(time.Millisecond)
 			if tc.cfgMod != nil {
 				tc.cfgMod(cfg)
 			}
