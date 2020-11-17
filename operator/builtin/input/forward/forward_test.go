@@ -48,7 +48,17 @@ func TestForwardInput(t *testing.T) {
 	_, err = http.Post(fmt.Sprintf("http://localhost:%s", port), "application/json", &buf)
 	require.NoError(t, err)
 
-	fake.ExpectEntry(t, newEntry)
+	select {
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for entry to be received")
+	case e := <-fake.Received:
+		require.Equal(t, newEntry.Timestamp.String(), e.Timestamp.String())
+		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Severity, e.Severity)
+		require.Equal(t, newEntry.SeverityText, e.SeverityText)
+		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Resource, e.Resource)
+	}
 }
 
 func TestForwardInputTLS(t *testing.T) {
@@ -97,7 +107,17 @@ func TestForwardInputTLS(t *testing.T) {
 	_, err = client.Post(fmt.Sprintf("https://localhost:%s", port), "application/json", &buf)
 	require.NoError(t, err)
 
-	fake.ExpectEntry(t, newEntry)
+	select {
+	case <-time.After(time.Second):
+		require.FailNow(t, "Timed out waiting for entry to be received")
+	case e := <-fake.Received:
+		require.Equal(t, newEntry.Timestamp.String(), e.Timestamp.String())
+		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Severity, e.Severity)
+		require.Equal(t, newEntry.SeverityText, e.SeverityText)
+		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Resource, e.Resource)
+	}
 }
 
 func createCertFiles(t *testing.T) (cert, key string) {

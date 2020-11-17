@@ -35,12 +35,12 @@ func TestForwardOutput(t *testing.T) {
 	require.NoError(t, err)
 	forwardOutput := ops[0].(*ForwardOutput)
 
-	e := entry.New()
-	e.Record = "test"
-	e.Timestamp = e.Timestamp.Round(time.Second)
+	newEntry := entry.New()
+	newEntry.Record = "test"
+	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
 	require.NoError(t, forwardOutput.Start())
 	defer forwardOutput.Stop()
-	require.NoError(t, forwardOutput.Process(context.Background(), e))
+	require.NoError(t, forwardOutput.Process(context.Background(), newEntry))
 
 	select {
 	case <-time.After(time.Second):
@@ -48,7 +48,13 @@ func TestForwardOutput(t *testing.T) {
 	case body := <-received:
 		var entries []*entry.Entry
 		require.NoError(t, json.Unmarshal(body, &entries))
-		require.Equal(t, []*entry.Entry{e}, entries)
+		require.Len(t, entries, 1)
+		e := entries[0]
+		require.Equal(t, newEntry.Timestamp.String(), e.Timestamp.String())
+		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Severity, e.Severity)
+		require.Equal(t, newEntry.SeverityText, e.SeverityText)
+		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Resource, e.Resource)
 	}
-
 }
