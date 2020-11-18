@@ -1174,7 +1174,7 @@ func waitForOne(t *testing.T, c chan *entry.Entry) *entry.Entry {
 	select {
 	case e := <-c:
 		return e
-	case <-time.After(time.Minute):
+	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for message")
 		return nil
 	}
@@ -1186,7 +1186,7 @@ func waitForN(t *testing.T, c chan *entry.Entry, n int) []string {
 		select {
 		case e := <-c:
 			messages = append(messages, e.Record.(string))
-		case <-time.After(time.Minute):
+		case <-time.After(time.Second):
 			require.FailNow(t, "Timed out waiting for message")
 			return nil
 		}

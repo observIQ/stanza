@@ -21,7 +21,7 @@ func init() {
 }
 
 const (
-	defaultMaxLogSize         = 1025 * 1024
+	defaultMaxLogSize         = 1024 * 1024
 	defaultMaxConcurrentFiles = 1024
 )
 
