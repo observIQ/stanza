@@ -3,7 +3,6 @@ package otlp
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -171,10 +170,10 @@ func (o *OTLPOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return errors.NewError("non-success status code", "", "status", fmt.Sprint(res.StatusCode))
+			return errors.NewError("non-success status code", "", "status", string(res.StatusCode))
 		} else {
 			res.Body.Close()
-			return errors.NewError("non-success status code", "", "status", fmt.Sprint(res.StatusCode), "body", string(body))
+			return errors.NewError("non-success status code", "", "status", string(res.StatusCode), "body", string(body))
 		}
 	}
 	res.Body.Close()
