@@ -8,25 +8,31 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/observiq/stanza/database"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 	"go.etcd.io/bbolt"
 	"golang.org/x/sync/semaphore"
 )
 
 // MemoryBufferConfig holds the configuration for a memory buffer
 type MemoryBufferConfig struct {
-	Type       string `json:"type" yaml:"type"`
-	MaxEntries int    `json:"max_entries" yaml:"max_entries"`
+	Type          string          `json:"type"        yaml:"type"`
+	MaxEntries    int             `json:"max_entries" yaml:"max_entries"`
+	MaxChunkDelay helper.Duration `json:"max_delay"   yaml:"max_delay"`
+	MaxChunkSize  uint            `json:"max_chunk_size" yaml:"max_chunk_size"`
 }
 
 // NewMemoryBufferConfig creates a new default MemoryBufferConfig
 func NewMemoryBufferConfig() *MemoryBufferConfig {
 	return &MemoryBufferConfig{
-		Type:       "memory",
-		MaxEntries: 1 << 20,
+		Type:          "memory",
+		MaxEntries:    1 << 20,
+		MaxChunkDelay: helper.NewDuration(time.Second),
+		MaxChunkSize:  1000,
 	}
 }
 
@@ -34,11 +40,13 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 // back into memory
 func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
 	mb := &MemoryBuffer{
-		db:       context.Database,
-		pluginID: pluginID,
-		buf:      make(chan *entry.Entry, c.MaxEntries),
-		sem:      semaphore.NewWeighted(int64(c.MaxEntries)),
-		inFlight: make(map[uint64]*entry.Entry, c.MaxEntries),
+		db:            context.Database,
+		pluginID:      pluginID,
+		buf:           make(chan *entry.Entry, c.MaxEntries),
+		sem:           semaphore.NewWeighted(int64(c.MaxEntries)),
+		inFlight:      make(map[uint64]*entry.Entry, c.MaxEntries),
+		maxChunkDelay: c.MaxChunkDelay.Raw(),
+		maxChunkSize:  c.MaxChunkSize,
 	}
 	if err := mb.loadFromDB(); err != nil {
 		return nil, err
@@ -51,13 +59,15 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 // at which point it saves the entries into a database. It provides no guarantees about
 // lost entries if shut down uncleanly.
 type MemoryBuffer struct {
-	db          database.Database
-	pluginID    string
-	buf         chan *entry.Entry
-	inFlight    map[uint64]*entry.Entry
-	inFlightMux sync.Mutex
-	entryID     uint64
-	sem         *semaphore.Weighted
+	db            database.Database
+	pluginID      string
+	buf           chan *entry.Entry
+	inFlight      map[uint64]*entry.Entry
+	inFlightMux   sync.Mutex
+	entryID       uint64
+	sem           *semaphore.Weighted
+	maxChunkDelay time.Duration
+	maxChunkSize  uint
 }
 
 // Add inserts an entry into the memory database, blocking until there is space
@@ -73,7 +83,7 @@ func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 // Read reads entries until either there are no entries left in the buffer
 // or the destination slice is full. The returned function must be called
 // once the entries are flushed to remove them from the memory buffer.
-func (m *MemoryBuffer) Read(dst []*entry.Entry) (FlushFunc, int, error) {
+func (m *MemoryBuffer) Read(dst []*entry.Entry) (Clearer, int, error) {
 	inFlight := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -86,17 +96,36 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (FlushFunc, int, error) {
 			m.inFlightMux.Unlock()
 			inFlight[i] = id
 		default:
-			return m.newFlushFunc(inFlight[:i]), i, nil
+			return m.newClearer(inFlight[:i]), i, nil
 		}
 	}
 
-	return m.newFlushFunc(inFlight[:i]), i, nil
+	return m.newClearer(inFlight[:i]), i, nil
+}
+
+// ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
+func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
+	entries := make([]*entry.Entry, m.maxChunkSize)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		default:
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, m.maxChunkDelay)
+		defer cancel()
+		flushFunc, n, err := m.ReadWait(ctx, entries)
+		if n > 0 {
+			return entries[:n], flushFunc, err
+		}
+	}
 }
 
 // ReadWait reads entries until either the destination slice is full, or the context passed to it
 // is cancelled. The returned function must be called once the entries are flushed to remove them
 // from the memory buffer
-func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushFunc, int, error) {
+func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Clearer, int, error) {
 	inFlightIDs := make([]uint64, len(dst))
 	i := 0
 	for ; i < len(dst); i++ {
@@ -109,23 +138,47 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (FlushF
 			m.inFlightMux.Unlock()
 			inFlightIDs[i] = id
 		case <-ctx.Done():
-			return m.newFlushFunc(inFlightIDs[:i]), i, nil
+			return m.newClearer(inFlightIDs[:i]), i, nil
 		}
 	}
 
-	return m.newFlushFunc(inFlightIDs[:i]), i, nil
+	return m.newClearer(inFlightIDs[:i]), i, nil
+}
+
+type memoryClearer struct {
+	buffer *MemoryBuffer
+	ids    []uint64
+}
+
+func (mc *memoryClearer) MarkAllAsFlushed() error {
+	mc.buffer.inFlightMux.Lock()
+	for _, id := range mc.ids {
+		delete(mc.buffer.inFlight, id)
+	}
+	mc.buffer.inFlightMux.Unlock()
+	mc.buffer.sem.Release(int64(len(mc.ids)))
+	return nil
+}
+
+func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
+	if int(end) > len(mc.ids) || int(start) > len(mc.ids) {
+		return fmt.Errorf("invalid range")
+	}
+
+	mc.buffer.inFlightMux.Lock()
+	for _, id := range mc.ids[start:end] {
+		delete(mc.buffer.inFlight, id)
+	}
+	mc.buffer.inFlightMux.Unlock()
+	mc.buffer.sem.Release(int64(len(mc.ids)))
+	return nil
 }
 
 // newFlushFunc returns a function that will remove the entries identified by `ids` from the buffer
-func (m *MemoryBuffer) newFlushFunc(ids []uint64) FlushFunc {
-	return func() error {
-		m.inFlightMux.Lock()
-		for _, id := range ids {
-			delete(m.inFlight, id)
-		}
-		m.inFlightMux.Unlock()
-		m.sem.Release(int64(len(ids)))
-		return nil
+func (m *MemoryBuffer) newClearer(ids []uint64) Clearer {
+	return &memoryClearer{
+		buffer: m,
+		ids:    ids,
 	}
 }
 

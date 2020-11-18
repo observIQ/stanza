@@ -51,7 +51,7 @@ type InputConfig struct {
 	IncludeFileName    bool             `json:"include_file_name,omitempty"    yaml:"include_file_name,omitempty"`
 	IncludeFilePath    bool             `json:"include_file_path,omitempty"    yaml:"include_file_path,omitempty"`
 	StartAt            string           `json:"start_at,omitempty"             yaml:"start_at,omitempty"`
-	MaxLogSize         int              `json:"max_log_size,omitempty"         yaml:"max_log_size,omitempty"`
+	MaxLogSize         helper.ByteSize  `json:"max_log_size,omitempty"      yaml:"max_log_size,omitempty"`
 	MaxConcurrentFiles int              `json:"max_concurrent_files,omitempty" yaml:"max_concurrent_files,omitempty"`
 	Encoding           string           `json:"encoding,omitempty"             yaml:"encoding,omitempty"`
 }
@@ -143,7 +143,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		firstCheck:         true,
 		cancel:             func() {},
 		knownFiles:         make([]*Reader, 0, 10),
-		MaxLogSize:         c.MaxLogSize,
+		MaxLogSize:         int(c.MaxLogSize),
 		MaxConcurrentFiles: c.MaxConcurrentFiles,
 		SeenPaths:          make(map[string]struct{}, 100),
 	}

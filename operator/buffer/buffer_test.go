@@ -3,7 +3,9 @@ package buffer
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
+	"github.com/observiq/stanza/operator/helper"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -22,8 +24,10 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte(`{"type": "memory", "max_entries": 30}`),
 			Config{
 				Builder: &MemoryBufferConfig{
-					Type:       "memory",
-					MaxEntries: 30,
+					Type:          "memory",
+					MaxEntries:    30,
+					MaxChunkDelay: helper.NewDuration(time.Second),
+					MaxChunkSize:  1000,
 				},
 			},
 			false,
@@ -34,10 +38,12 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte(`{"type": "disk", "max_size": 1234, "path": "/var/log/testpath"}`),
 			Config{
 				Builder: &DiskBufferConfig{
-					Type:    "disk",
-					MaxSize: 1234,
-					Path:    "/var/log/testpath",
-					Sync:    true,
+					Type:          "disk",
+					MaxSize:       1234,
+					Path:          "/var/log/testpath",
+					Sync:          true,
+					MaxChunkDelay: helper.NewDuration(time.Second),
+					MaxChunkSize:  1000,
 				},
 			},
 			false,
@@ -48,10 +54,12 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte(`{"type": "invalid"}`),
 			Config{
 				Builder: &DiskBufferConfig{
-					Type:    "disk",
-					MaxSize: 1234,
-					Path:    "/var/log/testpath",
-					Sync:    true,
+					Type:          "disk",
+					MaxSize:       1234,
+					Path:          "/var/log/testpath",
+					Sync:          true,
+					MaxChunkDelay: helper.NewDuration(time.Second),
+					MaxChunkSize:  1000,
 				},
 			},
 			true,
@@ -62,10 +70,12 @@ func TestBufferUnmarshalYAML(t *testing.T) {
 			[]byte(`{"type": 12}`),
 			Config{
 				Builder: &DiskBufferConfig{
-					Type:    "disk",
-					MaxSize: 1234,
-					Path:    "/var/log/testpath",
-					Sync:    true,
+					Type:          "disk",
+					MaxSize:       1234,
+					Path:          "/var/log/testpath",
+					Sync:          true,
+					MaxChunkDelay: helper.NewDuration(time.Second),
+					MaxChunkSize:  1000,
 				},
 			},
 			true,
@@ -104,8 +114,10 @@ func TestBuffer(t *testing.T) {
 		cfg := NewConfig()
 		expected := Config{
 			Builder: &MemoryBufferConfig{
-				Type:       "memory",
-				MaxEntries: 1 << 20,
+				Type:          "memory",
+				MaxEntries:    1 << 20,
+				MaxChunkDelay: helper.NewDuration(time.Second),
+				MaxChunkSize:  1000,
 			},
 		}
 		require.Equal(t, expected, cfg)

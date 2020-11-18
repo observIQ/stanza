@@ -24,7 +24,7 @@ func writeN(t testing.TB, buffer Buffer, n, start int) {
 	}
 }
 
-func readN(t testing.TB, buffer Buffer, n, start int) FlushFunc {
+func readN(t testing.TB, buffer Buffer, n, start int) Clearer {
 	entries := make([]*entry.Entry, n)
 	f, readCount, err := buffer.Read(entries)
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func readN(t testing.TB, buffer Buffer, n, start int) FlushFunc {
 	return f
 }
 
-func readWaitN(t testing.TB, buffer Buffer, n, start int) FlushFunc {
+func readWaitN(t testing.TB, buffer Buffer, n, start int) Clearer {
 	entries := make([]*entry.Entry, n)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -50,7 +50,7 @@ func readWaitN(t testing.TB, buffer Buffer, n, start int) FlushFunc {
 
 func flushN(t testing.TB, buffer Buffer, n, start int) {
 	f := readN(t, buffer, n, start)
-	f()
+	f.MarkAllAsFlushed()
 }
 
 func panicOnErr(err error) {

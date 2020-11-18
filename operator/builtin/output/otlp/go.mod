@@ -7,6 +7,7 @@ require (
 	github.com/observiq/stanza v0.12.5
 	github.com/stretchr/testify v1.6.1
 	go.opentelemetry.io/collector v0.13.0
+	go.uber.org/zap v1.16.0
 	gopkg.in/yaml.v2 v2.3.0
 )
 

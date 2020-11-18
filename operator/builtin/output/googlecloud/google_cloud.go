@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"sync"
 	"time"
 
 	vkit "cloud.google.com/go/logging/apiv2"
@@ -56,16 +57,19 @@ type GoogleCloudOutputConfig struct {
 }
 
 // Build will build a google cloud output operator.
-func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) ([]operator.Operator, error) {
-	outputOperator, err := c.OutputConfig.Build(buildContext)
+func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Operator, error) {
+	outputOperator, err := c.OutputConfig.Build(bc)
 	if err != nil {
 		return nil, err
 	}
 
-	newBuffer, err := c.BufferConfig.Build(buildContext, c.ID())
+	newBuffer, err := c.BufferConfig.Build(bc, c.ID())
 	if err != nil {
 		return nil, err
 	}
+
+	newFlusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	googleCloudOutput := &GoogleCloudOutput{
 		OutputOperator:  outputOperator,
@@ -73,15 +77,15 @@ func (c GoogleCloudOutputConfig) Build(buildContext operator.BuildContext) ([]op
 		credentialsFile: c.CredentialsFile,
 		projectID:       c.ProjectID,
 		buffer:          newBuffer,
+		flusher:         newFlusher,
 		logNameField:    c.LogNameField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         c.Timeout.Raw(),
 		useCompression:  c.UseCompression,
+		ctx:             ctx,
+		cancel:          cancel,
 	}
-
-	newFlusher := c.FlusherConfig.Build(newBuffer, googleCloudOutput.ProcessMulti, outputOperator.SugaredLogger)
-	googleCloudOutput.flusher = newFlusher
 
 	return []operator.Operator{googleCloudOutput}, nil
 }
@@ -103,23 +107,27 @@ type GoogleCloudOutput struct {
 
 	client  *vkit.Client
 	timeout time.Duration
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // Start will start the google cloud logger.
-func (p *GoogleCloudOutput) Start() error {
+func (g *GoogleCloudOutput) Start() error {
 	var credentials *google.Credentials
 	var err error
 	scope := "https://www.googleapis.com/auth/logging.write"
 	switch {
-	case p.credentials != "" && p.credentialsFile != "":
+	case g.credentials != "" && g.credentialsFile != "":
 		return errors.NewError("at most one of credentials or credentials_file can be configured", "")
-	case p.credentials != "":
-		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(p.credentials), scope)
+	case g.credentials != "":
+		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(g.credentials), scope)
 		if err != nil {
 			return fmt.Errorf("parse credentials: %s", err)
 		}
-	case p.credentialsFile != "":
-		credentialsBytes, err := ioutil.ReadFile(p.credentialsFile)
+	case g.credentialsFile != "":
+		credentialsBytes, err := ioutil.ReadFile(g.credentialsFile)
 		if err != nil {
 			return fmt.Errorf("read credentials file: %s", err)
 		}
@@ -134,18 +142,18 @@ func (p *GoogleCloudOutput) Start() error {
 		}
 	}
 
-	if p.projectID == "" && credentials.ProjectID == "" {
+	if g.projectID == "" && credentials.ProjectID == "" {
 		return fmt.Errorf("no project id found on google creds")
 	}
 
-	if p.projectID == "" {
-		p.projectID = credentials.ProjectID
+	if g.projectID == "" {
+		g.projectID = credentials.ProjectID
 	}
 
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
 	options = append(options, option.WithUserAgent("StanzaLogAgent/"+version.GetVersion()))
-	if p.useCompression {
+	if g.useCompression {
 		options = append(options, option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name))))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -155,86 +163,111 @@ func (p *GoogleCloudOutput) Start() error {
 	if err != nil {
 		return fmt.Errorf("create client: %w", err)
 	}
-	p.client = client
+	g.client = client
 
 	// Test writing a log message
-	ctx, cancel = context.WithTimeout(context.Background(), p.timeout)
+	ctx, cancel = context.WithTimeout(context.Background(), g.timeout)
 	defer cancel()
-	err = p.TestConnection(ctx)
+	err = g.testConnection(ctx)
 	if err != nil {
 		return err
 	}
 
-	p.flusher.Start()
+	g.startFlushing()
 	return nil
 }
 
-// TestConnection will attempt to send a test entry to google cloud logging
-func (p *GoogleCloudOutput) TestConnection(ctx context.Context) error {
+func (g *GoogleCloudOutput) startFlushing() {
+	g.wg.Add(1)
+	go func() {
+		defer g.wg.Done()
+		g.feedFlusher(g.ctx)
+	}()
+}
+
+// Stop will flush the google cloud logger and close the underlying connection
+func (g *GoogleCloudOutput) Stop() error {
+	g.cancel()
+	g.wg.Wait()
+	g.flusher.Stop()
+	if err := g.buffer.Close(); err != nil {
+		return err
+	}
+	return g.client.Close()
+}
+
+// Process processes an entry
+func (g *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
+	return g.buffer.Add(ctx, e)
+}
+
+// testConnection will attempt to send a test entry to google cloud logging
+func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 	testEntry := entry.New()
 	testEntry.Record = map[string]interface{}{"message": "Test connection"}
-	if err := p.ProcessMulti(ctx, []*entry.Entry{testEntry}); err != nil {
+	req := g.createWriteRequest([]*entry.Entry{testEntry})
+	if _, err := g.client.WriteLogEntries(ctx, req); err != nil {
 		return fmt.Errorf("test connection: %s", err)
 	}
 	return nil
 }
 
-// Stop will flush the google cloud logger and close the underlying connection
-func (p *GoogleCloudOutput) Stop() error {
-	p.flusher.Stop()
-	if err := p.buffer.Close(); err != nil {
-		return err
+func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
+	for {
+		entries, clearer, err := g.buffer.ReadChunk(ctx)
+		if err != nil && err == context.Canceled {
+			return
+		} else if err != nil {
+			g.Errorf("Failed to read chunk", zap.Error(err))
+			continue
+		}
+
+		req := g.createWriteRequest(entries)
+		g.flusher.Do(func(ctx context.Context) error {
+			_, err := g.client.WriteLogEntries(ctx, req)
+			if err != nil {
+				return err
+			}
+			if err = clearer.MarkAllAsFlushed(); err != nil {
+				g.Errorw("Failed to mark entries as flushed", zap.Error(err))
+			}
+			return nil
+		})
 	}
-	return p.client.Close()
 }
 
-// Process processes an entry
-func (p *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
-	return p.buffer.Add(ctx, e)
-}
-
-// ProcessMulti will process multiple log entries and send them in batch to google cloud logging.
-func (p *GoogleCloudOutput) ProcessMulti(ctx context.Context, entries []*entry.Entry) error {
+func (g *GoogleCloudOutput) createWriteRequest(entries []*entry.Entry) *logpb.WriteLogEntriesRequest {
 	pbEntries := make([]*logpb.LogEntry, 0, len(entries))
 	for _, entry := range entries {
-		pbEntry, err := p.createProtobufEntry(entry)
+		pbEntry, err := g.createProtobufEntry(entry)
 		if err != nil {
-			p.Errorw("Failed to create protobuf entry. Dropping entry", zap.Any("error", err))
+			g.Errorw("Failed to create protobuf entry. Dropping entry", zap.Any("error", err))
 			continue
 		}
 		pbEntries = append(pbEntries, pbEntry)
 	}
 
-	req := logpb.WriteLogEntriesRequest{
-		LogName:  p.toLogNamePath("default"),
+	return &logpb.WriteLogEntriesRequest{
+		LogName:  g.toLogNamePath("default"),
 		Entries:  pbEntries,
-		Resource: p.defaultResource(),
+		Resource: g.defaultResource(),
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, p.timeout)
-	defer cancel()
-	_, err := p.client.WriteLogEntries(ctx, &req)
-	if err != nil {
-		return fmt.Errorf("write log entries: %s", err)
-	}
-
-	return nil
 }
 
-func (p *GoogleCloudOutput) defaultResource() *mrpb.MonitoredResource {
+func (g *GoogleCloudOutput) defaultResource() *mrpb.MonitoredResource {
 	return &mrpb.MonitoredResource{
 		Type: "global",
 		Labels: map[string]string{
-			"project_id": p.projectID,
+			"project_id": g.projectID,
 		},
 	}
 }
 
-func (p *GoogleCloudOutput) toLogNamePath(logName string) string {
-	return fmt.Sprintf("projects/%s/logs/%s", p.projectID, url.PathEscape(logName))
+func (g *GoogleCloudOutput) toLogNamePath(logName string) string {
+	return fmt.Sprintf("projects/%s/logs/%s", g.projectID, url.PathEscape(logName))
 }
 
-func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb.LogEntry, err error) {
+func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb.LogEntry, err error) {
 	ts, err := ptypes.TimestampProto(e.Timestamp)
 	if err != nil {
 		return nil, err
@@ -245,32 +278,32 @@ func (p *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 		Labels:    e.Labels,
 	}
 
-	if p.logNameField != nil {
+	if g.logNameField != nil {
 		var rawLogName string
-		err := e.Read(*p.logNameField, &rawLogName)
+		err := e.Read(*g.logNameField, &rawLogName)
 		if err != nil {
-			p.Warnw("Failed to set log name", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set log name", zap.Error(err), "entry", e)
 		} else {
-			newEntry.LogName = p.toLogNamePath(rawLogName)
-			e.Delete(*p.logNameField)
+			newEntry.LogName = g.toLogNamePath(rawLogName)
+			e.Delete(*g.logNameField)
 		}
 	}
 
-	if p.traceField != nil {
-		err := e.Read(*p.traceField, &newEntry.Trace)
+	if g.traceField != nil {
+		err := e.Read(*g.traceField, &newEntry.Trace)
 		if err != nil {
-			p.Warnw("Failed to set trace", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set trace", zap.Error(err), "entry", e)
 		} else {
-			e.Delete(*p.traceField)
+			e.Delete(*g.traceField)
 		}
 	}
 
-	if p.spanIDField != nil {
-		err := e.Read(*p.spanIDField, &newEntry.SpanId)
+	if g.spanIDField != nil {
+		err := e.Read(*g.spanIDField, &newEntry.SpanId)
 		if err != nil {
-			p.Warnw("Failed to set span ID", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set span ID", zap.Error(err), "entry", e)
 		} else {
-			e.Delete(*p.spanIDField)
+			e.Delete(*g.spanIDField)
 		}
 	}
 
