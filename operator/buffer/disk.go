@@ -22,7 +22,7 @@ type DiskBufferConfig struct {
 	Type string `json:"type" yaml:"type"`
 
 	// MaxSize is the maximum size in bytes of the data file on disk
-	MaxSize int64 `json:"max_size" yaml:"max_size"`
+	MaxSize helper.ByteSize `json:"max_size" yaml:"max_size"`
 
 	// Path is a path to a directory which contains the data and metadata files
 	Path string `json:"path" yaml:"path"`
@@ -57,7 +57,7 @@ func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer
 	if c.Path == "" {
 		return nil, fmt.Errorf("missing required field 'path'")
 	}
-	b := NewDiskBuffer(maxSize)
+	b := NewDiskBuffer(int64(maxSize))
 	if err := b.Open(c.Path, c.Sync); err != nil {
 		return nil, err
 	}
