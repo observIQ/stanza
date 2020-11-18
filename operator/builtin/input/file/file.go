@@ -33,9 +33,8 @@ type InputOperator struct {
 
 	persist helper.Persister
 
-	knownFiles        []*Reader
-	knownFingerprints map[Fingerprint]*Reader
-	queuedMatches     []string
+	knownFiles    []*Reader
+	queuedMatches []string
 
 	startAtBeginning bool
 
