@@ -1080,6 +1080,42 @@ func TestManyLogsDelivered(t *testing.T) {
 	expectNoMessages(t, logReceived)
 }
 
+func TestFileBatching(t *testing.T) {
+	t.Parallel()
+
+	files, linesPerFile := 100, 10
+	maxConcurrentFiles := 10
+
+	expectedBatches := files / maxConcurrentFiles // assumes no remainder
+	expectedLinesPerBatch := maxConcurrentFiles * linesPerFile
+
+	operator, logReceived, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+		cfg.MaxConcurrentFiles = maxConcurrentFiles
+	}, nil)
+
+	expectedMessages := make([]string, 0, files*linesPerFile)
+
+	// Write logs to each file
+	for i := 0; i < files; i++ {
+		temp := openTemp(t, tempDir)
+		for j := 0; j < linesPerFile; j++ {
+			message := fmt.Sprintf("%s %d %d", stringWithLength(10), i, j)
+			temp.WriteString(message + "\n")
+			expectedMessages = append(expectedMessages, message)
+		}
+	}
+
+	actualMessages := make([]string, 0, files*linesPerFile)
+	for b := 0; b < expectedBatches; b++ {
+		// poll once so we can validate that files were batched
+		operator.poll(context.Background())
+		actualMessages = append(actualMessages, waitForN(t, logReceived, expectedLinesPerBatch)...)
+		expectNoMessages(t, logReceived)
+	}
+
+	require.ElementsMatch(t, expectedMessages, actualMessages)
+}
+
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
@@ -1116,6 +1152,20 @@ func waitForOne(t *testing.T, c chan *entry.Entry) *entry.Entry {
 	}
 }
 
+func waitForN(t *testing.T, c chan *entry.Entry, n int) []string {
+	messages := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		select {
+		case e := <-c:
+			messages = append(messages, e.Record.(string))
+		case <-time.After(time.Minute):
+			require.FailNow(t, "Timed out waiting for message")
+			return nil
+		}
+	}
+	return messages
+}
+
 func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
 	case e := <-c:
@@ -1126,7 +1176,7 @@ func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 }
 
 func waitForMessages(t *testing.T, c chan *entry.Entry, expected []string) {
-	receivedMessages := make([]string, 0, 100)
+	receivedMessages := make([]string, 0, len(expected))
 LOOP:
 	for {
 		select {
