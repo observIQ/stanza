@@ -21,18 +21,21 @@ import (
 type InputOperator struct {
 	helper.InputOperator
 
-	Include       []string
-	Exclude       []string
-	FilePathField entry.Field
-	FileNameField entry.Field
-	PollInterval  time.Duration
-	SplitFunc     bufio.SplitFunc
-	MaxLogSize    int
-	SeenPaths     map[string]struct{}
+	Include            []string
+	Exclude            []string
+	FilePathField      entry.Field
+	FileNameField      entry.Field
+	PollInterval       time.Duration
+	SplitFunc          bufio.SplitFunc
+	MaxLogSize         int
+	MaxConcurrentFiles int
+	SeenPaths          map[string]struct{}
 
 	persist helper.Persister
 
-	knownFiles       []*Reader
+	knownFiles    []*Reader
+	queuedMatches []string
+
 	startAtBeginning bool
 
 	fingerprintBytes int64
@@ -95,10 +98,25 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
 
-	// Get the list of paths on disk
-	matches := getMatches(f.Include, f.Exclude)
-	if f.firstCheck && len(matches) == 0 {
-		f.Warnw("no files match the configured include patterns", "include", f.Include)
+	var matches []string
+	if len(f.queuedMatches) > f.MaxConcurrentFiles {
+		matches, f.queuedMatches = f.queuedMatches[:f.MaxConcurrentFiles], f.queuedMatches[f.MaxConcurrentFiles:]
+	} else if len(f.queuedMatches) > 0 {
+		matches, f.queuedMatches = f.queuedMatches, make([]string, 0)
+	} else {
+		// Increment the generation on all known readers
+		// This is done here because the next generation is about to start
+		for i := 0; i < len(f.knownFiles); i++ {
+			f.knownFiles[i].generation++
+		}
+
+		// Get the list of paths on disk
+		matches = getMatches(f.Include, f.Exclude)
+		if f.firstCheck && len(matches) == 0 {
+			f.Warnw("no files match the configured include patterns", "include", f.Include)
+		} else if len(matches) > f.MaxConcurrentFiles {
+			matches, f.queuedMatches = matches[:f.MaxConcurrentFiles], matches[f.MaxConcurrentFiles:]
+		}
 	}
 
 	// Open the files first to minimize the time between listing and opening
@@ -207,7 +225,7 @@ OUTER:
 			}
 
 			fp2 := fps[j]
-			if fp.Matches(fp2) || fp2.Matches(fp) {
+			if fp.StartsWith(fp2) || fp2.StartsWith(fp) {
 				// Exclude
 				fps = append(fps[:i], fps[i+1:]...)
 				filesCopy = append(filesCopy[:i], filesCopy[i+1:]...)
@@ -249,11 +267,6 @@ func (f *InputOperator) saveCurrent(readers []*Reader) {
 			break
 		}
 	}
-
-	// Increment the generation on all the remaining readers
-	for i := 0; i < len(f.knownFiles); i++ {
-		f.knownFiles[i].generation++
-	}
 }
 
 func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
@@ -283,7 +296,7 @@ func (f *InputOperator) findFingerprintMatch(fp *Fingerprint) (*Reader, bool) {
 	// Iterate backwards to match newest first
 	for i := len(f.knownFiles) - 1; i >= 0; i-- {
 		oldReader := f.knownFiles[i]
-		if fp.Matches(oldReader.Fingerprint) {
+		if fp.StartsWith(oldReader.Fingerprint) {
 			return oldReader, true
 		}
 	}

@@ -89,7 +89,6 @@ build-windows-amd64:
 
 .PHONY: for-all
 for-all:
-	@$${CMD}
 	@set -e; for dir in $(ALL_MODULES); do \
 	  (cd "$${dir}" && $${CMD} ); \
 	done

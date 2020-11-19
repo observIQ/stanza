@@ -1080,6 +1080,70 @@ func TestManyLogsDelivered(t *testing.T) {
 	expectNoMessages(t, logReceived)
 }
 
+func TestFileBatching(t *testing.T) {
+	t.Parallel()
+
+	files := 100
+	linesPerFile := 10
+	maxConcurrentFiles := 10
+
+	expectedBatches := files / maxConcurrentFiles // assumes no remainder
+	expectedLinesPerBatch := maxConcurrentFiles * linesPerFile
+
+	expectedMessages := make([]string, 0, files*linesPerFile)
+	actualMessages := make([]string, 0, files*linesPerFile)
+
+	operator, logReceived, tempDir := newTestFileOperator(t,
+		func(cfg *InputConfig) {
+			cfg.MaxConcurrentFiles = maxConcurrentFiles
+		},
+		func(out *testutil.FakeOutput) {
+			out.Received = make(chan *entry.Entry, expectedLinesPerBatch)
+		},
+	)
+
+	temps := make([]*os.File, 0, files)
+	for i := 0; i < files; i++ {
+		temps = append(temps, openTemp(t, tempDir))
+	}
+
+	// Write logs to each file
+	for i, temp := range temps {
+		for j := 0; j < linesPerFile; j++ {
+			message := fmt.Sprintf("%s %d %d", stringWithLength(100), i, j)
+			temp.WriteString(message + "\n")
+			expectedMessages = append(expectedMessages, message)
+		}
+	}
+
+	for b := 0; b < expectedBatches; b++ {
+		// poll once so we can validate that files were batched
+		operator.poll(context.Background())
+		actualMessages = append(actualMessages, waitForN(t, logReceived, expectedLinesPerBatch)...)
+		expectNoMessagesUntil(t, logReceived, 10*time.Millisecond)
+	}
+
+	require.ElementsMatch(t, expectedMessages, actualMessages)
+
+	// Write more logs to each file so we can validate that all files are still known
+	for i, temp := range temps {
+		for j := 0; j < linesPerFile; j++ {
+			message := fmt.Sprintf("%s %d %d", stringWithLength(20), i, j)
+			temp.WriteString(message + "\n")
+			expectedMessages = append(expectedMessages, message)
+		}
+	}
+
+	for b := 0; b < expectedBatches; b++ {
+		// poll once so we can validate that files were batched
+		operator.poll(context.Background())
+		actualMessages = append(actualMessages, waitForN(t, logReceived, expectedLinesPerBatch)...)
+		expectNoMessagesUntil(t, logReceived, 10*time.Millisecond)
+	}
+
+	require.ElementsMatch(t, expectedMessages, actualMessages)
+}
+
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
@@ -1110,10 +1174,24 @@ func waitForOne(t *testing.T, c chan *entry.Entry) *entry.Entry {
 	select {
 	case e := <-c:
 		return e
-	case <-time.After(time.Minute):
+	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for message")
 		return nil
 	}
+}
+
+func waitForN(t *testing.T, c chan *entry.Entry, n int) []string {
+	messages := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		select {
+		case e := <-c:
+			messages = append(messages, e.Record.(string))
+		case <-time.After(time.Second):
+			require.FailNow(t, "Timed out waiting for message")
+			return nil
+		}
+	}
+	return messages
 }
 
 func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
@@ -1126,7 +1204,7 @@ func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 }
 
 func waitForMessages(t *testing.T, c chan *entry.Entry, expected []string) {
-	receivedMessages := make([]string, 0, 100)
+	receivedMessages := make([]string, 0, len(expected))
 LOOP:
 	for {
 		select {
@@ -1141,10 +1219,14 @@ LOOP:
 }
 
 func expectNoMessages(t *testing.T, c chan *entry.Entry) {
+	expectNoMessagesUntil(t, c, 200*time.Millisecond)
+}
+
+func expectNoMessagesUntil(t *testing.T, c chan *entry.Entry, d time.Duration) {
 	select {
 	case e := <-c:
 		require.FailNow(t, "Received unexpected message", "Message: %s", e.Record.(string))
-	case <-time.After(200 * time.Millisecond):
+	case <-time.After(d):
 	}
 }
 
