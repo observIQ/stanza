@@ -2,8 +2,25 @@ package entry
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
+
+var now = func() func() time.Time {
+	env := os.Getenv("STANZA_DEFAULT_TIMESTAMP")
+	if env == "" {
+		return time.Now
+	}
+
+	parsed, err := time.Parse(time.RFC3339, env)
+	if err != nil {
+		panic(fmt.Sprintf("failed parsing default timestamp: %s", err))
+	}
+
+	return func() time.Time {
+		return parsed
+	}
+}()
 
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
@@ -18,7 +35,7 @@ type Entry struct {
 // New will create a new log entry with current timestamp and an empty record.
 func New() *Entry {
 	return &Entry{
-		Timestamp: time.Now(),
+		Timestamp: now(),
 	}
 }
 
