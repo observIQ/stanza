@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
-var now = func() func() time.Time {
-	env := os.Getenv("STANZA_DEFAULT_TIMESTAMP")
+const defaultTimestampEnv = "STANZA_DEFAULT_TIMESTAMP"
+
+func getNow() func() time.Time {
+	env := os.Getenv(defaultTimestampEnv)
 	if env == "" {
 		return time.Now
 	}
@@ -20,7 +22,9 @@ var now = func() func() time.Time {
 	return func() time.Time {
 		return parsed
 	}
-}()
+}
+
+var now = getNow()
 
 // Entry is a flexible representation of log data associated with a timestamp.
 type Entry struct {
