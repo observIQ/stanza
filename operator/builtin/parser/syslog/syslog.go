@@ -77,7 +77,10 @@ type SyslogParser struct {
 
 // Process will parse an entry field as syslog.
 func (s *SyslogParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return s.ParserOperator.ProcessWith(ctx, entry, s.parse)
+	if err := s.ParserOperator.ProcessWith(ctx, entry, s.parse); err != nil {
+		return err
+	}
+	return promoteSeverity(entry)
 }
 
 // parse will parse a value as syslog.
@@ -188,4 +191,48 @@ func toBytes(value interface{}) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unable to convert type '%T' to bytes", value)
 	}
+}
+
+var severityMapping = [...]entry.Severity{
+	0: entry.Emergency,
+	1: entry.Alert,
+	2: entry.Critical,
+	3: entry.Error,
+	4: entry.Warning,
+	5: entry.Notice,
+	6: entry.Info,
+	7: entry.Debug,
+}
+
+var severityText = [...]string{
+	0: "emerg",
+	1: "alert",
+	2: "crit",
+	3: "err",
+	4: "warning",
+	5: "notice",
+	6: "info",
+	7: "debug",
+}
+
+var severityField = entry.NewRecordField("severity")
+
+func promoteSeverity(e *entry.Entry) error {
+	sev, ok := severityField.Delete(e)
+	if !ok {
+		return fmt.Errorf("severity field does not exist")
+	}
+
+	sevInt, ok := sev.(int)
+	if !ok {
+		return fmt.Errorf("severity field is not an int")
+	}
+
+	if sevInt < 0 || sevInt > 7 {
+		return fmt.Errorf("invalid severity '%d'", sevInt)
+	}
+
+	e.Severity = severityMapping[sevInt]
+	e.SeverityText = severityText[sevInt]
+	return nil
 }
