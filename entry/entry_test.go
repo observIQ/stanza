@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -234,4 +235,16 @@ func TestReadToInterfaceMissingField(t *testing.T) {
 	err := entry.readToInterface(field, &dest)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "can not be read as a interface{}")
+}
+
+func TestDefaultTimestamp(t *testing.T) {
+	os.Setenv(defaultTimestampEnv, "2019-10-12T07:20:50.52Z")
+	now = getNow()
+	defer func() { now = getNow() }()
+	defer os.Unsetenv(defaultTimestampEnv)
+
+	e := New()
+	expected := time.Date(2019, 10, 12, 7, 20, 50, int(520*time.Millisecond), time.UTC)
+	require.Equal(t, expected, e.Timestamp)
+	require.True(t, e.Timestamp.Equal(expected))
 }
