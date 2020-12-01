@@ -28,7 +28,7 @@ type Definition struct {
 	Description        string      `json:"description" yaml:"description"`
 	Parameters         []Parameter `json:"parameters"  yaml:"parameters"`
 	MinStanzaVersion   string      `json:"minStanzaVersion" yaml:"min_stanza_version"`
-	MaxStanzaVersion   string      `json:"minStanzaVerion" yaml:"max_stanza_version"`
+	MaxStanzaVersion   string      `json:"maxStanzaVersion" yaml:"max_stanza_version"`
 	SupportedPlatforms []string    `json:"supportedPlatforms" yaml:"supported_platforms"`
 }
 
