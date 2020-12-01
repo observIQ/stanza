@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased 
+## [0.13.3] - 2020-12-01
 ### Added
 - New operators `forward_output` and `forward_input` to easily send log entries between stanza instances.
+- Override default timestamp with `STANZA_DEFAULT_TIMESTAMP` for integration testing
+- Add new `bytesize` type for easier configuration of byte sizes
+- Automatic severity promotion in the syslog parser
+### Fixed
+- Open files in chunks so that we don't hit open file limit and cause performance issues
 
 ## [0.13.2] - 2020-11-17
 ### Added
