@@ -19,11 +19,13 @@ func TestSyslogParser(t *testing.T) {
 	}
 
 	cases := []struct {
-		name              string
-		config            *SyslogParserConfig
-		inputRecord       interface{}
-		expectedTimestamp time.Time
-		expectedRecord    interface{}
+		name                 string
+		config               *SyslogParserConfig
+		inputRecord          interface{}
+		expectedTimestamp    time.Time
+		expectedRecord       interface{}
+		expectedSeverity     entry.Severity
+		expectedSeverityText string
 	}{
 		{
 			"RFC3164",
@@ -40,8 +42,9 @@ func TestSyslogParser(t *testing.T) {
 				"hostname": "1.2.3.4",
 				"message":  "test message",
 				"priority": 34,
-				"severity": 2,
 			},
+			entry.Critical,
+			"crit",
 		},
 		{
 			"RFC3164Bytes",
@@ -58,8 +61,9 @@ func TestSyslogParser(t *testing.T) {
 				"hostname": "1.2.3.4",
 				"message":  "test message",
 				"priority": 34,
-				"severity": 2,
 			},
+			entry.Critical,
+			"crit",
 		},
 		{
 			"RFC5424",
@@ -78,7 +82,6 @@ func TestSyslogParser(t *testing.T) {
 				"msg_id":   "ID52020",
 				"priority": 86,
 				"proc_id":  "23108",
-				"severity": 6,
 				"structured_data": map[string]map[string]string{
 					"SecureAuth@27389": {
 						"PEN":             "27389",
@@ -89,6 +92,8 @@ func TestSyslogParser(t *testing.T) {
 				},
 				"version": 1,
 			},
+			entry.Info,
+			"info",
 		},
 		{
 			"RFC5424LongSDName",
@@ -107,7 +112,6 @@ func TestSyslogParser(t *testing.T) {
 				"msg_id":   "ID52020",
 				"priority": 86,
 				"proc_id":  "23108",
-				"severity": 6,
 				"structured_data": map[string]map[string]string{
 					"verylongsdnamethatisgreaterthan32bytes@12345": {
 						"UserHostAddress": "192.168.2.132",
@@ -115,6 +119,8 @@ func TestSyslogParser(t *testing.T) {
 				},
 				"version": 1,
 			},
+			entry.Info,
+			"info",
 		},
 	}
 
@@ -135,8 +141,10 @@ func TestSyslogParser(t *testing.T) {
 
 			select {
 			case e := <-fake.Received:
-				require.Equal(t, e.Record, tc.expectedRecord)
+				require.Equal(t, tc.expectedRecord, e.Record)
 				require.Equal(t, tc.expectedTimestamp, e.Timestamp)
+				require.Equal(t, tc.expectedSeverity, e.Severity)
+				require.Equal(t, tc.expectedSeverityText, e.SeverityText)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")
 			}
