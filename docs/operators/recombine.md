@@ -17,6 +17,8 @@ The `recombine` operator combines consecutive logs into single logs based on sim
 
 Exactly one of `is_first_entry` and `is_last_entry` must be specified.
 
+NOTE: this operator is only designed to work with a single input. It does not keep track of what operator entries are coming from, so it can't combine based on source.
+
 ### Example Configurations
 
 
