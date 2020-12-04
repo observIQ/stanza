@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Recombine operator to combine multiline logs after ingestion and parsing
+
 ## [0.13.3] - 2020-12-01
 ### Added
 - New operators `forward_output` and `forward_input` to easily send log entries between stanza instances.
