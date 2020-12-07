@@ -73,15 +73,6 @@ type ParserOperator struct {
 
 // ProcessWith will run ParseWith on the entry, then forward the entry on to the next operators.
 func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, parse ParseFunction) error {
-	if err := p.ParseWith(ctx, entry, parse); err != nil {
-		return err
-	}
-	p.Write(ctx, entry)
-	return nil
-}
-
-// ParseWith will process an entry's field with a parser function.
-func (p *ParserOperator) ParseWith(ctx context.Context, entry *entry.Entry, parse ParseFunction) error {
 	// Short circuit if the "if" condition does not match
 	skip, err := p.Skip(ctx, entry)
 	if err != nil {
@@ -92,6 +83,15 @@ func (p *ParserOperator) ParseWith(ctx context.Context, entry *entry.Entry, pars
 		return nil
 	}
 
+	if err := p.ParseWith(ctx, entry, parse); err != nil {
+		return err
+	}
+	p.Write(ctx, entry)
+	return nil
+}
+
+// ParseWith will process an entry's field with a parser function.
+func (p *ParserOperator) ParseWith(ctx context.Context, entry *entry.Entry, parse ParseFunction) error {
 	value, ok := entry.Get(p.ParseFrom)
 	if !ok {
 		err := errors.NewError(
