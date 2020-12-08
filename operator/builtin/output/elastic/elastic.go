@@ -196,8 +196,8 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		req := e.createRequest(entries)
 		e.flusher.Do(func(ctx context.Context) error {
+			req := e.createRequest(entries)
 			res, err := req.Do(ctx, e.client)
 			if err != nil {
 				return errors.NewError(

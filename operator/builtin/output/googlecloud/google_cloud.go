@@ -222,8 +222,8 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		req := g.createWriteRequest(entries)
 		g.flusher.Do(func(ctx context.Context) error {
+			req := g.createWriteRequest(entries)
 			_, err := g.client.WriteLogEntries(ctx, req)
 			if err != nil {
 				return err

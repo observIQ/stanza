@@ -131,13 +131,17 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		req, err := f.createRequest(ctx, entries)
-		if err != nil {
-			f.Errorf("Failed to create request", zap.Error(err))
-			continue
-		}
-
 		f.flusher.Do(func(ctx context.Context) error {
+			req, err := f.createRequest(ctx, entries)
+			if err != nil {
+				f.Errorf("Failed to create request", zap.Error(err))
+				// drop these logs because we couldn't creat a request and a retry won't help
+				if err := clearer.MarkAllAsFlushed(); err != nil {
+					f.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
+				}
+				return nil
+			}
+
 			res, err := f.client.Do(req)
 			if err != nil {
 				return errors.Wrap(err, "send request")
