@@ -18,6 +18,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/parser/time"
 
 	_ "github.com/observiq/stanza/operator/builtin/transformer/filter"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/recombine"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/hostmetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/k8smetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/metadata"
