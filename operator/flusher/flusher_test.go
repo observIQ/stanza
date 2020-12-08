@@ -12,6 +12,10 @@ import (
 )
 
 func TestFlusher(t *testing.T) {
+
+	// Override setting for test
+	maxElapsedTime = 5 * time.Second
+
 	outChan := make(chan struct{}, 100)
 	flusherCfg := NewConfig()
 	flusher := flusherCfg.Build(zaptest.NewLogger(t).Sugar())
@@ -30,9 +34,24 @@ func TestFlusher(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		select {
-		case <-time.After(time.Second):
+		case <-time.After(5 * time.Second):
 			require.FailNow(t, "timed out")
 		case <-outChan:
 		}
 	}
+}
+
+func TestMaxElapsedTime(t *testing.T) {
+
+	// Override setting for test
+	maxElapsedTime = 100 * time.Millisecond
+
+	flusherCfg := NewConfig()
+	flusher := flusherCfg.Build(zaptest.NewLogger(t).Sugar())
+
+	start := time.Now()
+	flusher.flushWithRetry(context.Background(), func(_ context.Context) error {
+		return errors.New("never flushes")
+	})
+	require.WithinDuration(t, start.Add(maxElapsedTime), time.Now(), maxElapsedTime)
 }

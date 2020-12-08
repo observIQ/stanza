@@ -11,6 +11,10 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+// These are vars so they can be overridden in tests
+var maxRetryInterval = time.Second
+var maxElapsedTime = 5 * time.Second
+
 // Config holds the configuration to build a new flusher
 type Config struct {
 	// MaxConcurrent is the maximum number of goroutines flushing entries concurrently.
@@ -55,10 +59,10 @@ type Flusher struct {
 	*zap.SugaredLogger
 }
 
+// FlushFunc is any function that flushes
 type FlushFunc func(context.Context) error
 
-// TODO error enumeration
-
+// Do executes the flusher function in a goroutine
 func (f *Flusher) Do(flush FlushFunc) {
 	// Wait until we have free flusher goroutines
 	if err := f.sem.Acquire(f.ctx, 1); err != nil {
@@ -127,8 +131,8 @@ func newExponentialBackoff() *backoff.ExponentialBackOff {
 		InitialInterval:     50 * time.Millisecond,
 		RandomizationFactor: backoff.DefaultRandomizationFactor,
 		Multiplier:          backoff.DefaultMultiplier,
-		MaxInterval:         10 * time.Minute,
-		MaxElapsedTime:      time.Duration(0),
+		MaxInterval:         maxRetryInterval,
+		MaxElapsedTime:      maxElapsedTime,
 		Stop:                backoff.Stop,
 		Clock:               backoff.SystemClock,
 	}
