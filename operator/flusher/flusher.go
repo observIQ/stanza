@@ -12,8 +12,8 @@ import (
 )
 
 // These are vars so they can be overridden in tests
-var maxRetryInterval = time.Second
-var maxElapsedTime = 5 * time.Second
+var maxRetryInterval = time.Minute
+var maxElapsedTime = time.Hour
 
 // Config holds the configuration to build a new flusher
 type Config struct {
