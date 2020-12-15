@@ -80,6 +80,7 @@ func (fo *FileOutput) Start() error {
 	}
 
 	fo.encoder = json.NewEncoder(fo.file)
+	fo.encoder.SetEscapeHTML(false)
 
 	return nil
 }
