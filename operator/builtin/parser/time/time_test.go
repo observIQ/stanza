@@ -20,101 +20,112 @@ func TestIsZero(t *testing.T) {
 
 func TestTimeParser(t *testing.T) {
 
+	// Mountain Standard Time
+	mst, err := time.LoadLocation("MST")
+	require.NoError(t, err)
+
+	// Hawaiian Standard Time
+	hst, err := time.LoadLocation("HST")
+	require.NoError(t, err)
+
 	testCases := []struct {
 		name           string
 		sample         interface{}
+		expected       time.Time
 		gotimeLayout   string
 		strptimeLayout string
 	}{
 		{
-			name:           "unix",
+			name:           "unix-utc",
+			sample:         "Mon Jan 2 15:04:05 UTC 2006",
+			expected:       time.Date(2006, time.January, 2, 15, 4, 5, 0, time.UTC),
+			gotimeLayout:   "Mon Jan 2 15:04:05 MST 2006",
+			strptimeLayout: "%a %b %e %H:%M:%S %Z %Y",
+		},
+		{
+			name:           "unix-mst",
 			sample:         "Mon Jan 2 15:04:05 MST 2006",
+			expected:       time.Date(2006, time.January, 2, 15, 4, 5, 0, mst),
+			gotimeLayout:   "Mon Jan 2 15:04:05 MST 2006",
+			strptimeLayout: "%a %b %e %H:%M:%S %Z %Y",
+		},
+		{
+			name:           "unix-hst",
+			sample:         "Mon Jan 2 15:04:05 HST 2006",
+			expected:       time.Date(2006, time.January, 2, 15, 4, 5, 0, hst),
 			gotimeLayout:   "Mon Jan 2 15:04:05 MST 2006",
 			strptimeLayout: "%a %b %e %H:%M:%S %Z %Y",
 		},
 		{
 			name:           "almost-unix",
 			sample:         "Mon Jan 02 15:04:05 MST 2006",
+			expected:       time.Date(2006, time.January, 2, 15, 4, 5, 0, mst),
 			gotimeLayout:   "Mon Jan 02 15:04:05 MST 2006",
 			strptimeLayout: "%a %b %d %H:%M:%S %Z %Y",
 		},
-		{
-			name:           "kitchen",
-			sample:         "12:34PM",
-			gotimeLayout:   time.Kitchen,
-			strptimeLayout: "%H:%M%p",
-		},
-		{
-			name:           "kitchen-bytes",
-			sample:         []byte("12:34PM"),
-			gotimeLayout:   time.Kitchen,
-			strptimeLayout: "%H:%M%p",
-		},
-		{
-			name:           "countdown",
-			sample:         "-0100 01 01 01 01 01 01",
-			gotimeLayout:   "-0700 06 05 04 03 02 01",
-			strptimeLayout: "%z %y %S %M %H %e %m",
-		},
-		{
-			name:           "debian-syslog",
-			sample:         "Jun 09 11:39:45",
-			gotimeLayout:   "Jan 02 15:04:05",
-			strptimeLayout: "%b %d %H:%M:%S",
-		},
+
 		{
 			name:           "opendistro",
 			sample:         "2020-06-09T15:39:58",
+			expected:       time.Date(2020, time.June, 9, 15, 39, 58, 0, time.Local),
 			gotimeLayout:   "2006-01-02T15:04:05",
 			strptimeLayout: "%Y-%m-%dT%H:%M:%S",
 		},
 		{
 			name:           "postgres",
-			sample:         "2019-11-05 10:38:35.118 EST",
+			sample:         "2019-11-05 10:38:35.118 HST",
+			expected:       time.Date(2019, time.November, 5, 10, 38, 35, 118*1000*1000, hst),
 			gotimeLayout:   "2006-01-02 15:04:05.999 MST",
 			strptimeLayout: "%Y-%m-%d %H:%M:%S.%L %Z",
 		},
 		{
 			name:           "ibm-mq",
 			sample:         "3/4/2018 11:52:29",
+			expected:       time.Date(2018, time.March, 4, 11, 52, 29, 0, time.Local),
 			gotimeLayout:   "1/2/2006 15:04:05",
 			strptimeLayout: "%q/%g/%Y %H:%M:%S",
 		},
 		{
 			name:           "cassandra",
-			sample:         "2019-11-27T09:34:32.901-0500",
+			sample:         "2019-11-27T09:34:32.901-1000",
+			expected:       time.Date(2019, time.November, 27, 9, 34, 32, 901*1000*1000, hst),
 			gotimeLayout:   "2006-01-02T15:04:05.999-0700",
 			strptimeLayout: "%Y-%m-%dT%H:%M:%S.%L%z",
 		},
 		{
 			name:           "oracle",
-			sample:         "2019-10-15T10:42:01.900436-04:00",
+			sample:         "2019-10-15T10:42:01.900436-10:00",
+			expected:       time.Date(2019, time.October, 15, 10, 42, 01, 900436*1000, hst),
 			gotimeLayout:   "2006-01-02T15:04:05.999999-07:00",
 			strptimeLayout: "%Y-%m-%dT%H:%M:%S.%f%j",
 		},
 		{
 			name:           "oracle-listener",
 			sample:         "22-JUL-2019 15:16:13",
+			expected:       time.Date(2019, time.July, 22, 15, 16, 13, 0, time.Local),
 			gotimeLayout:   "02-Jan-2006 15:04:05",
 			strptimeLayout: "%d-%b-%Y %H:%M:%S",
 		},
 		{
 			name:           "k8s",
 			sample:         "2019-03-08T18:41:12.152531115Z",
+			expected:       time.Date(2019, time.March, 8, 18, 41, 12, 152531115, time.UTC),
 			gotimeLayout:   "2006-01-02T15:04:05.999999999Z",
 			strptimeLayout: "%Y-%m-%dT%H:%M:%S.%sZ",
 		},
 		{
 			name:           "jetty",
 			sample:         "05/Aug/2019:20:38:46 +0000",
+			expected:       time.Date(2019, time.August, 5, 20, 38, 46, 0, time.UTC),
 			gotimeLayout:   "02/Jan/2006:15:04:05 -0700",
 			strptimeLayout: "%d/%b/%Y:%H:%M:%S %z",
 		},
 		{
-			name:           "puppet",
-			sample:         "Aug  4 03:26:02",
-			gotimeLayout:   "Jan _2 15:04:05",
-			strptimeLayout: "%b %e %H:%M:%S",
+			name:           "esxi",
+			sample:         "2020-12-16T21:43:28.391Z",
+			expected:       time.Date(2020, 12, 16, 21, 43, 28, 391*1000*1000, time.UTC),
+			gotimeLayout:   "2006-01-02T15:04:05.999Z",
+			strptimeLayout: "%Y-%m-%dT%H:%M:%S.%LZ",
 		},
 	}
 
@@ -123,30 +134,17 @@ func TestTimeParser(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var sampleStr string
-			switch s := tc.sample.(type) {
-			case string:
-				sampleStr = s
-			case []byte:
-				sampleStr = string(s)
-			default:
-				require.FailNow(t, "unexpected sample type")
-			}
-
-			expected, err := time.ParseInLocation(tc.gotimeLayout, sampleStr, time.Local)
-			require.NoError(t, err, "Test configuration includes invalid timestamp or layout")
-
 			gotimeRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, rootField)
-			t.Run("gotime-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, expected))
+			t.Run("gotime-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected))
 
 			gotimeNonRootCfg := parseTimeTestConfig(helper.GotimeKey, tc.gotimeLayout, someField)
-			t.Run("gotime-non-root", runTimeParseTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, expected))
+			t.Run("gotime-non-root", runTimeParseTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected))
 
 			strptimeRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, rootField)
-			t.Run("strptime-root", runTimeParseTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, expected))
+			t.Run("strptime-root", runTimeParseTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected))
 
 			strptimeNonRootCfg := parseTimeTestConfig(helper.StrptimeKey, tc.strptimeLayout, someField)
-			t.Run("strptime-non-root", runTimeParseTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, expected))
+			t.Run("strptime-non-root", runTimeParseTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected))
 		})
 	}
 }

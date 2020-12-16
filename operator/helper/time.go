@@ -38,6 +38,12 @@ type TimeParser struct {
 	Layout     string       `json:"layout,omitempty"      yaml:"layout,omitempty"`
 	LayoutType string       `json:"layout_type,omitempty" yaml:"layout_type,omitempty"`
 	PreserveTo *entry.Field `json:"preserve_to,omitempty" yaml:"preserve_to,omitempty"`
+
+	// If a timestamp layout ends with 'Z', it should be interpretted at Zulu (UTC) time
+	// However, if time.ParseInLocation is used with time.Local, then it will use Local
+	// With time.ParseInLocation, time.Local should be the default only if the timezone
+	// is not specified. So, we just detect this scenario manually and interpret 'Z' as UTC
+	forceUTC bool
 }
 
 // IsZero returns true if the TimeParser is not a valid config
@@ -83,6 +89,9 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 			"valid values are 'strptime', 'gotime', and 'epoch'",
 		)
 	}
+
+	// also happens if it was originally StrptimeKey
+	t.forceUTC = t.LayoutType == GotimeKey && strings.HasSuffix(t.Layout, "Z")
 
 	return nil
 }
@@ -131,14 +140,45 @@ func (t *TimeParser) Parse(entry *entry.Entry) error {
 }
 
 func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
+	var str string
 	switch v := value.(type) {
 	case string:
-		return time.ParseInLocation(t.Layout, v, time.Local)
+		str = v
 	case []byte:
-		return time.ParseInLocation(t.Layout, string(v), time.Local)
+		str = string(v)
 	default:
 		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
+
+	loc := time.Local
+	if t.forceUTC && strings.HasSuffix(str, "Z") {
+		loc = time.UTC
+	}
+
+	result, err := time.ParseInLocation(t.Layout, str, loc)
+
+	// Depending on the timezone database, we may get a psuedo-matching timezone
+	// This is apparent when the zone is not "UTC", but the offset is still 0
+	zone, offset := result.Zone()
+	if offset != 0 || zone == "UTC" {
+		return result, err
+	}
+
+	// Manually look up the location based on the zone
+	loc, locErr := time.LoadLocation(zone)
+	if locErr != nil {
+		// can't correct offset, just return what we have
+		return result, err
+	}
+
+	// Reparse the timestamp, with the location
+	resultLoc, locErr := time.ParseInLocation(t.Layout, str, loc)
+	if locErr != nil {
+		// can't correct offset, just return original result
+		return result, err
+	}
+
+	return resultLoc, locErr
 }
 
 func (t *TimeParser) parseEpochTime(value interface{}) (time.Time, error) {
