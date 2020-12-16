@@ -471,8 +471,6 @@ func runLossyTimeParseTest(t *testing.T, timeParser *TimeParser, ent *entry.Entr
 		require.NoError(t, err)
 
 		if maxLoss == time.Duration(0) {
-			t.Logf("Expected: %s", expected)
-			t.Logf("Actual: %s", ent.Timestamp)
 			require.True(t, expected.Equal(ent.Timestamp))
 		} else {
 			diff := time.Duration(math.Abs(float64(expected.Sub(ent.Timestamp))))
