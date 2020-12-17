@@ -204,6 +204,17 @@ func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
 }
 
 func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
+
+	// Hawaiian Standard Time
+	hst, err := time.LoadLocation("HST")
+	require.NoError(t, err)
+
+	layout := "Mon Jan 2 15:04:05 MST 2006"
+	sample := "Mon Dec 8 16:05:06 HST 2020"
+
+	expected, err := time.ParseInLocation(layout, sample, hst)
+	require.NoError(t, err)
+
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserOperator{
 		TransformerOperator: TransformerOperator{
@@ -222,7 +233,7 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 				return &f
 			}(),
 			LayoutType: "gotime",
-			Layout:     time.Kitchen,
+			Layout:     layout,
 		},
 		SeverityParser: &SeverityParser{
 			ParseFrom: entry.NewRecordField("missing-key"),
@@ -235,16 +246,13 @@ func TestParserValidTimeInvalidSeverityParse(t *testing.T) {
 	}
 	ctx := context.Background()
 	testEntry := entry.New()
-	err := testEntry.Set(entry.NewRecordField("timestamp"), "12:34PM")
+	err = testEntry.Set(entry.NewRecordField("timestamp"), sample)
 	require.NoError(t, err)
 
 	err = parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "severity parser: log entry does not have the expected parse_from field")
 
-	expected, _ := time.ParseInLocation(time.Kitchen, "12:34PM", time.Local)
-	expected = setTimestampYear(expected)
-	// But, this should have been set anyways
 	require.Equal(t, expected, testEntry.Timestamp)
 }
 
