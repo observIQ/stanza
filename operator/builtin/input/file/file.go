@@ -38,7 +38,7 @@ type InputOperator struct {
 
 	startAtBeginning bool
 
-	fingerprintBytes int64
+	fingerprintSize int
 
 	encoding encoding.Encoding
 
@@ -195,7 +195,7 @@ func (f *InputOperator) makeReaders(files []*os.File) []*Reader {
 	// Get fingerprints for each file
 	fps := make([]*Fingerprint, 0, len(files))
 	for _, file := range files {
-		fp, err := NewFingerprint(file)
+		fp, err := f.NewFingerprint(file)
 		if err != nil {
 			f.Errorw("Failed creating fingerprint", zap.Error(err))
 			continue

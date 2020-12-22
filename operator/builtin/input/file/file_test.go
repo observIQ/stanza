@@ -1150,7 +1150,7 @@ func TestFileReader_FingerprintUpdated(t *testing.T) {
 
 	temp := openTemp(t, tempDir)
 	tempCopy := openFile(t, temp.Name())
-	fp, err := NewFingerprint(temp)
+	fp, err := operator.NewFingerprint(temp)
 	require.NoError(t, err)
 	reader, err := NewReader(temp.Name(), operator, tempCopy, fp)
 	require.NoError(t, err)

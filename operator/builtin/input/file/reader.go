@@ -2,7 +2,6 @@ package file
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -14,8 +13,6 @@ import (
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
-
-const fingerPrintSize = 1000 // bytes
 
 // Reader manages a single file
 type Reader struct {
@@ -177,54 +174,14 @@ type FingerprintUpdatingReader struct {
 
 // Read reads from the wrapped reader, saving the read bytes to the fingerprint
 func (f *FingerprintUpdatingReader) Read(dst []byte) (int, error) {
-	if len(f.fingerprint.FirstBytes) == fingerPrintSize {
+	if len(f.fingerprint.FirstBytes) == cap(f.fingerprint.FirstBytes) {
 		return f.reader.Read(dst)
 	}
 	n, err := f.reader.Read(dst)
-	appendCount := min0(n, fingerPrintSize-int(f.offset))
+	appendCount := min0(n, cap(f.fingerprint.FirstBytes)-int(f.offset))
 	f.fingerprint.FirstBytes = append(f.fingerprint.FirstBytes[:f.offset], dst[:appendCount]...)
 	f.offset += int64(n)
 	return n, err
-}
-
-// Fingerprint is used to identify a file
-type Fingerprint struct {
-	FirstBytes []byte
-}
-
-// Copy creates a new copy of hte fingerprint
-func (f Fingerprint) Copy() *Fingerprint {
-	buf := make([]byte, fingerPrintSize)
-	n := copy(buf, f.FirstBytes)
-	return &Fingerprint{
-		FirstBytes: buf[:n],
-	}
-}
-
-// NewFingerprint creates a new fingerprint from an open file
-func NewFingerprint(file *os.File) (*Fingerprint, error) {
-	buf := make([]byte, fingerPrintSize)
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("reading fingerprint bytes: %s", err)
-	}
-	return &Fingerprint{
-		FirstBytes: buf[:n],
-	}, nil
-}
-
-// StartsWith returns true if the fingerprints are the same
-// or if the new fingerprint starts with the old one
-func (f Fingerprint) StartsWith(old *Fingerprint) bool {
-	l0 := len(old.FirstBytes)
-	if l0 == 0 {
-		return false
-	}
-	l1 := len(f.FirstBytes)
-	if l0 > l1 {
-		return false
-	}
-	return bytes.Equal(old.FirstBytes[:l0], f.FirstBytes[:l0])
 }
 
 func min0(a, b int) int {
