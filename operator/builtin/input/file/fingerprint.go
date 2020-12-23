@@ -31,7 +31,7 @@ func (f *InputOperator) NewFingerprint(file *os.File) (*Fingerprint, error) {
 	return fp, nil
 }
 
-// Copy creates a new copy of hte fingerprint
+// Copy creates a new copy of the fingerprint
 func (f Fingerprint) Copy() *Fingerprint {
 	buf := make([]byte, len(f.FirstBytes), cap(f.FirstBytes))
 	n := copy(buf, f.FirstBytes)
