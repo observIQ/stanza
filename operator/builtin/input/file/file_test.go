@@ -1146,13 +1146,14 @@ func TestFileBatching(t *testing.T) {
 
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
+
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	temp := openTemp(t, tempDir)
 	tempCopy := openFile(t, temp.Name())
-	fp, err := NewFingerprint(temp)
+	fp, err := operator.NewFingerprint(temp)
 	require.NoError(t, err)
-	reader, err := NewReader(temp.Name(), operator, tempCopy, fp)
+	reader, err := operator.NewReader(temp.Name(), tempCopy, fp)
 	require.NoError(t, err)
 
 	writeString(t, temp, "testlog1\n")

@@ -51,7 +51,8 @@ type InputConfig struct {
 	IncludeFileName    bool             `json:"include_file_name,omitempty"    yaml:"include_file_name,omitempty"`
 	IncludeFilePath    bool             `json:"include_file_path,omitempty"    yaml:"include_file_path,omitempty"`
 	StartAt            string           `json:"start_at,omitempty"             yaml:"start_at,omitempty"`
-	MaxLogSize         helper.ByteSize  `json:"max_log_size,omitempty"      yaml:"max_log_size,omitempty"`
+	FingerprintSize    helper.ByteSize  `json:"fingerprint_size,omitempty"     yaml:"fingerprint_size,omitempty"`
+	MaxLogSize         helper.ByteSize  `json:"max_log_size,omitempty"         yaml:"max_log_size,omitempty"`
 	MaxConcurrentFiles int              `json:"max_concurrent_files,omitempty" yaml:"max_concurrent_files,omitempty"`
 	Encoding           string           `json:"encoding,omitempty"             yaml:"encoding,omitempty"`
 }
@@ -97,6 +98,12 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		return nil, fmt.Errorf("`max_concurrent_files` must be positive")
 	}
 
+	if c.FingerprintSize == 0 {
+		c.FingerprintSize = defaultFingerprintSize
+	} else if c.FingerprintSize < minFingerprintSize {
+		return nil, fmt.Errorf("`fingerprint_size` must be at least %d bytes", minFingerprintSize)
+	}
+
 	encoding, err := lookupEncoding(c.Encoding)
 	if err != nil {
 		return nil, err
@@ -136,13 +143,13 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		persist:            helper.NewScopedDBPersister(context.Database, c.ID()),
 		FilePathField:      filePathField,
 		FileNameField:      fileNameField,
-		fingerprintBytes:   1000,
 		startAtBeginning:   startAtBeginning,
 		queuedMatches:      make([]string, 0),
 		encoding:           encoding,
 		firstCheck:         true,
 		cancel:             func() {},
 		knownFiles:         make([]*Reader, 0, 10),
+		fingerprintSize:    int(c.FingerprintSize),
 		MaxLogSize:         int(c.MaxLogSize),
 		MaxConcurrentFiles: c.MaxConcurrentFiles,
 		SeenPaths:          make(map[string]struct{}, 100),
