@@ -17,34 +17,18 @@ type Fingerprint struct {
 
 // NewFingerprint creates a new fingerprint from an open file
 func (f *InputOperator) NewFingerprint(file *os.File) (*Fingerprint, error) {
-	return readFingerprint(file, f.fingerprintSize, true)
-}
+	buf := make([]byte, f.fingerprintSize)
 
-func readFingerprint(file *os.File, len int, retryPartial bool) (*Fingerprint, error) {
-	buf := make([]byte, len)
-	n, err := file.Read(buf)
-	if err != nil {
-		if err != io.EOF {
-			return nil, fmt.Errorf("reading fingerprint bytes: %s", err)
-		}
-
-		/*
-			According to file.Read, "At end of file, file.Read returns 0, io.EOF"
-			Therefore, we know the file is smaller than the size of the fingerprint
-			If we wish to track this file at all, we need to reread with a smaller buffer
-		*/
-		if n == 0 && retryPartial {
-			info, err := file.Stat()
-			if err != nil {
-				return nil, fmt.Errorf("reading file size: %s", err)
-			}
-			return readFingerprint(file, int(info.Size()), false)
-		}
+	n, err := file.ReadAt(buf, 0)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("reading fingerprint bytes: %s", err)
 	}
 
-	return &Fingerprint{
+	fp := &Fingerprint{
 		FirstBytes: buf[:n],
-	}, nil
+	}
+
+	return fp, nil
 }
 
 // Copy creates a new copy of hte fingerprint
