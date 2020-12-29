@@ -1372,3 +1372,57 @@ func BenchmarkFileInput(b *testing.B) {
 		})
 	}
 }
+
+// TestExclude tests that a log file will be excluded if it matches the
+// glob specified in the operator.
+func TestExclude(t *testing.T) {
+	tempDir := testutil.NewTempDir(t)
+	paths := WriteTempFiles(tempDir, []string{"include.log", "exclude.log"})
+
+	includes := []string{filepath.Join(tempDir, "*")}
+	excludes := []string{filepath.Join(tempDir, "*exclude.log")}
+
+	matches := getMatches(includes, excludes)
+	require.ElementsMatch(t, matches, paths[:1])
+}
+func TestExcludeEmpty(t *testing.T) {
+	tempDir := testutil.NewTempDir(t)
+	paths := WriteTempFiles(tempDir, []string{"include.log", "exclude.log"})
+
+	includes := []string{filepath.Join(tempDir, "*")}
+	excludes := []string{}
+
+	matches := getMatches(includes, excludes)
+	require.ElementsMatch(t, matches, paths)
+}
+func TestExcludeMany(t *testing.T) {
+	tempDir := testutil.NewTempDir(t)
+	paths := WriteTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
+
+	includes := []string{filepath.Join(tempDir, "*")}
+	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
+
+	matches := getMatches(includes, excludes)
+	require.ElementsMatch(t, matches, paths[2:3])
+}
+func TestExcludeDuplicates(t *testing.T) {
+	tempDir := testutil.NewTempDir(t)
+	paths := WriteTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
+
+	includes := []string{filepath.Join(tempDir, "*1*"), filepath.Join(tempDir, "a*")}
+	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
+
+	matches := getMatches(includes, excludes)
+	require.ElementsMatch(t, matches, paths[2:3])
+}
+
+// writes file with the specified file names and returns their full paths in order
+func WriteTempFiles(tempDir string, names []string) []string {
+	result := make([]string, 0, len(names))
+	for _, name := range names {
+		path := filepath.Join(tempDir, name)
+		ioutil.WriteFile(path, []byte(name), 0755)
+		result = append(result, path)
+	}
+	return result
+}
