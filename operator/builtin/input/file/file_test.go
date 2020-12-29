@@ -1377,7 +1377,7 @@ func BenchmarkFileInput(b *testing.B) {
 // glob specified in the operator.
 func TestExclude(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
-	paths := WriteTempFiles(tempDir, []string{"include.log", "exclude.log"})
+	paths := writeTempFiles(tempDir, []string{"include.log", "exclude.log"})
 
 	includes := []string{filepath.Join(tempDir, "*")}
 	excludes := []string{filepath.Join(tempDir, "*exclude.log")}
@@ -1387,7 +1387,7 @@ func TestExclude(t *testing.T) {
 }
 func TestExcludeEmpty(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
-	paths := WriteTempFiles(tempDir, []string{"include.log", "exclude.log"})
+	paths := writeTempFiles(tempDir, []string{"include.log", "exclude.log"})
 
 	includes := []string{filepath.Join(tempDir, "*")}
 	excludes := []string{}
@@ -1397,7 +1397,7 @@ func TestExcludeEmpty(t *testing.T) {
 }
 func TestExcludeMany(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
-	paths := WriteTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
+	paths := writeTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
 
 	includes := []string{filepath.Join(tempDir, "*")}
 	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
@@ -1407,7 +1407,7 @@ func TestExcludeMany(t *testing.T) {
 }
 func TestExcludeDuplicates(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
-	paths := WriteTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
+	paths := writeTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
 
 	includes := []string{filepath.Join(tempDir, "*1*"), filepath.Join(tempDir, "a*")}
 	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
@@ -1417,7 +1417,7 @@ func TestExcludeDuplicates(t *testing.T) {
 }
 
 // writes file with the specified file names and returns their full paths in order
-func WriteTempFiles(tempDir string, names []string) []string {
+func writeTempFiles(tempDir string, names []string) []string {
 	result := make([]string, 0, len(names))
 	for _, name := range names {
 		path := filepath.Join(tempDir, name)
