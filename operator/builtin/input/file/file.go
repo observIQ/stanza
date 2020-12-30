@@ -171,13 +171,13 @@ func getMatches(includes, excludes []string) []string {
 		for _, match := range matches {
 			for _, exclude := range excludes {
 				if itMatches, _ := filepath.Match(exclude, match); itMatches {
-					break INCLUDE
+					continue INCLUDE
 				}
 			}
 
 			for _, existing := range all {
 				if existing == match {
-					break INCLUDE
+					continue INCLUDE
 				}
 			}
 
