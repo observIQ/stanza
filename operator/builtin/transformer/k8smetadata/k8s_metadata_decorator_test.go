@@ -54,6 +54,7 @@ func TestK8sMetadataDecoratorBuildDefault(t *testing.T) {
 		namespaceField: entry.NewResourceField("k8s.namespace.name"),
 		cacheTTL:       10 * time.Minute,
 		timeout:        10 * time.Second,
+		allowProxy:     false,
 	}
 
 	ops, err := cfg.Build(testutil.NewBuildContext(t))

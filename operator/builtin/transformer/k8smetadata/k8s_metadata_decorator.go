@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+	"net/url"
+	"net/http"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -29,6 +31,7 @@ func NewK8sMetadataDecoratorConfig(operatorID string) *K8sMetadataDecoratorConfi
 		NamespaceField:    entry.NewResourceField("k8s.namespace.name"),
 		CacheTTL:          helper.Duration{Duration: 10 * time.Minute},
 		Timeout:           helper.Duration{Duration: 10 * time.Second},
+		AllowProxy:        false,
 	}
 }
 
@@ -39,6 +42,7 @@ type K8sMetadataDecoratorConfig struct {
 	NamespaceField           entry.Field     `json:"namespace_field,omitempty" yaml:"namespace_field,omitempty"`
 	CacheTTL                 helper.Duration `json:"cache_ttl,omitempty"       yaml:"cache_ttl,omitempty"`
 	Timeout                  helper.Duration `json:"timeout,omitempty"         yaml:"timeout,omitempty"`
+	AllowProxy               bool            `json:"allow_proxy,omitempty"     yaml:"allow_proxy,omitempty"`
 }
 
 // Build will build a k8s_metadata_decorator operator from the supplied configuration
@@ -54,6 +58,7 @@ func (c K8sMetadataDecoratorConfig) Build(context operator.BuildContext) ([]oper
 		namespaceField:      c.NamespaceField,
 		cacheTTL:            c.CacheTTL.Raw(),
 		timeout:             c.Timeout.Raw(),
+		allowProxy:          c.AllowProxy,
 	}
 
 	return []operator.Operator{op}, nil
@@ -73,6 +78,7 @@ type K8sMetadataDecorator struct {
 	podCache       MetadataCache
 	cacheTTL       time.Duration
 	timeout        time.Duration
+	allowProxy     bool
 }
 
 // MetadataCacheEntry is an entry in the metadata cache
@@ -113,6 +119,12 @@ func (k *K8sMetadataDecorator) Start() error {
 			"agent not in kubernetes cluster",
 			"the k8s_metadata_decorator operator only supports running in a pod inside a kubernetes cluster",
 		)
+	}
+
+	if ! k.allowProxy {
+		config.Proxy = func (*http.Request) (*url.URL, error) {
+			return nil, nil
+		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
