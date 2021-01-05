@@ -12,10 +12,6 @@ import (
 )
 
 func TestSyslogParser(t *testing.T) {
-	now := func() time.Time {
-		return time.Date(2020, 06, 16, 3, 31, 34, 525, time.UTC)
-	}
-
 	basicConfig := func() *SyslogParserConfig {
 		cfg := NewSyslogParserConfig("test_operator_id")
 		cfg.OutputIDs = []string{"fake"}
@@ -39,7 +35,7 @@ func TestSyslogParser(t *testing.T) {
 				return cfg
 			}(),
 			"<34>Jan 12 06:30:00 1.2.3.4 apache_server: test message",
-			time.Date(now().Year(), 1, 12, 6, 30, 0, 0, time.UTC),
+			time.Date(time.Now().Year(), 1, 12, 6, 30, 0, 0, time.UTC),
 			map[string]interface{}{
 				"appname":  "apache_server",
 				"facility": 4,
@@ -58,7 +54,7 @@ func TestSyslogParser(t *testing.T) {
 				return cfg
 			}(),
 			[]byte("<34>Jan 12 06:30:00 1.2.3.4 apache_server: test message"),
-			time.Date(now().Year(), 1, 12, 6, 30, 0, 0, time.UTC),
+			time.Date(time.Now().Year(), 1, 12, 6, 30, 0, 0, time.UTC),
 			map[string]interface{}{
 				"appname":  "apache_server",
 				"facility": 4,
