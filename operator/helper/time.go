@@ -38,12 +38,9 @@ type TimeParser struct {
 	Layout     string       `json:"layout,omitempty"      yaml:"layout,omitempty"`
 	LayoutType string       `json:"layout_type,omitempty" yaml:"layout_type,omitempty"`
 	PreserveTo *entry.Field `json:"preserve_to,omitempty" yaml:"preserve_to,omitempty"`
+	Location   string       `json:"location,omitempty"   yaml:"location,omitempty"`
 
-	// If a timestamp layout ends with 'Z', it should be interpretted at Zulu (UTC) time
-	// However, if time.ParseInLocation is used with time.Local, then it will use Local
-	// With time.ParseInLocation, time.Local should be the default only if the timezone
-	// is not specified. So, we just detect this scenario manually and interpret 'Z' as UTC
-	forceUTC bool
+	location *time.Location
 }
 
 // IsZero returns true if the TimeParser is not a valid config
@@ -90,9 +87,33 @@ func (t *TimeParser) Validate(context operator.BuildContext) error {
 		)
 	}
 
-	// also happens if it was originally StrptimeKey
-	t.forceUTC = t.LayoutType == GotimeKey && strings.HasSuffix(t.Layout, "Z")
+	if t.LayoutType == GotimeKey { // also covers StrptimeKey because it was remapped above
+		if err := t.setLocation(); err != nil {
+			return errors.Wrap(err, "invalid 'location'")
+		}
+	}
 
+	return nil
+}
+
+func (t *TimeParser) setLocation() error {
+	if t.Location != "" {
+		// If "location" is specified, it must be in the local timezone database
+		loc, err := time.LoadLocation(t.Location)
+		if err != nil {
+			return err
+		}
+		t.location = loc
+		return nil
+	}
+
+	if strings.HasSuffix(t.Layout, "Z") {
+		// If a timestamp ends with 'Z', it should be interpretted at Zulu (UTC) time
+		t.location = time.UTC
+		return nil
+	}
+
+	t.location = time.Local
 	return nil
 }
 
@@ -150,12 +171,7 @@ func (t *TimeParser) parseGotime(value interface{}) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("type %T cannot be parsed as a time", value)
 	}
 
-	loc := time.Local
-	if t.forceUTC && strings.HasSuffix(str, "Z") {
-		loc = time.UTC
-	}
-
-	result, err := time.ParseInLocation(t.Layout, str, loc)
+	result, err := time.ParseInLocation(t.Layout, str, t.location)
 
 	// Depending on the timezone database, we may get a psuedo-matching timezone
 	// This is apparent when the zone is not "UTC", but the offset is still 0
