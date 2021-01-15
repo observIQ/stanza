@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/kardianos/service v1.2.0
-	github.com/observiq/stanza v0.13.9
+	github.com/observiq/stanza v0.13.10
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
 	github.com/observiq/stanza/operator/builtin/input/windows v0.1.1
 	github.com/observiq/stanza/operator/builtin/output/elastic v0.1.0
