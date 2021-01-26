@@ -4,6 +4,12 @@
 
 <p align="center"><img src="https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true"></p>
 
+# Stanza is moving to OpenTelemetry
+
+Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) project and will be intergrated into the [OpenTelemetry collector](https://github.com/open-telemetry/opentelemetry-collector). 
+
+This repository is in the process of being deprecated. Development will proceed as part of the [OpenTelemetry Log Collection](https://github.com/open-telemetry/opentelemetry-log-collection) repository.
+
 # About Stanza
 
 Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash. Stanza can run as a standalone agent on all major operating systems, or it can be embedded directly into any Golang application.
