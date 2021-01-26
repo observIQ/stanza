@@ -564,22 +564,6 @@ pipeline:
 `,
 		},
 		{
-			name:      "required_default",
-			expectErr: true,
-			template: `version: 0.0.0
-title: Test Plugin
-description: This is a test plugin
-parameters:
-  - name: path
-    label: Parameter
-    description: The thing of the thing
-    required: true
-    type: int
-    default: 123
-pipeline:
-`,
-		},
-		{
 			name:      "non_enum_valid_values",
 			expectErr: true,
 			template: `version: 0.0.0

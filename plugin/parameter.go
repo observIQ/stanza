@@ -105,12 +105,6 @@ func (p Parameter) validateEnumValue(value interface{}) error {
 }
 
 func (p Parameter) validateDefinition() error {
-	if p.Required && p.Default != nil {
-		return errors.NewError(
-			"required parameter cannot have a default value",
-			"ensure that required parameters do not have default values",
-		)
-	}
 
 	if err := p.validateType(); err != nil {
 		return err
