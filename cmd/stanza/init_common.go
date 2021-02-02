@@ -16,6 +16,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/parser/severity"
 	_ "github.com/observiq/stanza/operator/builtin/parser/syslog"
 	_ "github.com/observiq/stanza/operator/builtin/parser/time"
+	_ "github.com/observiq/stanza/operator/builtin/parser/uri"
 
 	_ "github.com/observiq/stanza/operator/builtin/transformer/filter"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/recombine"
