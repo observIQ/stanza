@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - uri_parser operator for parsing [absolute uri, relative uri, and uri query strings](https://tools.ietf.org/html/rfc3986)
+ - container image: added package [tzdata](https://github.com/observIQ/stanza/pull/245)
 
 ## [0.13.12] - 2020-01-26
 
