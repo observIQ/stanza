@@ -58,7 +58,7 @@ Configuration:
 {
   "timestamp": "",
   "record": {
-    "message": "https://dev:securepass@www.google.com/v1/app?user_id=2&uuid=57b4dad2-063c-4965-941c-adfd4098face"
+    "message": "https://dev:pass@google.com/app?user_id=2&token=001"
   }
 }
 ```
@@ -71,13 +71,13 @@ Configuration:
   "timestamp": "",
   "record": {
     "host": "google.com",
-    "path": "/v1/app",
+    "path": "/app",
     "query": {
       "user_id": [
         "2"
       ],
-      "uuid": [
-        "57b4dad2-063c-4965-941c-adfd4098face"
+      "token": [
+        "001"
       ]
     },
     "scheme": "https",
