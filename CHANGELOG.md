@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
-
 - uri_parser operator for parsing [absolute uri, relative uri, and uri query strings](https://tools.ietf.org/html/rfc3986)
- - container image: added package [tzdata](https://github.com/observIQ/stanza/pull/245)
+- container image: added package [tzdata](https://github.com/observIQ/stanza/pull/245)
+
+### Changed
+- Added optional `location` parameter to Syslog operator [pr247](https://github.com/observIQ/stanza/pull/247)
 
 ## [0.13.12] - 2020-01-26
 
