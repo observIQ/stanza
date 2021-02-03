@@ -29,7 +29,7 @@ type SyslogParserConfig struct {
 	helper.ParserConfig `yaml:",inline"`
 
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
-	Location string `json:"location", yaml:"location"`
+	Location string `json:"location,omitempty" yaml:"location,omitempty"`
 }
 
 // Build will build a JSON parser operator.
