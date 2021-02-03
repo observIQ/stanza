@@ -29,6 +29,7 @@ type SyslogParserConfig struct {
 	helper.ParserConfig `yaml:",inline"`
 
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	Location string `json:"location", yaml:"location"`
 }
 
 // Build will build a JSON parser operator.
@@ -50,18 +51,28 @@ func (c SyslogParserConfig) Build(context operator.BuildContext) ([]operator.Ope
 		return nil, fmt.Errorf("missing field 'protocol'")
 	}
 
+	if c.Location == "" {
+		c.Location = "UTC"
+	}
+
+	location, err := time.LoadLocation(c.Location)
+	if err != nil {
+		return nil, err
+	}
+
 	syslogParser := &SyslogParser{
 		ParserOperator: parserOperator,
 		protocol:       c.Protocol,
+		location:       location,
 	}
 
 	return []operator.Operator{syslogParser}, nil
 }
 
-func buildMachine(protocol string) (sl.Machine, error) {
+func buildMachine(protocol string, location *time.Location) (sl.Machine, error) {
 	switch protocol {
 	case "rfc3164":
-		return rfc3164.NewMachine(), nil
+		return rfc3164.NewMachine(rfc3164.WithLocaleTimezone(location)), nil
 	case "rfc5424":
 		return rfc5424.NewMachine(), nil
 	default:
@@ -73,6 +84,7 @@ func buildMachine(protocol string) (sl.Machine, error) {
 type SyslogParser struct {
 	helper.ParserOperator
 	protocol string
+	location *time.Location
 }
 
 // Process will parse an entry field as syslog.
@@ -90,7 +102,7 @@ func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	machine, err := buildMachine(s.protocol)
+	machine, err := buildMachine(s.protocol, s.location)
 	if err != nil {
 		return nil, err
 	}
