@@ -183,6 +183,60 @@ func TestSyslogParser(t *testing.T) {
 			entry.Info,
 			"info",
 		},
+		{
+			"RFC5424-possible-carriage-return-tripple-escape",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			"<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user=\"USER\\\\\\rap\"] my message",
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"message":  "my message",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"user": "USER\\rap",
+					},
+				},
+				"version": 1,
+			},
+			entry.Info,
+			"info",
+		},
+		{
+			"RFC5424-possible-carriage-return-single-escape",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			"<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user=\"USER\\rap\"] my message",
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"message":  "my message",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"user": "USERrap",
+					},
+				},
+				"version": 1,
+			},
+			entry.Info,
+			"info",
+		},
 	}
 
 	for _, tc := range cases {
@@ -209,6 +263,44 @@ func TestSyslogParser(t *testing.T) {
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")
 			}
+		})
+	}
+}
+
+func TestHandleLineBreaks(t *testing.T) {
+	cases := []struct {
+		name                 string
+		inputRecord          string
+		expectedOutput       string
+	}{
+		{
+			"RFC5424-possible-carriage-return-single-escape",
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\rap"] my message`,
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USERrap"] my message`,
+		},
+		{
+			"RFC5424-possible-carriage-return-double-escape",
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\\rap"] my message`,
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\rap"] my message`,
+		},
+		{
+			"RFC5424-possible-carriage-return-tripple-escape",
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\\\rap"] my message`,
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\\rap"] my message`,
+		},
+		{
+			"RFC5424-possible-carriage-return-six-escape",
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\\\\\\rap"] my message`,
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="USER\\\\\rap"] my message`,
+		},
+	}
+
+	for _, tc := range cases {
+		input := []byte(tc.inputRecord)
+
+		t.Run(tc.name, func(t *testing.T) {
+			actual := string(handleLineBreaks(input))
+			require.Equal(t, tc.expectedOutput, actual)
 		})
 	}
 }

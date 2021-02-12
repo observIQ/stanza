@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"bytes"
 
 	sl "github.com/observiq/go-syslog/v3"
 	"github.com/observiq/go-syslog/v3/rfc3164"
@@ -97,17 +98,19 @@ func (s *SyslogParser) Process(ctx context.Context, entry *entry.Entry) error {
 
 // parse will parse a value as syslog.
 func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
-	bytes, err := toBytes(value)
+	b, err := toBytes(value)
 	if err != nil {
 		return nil, err
 	}
+
+	b = handleLineBreaks(b)
 
 	machine, err := buildMachine(s.protocol, s.location)
 	if err != nil {
 		return nil, err
 	}
 
-	slog, err := machine.Parse(bytes)
+	slog, err := machine.Parse(b)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +206,15 @@ func toBytes(value interface{}) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unable to convert type '%T' to bytes", value)
 	}
+}
+
+func handleLineBreaks(b []byte) []byte {
+	// \r will cause the syslog parser to fail with 'expecting chars
+	// `]`, `\"`, and `\\` to be escaped within param value [col N]'
+	if bytes.Contains(b, []byte(`\r`)) {
+		b = bytes.ReplaceAll(b, []byte(`\r`), []byte("r"))
+	}
+	return b
 }
 
 var severityMapping = [...]entry.Severity{
