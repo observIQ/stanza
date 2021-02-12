@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Issue where Syslog parser would fail if `\r` was in the message [PR248](https://github.com/observIQ/stanza/pull/248)
+
 ### Added
 - uri_parser operator for parsing [absolute uri, relative uri, and uri query strings](https://tools.ietf.org/html/rfc3986)
 - container image: added package [tzdata](https://github.com/observIQ/stanza/pull/245)
