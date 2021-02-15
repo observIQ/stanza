@@ -20,7 +20,7 @@ The `tcp_input` operator listens for logs on one or more TCP connections. The op
 Configuration:
 ```yaml
 - type: tcp_input
-  listen_adress: "0.0.0.0:54525"
+  listen_address: "0.0.0.0:54525"
 ```
 
 Send a log:
