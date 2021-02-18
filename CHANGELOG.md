@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Added optional `location` parameter to Syslog operator [pr247](https://github.com/observIQ/stanza/pull/247)
+- Updated Google Cloud output version to v0.1.2 [pr250](https://github.com/observIQ/stanza/pull/250)
 
 ## [0.13.12] - 2020-01-26
 
