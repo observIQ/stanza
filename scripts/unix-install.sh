@@ -984,6 +984,12 @@ request_service_replacement()
   esac
 }
 
+# Set file permissiosn
+set_permissions()
+{
+    chown -R $service_user:$service_user $agent_home
+}
+
 # This will display the results of an installation
 display_results()
 {
@@ -1039,6 +1045,7 @@ main()
   setup_installation
   install_package
   generate_config
+  set_permissions
   install_service
   display_results
 }
