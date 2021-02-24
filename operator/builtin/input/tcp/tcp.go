@@ -105,7 +105,7 @@ func (t *TCPInput) Start() error {
 
 func (t *TCPInput) configureListener() error {
 	if ! t.tlsConfig.Enable {
-		listener, err = net.Listen("tcp", t.address)
+		listener, err := net.Listen("tcp", t.address)
 		if err != nil {
 			return fmt.Errorf("failed to configure tcp listener: %w", err)
 		}
@@ -122,7 +122,7 @@ func (t *TCPInput) configureListener() error {
 	config.Time = func() time.Time { return time.Now() }
 	config.Rand = rand.Reader
 
-	listener, err = tls.Listen("tcp", t.address, &config)
+	listener, err := tls.Listen("tcp", t.address, &config)
 	if err != nil {
 		return fmt.Errorf("failed to configure tls listener: %w", err)
 	}
