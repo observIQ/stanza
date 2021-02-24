@@ -62,6 +62,7 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
+	cert := tls.Certificate{}
 	if c.TLS.Enable {
 		if c.TLS.Certificate == "" {
 			return nil, fmt.Errorf("missing required parameter 'certificate', required when TLS is enabled")
@@ -70,12 +71,19 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		if c.TLS.PrivateKey == "" {
 			return nil, fmt.Errorf("missing required parameter 'private_key', required when TLS is enabled")
 		}
+
+		c, err := tls.LoadX509KeyPair(c.TLS.Certificate, c.TLS.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tls certificate: %w", err)
+		}
+		cert = c
 	}
 
 	tcpInput := &TCPInput{
 		InputOperator: inputOperator,
 		address:       c.ListenAddress,
-		tlsConfig:     c.TLS,
+		tlsEnable:     c.TLS.Enable,
+		tlsKeyPair:    cert,
 	}
 	return []operator.Operator{tcpInput}, nil
 }
@@ -84,7 +92,8 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 type TCPInput struct {
 	helper.InputOperator
 	address   string
-	tlsConfig TLSConfig
+	tlsEnable  bool
+	tlsKeyPair tls.Certificate
 
 	listener net.Listener
 	cancel   context.CancelFunc
@@ -104,7 +113,7 @@ func (t *TCPInput) Start() error {
 }
 
 func (t *TCPInput) configureListener() error {
-	if ! t.tlsConfig.Enable {
+	if ! t.tlsEnable {
 		listener, err := net.Listen("tcp", t.address)
 		if err != nil {
 			return fmt.Errorf("failed to configure tcp listener: %w", err)
@@ -113,12 +122,7 @@ func (t *TCPInput) configureListener() error {
 		return nil
 	}
 
-	cert, err := tls.LoadX509KeyPair(t.tlsConfig.Certificate, t.tlsConfig.PrivateKey)
-	if err != nil {
-		return fmt.Errorf("failed to load tls certificate: %w", err)
-	}
-
-	config := tls.Config{Certificates: []tls.Certificate{cert}}
+	config := tls.Config{Certificates: []tls.Certificate{t.tlsKeyPair}}
 	config.Time = func() time.Time { return time.Now() }
 	config.Rand = rand.Reader
 
