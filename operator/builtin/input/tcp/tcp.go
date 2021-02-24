@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
+	"crypto/rand"
+	"crypto/tls"
 
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
@@ -27,7 +30,20 @@ func NewTCPInputConfig(operatorID string) *TCPInputConfig {
 type TCPInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
-	ListenAddress string `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	ListenAddress string    `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	TLS           TLSConfig `json:"tls,omitempty" yaml:"tls,omitempty"`
+}
+
+// TLSConfig is the configuration for a TLS listener
+type TLSConfig struct {
+	// Enable forces the user of TLS
+	Enable     bool    `json:"enable,omitempty" yaml:"enable,omitempty"`
+
+	// Certificate is the file path for the certificate
+	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+
+	// PrivateKey is the file path for the private key
+	PrivateKey  string `json:"private_key,omitempty" yaml:"private_key,omitempty"`
 }
 
 // Build will build a tcp input operator.
@@ -41,14 +57,25 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		return nil, fmt.Errorf("missing required parameter 'listen_address'")
 	}
 
-	address, err := net.ResolveTCPAddr("tcp", c.ListenAddress)
-	if err != nil {
+	// validate the input address
+	if _, err := net.ResolveTCPAddr("tcp", c.ListenAddress); err != nil {
 		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
+	}
+
+	if c.TLS.Enable {
+		if c.TLS.Certificate == "" {
+			return nil, fmt.Errorf("missing required parameter 'certificate', required when TLS is enabled")
+		}
+
+		if c.TLS.PrivateKey == "" {
+			return nil, fmt.Errorf("missing required parameter 'private_key', required when TLS is enabled")
+		}
 	}
 
 	tcpInput := &TCPInput{
 		InputOperator: inputOperator,
-		address:       address,
+		address:       c.ListenAddress,
+		tlsConfig:     c.TLS,
 	}
 	return []operator.Operator{tcpInput}, nil
 }
@@ -56,24 +83,51 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 // TCPInput is an operator that listens for log entries over tcp.
 type TCPInput struct {
 	helper.InputOperator
-	address *net.TCPAddr
+	address   string
+	tlsConfig TLSConfig
 
-	listener *net.TCPListener
+	listener net.Listener
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
 }
 
 // Start will start listening for log entries over tcp.
 func (t *TCPInput) Start() error {
-	listener, err := net.ListenTCP("tcp", t.address)
-	if err != nil {
+	if err := t.configureListener(); err != nil {
 		return fmt.Errorf("failed to listen on interface: %w", err)
 	}
 
-	t.listener = listener
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancel = cancel
 	t.goListen(ctx)
+	return nil
+}
+
+func (t *TCPInput) configureListener() error {
+	if ! t.tlsConfig.Enable {
+		listener, err = net.Listen("tcp", t.address)
+		if err != nil {
+			return fmt.Errorf("failed to configure tcp listener: %w", err)
+		}
+		t.listener = listener
+		return nil
+	}
+
+	cert, err := tls.LoadX509KeyPair(t.tlsConfig.Certificate, t.tlsConfig.PrivateKey)
+	if err != nil {
+		return fmt.Errorf("failed to load tls certificate: %w", err)
+	}
+
+	config := tls.Config{Certificates: []tls.Certificate{cert}}
+	config.Time = func() time.Time { return time.Now() }
+	config.Rand = rand.Reader
+
+	listener, err = tls.Listen("tcp", t.address, &config)
+	if err != nil {
+		return fmt.Errorf("failed to configure tls listener: %w", err)
+	}
+
+	t.listener = listener
 	return nil
 }
 
@@ -85,7 +139,7 @@ func (t *TCPInput) goListen(ctx context.Context) {
 		defer t.wg.Done()
 
 		for {
-			conn, err := t.listener.AcceptTCP()
+			conn, err := t.listener.Accept()
 			if err != nil {
 				select {
 				case <-ctx.Done():
