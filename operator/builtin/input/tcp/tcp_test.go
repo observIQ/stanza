@@ -218,15 +218,7 @@ func TestBuild(t *testing.T) {
 		{
 			"buffer-size-valid-min",
 			TCPInputConfig{
-				MaxBufferSize: 1,
-				ListenAddress: "10.0.0.1:9000",
-			},
-			false,
-		},
-		{
-			"buffer-size-valid-max",
-			TCPInputConfig{
-				MaxBufferSize: 10,
+				MaxBufferSize: 65536,
 				ListenAddress: "10.0.0.1:9000",
 			},
 			false,
@@ -240,17 +232,9 @@ func TestBuild(t *testing.T) {
 			true,
 		},
 		{
-			"buffer-size-to-high",
-			TCPInputConfig{
-				MaxBufferSize: 11,
-				ListenAddress: "10.0.0.1:9000",
-			},
-			true,
-		},
-		{
 			"tls-disabled-with-keypair-set",
 			TCPInputConfig{
-				MaxBufferSize: 1,
+				MaxBufferSize: 65536,
 				ListenAddress: "10.0.0.1:9000",
 				TLS: TLSConfig{
 					Enable: false,
@@ -263,7 +247,7 @@ func TestBuild(t *testing.T) {
 		{
 			"tls-enabled-with-no-such-file-error",
 			TCPInputConfig{
-				MaxBufferSize: 1,
+				MaxBufferSize: 65536,
 				ListenAddress: "10.0.0.1:9000",
 				TLS: TLSConfig{
 					Enable: true,

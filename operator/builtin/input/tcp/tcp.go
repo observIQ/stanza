@@ -15,6 +15,16 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// InitialBufferSize is the initial size used for buffering
+	// TCP input
+	InitialBufferSize = 64*1024
+
+	// DefaultMaxBufferSize is the max buffer sized used
+	// if MaxBufferSize is not set
+	DefaultMaxBufferSize = 1024*1024
+)
+
 func init() {
 	operator.Register("tcp_input", func() operator.Builder { return NewTCPInputConfig("") })
 }
@@ -30,7 +40,7 @@ func NewTCPInputConfig(operatorID string) *TCPInputConfig {
 type TCPInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
-	MaxBufferSize int       `json:"max_buffer_size,omitempty" yaml:"max_buffer_size,omitempty"`
+	MaxBufferSize helper.ByteSize `json:"max_buffer_size,omitempty" yaml:"max_buffer_size,omitempty"`
 	ListenAddress string    `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 	TLS           TLSConfig `json:"tls,omitempty" yaml:"tls,omitempty"`
 }
@@ -54,16 +64,15 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		return nil, err
 	}
 
-	if c.MaxBufferSize < 0 || c.MaxBufferSize > 10 {
-		return nil, fmt.Errorf("invalid value for parameter 'max_buffer_size', must be between 1 and 10")
-	} else if c.MaxBufferSize == 0 {
-		// default to 1MB in order to remain backwards compatible
-		// with existing plugins and configurations
-		c.MaxBufferSize = 1
+	// If MaxBufferSize not set, set sane default in order to remain
+	// backwards compatible with existing plugins and configurations
+	if c.MaxBufferSize == 0 {
+		c.MaxBufferSize = DefaultMaxBufferSize
 	}
 
-	// convert megabytes to kilobytes
-	maxBufferSize := c.MaxBufferSize*1024
+	if c.MaxBufferSize < InitialBufferSize {
+		return nil, fmt.Errorf("invalid value for parameter 'max_buffer_size', must be equal to or greater than %d bytes", InitialBufferSize)
+	}
 
 	if c.ListenAddress == "" {
 		return nil, fmt.Errorf("missing required parameter 'listen_address'")
@@ -94,7 +103,7 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 	tcpInput := &TCPInput{
 		InputOperator: inputOperator,
 		address:       c.ListenAddress,
-		maxBufferSize: maxBufferSize,
+		maxBufferSize: int(c.MaxBufferSize),
 		tlsEnable:     c.TLS.Enable,
 		tlsKeyPair:    cert,
 	}
