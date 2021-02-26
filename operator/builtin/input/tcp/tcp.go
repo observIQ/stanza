@@ -57,6 +57,8 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 	if c.MaxBufferSize < 0 || c.MaxBufferSize > 10 {
 		return nil, fmt.Errorf("invalid value for parameter 'max_buffer_size', must be between 1 and 10")
 	} else if c.MaxBufferSize == 0 {
+		// default to 1MB in order to remain backwards compatible
+		// with existing plugins and configurations
 		c.MaxBufferSize = 1
 	}
 
