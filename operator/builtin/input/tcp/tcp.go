@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	// InitialBufferSize is the initial size used for buffering
+	// minBufferSize is the initial size used for buffering
 	// TCP input
-	InitialBufferSize = 64*1024
+	minBufferSize = 64*1024
 
 	// DefaultMaxBufferSize is the max buffer sized used
 	// if MaxBufferSize is not set
@@ -70,8 +70,8 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		c.MaxBufferSize = DefaultMaxBufferSize
 	}
 
-	if c.MaxBufferSize < InitialBufferSize {
-		return nil, fmt.Errorf("invalid value for parameter 'max_buffer_size', must be equal to or greater than %d bytes", InitialBufferSize)
+	if c.MaxBufferSize < minBufferSize {
+		return nil, fmt.Errorf("invalid value for parameter 'max_buffer_size', must be equal to or greater than %d bytes", minBufferSize)
 	}
 
 	if c.ListenAddress == "" {
