@@ -15,6 +15,16 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// minBufferSize is the initial size used for buffering
+	// TCP input
+	minBufferSize = 64*1024
+
+	// DefaultMaxBufferSize is the max buffer sized used
+	// if MaxBufferSize is not set
+	DefaultMaxBufferSize = 1024*1024
+)
+
 func init() {
 	operator.Register("tcp_input", func() operator.Builder { return NewTCPInputConfig("") })
 }
@@ -30,6 +40,7 @@ func NewTCPInputConfig(operatorID string) *TCPInputConfig {
 type TCPInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
+	MaxBufferSize helper.ByteSize `json:"max_buffer_size,omitempty" yaml:"max_buffer_size,omitempty"`
 	ListenAddress string    `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 	TLS           TLSConfig `json:"tls,omitempty" yaml:"tls,omitempty"`
 }
@@ -51,6 +62,16 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
+	}
+
+	// If MaxBufferSize not set, set sane default in order to remain
+	// backwards compatible with existing plugins and configurations
+	if c.MaxBufferSize == 0 {
+		c.MaxBufferSize = DefaultMaxBufferSize
+	}
+
+	if c.MaxBufferSize < minBufferSize {
+		return nil, fmt.Errorf("invalid value for parameter 'max_buffer_size', must be equal to or greater than %d bytes", minBufferSize)
 	}
 
 	if c.ListenAddress == "" {
@@ -82,6 +103,7 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 	tcpInput := &TCPInput{
 		InputOperator: inputOperator,
 		address:       c.ListenAddress,
+		maxBufferSize: int(c.MaxBufferSize),
 		tlsEnable:     c.TLS.Enable,
 		tlsKeyPair:    cert,
 	}
@@ -91,9 +113,10 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 // TCPInput is an operator that listens for log entries over tcp.
 type TCPInput struct {
 	helper.InputOperator
-	address   string
-	tlsEnable  bool
-	tlsKeyPair tls.Certificate
+	address       string
+	maxBufferSize int
+	tlsEnable     bool
+	tlsKeyPair    tls.Certificate
 
 	listener net.Listener
 	cancel   context.CancelFunc
@@ -183,7 +206,10 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 		defer t.wg.Done()
 		defer cancel()
 
+        // Initial buffer size is 64k
+        buf := make([]byte, 0, 64 * 1024)
 		scanner := bufio.NewScanner(conn)
+        scanner.Buffer(buf, t.maxBufferSize * 1024)
 		for scanner.Scan() {
 			entry, err := t.NewEntry(scanner.Text())
 			if err != nil {
