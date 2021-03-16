@@ -87,6 +87,66 @@ func TestParserCSV(t *testing.T) {
         "position": "agent",
       },
     },
+		{
+      "empty field",
+      func(p *CSVParserConfig) {
+        p.Header = "name,address,age,phone,position"
+        p.FieldDelimiter = testDelimiter
+      },
+      "stanza,Evergreen,,555-5555,agent",
+      map[string]interface{}{
+        "name": "stanza",
+        "address": "Evergreen",
+        "age": "",
+        "phone": "555-5555",
+        "position": "agent",
+      },
+    },
+		{
+      "tab delimiter",
+      func(p *CSVParserConfig) {
+        p.Header = "name	address	age	phone	position"
+        p.FieldDelimiter = "\t"
+      },
+      "stanza	Evergreen	1	555-5555	agent",
+      map[string]interface{}{
+        "name": "stanza",
+        "address": "Evergreen",
+        "age": "1",
+        "phone": "555-5555",
+        "position": "agent",
+      },
+    },
+		{
+      "comma in quotes",
+      func(p *CSVParserConfig) {
+        p.Header = "name,address,age,phone,position"
+        p.FieldDelimiter = testDelimiter
+      },
+      "stanza,\"Evergreen,49508\",1,555-5555,agent",
+      map[string]interface{}{
+        "name": "stanza",
+        "address": "Evergreen,49508",
+        "age": "1",
+        "phone": "555-5555",
+        "position": "agent",
+      },
+    },
+		{
+      "quotes in quotes",
+      func(p *CSVParserConfig) {
+        p.Header = "name,address,age,phone,position"
+        p.FieldDelimiter = testDelimiter
+      },
+      "\"bob \"\"the man\"\"\",Evergreen,1,555-5555,agent",
+      map[string]interface{}{
+        "name": "bob \"the man\"",
+        "address": "Evergreen",
+        "age": "1",
+        "phone": "555-5555",
+        "position": "agent",
+      },
+    },
 	}
 
 	for _, tc := range cases {
