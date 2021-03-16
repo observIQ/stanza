@@ -87,6 +87,26 @@ func TestParserCSV(t *testing.T) {
         "position": "agent",
       },
     },
+    {
+      "mariadb-audit-log",
+      func(p *CSVParserConfig) {
+        p.Header = "timestamp,serverhost,username,host,connectionid,queryid,operation,database,object,retcode"
+        p.FieldDelimiter = ","
+      },
+      "20210316 17:08:01,oiq-int-mysql,load,oiq-int-mysql.bluemedora.localnet,5,0,DISCONNECT,,,0",
+      map[string]interface{}{
+        "timestamp": "20210316 17:08:01",
+        "serverhost": "oiq-int-mysql",
+        "username": "load",
+        "host": "oiq-int-mysql.bluemedora.localnet",
+        "connectionid": "5",
+        "queryid": "0",
+        "operation": "DISCONNECT",
+        "database": "",
+        "object": "",
+        "retcode": "0",
+      },
+    },
 		{
       "empty field",
       func(p *CSVParserConfig) {
@@ -208,19 +228,12 @@ func TestBuildParserRegex(t *testing.T) {
     require.Error(t, err)
   })
 
-	/*t.Run("NoNamedGroups", func(t *testing.T) {
+	t.Run("InvalidDelemiter", func(t *testing.T) {
 		c := newBasicCSVParser()
-		c.Regex = ".*"
+		c.Header = "name,position,number"
+    c.FieldDelimiter = ":"
 		_, err := c.Build(testutil.NewBuildContext(t))
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "no named capture groups")
+		require.Contains(t, err.Error(), "missing field delimiter in header")
 	})
-
-	t.Run("NoNamedGroups", func(t *testing.T) {
-		c := newBasicCSVParser()
-		c.Regex = "(.*)"
-		_, err := c.Build(testutil.NewBuildContext(t))
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "no named capture groups")
-	})*/
 }
