@@ -11,6 +11,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/input/tcp"
 	_ "github.com/observiq/stanza/operator/builtin/input/udp"
 
+  _ "github.com/observiq/stanza/operator/builtin/parser/csv"
 	_ "github.com/observiq/stanza/operator/builtin/parser/json"
 	_ "github.com/observiq/stanza/operator/builtin/parser/regex"
 	_ "github.com/observiq/stanza/operator/builtin/parser/severity"
