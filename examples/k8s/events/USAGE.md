@@ -38,4 +38,4 @@ kubectl apply -f deployment.yaml
 
 Log into Google Cloud Logging
 
-![Events](./assets/events.jpg)
+![Events](./assets/events.png)
