@@ -3,9 +3,9 @@ package csv
 import (
 	//"io"
 	"context"
+	csvparser "encoding/csv"
 	"fmt"
 	"strings"
-	csvparser "encoding/csv"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
@@ -110,27 +110,8 @@ func (r *CSVParser) parse(value interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("expected to parse a single csv record, got '%d'", l)
 	}
 
-	/*numFields := reader.FieldsPerRecord
-	if numFields != len(record[0]) {
-		return nil, fmt.Errorf("entry does not match csv header")
-	}*/
-
 	for i, key := range strings.Split(r.header, delimiterStr) {
 		parsedValues[key] = record[0][i]
 	}
 	return parsedValues, nil
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
