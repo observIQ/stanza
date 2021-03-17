@@ -11,12 +11,10 @@ import (
 )
 
 var testHeader = "name,sev,msg"
-var testDelimiter = ","
 
 func newTestParser(t *testing.T) *CSVParser {
 	cfg := NewCSVParserConfig("test")
 	cfg.Header = testHeader
-  cfg.FieldDelimiter = testDelimiter
 	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
 	op := ops[0]
@@ -63,7 +61,6 @@ func TestParserCSV(t *testing.T) {
 			"basic",
 			func(p *CSVParserConfig) {
 				p.Header = testHeader
-        p.FieldDelimiter = testDelimiter
 			},
 			"stanza,INFO,started agent",
 			map[string]interface{}{
@@ -91,7 +88,6 @@ func TestParserCSV(t *testing.T) {
       "mariadb-audit-log",
       func(p *CSVParserConfig) {
         p.Header = "timestamp,serverhost,username,host,connectionid,queryid,operation,database,object,retcode"
-        p.FieldDelimiter = ","
       },
       "20210316 17:08:01,oiq-int-mysql,load,oiq-int-mysql.bluemedora.localnet,5,0,DISCONNECT,,,0",
       map[string]interface{}{
@@ -111,7 +107,6 @@ func TestParserCSV(t *testing.T) {
       "empty field",
       func(p *CSVParserConfig) {
         p.Header = "name,address,age,phone,position"
-        p.FieldDelimiter = testDelimiter
       },
       "stanza,Evergreen,,555-5555,agent",
       map[string]interface{}{
@@ -141,7 +136,6 @@ func TestParserCSV(t *testing.T) {
       "comma in quotes",
       func(p *CSVParserConfig) {
         p.Header = "name,address,age,phone,position"
-        p.FieldDelimiter = testDelimiter
       },
       "stanza,\"Evergreen,49508\",1,555-5555,agent",
       map[string]interface{}{
@@ -156,7 +150,6 @@ func TestParserCSV(t *testing.T) {
       "quotes in quotes",
       func(p *CSVParserConfig) {
         p.Header = "name,address,age,phone,position"
-        p.FieldDelimiter = testDelimiter
       },
       "\"bob \"\"the man\"\"\",Evergreen,1,555-5555,agent",
       map[string]interface{}{

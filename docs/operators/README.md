@@ -15,6 +15,7 @@ Inputs:
 - [Generate](/docs/operators/generate_input.md)
 
 Parsers:
+- [CSV](/docs/operators/csv_parser.md)
 - [JSON](/docs/operators/json_parser.md)
 - [Regex](/docs/operators/regex_parser.md)
 - [Syslog](/docs/operators/syslog_parser.md)

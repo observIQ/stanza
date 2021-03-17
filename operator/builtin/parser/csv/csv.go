@@ -27,7 +27,7 @@ type CSVParserConfig struct {
 	helper.ParserConfig `yaml:",inline"`
 
 	Header         string `json:"header" yaml:"header"`
-	FieldDelimiter string `json:"delimiter" yaml:"delimiter"`
+	FieldDelimiter string `json:"delimiter,omitempty" yaml:"delimiter,omitempty"`
 }
 
 // Build will build a csv parser operator.
@@ -42,7 +42,7 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 	}
 
 	if c.FieldDelimiter == "" {
-		return nil, fmt.Errorf("missing required field 'delimiter'")
+		c.FieldDelimiter = ","
 	}
 
 	if len(c.FieldDelimiter) != 1 {
