@@ -4,6 +4,7 @@ import (
 	"context"
 	csvparser "encoding/csv"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/observiq/stanza/entry"
@@ -99,18 +100,19 @@ func (r *CSVParser) parse(value interface{}) (interface{}, error) {
 	reader.FieldsPerRecord = r.numFields
 	parsedValues := make(map[string]interface{})
 
-	record, err := reader.ReadAll()
-	if err != nil {
-		return nil, err
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		for i, key := range strings.Split(r.header, delimiterStr) {
+			parsedValues[key] = record[i]
+		}
 	}
 
-	l := len(record)
-	if l != 1 {
-		return nil, fmt.Errorf("expected to parse a single csv record, got '%d'", l)
-	}
-
-	for i, key := range strings.Split(r.header, delimiterStr) {
-		parsedValues[key] = record[0][i]
-	}
 	return parsedValues, nil
 }
