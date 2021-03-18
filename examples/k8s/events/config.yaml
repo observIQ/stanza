@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stanza-agent
+  namespace: default
+data:
+  config.yaml: |
+    pipeline:
+    - type: kubernetes_events
+      cluster_name: CHANGE_ME
+    - credentials_file: /stanza_home/log_destinations/google_cloud/log_credentials.json
+      project_id: CHANGE_ME
+      type: google_cloud_output

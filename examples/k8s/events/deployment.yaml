@@ -1,0 +1,70 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+   name: stanza-agent-events-persistent-volume
+   namespace: default
+spec:
+   accessModes:
+      - ReadWriteOnce
+   resources:
+      requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stanza-agent-cluster-events
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: stanza-agent-cluster-events
+  template:
+    metadata:
+      labels:
+        name: stanza-agent-cluster-events
+    spec:
+      serviceAccountName: stanza-agent
+      containers:
+        - image: observiq/stanza:0.13.16
+          imagePullPolicy: Always
+          name: stanza-agent
+          command:
+            - /stanza_home/stanza
+          args:
+            - --config
+            - /stanza_home/config.yaml
+            - --database
+            - /stanza_home/database/stanza.db
+            - --plugin_dir
+            - /stanza_home/plugins
+          resources:
+            limits:
+              memory: "250Mi"
+              cpu: 250m
+            requests:
+              memory: "250Mi"
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /stanza_home/config.yaml
+              subPath: config.yaml
+              name: stanza-agent
+            - mountPath: /stanza_home/log_destinations/google_cloud/log_credentials.json
+              subPath: log_credentials.json
+              name: stanza-agent-credentials
+            - mountPath: /stanza_home/database
+              name: stanza-agent-events-persistent-volume
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: stanza-agent
+          configMap:
+            name: stanza-agent
+        - name: stanza-agent-credentials
+          secret:
+            secretName: stanza-agent-credentials
+        - name: stanza-agent-events-persistent-volume
+          persistentVolumeClaim:
+            claimName: stanza-agent-events-persistent-volume
