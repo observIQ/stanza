@@ -29,6 +29,15 @@ func TestCSVParserBuildFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid `on_error` field")
 }
 
+func TestCSVParserBuildFailureInvalidDelimiter(t *testing.T) {
+	cfg := NewCSVParserConfig("test")
+	cfg.Header = testHeader
+	cfg.FieldDelimiter = ";;"
+	_, err := cfg.Build(testutil.NewBuildContext(t))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Invalid 'delimiter': ';;'")
+}
+
 func TestCSVParserStringFailure(t *testing.T) {
 	parser := newTestParser(t)
 	_, err := parser.parse("invalid")
@@ -185,7 +194,7 @@ func TestParserCSV(t *testing.T) {
 	}
 }
 
-func TestBuildParserRegex(t *testing.T) {
+func TestBuildParserCSV(t *testing.T) {
 	newBasicCSVParser := func() *CSVParserConfig {
 		cfg := NewCSVParserConfig("test")
 		cfg.OutputIDs = []string{"test"}
@@ -212,6 +221,7 @@ func TestBuildParserRegex(t *testing.T) {
 		c.Header = "name"
 		_, err := c.Build(testutil.NewBuildContext(t))
 		require.Error(t, err)
+		require.Contains(t, err.Error(), "missing field delimiter in header")
 	})
 
   t.Run("InvalidHeaderFieldWrongDelimiter", func(t *testing.T) {
@@ -221,7 +231,7 @@ func TestBuildParserRegex(t *testing.T) {
     require.Error(t, err)
   })
 
-	t.Run("InvalidDelemiter", func(t *testing.T) {
+	t.Run("InvalidDelimiter", func(t *testing.T) {
 		c := newBasicCSVParser()
 		c.Header = "name,position,number"
     c.FieldDelimiter = ":"

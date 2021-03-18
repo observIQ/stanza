@@ -38,22 +38,22 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 	}
 
 	if c.Header == "" {
-		return nil, fmt.Errorf("missing required field 'header'")
+		return nil, fmt.Errorf("Missing required field 'header'")
 	}
 
 	if c.FieldDelimiter == "" {
 		c.FieldDelimiter = ","
 	}
 
-	if len(c.FieldDelimiter) != 1 {
-		return nil, fmt.Errorf("length of field 'delimiter' must be one, got '%d'", len(c.FieldDelimiter))
+	if len([]rune(c.FieldDelimiter)) != 1 {
+		return nil, fmt.Errorf("Invalid 'delimiter': '%s'", c.FieldDelimiter)
 	}
+
+	fieldDelimiter := []rune(c.FieldDelimiter)[0]
 
 	if ! strings.Contains(c.Header, c.FieldDelimiter) {
 		return nil, fmt.Errorf("missing field delimiter in header")
 	}
-
-	fieldDelimiter := []rune(c.FieldDelimiter)[0]
 
 	numFields := len(strings.Split(c.Header, c.FieldDelimiter))
 
