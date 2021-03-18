@@ -1,4 +1,4 @@
-# Kubernetes Events
+# Kubernetes Events w/ Google Cloud Logging
 
 Stanza can be deployed as a Kubernetes Events collector by leveraging the [k8s_event_input](https://github.com/observIQ/stanza/blob/master/docs/operators/k8s_event_input.md) operator.
 
@@ -7,6 +7,7 @@ Stanza can be deployed as a Kubernetes Events collector by leveraging the [k8s_e
 1. Service account with permission to the Kubernetes API server
 2. Config map: Contains the stanza configuration file
 3. Credentials secret: Contains Google Cloud [service account credentials JSON file](https://cloud.google.com/docs/authentication/getting-started)
+  - This account should have [roles/logging.logWriter](https://cloud.google.com/logging/docs/access-control)
 4. Persistent volume: Allows the stanza database to persist between restarts and pod evictions
 5. Deployment: A single replica deployment for the agent
 
