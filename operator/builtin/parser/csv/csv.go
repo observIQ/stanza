@@ -51,7 +51,7 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 
 	fieldDelimiter := []rune(c.FieldDelimiter)[0]
 
-	if ! strings.Contains(c.Header, c.FieldDelimiter) {
+	if !strings.Contains(c.Header, c.FieldDelimiter) {
 		return nil, fmt.Errorf("missing field delimiter in header")
 	}
 
@@ -92,7 +92,7 @@ func (r *CSVParser) parse(value interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("type '%T' cannot be parsed as csv", value)
 	}
 
-  delimiterStr := string([]rune{r.fieldDelimiter})
+	delimiterStr := string([]rune{r.fieldDelimiter})
 
 	reader := csvparser.NewReader(strings.NewReader(csvLine))
 	reader.Comma = r.fieldDelimiter
