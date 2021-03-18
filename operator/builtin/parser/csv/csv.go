@@ -105,6 +105,7 @@ func (r *CSVParser) parse(value interface{}) (interface{}, error) {
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			return nil, err
 		}

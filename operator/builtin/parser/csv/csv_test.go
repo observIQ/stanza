@@ -222,6 +222,27 @@ func TestParserCSVMultipleRecords(t *testing.T) {
 	})
 }
 
+func TestParserCSVInvalidJSONInput(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		cfg := NewCSVParserConfig("test")
+		cfg.OutputIDs = []string{"fake"}
+		cfg.Header = testHeader
+
+		ops, err := cfg.Build(testutil.NewBuildContext(t))
+		require.NoError(t, err)
+		op := ops[0]
+
+		fake := testutil.NewFakeOutput(t)
+		op.SetOutputs([]operator.Operator{fake})
+
+		entry := entry.New()
+		entry.Record = "{\"name\": \"stanza\"}"
+		err = op.Process(context.Background(), entry)
+		require.Nil(t, err, "parse error on line 1, column 1: bare \" in non-quoted-field")
+		fake.ExpectRecord(t, "{\"name\": \"stanza\"}")
+	})
+}
+
 func TestBuildParserCSV(t *testing.T) {
 	newBasicCSVParser := func() *CSVParserConfig {
 		cfg := NewCSVParserConfig("test")
