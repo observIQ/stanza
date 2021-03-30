@@ -3,6 +3,7 @@ package googlecloud
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"sync"
@@ -504,4 +505,176 @@ func mapOfSize(keys, depth int) map[string]interface{} {
 		}
 	}
 	return m
+}
+
+func TestBruteSender(t *testing.T) {
+
+	cases := []struct {
+		name           string
+		expectErr      bool // at top level
+		expectFailures int
+		entries        []*entry.Entry
+	}{
+		{
+			name:           "single_small",
+			expectFailures: 0,
+			entries: []*entry.Entry{
+				sized(1),
+			},
+		},
+		{
+			name:           "total_small",
+			expectFailures: 0,
+			entries: []*entry.Entry{
+				sized(2),
+				sized(2),
+			},
+		},
+		{
+			name:           "total_too_large",
+			expectFailures: 1, // split the two apart
+			entries: []*entry.Entry{
+				sized(6),
+				sized(6),
+			},
+		},
+		{
+			name:           "many_splits",
+			expectFailures: 8, // split the two apart
+			entries: []*entry.Entry{
+				sized(9),
+				sized(9),
+				sized(9),
+				sized(9),
+				sized(9),
+				sized(9),
+				sized(9),
+				sized(9),
+				sized(9),
+			},
+		},
+		{
+			name:           "single_too_large",
+			expectFailures: 1, // replace with error message
+			entries: []*entry.Entry{
+				sized(11),
+			},
+		},
+		{
+			name:           "all_in_one",
+			expectFailures: 3,
+			entries: []*entry.Entry{
+				// these two should go together after one split
+				sized(3),
+				sized(6),
+
+				// these two will have to be split again
+				sized(9),
+				sized(11), // still fails, replace with error message
+
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := mockSender{maxSize: 10}
+			split := splittingSender{&mock}
+
+			clearer := newMockClearer(len(tc.entries))
+			err := split.Send(context.Background(), clearer, tc.entries, 0)
+
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err, "unexpected error")
+			require.Equal(t, tc.expectFailures, mock.failures, "unexpected number of failures")
+			require.True(t, clearer.fullyCleared(), "should be fully cleared")
+		})
+	}
+
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyz"
+
+func sized(i int) *entry.Entry {
+	ent := entry.New()
+	b := make([]byte, i)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	ent.Record = string(b)
+	return ent
+}
+
+type mockSender struct {
+	maxSize  int
+	failures int
+}
+
+func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
+	totalSize := 0
+	for _, ent := range entries {
+		s, ok := ent.Record.(string)
+		if !ok {
+			panic("unexpected value in test")
+		}
+		totalSize += len(s)
+	}
+
+	if totalSize > s.maxSize {
+		s.failures++
+
+		// it's important that this is short enough
+		// because it becomes the record if a single
+		// entry is too large
+		return fmt.Errorf("too big")
+	}
+
+	return nil
+}
+
+func (s *mockSender) IsTooLargeError(err error) bool {
+	return err.Error() == "too big"
+}
+
+type mockClearer struct {
+	cleared []bool
+}
+
+func newMockClearer(l int) mockClearer {
+	return mockClearer{make([]bool, l)}
+}
+
+func (c mockClearer) MarkAllAsFlushed() error {
+	for i := 0; i < len(c.cleared); i++ {
+		c.cleared[i] = true
+	}
+	return nil
+}
+
+func (c mockClearer) MarkRangeAsFlushed(start, end uint) error {
+	if start < uint(0) {
+		return fmt.Errorf("Clearer index out of bounds: %d", start)
+	}
+
+	if end > uint(len(c.cleared)) {
+		return fmt.Errorf("Clearer index out of bounds: %d", end)
+	}
+
+	for i := start; i < end; i++ {
+		c.cleared[i] = true
+	}
+	return nil
+}
+
+func (c mockClearer) fullyCleared() bool {
+	for i := 0; i < len(c.cleared); i++ {
+		if !c.cleared[i] {
+			return false
+		}
+	}
+	return true
 }
