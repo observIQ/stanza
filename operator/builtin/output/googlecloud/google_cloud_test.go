@@ -540,7 +540,7 @@ func TestBruteSender(t *testing.T) {
 		},
 		{
 			name:           "many_splits",
-			expectFailures: 8, // split the two apart
+			expectFailures: 8, // n-1 splits
 			entries: []*entry.Entry{
 				sized(9),
 				sized(9),
