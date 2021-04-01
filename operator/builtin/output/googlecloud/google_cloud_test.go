@@ -593,19 +593,15 @@ func TestSplittingSenderRandomly(t *testing.T) {
 
 	// pregenerate random samples, but deterministically
 	rand.Seed(int64(112233445566778899))
-	randos := map[int]*entry.Entry{}
-	for i := 0; i < 200; i++ {
-		randos[i] = sized(i)
-	}
 
 	cases := [][]*entry.Entry{}
 
 	for caseNum := 0; caseNum < 10000; caseNum++ {
-		numEntries := rand.Intn(1000-10) + 10
+		numEntries := rand.Intn(50-1) + 10
 		entries := make([]*entry.Entry, 0, numEntries)
 		for i := 0; i < numEntries; i++ {
-			recordLength := rand.Intn(200-1) + 1
-			entries = append(entries, randos[recordLength])
+			recordLength := rand.Intn(101-1) + 1
+			entries = append(entries, sized(recordLength))
 		}
 		cases = append(cases, entries)
 	}
@@ -677,6 +673,9 @@ func newMockClearer(l int) mockClearer {
 
 func (c mockClearer) MarkAllAsFlushed() error {
 	for i := 0; i < len(c.cleared); i++ {
+		if c.cleared[i] {
+			return fmt.Errorf("already cleared: %d", i)
+		}
 		c.cleared[i] = true
 	}
 	return nil
@@ -692,6 +691,9 @@ func (c mockClearer) MarkRangeAsFlushed(start, end uint) error {
 	}
 
 	for i := start; i < end; i++ {
+		if c.cleared[i] {
+			return fmt.Errorf("already cleared: %d", i)
+		}
 		c.cleared[i] = true
 	}
 	return nil
