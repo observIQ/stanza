@@ -507,70 +507,68 @@ func mapOfSize(keys, depth int) map[string]interface{} {
 	return m
 }
 
-func TestBruteSender(t *testing.T) {
-
+func TestSplittingSender(t *testing.T) {
 	cases := []struct {
 		name           string
-		expectErr      bool // at top level
-		expectFailures int
+		expectedSplits int
 		entries        []*entry.Entry
 	}{
 		{
 			name:           "single_small",
-			expectFailures: 0,
+			expectedSplits: 0,
 			entries: []*entry.Entry{
-				sized(1),
+				sized(10),
 			},
 		},
 		{
 			name:           "total_small",
-			expectFailures: 0,
+			expectedSplits: 0,
 			entries: []*entry.Entry{
-				sized(2),
-				sized(2),
+				sized(20),
+				sized(20),
 			},
 		},
 		{
 			name:           "total_too_large",
-			expectFailures: 1, // split the two apart
+			expectedSplits: 1, // split the two apart
 			entries: []*entry.Entry{
-				sized(6),
-				sized(6),
+				sized(51),
+				sized(51),
 			},
 		},
 		{
 			name:           "many_splits",
-			expectFailures: 8, // n-1 splits
+			expectedSplits: 8, // n-1 splits
 			entries: []*entry.Entry{
-				sized(9),
-				sized(9),
-				sized(9),
-				sized(9),
-				sized(9),
-				sized(9),
-				sized(9),
-				sized(9),
-				sized(9),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
 			},
 		},
 		{
 			name:           "single_too_large",
-			expectFailures: 1, // replace with error message
+			expectedSplits: 1, // replace with error message
 			entries: []*entry.Entry{
-				sized(11),
+				sized(101),
 			},
 		},
 		{
 			name:           "all_in_one",
-			expectFailures: 3,
+			expectedSplits: 3,
 			entries: []*entry.Entry{
 				// these two should go together after one split
-				sized(3),
-				sized(6),
+				sized(33),
+				sized(66),
 
 				// these two will have to be split again
-				sized(9),
-				sized(11), // still fails, replace with error message
+				sized(99),
+				sized(101), // still fails, replace with error message
 
 			},
 		},
@@ -578,23 +576,52 @@ func TestBruteSender(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			mock := mockSender{maxSize: 10}
+			mock := mockSender{maxSize: 100}
 			split := splittingSender{&mock}
 
 			clearer := newMockClearer(len(tc.entries))
 			err := split.Send(context.Background(), clearer, tc.entries, 0)
 
-			if tc.expectErr {
-				require.Error(t, err)
-				return
-			}
-
 			require.NoError(t, err, "unexpected error")
-			require.Equal(t, tc.expectFailures, mock.failures, "unexpected number of failures")
+			require.Equal(t, tc.expectedSplits, mock.splits, "unexpected number of splits")
 			require.True(t, clearer.fullyCleared(), "should be fully cleared")
 		})
 	}
+}
 
+func TestSplittingSenderRandomly(t *testing.T) {
+
+	// pregenerate random samples, but deterministically
+	rand.Seed(int64(112233445566778899))
+	randos := map[int]*entry.Entry{}
+	for i := 0; i < 200; i++ {
+		randos[i] = sized(i)
+	}
+
+	cases := [][]*entry.Entry{}
+
+	for caseNum := 0; caseNum < 10000; caseNum++ {
+		numEntries := rand.Intn(1000-10) + 10
+		entries := make([]*entry.Entry, 0, numEntries)
+		for i := 0; i < numEntries; i++ {
+			recordLength := rand.Intn(200-1) + 1
+			entries = append(entries, randos[recordLength])
+		}
+		cases = append(cases, entries)
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+			mock := mockSender{maxSize: 100}
+			split := splittingSender{&mock}
+
+			clearer := newMockClearer(len(tc))
+			err := split.Send(context.Background(), clearer, tc, 0)
+
+			require.NoError(t, err, "unexpected error")
+			require.True(t, clearer.fullyCleared(), "should be fully cleared")
+		})
+	}
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyz"
@@ -610,8 +637,8 @@ func sized(i int) *entry.Entry {
 }
 
 type mockSender struct {
-	maxSize  int
-	failures int
+	maxSize int
+	splits  int
 }
 
 func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
@@ -625,7 +652,7 @@ func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
 	}
 
 	if totalSize > s.maxSize {
-		s.failures++
+		s.splits++
 
 		// it's important that this is short enough
 		// because it becomes the record if a single
