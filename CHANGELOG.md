@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.18] - 2021-04-02
+
+### Changed
+- Google Output will split batched entries if the batch is too large [PR 263](https://github.com/observIQ/stanza/pull/263)
+
+### Fixed
+- Issue where Google Output does not drop entries that are too big [issue 257](https://github.com/observIQ/stanza/issues/257)
+- Issue where partially successful flushes were treated as fully successful, [operator/buffer/memory.go](https://github.com/observIQ/stanza/pull/263/commits/6419445588062bcf8bae84aa05fa2f1b28dbdd44)
+
 ## [0.13.17] - 2021-03-17
 
 ### Added

@@ -3,6 +3,7 @@ package googlecloud
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"sync"
@@ -504,4 +505,205 @@ func mapOfSize(keys, depth int) map[string]interface{} {
 		}
 	}
 	return m
+}
+
+func TestSplittingSender(t *testing.T) {
+	cases := []struct {
+		name           string
+		expectedSplits int
+		entries        []*entry.Entry
+	}{
+		{
+			name:           "single_small",
+			expectedSplits: 0,
+			entries: []*entry.Entry{
+				sized(10),
+			},
+		},
+		{
+			name:           "total_small",
+			expectedSplits: 0,
+			entries: []*entry.Entry{
+				sized(20),
+				sized(20),
+			},
+		},
+		{
+			name:           "total_too_large",
+			expectedSplits: 1, // split the two apart
+			entries: []*entry.Entry{
+				sized(51),
+				sized(51),
+			},
+		},
+		{
+			name:           "many_splits",
+			expectedSplits: 8, // n-1 splits
+			entries: []*entry.Entry{
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+				sized(99),
+			},
+		},
+		{
+			name:           "single_too_large",
+			expectedSplits: 1, // replace with error message
+			entries: []*entry.Entry{
+				sized(101),
+			},
+		},
+		{
+			name:           "all_in_one",
+			expectedSplits: 3,
+			entries: []*entry.Entry{
+				// these two should go together after one split
+				sized(33),
+				sized(66),
+
+				// these two will have to be split again
+				sized(99),
+				sized(101), // still fails, replace with error message
+
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := mockSender{maxSize: 100}
+			split := splittingSender{&mock}
+
+			clearer := newMockClearer(len(tc.entries))
+			err := split.Send(context.Background(), clearer, tc.entries, 0)
+
+			require.NoError(t, err, "unexpected error")
+			require.Equal(t, tc.expectedSplits, mock.splits, "unexpected number of splits")
+			require.True(t, clearer.fullyCleared(), "should be fully cleared")
+		})
+	}
+}
+
+func TestSplittingSenderRandomly(t *testing.T) {
+
+	// pregenerate random samples, but deterministically
+	rand.Seed(int64(112233445566778899))
+
+	cases := [][]*entry.Entry{}
+
+	for caseNum := 0; caseNum < 10000; caseNum++ {
+		numEntries := rand.Intn(50-1) + 10
+		entries := make([]*entry.Entry, 0, numEntries)
+		for i := 0; i < numEntries; i++ {
+			recordLength := rand.Intn(101-1) + 1
+			entries = append(entries, sized(recordLength))
+		}
+		cases = append(cases, entries)
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+			mock := mockSender{maxSize: 100}
+			split := splittingSender{&mock}
+
+			clearer := newMockClearer(len(tc))
+			err := split.Send(context.Background(), clearer, tc, 0)
+
+			require.NoError(t, err, "unexpected error")
+			require.True(t, clearer.fullyCleared(), "should be fully cleared")
+		})
+	}
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyz"
+
+func sized(i int) *entry.Entry {
+	ent := entry.New()
+	b := make([]byte, i)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	ent.Record = string(b)
+	return ent
+}
+
+type mockSender struct {
+	maxSize int
+	splits  int
+}
+
+func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
+	totalSize := 0
+	for _, ent := range entries {
+		s, ok := ent.Record.(string)
+		if !ok {
+			panic("unexpected value in test")
+		}
+		totalSize += len(s)
+	}
+
+	if totalSize > s.maxSize {
+		s.splits++
+
+		// it's important that this is short enough
+		// because it becomes the record if a single
+		// entry is too large
+		return fmt.Errorf("too big")
+	}
+
+	return nil
+}
+
+func (s *mockSender) IsTooLargeError(err error) bool {
+	return err.Error() == "too big"
+}
+
+type mockClearer struct {
+	cleared []bool
+}
+
+func newMockClearer(l int) mockClearer {
+	return mockClearer{make([]bool, l)}
+}
+
+func (c mockClearer) MarkAllAsFlushed() error {
+	for i := 0; i < len(c.cleared); i++ {
+		if c.cleared[i] {
+			return fmt.Errorf("already cleared: %d", i)
+		}
+		c.cleared[i] = true
+	}
+	return nil
+}
+
+func (c mockClearer) MarkRangeAsFlushed(start, end uint) error {
+	if start < uint(0) {
+		return fmt.Errorf("Clearer index out of bounds: %d", start)
+	}
+
+	if end > uint(len(c.cleared)) {
+		return fmt.Errorf("Clearer index out of bounds: %d", end)
+	}
+
+	for i := start; i < end; i++ {
+		if c.cleared[i] {
+			return fmt.Errorf("already cleared: %d", i)
+		}
+		c.cleared[i] = true
+	}
+	return nil
+}
+
+func (c mockClearer) fullyCleared() bool {
+	for i := 0; i < len(c.cleared); i++ {
+		if !c.cleared[i] {
+			return false
+		}
+	}
+	return true
 }

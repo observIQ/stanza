@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/observiq/stanza/operator/flusher"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/version"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -223,17 +225,51 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 		}
 
 		g.flusher.Do(func(ctx context.Context) error {
-			req := g.createWriteRequest(entries)
-			_, err := g.client.WriteLogEntries(ctx, req)
-			if err != nil {
-				return err
-			}
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				g.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
-			return nil
+			return (&splittingSender{g}).Send(ctx, clearer, entries, 0)
 		})
 	}
+}
+
+type bruteSender interface {
+	Send(context.Context, []*entry.Entry) error
+	IsTooLargeError(error) bool
+}
+
+func (g *GoogleCloudOutput) Send(ctx context.Context, entries []*entry.Entry) error {
+	req := g.createWriteRequest(entries)
+	_, err := g.client.WriteLogEntries(ctx, req)
+	return err
+}
+
+func (g *GoogleCloudOutput) IsTooLargeError(err error) bool {
+	return strings.Contains(err.Error(), "exceeds maximum size") ||
+		strings.Contains(err.Error(), "Maximum size exceeded")
+}
+
+type splittingSender struct {
+	bruteSender
+}
+
+func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entries []*entry.Entry, offset uint) error {
+	numEnts := len(entries)
+
+	err := s.bruteSender.Send(ctx, entries)
+	if err == nil {
+		return clearer.MarkRangeAsFlushed(offset, offset+uint(numEnts))
+	}
+	if !s.IsTooLargeError(err) {
+		return err
+	}
+
+	if numEnts == 1 {
+		entries[0].Record = err.Error()
+		return s.Send(ctx, clearer, entries, offset)
+	}
+
+	mid := numEnts / 2
+	errLeft := s.Send(ctx, clearer, entries[0:mid], offset)
+	errRight := s.Send(ctx, clearer, entries[mid:numEnts], offset+uint(mid))
+	return multierr.Combine(errLeft, errRight)
 }
 
 func (g *GoogleCloudOutput) createWriteRequest(entries []*entry.Entry) *logpb.WriteLogEntriesRequest {
