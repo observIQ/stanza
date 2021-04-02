@@ -4,11 +4,11 @@ go 1.14
 
 require (
 	github.com/kardianos/service v1.2.0
-	github.com/observiq/stanza v0.13.17
+	github.com/observiq/stanza v0.13.18
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
 	github.com/observiq/stanza/operator/builtin/input/windows v0.1.1
 	github.com/observiq/stanza/operator/builtin/output/elastic v0.1.0
-	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.1.2
+	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.1.3
 	github.com/observiq/stanza/operator/builtin/output/newrelic v0.1.0
 	github.com/observiq/stanza/operator/builtin/output/otlp v0.0.0
 	github.com/observiq/stanza/operator/builtin/parser/syslog v0.1.0
