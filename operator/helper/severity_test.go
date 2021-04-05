@@ -121,6 +121,12 @@ func TestSeverityParser(t *testing.T) {
 			expected: entry.Error,
 		},
 		{
+			name:     "custom-float64",
+			sample:   float64(6),
+			mapping:  map[interface{}]interface{}{"error": 6},
+			expected: entry.Error,
+		},
+		{
 			name:     "mixed-list-string",
 			sample:   "ThiS Is BaD",
 			mapping:  map[interface{}]interface{}{"error": []interface{}{"NOOOOOOO", "this is bad", 1234}},
