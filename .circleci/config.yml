@@ -25,6 +25,7 @@ jobs:
           name: Build
           command: |
             export VERSION="$CIRCLE_TAG"
+            export GIT_TAG="$CIRCLE_TAG"
             make install-tools
             make build-all
             sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
