@@ -91,7 +91,7 @@ jobs:
 
   test-linux:
     executor: golang
-    resource_class: xlarge
+    resource_class: 2xlarge
 
     steps:
       - checkout
