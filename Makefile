@@ -19,7 +19,7 @@ test: vet test-only
 
 .PHONY: test-only
 test-only:
-	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
+	$(MAKE) for-all CMD="GOMAXPROCS=1 go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
 .PHONY: bench
 bench:
