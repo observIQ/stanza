@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	cloud.google.com/go/logging v1.1.0
-	github.com/antonmedv/expr v1.8.9
-	github.com/cenkalti/backoff/v4 v4.1.0
+	github.com/antonmedv/expr v1.8.2
+	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/elastic/go-elasticsearch/v7 v7.9.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/go-uuid v1.0.2
