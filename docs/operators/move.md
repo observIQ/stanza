@@ -17,7 +17,6 @@ It's configured by passing 'to' and 'from' fields.
 
 Example usage:
 
-
 Rename value
 ```yaml
 - type: move
