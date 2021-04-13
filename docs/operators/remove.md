@@ -140,6 +140,7 @@ Remove a value from labels
 <hr>
 
 Remove a value from resource
+
 ```yaml
 - type: remove 
     field: $resource.otherkey
