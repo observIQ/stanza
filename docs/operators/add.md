@@ -15,7 +15,7 @@ The `add` operator adds a value to an `entry`'s `record`, `labels`, or `resource
 
 
 Example usage:
-
+ 
 <hr>
 Add a string to the record
 
