@@ -126,7 +126,7 @@ jobs:
       - run:
           name: Upgrade Golang
           shell: powershell.exe
-          command: choco upgrade golang --version=1.14
+          command: choco upgrade golang --version=1.16
       - run:
           name: Install GCC
           shell: powershell.exe
@@ -168,7 +168,7 @@ jobs:
         default: 128GB
 
     docker:
-      - image: circleci/golang:1.14
+      - image: circleci/golang:1.16
     resource_class: small
 
     steps:
@@ -276,7 +276,7 @@ jobs:
 
   report-benchmark:
     docker:
-      - image: circleci/golang:1.14
+      - image: circleci/golang:1.16
     resource_class: small
     steps:
       - checkout
