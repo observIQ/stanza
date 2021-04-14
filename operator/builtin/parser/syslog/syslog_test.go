@@ -240,6 +240,32 @@ func TestSyslogParser(t *testing.T) {
 			"info",
 		},
 		{
+			"RFC5424-escaped-quote",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="invalid user: \"null\""]`,
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"user": "invalid user: \"null\"",
+					},
+				},
+				"version": 1,
+			},
+			entry.Info,
+			"info",
+		},
+		{
 			"RFC5424LongSDName",
 			func() *SyslogParserConfig {
 				cfg := basicConfig()
