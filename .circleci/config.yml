@@ -10,7 +10,7 @@ orbs:
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.14
+      - image: circleci/golang:1.16
   mac:
     macos:
       xcode: 11.4.1
@@ -107,10 +107,10 @@ jobs:
       - checkout
       - run:
           name: Download golang
-          command: curl -SL https://dl.google.com/go/go1.14.4.darwin-amd64.tar.gz -O
+          command: curl -SL https://golang.org/dl/go1.16.3.darwin-amd64.tar.gz -O
       - run:
           name: Extract golang
-          command: tar -C ~ -xzf go1.14.4.darwin-amd64.tar.gz
+          command: tar -C ~ -xzf go1.16.3.darwin-amd64.tar.gz
       - run:
           name: Add Golang to Path
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
