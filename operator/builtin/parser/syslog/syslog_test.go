@@ -157,6 +157,89 @@ func TestSyslogParser(t *testing.T) {
 			"info",
 		},
 		{
+			"RFC5424-escaped-r",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 UserHostAddress="192.168.2.132" Realm="SecureAuth0" UserID="Tester2" PEN="27389" user="DOMAIN\\ron"] Found the user for retrieving user's profile`,
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"message":  "Found the user for retrieving user's profile",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"PEN":             "27389",
+						"Realm":           "SecureAuth0",
+						"UserHostAddress": "192.168.2.132",
+						"UserID":          "Tester2",
+						"user":            "DOMAIN\\\\ron",
+					},
+				},
+				"version": 1,
+			},
+			entry.Info,
+			"info",
+		},
+		{
+			"RFC5424-escaped-t",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="DOMAIN\\tom"]`,
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"user": "DOMAIN\\\\tom",
+					},
+				},
+				"version": 1,
+			},
+			entry.Info,
+			"info",
+		},
+		{
+			"RFC5424-escaped-t",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 user="DOMAIN\\null"]`,
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"user": "DOMAIN\\\\null",
+					},
+				},
+				"version": 1,
+			},
+			entry.Info,
+			"info",
+		},
+		{
 			"RFC5424LongSDName",
 			func() *SyslogParserConfig {
 				cfg := basicConfig()
@@ -209,6 +292,47 @@ func TestSyslogParser(t *testing.T) {
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")
 			}
+		})
+	}
+}
+
+func TestHandleSymbols(t *testing.T) {
+	cases := []struct {
+		name           string
+		inputRecord    []byte
+		expectedRecord []byte
+	}{
+		{
+			"no-symbols-basic",
+			[]byte("basic"),
+			[]byte("basic"),
+		},
+		{
+			"no-symbols-quote-escaped",
+			[]byte("basic\"quote"),
+			[]byte("basic\"quote"),
+		},
+		{
+			"symbol-new-line-escaped",
+			[]byte("DOMAIN\\nexus"),
+			[]byte("DOMAIN\\\\nexus"),
+		},
+		{
+			"symbol-return-escaped",
+			[]byte("DOMAIN\\ron"),
+			[]byte("DOMAIN\\\\ron"),
+		},
+		{
+			"symbol-tab-escaped",
+			[]byte("DOMAIN\\tom"),
+			[]byte("DOMAIN\\\\tom"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := handleSymbols(tc.inputRecord)
+			require.Equal(t, tc.expectedRecord, output)
 		})
 	}
 }
