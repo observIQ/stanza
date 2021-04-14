@@ -313,6 +313,21 @@ func TestHandleSymbols(t *testing.T) {
 			[]byte("basic\"quote"),
 		},
 		{
+			"real-newline",
+			[]byte("\n"),
+			[]byte("\n"),
+		},
+		{
+			"real-return",
+			[]byte("\r"),
+			[]byte("\r"),
+		},
+		{
+			"real-tab",
+			[]byte("\t"),
+			[]byte("\t"),
+		},
+		{
 			"symbol-new-line-escaped",
 			[]byte("DOMAIN\\nexus"),
 			[]byte("DOMAIN\\\\nexus"),
