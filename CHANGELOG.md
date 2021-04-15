@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Switched to Go 1.16, from Go 1.14
+- Updated syslog operator to v0.1.5
 
 ## [0.13.18] - 2021-04-02
 
