@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added float64 to Severity parser's supported types [PR 267](https://github.com/observIQ/stanza/issues/267)
 
+### Changed
+- Switched to Go 1.16, from Go 1.14
+
 ## [0.13.18] - 2021-04-02
 
 ### Changed
