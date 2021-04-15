@@ -1,6 +1,7 @@
 package syslog
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -97,17 +98,19 @@ func (s *SyslogParser) Process(ctx context.Context, entry *entry.Entry) error {
 
 // parse will parse a value as syslog.
 func (s *SyslogParser) parse(value interface{}) (interface{}, error) {
-	bytes, err := toBytes(value)
+	b, err := toBytes(value)
 	if err != nil {
 		return nil, err
 	}
+
+	b = handleSymbols(b)
 
 	machine, err := buildMachine(s.protocol, s.location)
 	if err != nil {
 		return nil, err
 	}
 
-	slog, err := machine.Parse(bytes)
+	slog, err := machine.Parse(b)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +206,14 @@ func toBytes(value interface{}) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unable to convert type '%T' to bytes", value)
 	}
+}
+
+// handleSymbols escapes characters that appear to be symbol characters, but are not.
+// If not escaped properly, go-syslog will fail to parse the entry. Quotes that are
+// escaped will not be affected.
+func handleSymbols(b []byte) []byte {
+	b = bytes.Replace(b, []byte(`\`), []byte(`\\`), -1)
+	return bytes.Replace(b, []byte(`\\"`), []byte(`\"`), -1)
 }
 
 var severityMapping = [...]entry.Severity{
