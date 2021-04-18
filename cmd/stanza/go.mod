@@ -3,6 +3,7 @@ module github.com/observiq/stanza/cmd/stanza
 go 1.14
 
 require (
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.7 // indirect
 	github.com/kardianos/service v1.2.0
 	github.com/observiq/stanza v0.13.18
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
