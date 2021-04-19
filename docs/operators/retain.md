@@ -28,7 +28,7 @@ Retain fields in the record
 <table>
 <tr><td> Input Entry </td> <td> Output Entry </td></tr>
 <tr>
-<td>
+<td> 
 
 ```json
 {
