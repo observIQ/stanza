@@ -3,12 +3,12 @@ module github.com/observiq/stanza
 go 1.14
 
 require (
-	github.com/Azure/azure-event-hubs-go/v3 v3.3.7 // indirect
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.7
 	github.com/antonmedv/expr v1.8.2
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
