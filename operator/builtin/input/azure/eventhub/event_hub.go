@@ -43,8 +43,8 @@ type EventHubInputConfig struct {
 }
 
 // Build will build a Azure Event Hub input operator.
-func (c *EventHubInputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
-	inputOperator, err := c.InputConfig.Build(context)
+func (c *EventHubInputConfig) Build(buildContext operator.BuildContext) ([]operator.Operator, error) {
+	inputOperator, err := c.InputConfig.Build(buildContext)
 	if err != nil {
 		return nil, err
 	}
