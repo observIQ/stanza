@@ -16,7 +16,7 @@ It's configured by passing 'to' and 'from' fields.
 | `if`       |                  | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 
 Example usage: 
-
+ 
 Rename value
 ```yaml
 - type: move
