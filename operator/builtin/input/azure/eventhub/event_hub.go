@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/Azure/azure-event-hubs-go/v3/persist"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -87,6 +86,9 @@ func (c *EventHubInputConfig) Build(buildContext operator.BuildContext) ([]opera
 		connStr:       c.ConnectionString,
 		prefetchCount: c.PrefetchCount,
 		startAtEnd:    startAtEnd,
+		persist: Persister{
+			DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
+		},
 	}
 	return []operator.Operator{eventHubInput}, nil
 }
@@ -103,8 +105,9 @@ type EventHubInput struct {
 	prefetchCount uint32
 	startAtEnd    bool
 
-	hub *azhub.Hub
-	wg  sync.WaitGroup
+	persist Persister
+	hub     *azhub.Hub
+	wg      sync.WaitGroup
 }
 
 // Start will start generating log entries.
@@ -112,13 +115,11 @@ func (e *EventHubInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	e.cancel = cancel
 
-	// TODO: use stanza's offset database
-	fp, err := persist.NewFilePersister("storage")
-	if err != nil {
+	if err := e.persist.DB.Load(); err != nil {
 		return err
 	}
 
-	hub, err := azhub.NewHubFromConnectionString(e.connStr, azhub.HubWithOffsetPersistence(fp))
+	hub, err := azhub.NewHubFromConnectionString(e.connStr, azhub.HubWithOffsetPersistence(&e.persist))
 	if err != nil {
 		return err
 	}
@@ -130,7 +131,7 @@ func (e *EventHubInput) Start() error {
 	}
 
 	for _, partitionID := range runtimeInfo.PartitionIDs {
-		go e.poll(ctx, partitionID, fp, hub)
+		go e.poll(ctx, partitionID, hub)
 	}
 
 	return nil
@@ -144,16 +145,15 @@ func (e *EventHubInput) Stop() error {
 		return err
 	}
 	e.Infow(fmt.Sprintf("Closed all connections to Azure Event Hub '%s'", e.name))
-	return nil
+	return e.persist.DB.Sync()
 }
 
 // poll starts polling an Azure Event Hub partition id for new events
-func (e *EventHubInput) poll(ctx context.Context, partitionID string, fp *persist.FilePersister, hub *azhub.Hub) error {
+func (e *EventHubInput) poll(ctx context.Context, partitionID string, hub *azhub.Hub) error {
 	offsetStr := ""
 	if e.startAtEnd {
-		offset, err := fp.Read(e.namespace, e.name, e.group, partitionID)
+		offset, err := e.persist.Read(e.namespace, e.name, e.group, partitionID)
 		if err != nil {
-			// TODO: only log if it is an error we don't expect
 			x := fmt.Sprintf("Error while reading offset for partition_id %s, starting at begining", partitionID)
 			e.Errorw(x, zap.Error(err))
 		} else {
