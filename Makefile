@@ -1,5 +1,6 @@
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
+GOFLAGS=-mod=mod
 
 GIT_SHA=$(shell git rev-parse --short HEAD)
 
