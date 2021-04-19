@@ -2,6 +2,7 @@ package eventhub
 
 import (
 	"reflect"
+	"time"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
 	"github.com/mitchellh/mapstructure"
@@ -16,6 +17,8 @@ func parseEvent(event *azhub.Event) (*entry.Entry, error) {
 	if err != nil {
 		return e, err
 	}
+
+	promoteTime(event, e)
 
 	e.Record = x
 	return e, nil
@@ -55,4 +58,20 @@ func parse(event *azhub.Event) (map[string]interface{}, error) {
 	}
 
 	return m, nil
+}
+
+// promoteTime promotes an Azure Event Hub event's timestamp
+// EnqueuedTime takes precedence over IoTHubEnqueuedTime
+func promoteTime(event *azhub.Event, e *entry.Entry) {
+	timestamps := []*time.Time{
+		event.SystemProperties.EnqueuedTime,
+		event.SystemProperties.IoTHubEnqueuedTime,
+	}
+
+	for _, t := range timestamps {
+		if t != nil && !t.IsZero() {
+			e.Timestamp = *t
+			return
+		}
+	}
 }
