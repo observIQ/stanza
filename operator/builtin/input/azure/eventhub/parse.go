@@ -29,10 +29,7 @@ func parseEvent(event *azhub.Event) (*entry.Entry, error) {
 func parse(event *azhub.Event) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 
-	m["data"] = ""
-	if len(event.Data) > 0 {
-		m["data"] = string(event.Data)
-	}
+	m["data"] = string(event.Data)
 
 	if event.PartitionKey != nil {
 		m["partition_key"] = event.PartitionKey
