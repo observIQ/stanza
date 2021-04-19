@@ -154,7 +154,7 @@ func (e *EventHubInput) poll(ctx context.Context, partitionID string, hub *azhub
 	if e.startAtEnd {
 		offset, err := e.persist.Read(e.namespace, e.name, e.group, partitionID)
 		if err != nil {
-			x := fmt.Sprintf("Error while reading offset for partition_id %s, starting at begining", partitionID)
+			x := fmt.Sprintf("Error while reading offset for partition_id %s, starting at end", partitionID)
 			e.Errorw(x, zap.Error(err))
 		} else {
 			offsetStr = offset.Offset
