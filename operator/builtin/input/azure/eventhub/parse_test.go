@@ -9,14 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testPartitionID int16 = 10
-var testPartitionKey string = "1"
-var testSequenceNum int64 = 600
-var testTime time.Time = time.Now()
-var testOffset int64 = 2000
-var testString string = "a test string"
-
 func TestParseEvent(t *testing.T) {
+	var (
+		testPartitionID  int16     = 10
+		testPartitionKey string    = "1"
+		testSequenceNum  int64     = 600
+		testTime         time.Time = time.Now()
+		testOffset       int64     = 2000
+		testString       string    = "a test string"
+	)
+
 	cases := []struct {
 		name           string
 		inputRecord    *azhub.Event
@@ -108,6 +110,15 @@ func TestParseEvent(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
+	var (
+		testPartitionID  int16     = 10
+		testPartitionKey string    = "1"
+		testSequenceNum  int64     = 600
+		testTime         time.Time = time.Now()
+		testOffset       int64     = 2000
+		testString       string    = "a test string"
+	)
+
 	cases := []struct {
 		name           string
 		inputRecord    *azhub.Event
