@@ -192,7 +192,7 @@ func (e *EventHubInput) poll(ctx context.Context, partitionID string, fp *persis
 // handleEvents is the handler for hub.Receive.
 func (e *EventHubInput) handleEvent(ctx context.Context, event *azhub.Event) error {
 	e.wg.Add(1)
-	eventEntry, err := parse(event)
+	eventEntry, err := parseEvent(event)
 	if err != nil {
 		return err
 	}

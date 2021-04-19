@@ -8,11 +8,23 @@ import (
 	"github.com/observiq/stanza/entry"
 )
 
-// parse parses an Azure Event Hub event as an Entry. Nil values are
-// dropped from the record.
-func parse(event *azhub.Event) (*entry.Entry, error) {
-	m := make(map[string]interface{})
+// parseEvent parses an Azure Event Hub event as an Entry.
+func parseEvent(event *azhub.Event) (*entry.Entry, error) {
 	e := entry.New()
+
+	x, err := parse(event)
+	if err != nil {
+		return e, err
+	}
+
+	e.Record = x
+	return e, nil
+}
+
+// parse parses an Azure Event Hub event into a map. Nil values
+// are dropped. Keys 'data' and 'id' are gauranteed to be present.
+func parse(event *azhub.Event) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
 
 	m["data"] = ""
 	if len(event.Data) > 0 {
@@ -30,16 +42,17 @@ func parse(event *azhub.Event) (*entry.Entry, error) {
 	m["id"] = event.ID
 
 	sysProp := make(map[string]interface{})
-	if err := mapstructure.Decode(event.SystemProperties, &sysProp); err != nil {
-		return e, err
-	}
-	for key, _ := range sysProp {
-		if sysProp[key] == nil || reflect.ValueOf(sysProp[key]).IsNil() {
-			delete(sysProp, key)
+	if event.SystemProperties != nil {
+		if err := mapstructure.Decode(event.SystemProperties, &sysProp); err != nil {
+			return m, err
 		}
+		for key, _ := range sysProp {
+			if sysProp[key] == nil || reflect.ValueOf(sysProp[key]).IsNil() {
+				delete(sysProp, key)
+			}
+		}
+		m["system_properties"] = sysProp
 	}
-	m["system_properties"] = sysProp
 
-	e.Record = m
-	return e, nil
+	return m, nil
 }
