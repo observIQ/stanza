@@ -10,10 +10,10 @@ The `azure_eventhub_input` operator will use the `EnqueuedTime` field of the eve
 | ---                 | ---                    | ---                                                                                           |
 | `id`                | `azure_eventhub_input` | A unique identifier for the operator                                                          |
 | `output`            | Next in pipeline       | The connected operator(s) that will receive all outbound entries                              |
-| `namespace`         |                        | The Event Hub Namespace                                                                       |
-| `name`              |                        | The Event Hub Name                                                                            |
-| `group`             |                        | The Event Hub Consumer Group                                                                  |
-| `connection_string` |                        | The Event Hub [connection string](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-get-connection-string) |
+| `namespace`         | required               | The Event Hub Namespace                                                                       |
+| `name`              | required               | The Event Hub Name                                                                            |
+| `group`             | required               | The Event Hub Consumer Group                                                                  |
+| `connection_string` | required               | The Event Hub [connection string](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-get-connection-string) |
 | `prefetch_count`    | `1000`                 | Desired number of events to read at one time                                                  |
 | `start_at`          | `end`                  | At startup, where to start reading events. Options are `beginning` or `end`                   |
 
