@@ -131,7 +131,10 @@ func (e *EventHubInput) Start() error {
 	}
 
 	for _, partitionID := range runtimeInfo.PartitionIDs {
-		go e.poll(ctx, partitionID, hub)
+		if err := e.startConsumer(ctx, partitionID, hub); err != nil {
+			return err
+		}
+		e.Infow(fmt.Sprintf("Successfully connected to Azure Event Hub '%s' partition_id '%s'", e.name, partitionID))
 	}
 
 	return nil
@@ -149,7 +152,15 @@ func (e *EventHubInput) Stop() error {
 }
 
 // poll starts polling an Azure Event Hub partition id for new events
-func (e *EventHubInput) poll(ctx context.Context, partitionID string, hub *azhub.Hub) error {
+func (e *EventHubInput) startConsumer(ctx context.Context, partitionID string, hub *azhub.Hub) error {
+	// start at begining
+	if !e.startAtEnd {
+		_, err := hub.Receive(
+			ctx, partitionID, e.handleEvent, azhub.ReceiveWithStartingOffset(""),
+			azhub.ReceiveWithPrefetchCount(e.prefetchCount))
+		return err
+	}
+
 	offsetStr := ""
 	if e.startAtEnd {
 		offset, err := e.persist.Read(e.namespace, e.name, e.group, partitionID)
@@ -161,32 +172,19 @@ func (e *EventHubInput) poll(ctx context.Context, partitionID string, hub *azhub
 		}
 	}
 
-	var err error
-
-	// start at begining
-	if !e.startAtEnd {
-		_, err = hub.Receive(
-			ctx, partitionID, e.handleEvent, azhub.ReceiveWithStartingOffset(""),
-			azhub.ReceiveWithPrefetchCount(e.prefetchCount))
-	}
 	// start at end and no offset was found
 	if e.startAtEnd && offsetStr == "" {
-		_, err = hub.Receive(
+		_, err := hub.Receive(
 			ctx, partitionID, e.handleEvent, azhub.ReceiveWithLatestOffset(),
 			azhub.ReceiveWithPrefetchCount(e.prefetchCount))
-	}
-	// start at end and offset exists
-	if e.startAtEnd && offsetStr != "" {
-		_, err = hub.Receive(
-			ctx, partitionID, e.handleEvent, azhub.ReceiveWithStartingOffset(offsetStr),
-			azhub.ReceiveWithPrefetchCount(e.prefetchCount))
-	}
-	if err != nil {
 		return err
 	}
 
-	e.Infow(fmt.Sprintf("Successfully connected to Azure Event Hub '%s' partition_id '%s'", e.name, partitionID))
-	return nil
+	// start at end and offset exists
+	_, err := hub.Receive(
+		ctx, partitionID, e.handleEvent, azhub.ReceiveWithStartingOffset(offsetStr),
+		azhub.ReceiveWithPrefetchCount(e.prefetchCount))
+	return err
 }
 
 // handleEvents is the handler for hub.Receive.
