@@ -162,18 +162,16 @@ func (e *EventHubInput) startConsumer(ctx context.Context, partitionID string, h
 	}
 
 	offsetStr := ""
-	if e.startAtEnd {
-		offset, err := e.persist.Read(e.namespace, e.name, e.group, partitionID)
-		if err != nil {
-			x := fmt.Sprintf("Error while reading offset for partition_id %s, starting at end", partitionID)
-			e.Errorw(x, zap.Error(err))
-		} else {
-			offsetStr = offset.Offset
-		}
+	offset, err := e.persist.Read(e.namespace, e.name, e.group, partitionID)
+	if err != nil {
+		x := fmt.Sprintf("Error while reading offset for partition_id %s, starting at end", partitionID)
+		e.Errorw(x, zap.Error(err))
+	} else {
+		offsetStr = offset.Offset
 	}
 
 	// start at end and no offset was found
-	if e.startAtEnd && offsetStr == "" {
+	if offsetStr == "" {
 		_, err := hub.Receive(
 			ctx, partitionID, e.handleEvent, azhub.ReceiveWithLatestOffset(),
 			azhub.ReceiveWithPrefetchCount(e.prefetchCount))
@@ -181,7 +179,7 @@ func (e *EventHubInput) startConsumer(ctx context.Context, partitionID string, h
 	}
 
 	// start at end and offset exists
-	_, err := hub.Receive(
+	_, err = hub.Receive(
 		ctx, partitionID, e.handleEvent, azhub.ReceiveWithStartingOffset(offsetStr),
 		azhub.ReceiveWithPrefetchCount(e.prefetchCount))
 	return err
