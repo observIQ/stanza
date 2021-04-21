@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/antonmedv/expr v1.8.2
+	github.com/bmatcuk/doublestar/v3 v3.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
