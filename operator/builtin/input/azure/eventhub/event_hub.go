@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const operatorName = "azure_eventhub_input"
+const operatorName = "azure_event_hub_input"
 
 func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewEventHubConfig("") })

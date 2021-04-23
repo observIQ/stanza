@@ -1,14 +1,14 @@
-## `azure_eventhub_input` operator
+## `azure_event_hub_input` operator
 
-The `azure_eventhub_input` operator reads logs from Azure Event Hub using [Azure's SDK](https://github.com/Azure/azure-event-hubs-go)
+The `azure_event_hub_input` operator reads logs from Azure Event Hub using [Azure's SDK](https://github.com/Azure/azure-event-hubs-go)
 
-The `azure_eventhub_input` operator will use the `EnqueuedTime` field of the event as the parsed entry's timestamp. If `EnqueuedTime` is not set, `azure_eventhub_input` will use `IoTHubEnqueuedTime` if it is set. All other fields are added to the entry's record.
+The `azure_event_hub_input` operator will use the `EnqueuedTime` field of the event as the parsed entry's timestamp. If `EnqueuedTime` is not set, `azure_event_hub_input` will use `IoTHubEnqueuedTime` if it is set. All other fields are added to the entry's record.
 
 ### Configuration Fields
 
 | Field               | Default                | Description                                                                                   |
 | ---                 | ---                    | ---                                                                                           |
-| `id`                | `azure_eventhub_input` | A unique identifier for the operator                                                          |
+| `id`                | `azure_event_hub_input` | A unique identifier for the operator                                                          |
 | `output`            | Next in pipeline       | The connected operator(s) that will receive all outbound entries                              |
 | `namespace`         | required               | The Event Hub Namespace                                                                       |
 | `name`              | required               | The Event Hub Name                                                                            |
@@ -26,7 +26,7 @@ The `azure_eventhub_input` operator will use the `EnqueuedTime` field of the eve
 Configuration:
 ```yaml
 pipeline:
-- type: azure_eventhub_input
+- type: azure_event_hub_input
   namespace: stanza
   name: devel
   group: Default
