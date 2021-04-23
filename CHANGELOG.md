@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.13.20] - Unrealeased
 
 ### Added
-- Added doublestar support 
+- Added doublestar support  
 
 ## [0.13.19] - 2021-04-15
 
