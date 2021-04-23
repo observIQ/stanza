@@ -188,11 +188,19 @@ func (e *EventHubInput) startConsumer(ctx context.Context, partitionID string, h
 // handleEvents is the handler for hub.Receive.
 func (e *EventHubInput) handleEvent(ctx context.Context, event *azhub.Event) error {
 	e.wg.Add(1)
-	eventEntry, err := parseEvent(event)
+
+	// NewEntry wraps entry.New() and will attach labels and resources
+	entry, err := e.NewEntry(nil)
 	if err != nil {
 		return err
 	}
-	e.Write(ctx, eventEntry)
+
+	entry, err = parseEvent(event, entry)
+	if err != nil {
+		return err
+	}
+
+	e.Write(ctx, entry)
 	e.wg.Done()
 	return nil
 }

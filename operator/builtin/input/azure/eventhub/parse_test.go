@@ -102,7 +102,7 @@ func TestParseEvent(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			e, err := parseEvent(tc.inputRecord)
+			e, err := parseEvent(tc.inputRecord, entry.New())
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedRecord, e)
 		})
@@ -387,7 +387,7 @@ func TestPromoteTime(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			e, err := parseEvent(tc.inputRecord)
+			e, err := parseEvent(tc.inputRecord, entry.New())
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedRecord, e)
 		})

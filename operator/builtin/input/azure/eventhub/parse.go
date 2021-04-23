@@ -10,9 +10,7 @@ import (
 )
 
 // parseEvent parses an Azure Event Hub event as an Entry.
-func parseEvent(event *azhub.Event) (*entry.Entry, error) {
-	e := entry.New()
-
+func parseEvent(event *azhub.Event, e *entry.Entry) (*entry.Entry, error) {
 	x, err := parse(event)
 	if err != nil {
 		return e, err
