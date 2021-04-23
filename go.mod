@@ -1,6 +1,6 @@
 module github.com/observiq/stanza
 
-go 1.14
+go 1.14 
 
 require (
 	github.com/antonmedv/expr v1.8.9
