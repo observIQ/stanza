@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bmatcuk/doublestar/v3"
+	"github.com/bmatcuk/doublestar/v2"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
