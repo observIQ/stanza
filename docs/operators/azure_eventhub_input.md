@@ -16,6 +16,8 @@ The `azure_eventhub_input` operator will use the `EnqueuedTime` field of the eve
 | `connection_string` | required               | The Event Hub [connection string](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-get-connection-string) |
 | `prefetch_count`    | `1000`                 | Desired number of events to read at one time                                                  |
 | `start_at`          | `end`                  | At startup, where to start reading events. Options are `beginning` or `end`                   |
+| `labels`            | {}                     | A map of `key: value` labels to add to the entry's labels                                     |
+| `resource`          | {}                     | A map of `key: value` labels to add to the entry's resource                                   |
 
 ### Example Configurations
 
