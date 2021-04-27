@@ -1,15 +1,77 @@
 package loganalytics
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator/builtin/input/azure"
+	"go.uber.org/zap"
 )
+
+// handleBatchedEvents handles an event recieved by an Event Hub consumer.
+func (l *LogAnalyticsInput) handleBatchedEvents(ctx context.Context, event *azhub.Event) error {
+	l.WG.Add(1)
+	defer l.WG.Done()
+
+	type record struct {
+		Records []map[string]interface{} `json:"records"`
+	}
+
+	// Create a "base" event by capturing the batch log records from the event's Data field.
+	// If Unmarshalling fails, fallback on handling the event as a single log entry.
+	records := record{}
+	if err := json.Unmarshal(event.Data, &records); err != nil {
+		id := event.ID
+		if id == "" {
+			id = "unknown"
+		}
+		l.Warnw(fmt.Sprintf("Failed to parse event '%s' as JSON. Expcted key 'records' in event.Data.", string(event.Data)), zap.Error(err))
+		l.handleEvent(ctx, *event, nil)
+		return nil
+	}
+	event.Data = nil
+
+	// Create an entry for each log in the batch, using the origonal event's fields
+	// as a starting point for each entry
+	wg := sync.WaitGroup{}
+	max := 10
+	gaurd := make(chan struct{}, max)
+	for i := 0; i < len(records.Records); i++ {
+		r := records.Records[i]
+		wg.Add(1)
+		gaurd <- struct{}{}
+		go func() {
+			defer func() {
+				wg.Done()
+				<-gaurd
+			}()
+			l.handleEvent(ctx, *event, r)
+		}()
+	}
+	wg.Wait()
+	return nil
+}
+
+func (l *LogAnalyticsInput) handleEvent(ctx context.Context, event azhub.Event, records map[string]interface{}) {
+	e, err := l.NewEntry(nil)
+	if err != nil {
+		l.Errorw("Failed to parse event as an entry", zap.Error(err))
+		return
+	}
+
+	if err = l.parse(event, records, e); err != nil {
+		l.Errorw("Failed to parse event as an entry", zap.Error(err))
+		return
+	}
+	l.Write(ctx, e)
+}
 
 // parse returns an entry from an event and set of records
 func (l *LogAnalyticsInput) parse(event azhub.Event, records map[string]interface{}, e *entry.Entry) error {
