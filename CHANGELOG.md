@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.13.20] - Unreleased
 ### Added
 - Added retain operator
+- Added flatten Operator
 
 ## [0.13.19] - 2021-04-15
 
