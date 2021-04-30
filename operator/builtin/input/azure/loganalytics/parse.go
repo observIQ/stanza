@@ -75,43 +75,71 @@ func (l *LogAnalyticsInput) handleEvent(ctx context.Context, event azhub.Event, 
 
 // parse returns an entry from an event and set of records
 func (l *LogAnalyticsInput) parse(event azhub.Event, records map[string]interface{}, e *entry.Entry) error {
+	// make sure all keys are lower case
+	for k, v := range records {
+		delete(records, k)
+		records[strings.ToLower(k)] = v
+	}
+
 	// Add base fields shared among all log records from the event
-	if err := azure.ParseEvent(event, e); err != nil {
+	err := azure.ParseEvent(event, e)
+	if err != nil {
 		return err
 	}
 
-	// Add key value pairs from Log Analytics log to entry's resources and record
+	// set label azure_log_analytics_table
+	records, err = l.setType(e, records)
+	if err != nil {
+		return err
+	}
+
+	if err := l.setTimestamp(e, records); err != nil {
+		return err
+	}
+
+	// Add remaining records to record.<azure_log_analytics_table> map
+	return l.setField(e, e.Labels["azure_log_analytics_table"], records)
+}
+
+// setType sets the label 'azure_log_analytics_table'
+func (l *LogAnalyticsInput) setType(e *entry.Entry, records map[string]interface{}) (map[string]interface{}, error) {
+	const typeField = "type"
+
 	for key, value := range records {
-		// Promote resources
-		switch k := strings.ToLower(key); k {
-		case "type":
+		switch key {
+		case typeField:
 			if v, ok := value.(string); ok {
-				key := "azure_log_analytics_type"
-				if err := l.setLabel(e, key, v); err != nil {
-					return err
+				v = strings.ToLower(v)
+
+				// Set the log table label
+				if err := l.setLabel(e, "azure_log_analytics_table", v); err != nil {
+					return nil, err
 				}
+
+				delete(records, key)
+				return records, nil
 			}
+			return nil, fmt.Errorf("expected '%s' field to be a string", typeField)
+		}
+	}
+	return nil, fmt.Errorf("expected to find field with name '%s'", typeField)
+}
+
+// setTimestamp set the entry's timestamp using the timegenerated log analytics field
+func (l *LogAnalyticsInput) setTimestamp(e *entry.Entry, records map[string]interface{}) error {
+	for key, value := range records {
+		switch key {
 		case "timegenerated":
 			if v, ok := value.(string); ok {
 				t, err := time.Parse("2006-01-02T15:04:05.0000000Z07", v)
 				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("failed to promote timestamp from %s field", k))
+					return errors.Wrap(err, fmt.Sprintf("failed to promote timestamp from %s field", key))
 				}
-
-				// set as timestamp and preserve the field
 				e.Timestamp = t
-				if err := l.setField(e, k, value); err != nil {
-					return err
-				}
-			}
-		// All other keys are fields
-		default:
-			if err := l.setField(e, k, value); err != nil {
-				return err
+				return nil
 			}
 		}
 	}
-
 	return nil
 }
 

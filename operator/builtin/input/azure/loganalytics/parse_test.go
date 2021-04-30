@@ -55,7 +55,7 @@ func TestParse(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTimeGenerated,
 				Labels: map[string]string{
-					"azure_log_analytics_type": "unit_test",
+					"azure_log_analytics_table": "unit_test",
 				},
 				Record: map[string]interface{}{
 					"id":            "000",
@@ -70,10 +70,12 @@ func TestParse(t *testing.T) {
 						"x-opt-enqueued-time":   &testTime,
 						"x-opt-offset":          &testOffset,
 					},
-					"aks_cluster":   "us-east1-b-dev-0",
-					"system_id":     100,
-					"dev":           false,
-					"timegenerated": testTimeGeneratedSTR,
+					"unit_test": map[string]interface{}{
+						"aks_cluster":   "us-east1-b-dev-0",
+						"system_id":     100,
+						"dev":           false,
+						"timegenerated": testTimeGeneratedSTR,
+					},
 				},
 			},
 		},
