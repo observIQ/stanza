@@ -38,8 +38,8 @@ func TestParseEvent(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTime,
 				Record: map[string]interface{}{
-					"data": "event hub entry",
-					"id":   "000-555-666",
+					"event_data": "event hub entry",
+					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-sequence-number": &testSequenceNum,
 						"x-opt-enqueued-time":   &testTime,
@@ -75,7 +75,7 @@ func TestParseEvent(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTime,
 				Record: map[string]interface{}{
-					"data":          "hello world",
+					"event_data":    "hello world",
 					"id":            "1111",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
@@ -131,7 +131,7 @@ func TestParse(t *testing.T) {
 				Data: []byte("hello world"),
 			},
 			map[string]interface{}{
-				"data": "hello world",
+				"event_data": "hello world",
 			},
 		},
 		{
@@ -151,7 +151,7 @@ func TestParse(t *testing.T) {
 				PartitionKey: &testPartitionKey,
 			},
 			map[string]interface{}{
-				"data":          "hello world",
+				"event_data":    "hello world",
 				"id":            "1111",
 				"partition_key": &testPartitionKey,
 			},
@@ -167,8 +167,8 @@ func TestParse(t *testing.T) {
 				},
 			},
 			map[string]interface{}{
-				"data": "hello world",
-				"id":   "1111",
+				"event_data": "hello world",
+				"id":         "1111",
 				"properties": map[string]interface{}{
 					"user": "stanza",
 					"id":   1,
@@ -183,7 +183,7 @@ func TestParse(t *testing.T) {
 				SystemProperties: &azhub.SystemProperties{},
 			},
 			map[string]interface{}{
-				"data":              "hello world",
+				"event_data":        "hello world",
 				"id":                "1111",
 				"system_properties": map[string]interface{}{},
 			},
@@ -207,8 +207,8 @@ func TestParse(t *testing.T) {
 				},
 			},
 			map[string]interface{}{
-				"data": "hello world",
-				"id":   "1111",
+				"event_data": "hello world",
+				"id":         "1111",
 				"system_properties": map[string]interface{}{
 					"x-opt-sequence-number":                &testSequenceNum,
 					"x-opt-enqueued-time":                  &testTime,
@@ -248,7 +248,7 @@ func TestParse(t *testing.T) {
 				},
 			},
 			map[string]interface{}{
-				"data":          "hello world",
+				"event_data":    "hello world",
 				"id":            "1111",
 				"partition_key": &testPartitionKey,
 				"properties": map[string]interface{}{
@@ -307,8 +307,8 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: enqueuedTime,
 				Record: map[string]interface{}{
-					"data": "event hub entry",
-					"id":   "000-555-666",
+					"event_data": "event hub entry",
+					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
 					},
@@ -327,8 +327,8 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
 				Record: map[string]interface{}{
-					"data": "event hub entry",
-					"id":   "000-555-666",
+					"event_data": "event hub entry",
+					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
 					},
@@ -348,8 +348,8 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: enqueuedTime,
 				Record: map[string]interface{}{
-					"data": "event hub entry",
-					"id":   "000-555-666",
+					"event_data": "event hub entry",
+					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
@@ -370,8 +370,8 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
 				Record: map[string]interface{}{
-					"data": "event hub entry",
-					"id":   "000-555-666",
+					"event_data": "event hub entry",
+					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &time.Time{},
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
