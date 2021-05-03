@@ -41,7 +41,7 @@ A list of potential keys and their purpose can be found [here](https://github.co
   "timestamp": "2021-04-19T18:44:34.619Z",
   "severity": 0,
   "record": {
-    "data": "hello, world!",
+    "event_data": "hello, world!",
     "id": "28447813-ebac-4908-9bd4-c1a79f9f98ad",
     "system_properties": {
       "x-opt-enqueued-time": "2021-04-19T18:44:34.619Z",
