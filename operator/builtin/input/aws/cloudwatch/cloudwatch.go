@@ -90,7 +90,6 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		profile:             c.Profile,
 		pollInterval:        c.PollInterval,
 		startAtEnd:          startAtEnd,
-		startTime:           0,
 		persist:             *helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 	}
 	return []operator.Operator{cloudwatchInput}, nil
