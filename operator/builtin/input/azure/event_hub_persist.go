@@ -11,7 +11,6 @@ import (
 // Persister implements persist.CheckpointPersister
 type Persister struct {
 	DB helper.Persister
-	//mu sync.Mutex
 }
 
 // Write records an Azure Event Hub Checkpoint to the Stanza persistence backend
