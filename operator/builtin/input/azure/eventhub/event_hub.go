@@ -18,25 +18,18 @@ func init() {
 // NewEventHubConfig creates a new Azure Event Hub input config with default values
 func NewEventHubConfig(operatorID string) *EventHubInputConfig {
 	return &EventHubInputConfig{
-		InputConfig:   helper.NewInputConfig(operatorID, operatorName),
-		PrefetchCount: 1000,
-		StartAt:       "end",
+		InputConfig: helper.NewInputConfig(operatorID, operatorName),
+		AzureConfig: azure.AzureConfig{
+			PrefetchCount: 1000,
+			StartAt:       "end",
+		},
 	}
 }
 
 // EventHubInputConfig is the configuration of a Azure Event Hub input operator.
 type EventHubInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
-
-	// required
-	Namespace        string `json:"namespace,omitempty"         yaml:"namespace,omitempty"`
-	Name             string `json:"name,omitempty"              yaml:"name,omitempty"`
-	Group            string `json:"group,omitempty"             yaml:"group,omitempty"`
-	ConnectionString string `json:"connection_string,omitempty" yaml:"connection_string,omitempty"`
-
-	// optional
-	PrefetchCount uint32 `json:"prefetch_count,omitempty" yaml:"prefetch_count,omitempty"`
-	StartAt       string `json:"start_at,omitempty"       yaml:"start_at,omitempty"`
+	azure.AzureConfig  `yaml:",inline"`
 }
 
 // Build will build a Azure Event Hub input operator.
@@ -46,24 +39,8 @@ func (c *EventHubInputConfig) Build(buildContext operator.BuildContext) ([]opera
 		return nil, err
 	}
 
-	if c.Namespace == "" {
-		return nil, fmt.Errorf("missing required %s parameter 'namespace'", operatorName)
-	}
-
-	if c.Name == "" {
-		return nil, fmt.Errorf("missing required %s parameter 'name'", operatorName)
-	}
-
-	if c.Group == "" {
-		return nil, fmt.Errorf("missing required %s parameter 'group'", operatorName)
-	}
-
-	if c.ConnectionString == "" {
-		return nil, fmt.Errorf("missing required %s parameter 'connection_string'", operatorName)
-	}
-
-	if c.PrefetchCount < 1 {
-		return nil, fmt.Errorf("invalid value '%d' for %s parameter 'prefetch_count'", c.PrefetchCount, operatorName)
+	if err := c.AzureConfig.Validate(); err != nil {
+		return nil, err
 	}
 
 	var startAtBegining bool

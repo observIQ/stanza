@@ -3,6 +3,7 @@ package eventhub
 import (
 	"testing"
 
+	"github.com/observiq/stanza/operator/builtin/input/azure"
 	"github.com/observiq/stanza/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -16,69 +17,81 @@ func TestBuild(t *testing.T) {
 		{
 			"default",
 			EventHubInputConfig{
-				Namespace:        "test",
-				Name:             "test",
-				Group:            "test",
-				ConnectionString: "test",
-				PrefetchCount:    1000,
+				AzureConfig: azure.AzureConfig{
+					Namespace:        "test",
+					Name:             "test",
+					Group:            "test",
+					ConnectionString: "test",
+					PrefetchCount:    1000,
+				},
 			},
 			false,
 		},
 		{
 			"prefetch",
 			EventHubInputConfig{
-				Namespace:        "test",
-				Name:             "test",
-				Group:            "test",
-				ConnectionString: "test",
-				PrefetchCount:    100,
+				AzureConfig: azure.AzureConfig{
+					Namespace:        "test",
+					Name:             "test",
+					Group:            "test",
+					ConnectionString: "test",
+					PrefetchCount:    100,
+				},
 			},
 			false,
 		},
 		{
 			"startat-end",
 			EventHubInputConfig{
-				Namespace:        "test",
-				Name:             "test",
-				Group:            "test",
-				ConnectionString: "test",
-				StartAt:          "end",
-				PrefetchCount:    1000,
+				AzureConfig: azure.AzureConfig{
+					Namespace:        "test",
+					Name:             "test",
+					Group:            "test",
+					ConnectionString: "test",
+					StartAt:          "end",
+					PrefetchCount:    1000,
+				},
 			},
 			false,
 		},
 		{
 			"startat-beginning",
 			EventHubInputConfig{
-				Namespace:        "test",
-				Name:             "test",
-				Group:            "test",
-				ConnectionString: "test",
-				StartAt:          "beginning",
-				PrefetchCount:    1000,
+				AzureConfig: azure.AzureConfig{
+					Namespace:        "test",
+					Name:             "test",
+					Group:            "test",
+					ConnectionString: "test",
+					StartAt:          "beginning",
+					PrefetchCount:    1000,
+				},
 			},
 			false,
 		},
 		{
 			"prefetch-invalid",
 			EventHubInputConfig{
-				Namespace:        "test",
-				Name:             "test",
-				Group:            "test",
-				ConnectionString: "test",
-				PrefetchCount:    0,
+				AzureConfig: azure.AzureConfig{
+					Namespace:        "test",
+					Name:             "test",
+					Group:            "test",
+					ConnectionString: "test",
+					PrefetchCount:    0,
+				},
 			},
 			true,
 		},
 		{
 			"default-required-startat-invalid",
 			EventHubInputConfig{
-				Namespace:        "test",
-				Name:             "test",
-				Group:            "test",
-				ConnectionString: "test",
-				StartAt:          "invalid",
-				PrefetchCount:    1000,
+				AzureConfig: azure.AzureConfig{
+					Namespace:        "test",
+					Name:             "test",
+					Group:            "test",
+					ConnectionString: "test",
+					StartAt:          "invalid",
+					PrefetchCount:    1000,
+				},
 			},
 			true,
 		},
