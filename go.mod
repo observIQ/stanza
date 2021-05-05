@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/antonmedv/expr v1.8.2
+	github.com/aws/aws-sdk-go v1.38.31
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
@@ -12,7 +13,6 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/observiq/ctimefmt v1.0.0
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/bbolt v1.3.4
