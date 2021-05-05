@@ -58,7 +58,6 @@ func TestParse(t *testing.T) {
 					"azure_log_analytics_table": "unit_test",
 				},
 				Record: map[string]interface{}{
-					"id":            "000",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",
@@ -76,6 +75,9 @@ func TestParse(t *testing.T) {
 						"dev":           false,
 						"timegenerated": testTimeGeneratedSTR,
 					},
+				},
+				Resource: map[string]string{
+					"event_id": "000",
 				},
 			},
 		},

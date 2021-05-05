@@ -39,12 +39,14 @@ func TestParseEvent(t *testing.T) {
 				Timestamp: testTime,
 				Record: map[string]interface{}{
 					"event_data": "event hub entry",
-					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-sequence-number": &testSequenceNum,
 						"x-opt-enqueued-time":   &testTime,
 						"x-opt-offset":          &testOffset,
 					},
+				},
+				Resource: map[string]string{
+					"event_id": "000-555-666",
 				},
 			},
 		},
@@ -76,7 +78,6 @@ func TestParseEvent(t *testing.T) {
 				Timestamp: testTime,
 				Record: map[string]interface{}{
 					"event_data":    "hello world",
-					"id":            "1111",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",
@@ -96,6 +97,9 @@ func TestParseEvent(t *testing.T) {
 						"iothub-enqueuedtime":                  &testTime,
 					},
 				},
+				Resource: map[string]string{
+					"event_id": "1111",
+				},
 			},
 		},
 	}
@@ -104,182 +108,6 @@ func TestParseEvent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := entry.New()
 			err := ParseEvent(tc.inputRecord, e)
-			require.NoError(t, err)
-			require.Equal(t, tc.expectedRecord, e)
-		})
-	}
-}
-
-func TestParse(t *testing.T) {
-	var (
-		testPartitionID  int16     = 10
-		testPartitionKey string    = "1"
-		testSequenceNum  int64     = 600
-		testTime         time.Time = time.Now()
-		testOffset       int64     = 2000
-		testString       string    = "a test string"
-	)
-
-	cases := []struct {
-		name           string
-		inputRecord    azhub.Event
-		expectedRecord map[string]interface{}
-	}{
-		{
-			"data",
-			azhub.Event{
-				Data: []byte("hello world"),
-			},
-			map[string]interface{}{
-				"event_data": "hello world",
-			},
-		},
-		{
-			"id",
-			azhub.Event{
-				ID: "0000-1111",
-			},
-			map[string]interface{}{
-				"id": "0000-1111",
-			},
-		},
-		{
-			"partition-key",
-			azhub.Event{
-				Data:         []byte("hello world"),
-				ID:           "1111",
-				PartitionKey: &testPartitionKey,
-			},
-			map[string]interface{}{
-				"event_data":    "hello world",
-				"id":            "1111",
-				"partition_key": &testPartitionKey,
-			},
-		},
-		{
-			"properties",
-			azhub.Event{
-				Data: []byte("hello world"),
-				ID:   "1111",
-				Properties: map[string]interface{}{
-					"user": "stanza",
-					"id":   1,
-				},
-			},
-			map[string]interface{}{
-				"event_data": "hello world",
-				"id":         "1111",
-				"properties": map[string]interface{}{
-					"user": "stanza",
-					"id":   1,
-				},
-			},
-		},
-		{
-			"system-properties-empty",
-			azhub.Event{
-				Data:             []byte("hello world"),
-				ID:               "1111",
-				SystemProperties: &azhub.SystemProperties{},
-			},
-			map[string]interface{}{
-				"event_data":        "hello world",
-				"id":                "1111",
-				"system_properties": map[string]interface{}{},
-			},
-		},
-		{
-			"system-properties",
-			azhub.Event{
-				Data: []byte("hello world"),
-				ID:   "1111",
-				SystemProperties: &azhub.SystemProperties{
-					SequenceNumber:             &testSequenceNum,
-					EnqueuedTime:               &testTime,
-					Offset:                     &testOffset,
-					PartitionID:                &testPartitionID,
-					PartitionKey:               &testPartitionKey,
-					IoTHubDeviceConnectionID:   &testString,
-					IoTHubAuthGenerationID:     &testString,
-					IoTHubConnectionAuthMethod: &testString,
-					IoTHubConnectionModuleID:   &testString,
-					IoTHubEnqueuedTime:         &testTime,
-				},
-			},
-			map[string]interface{}{
-				"event_data": "hello world",
-				"id":         "1111",
-				"system_properties": map[string]interface{}{
-					"x-opt-sequence-number":                &testSequenceNum,
-					"x-opt-enqueued-time":                  &testTime,
-					"x-opt-offset":                         &testOffset,
-					"x-opt-partition-id":                   &testPartitionID,
-					"x-opt-partition-key":                  &testPartitionKey,
-					"iothub-connection-device-id":          &testString,
-					"iothub-connection-auth-generation-id": &testString,
-					"iothub-connection-auth-method":        &testString,
-					"iothub-connection-module-id":          &testString,
-					"iothub-enqueuedtime":                  &testTime,
-				},
-			},
-		},
-		{
-			"full",
-			azhub.Event{
-				Data:         []byte("hello world"),
-				ID:           "1111",
-				PartitionKey: &testPartitionKey,
-				Properties: map[string]interface{}{
-					"user": "stanza",
-					"id":   1,
-					"root": false,
-				},
-				SystemProperties: &azhub.SystemProperties{
-					SequenceNumber:             &testSequenceNum,
-					EnqueuedTime:               &testTime,
-					Offset:                     &testOffset,
-					PartitionID:                &testPartitionID,
-					PartitionKey:               &testPartitionKey,
-					IoTHubDeviceConnectionID:   &testString,
-					IoTHubAuthGenerationID:     &testString,
-					IoTHubConnectionAuthMethod: &testString,
-					IoTHubConnectionModuleID:   &testString,
-					IoTHubEnqueuedTime:         &testTime,
-				},
-			},
-			map[string]interface{}{
-				"event_data":    "hello world",
-				"id":            "1111",
-				"partition_key": &testPartitionKey,
-				"properties": map[string]interface{}{
-					"user": "stanza",
-					"id":   1,
-					"root": false,
-				},
-				"system_properties": map[string]interface{}{
-					"x-opt-sequence-number":                &testSequenceNum,
-					"x-opt-enqueued-time":                  &testTime,
-					"x-opt-offset":                         &testOffset,
-					"x-opt-partition-id":                   &testPartitionID,
-					"x-opt-partition-key":                  &testPartitionKey,
-					"iothub-connection-device-id":          &testString,
-					"iothub-connection-auth-generation-id": &testString,
-					"iothub-connection-auth-method":        &testString,
-					"iothub-connection-module-id":          &testString,
-					"iothub-enqueuedtime":                  &testTime,
-				},
-			},
-		},
-		{
-			"empty-id-and-data",
-			azhub.Event{},
-			map[string]interface{}{},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			e, err := parse(tc.inputRecord)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedRecord, e)
 		})
@@ -308,10 +136,12 @@ func TestPromoteTime(t *testing.T) {
 				Timestamp: enqueuedTime,
 				Record: map[string]interface{}{
 					"event_data": "event hub entry",
-					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
 					},
+				},
+				Resource: map[string]string{
+					"event_id": "000-555-666",
 				},
 			},
 		},
@@ -328,10 +158,12 @@ func TestPromoteTime(t *testing.T) {
 				Timestamp: ioTHubEnqueuedTime,
 				Record: map[string]interface{}{
 					"event_data": "event hub entry",
-					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
 					},
+				},
+				Resource: map[string]string{
+					"event_id": "000-555-666",
 				},
 			},
 		},
@@ -349,11 +181,13 @@ func TestPromoteTime(t *testing.T) {
 				Timestamp: enqueuedTime,
 				Record: map[string]interface{}{
 					"event_data": "event hub entry",
-					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
 					},
+				},
+				Resource: map[string]string{
+					"event_id": "000-555-666",
 				},
 			},
 		},
@@ -371,11 +205,13 @@ func TestPromoteTime(t *testing.T) {
 				Timestamp: ioTHubEnqueuedTime,
 				Record: map[string]interface{}{
 					"event_data": "event hub entry",
-					"id":         "000-555-666",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &time.Time{},
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
 					},
+				},
+				Resource: map[string]string{
+					"event_id": "000-555-666",
 				},
 			},
 		},
