@@ -164,7 +164,7 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
 			c.Debug("Getting events from AWS Cloudwatch Logs")
 			nextToken := ""
 			st := c.persist.Get(c.logGroupName)
-			c.startTime = BytesToInt64(st)
+			c.startTime = bytesToInt64(st)
 			if c.startAtEnd && c.startTime == 0 {
 				c.Info("Setting start time to current time")
 				c.startTime = currentTimeInUnixMilliseconds()
@@ -258,11 +258,11 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 		c.Error("Failed to create new entry from record", zap.Error(err))
 	}
 	// entry.Timestamp = time.Unix(0, *event.Timestamp*int64(time.Millisecond))
-	entry.Timestamp = FromUnixMilli(*event.Timestamp)
+	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 	entry.Record = e
 	// Persist
 	if *event.IngestionTime > c.startTime {
-		c.persist.Set(c.logGroupName, Int64ToBytes(*event.IngestionTime))
+		c.persist.Set(c.logGroupName, int64ToBytes(*event.IngestionTime))
 	}
 	// Write Entry
 	c.Write(ctx, entry)
@@ -300,14 +300,14 @@ func currentTimeInUnixMilliseconds() int64 {
 }
 
 // Helper function to persist start time
-func Int64ToBytes(i int64) []byte {
+func int64ToBytes(i int64) []byte {
 	var buf = make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(i))
 	return buf
 }
 
 // Helper function to get persisted start time
-func BytesToInt64(buf []byte) int64 {
+func bytesToInt64(buf []byte) int64 {
 	var startTime int64
 	buffer := bytes.NewBuffer(buf)
 	binary.Read(buffer, binary.BigEndian, &startTime)
@@ -315,7 +315,7 @@ func BytesToInt64(buf []byte) int64 {
 }
 
 // Helper function to convert Unix epoch time in milliseconds to go time
-func FromUnixMilli(ms int64) time.Time {
+func fromUnixMilli(ms int64) time.Time {
 	const millisInSecond = 1000
 	const nsInSecond = 1000000
 	return time.Unix(ms/int64(millisInSecond), (ms%int64(millisInSecond))*int64(nsInSecond))
