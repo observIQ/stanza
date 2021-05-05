@@ -22,7 +22,7 @@ func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewCloudwatchConfig("") })
 }
 
-// NewCloudwatchConfig creates a new Azure Event Hub input config with default values
+// NewCloudwatchConfig creates a new AWS Cloudwatch Logs input config with default values
 func NewCloudwatchConfig(operatorID string) *CloudwatchInputConfig {
 	return &CloudwatchInputConfig{
 		InputConfig:  helper.NewInputConfig(operatorID, operatorName),
@@ -32,7 +32,7 @@ func NewCloudwatchConfig(operatorID string) *CloudwatchInputConfig {
 	}
 }
 
-// CloudwatchInputConfig is the configuration of a Azure Event Hub input operator.
+// CloudwatchInputConfig is the configuration of a AWS Cloudwatch Logs input operator.
 type CloudwatchInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
@@ -48,7 +48,7 @@ type CloudwatchInputConfig struct {
 	StartAt             string          `json:"start_at,omitempty" yaml:"start_at,omitempty"`
 }
 
-// Build will build a Azure Event Hub input operator.
+// Build will build a AWS Cloudwatch Logs input operator.
 func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(buildContext)
 	if err != nil {
