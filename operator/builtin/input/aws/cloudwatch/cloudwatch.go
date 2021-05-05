@@ -63,7 +63,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("missing required %s parameter 'region'", operatorName)
 	}
 
-	if c.Limit < 1  || c. Limit > 10000 {
+	if c.Limit < 1 || c.Limit > 10000 {
 		return nil, fmt.Errorf("invalid value '%d' for %s parameter 'limit'. Parameter 'limit' must be a value between 1 - 10000", c.Limit, operatorName)
 	}
 
