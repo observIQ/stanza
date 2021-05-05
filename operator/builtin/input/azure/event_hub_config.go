@@ -2,10 +2,15 @@ package azure
 
 import (
 	"fmt"
+
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
 )
 
 // AzureConfig is the configuration of a Azure Event Hub input operator.
 type AzureConfig struct {
+	helper.InputOperator
+
 	// required
 	Namespace        string `json:"namespace,omitempty"         yaml:"namespace,omitempty"`
 	Name             string `json:"name,omitempty"              yaml:"name,omitempty"`
@@ -15,9 +20,28 @@ type AzureConfig struct {
 	// optional
 	PrefetchCount uint32 `json:"prefetch_count,omitempty" yaml:"prefetch_count,omitempty"`
 	StartAt       string `json:"start_at,omitempty"       yaml:"start_at,omitempty"`
+
+	startAtBeginning bool
 }
 
-func (a AzureConfig) Validate() error {
+func (a *AzureConfig) Build(buildContext operator.BuildContext, input helper.InputConfig) error {
+	inputOperator, err := input.Build(buildContext)
+	if err != nil {
+		return err
+	}
+	a.InputOperator = inputOperator
+
+	switch a.StartAt {
+	case "beginning":
+		a.startAtBeginning = true
+	case "end":
+		a.startAtBeginning = false
+	}
+
+	return a.validate()
+}
+
+func (a AzureConfig) validate() error {
 	if a.Namespace == "" {
 		return fmt.Errorf("missing required parameter 'namespace'")
 	}

@@ -6,24 +6,17 @@ import (
 	"sync"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 )
 
 // Eventhub provides methods for reading events from Azure Event Hub.
 type EventHub struct {
-	Namespace        string
-	Name             string
-	Group            string
-	ConnStr          string
-	PrefetchCount    uint32
-	StartAtBeginning bool
-	Persist          *Persister
-	WG               sync.WaitGroup
-	Handler          func(context.Context, *azhub.Event) error
+	AzureConfig
+	Persist *Persister
+	WG      sync.WaitGroup
+	Handler func(context.Context, *azhub.Event) error
 
 	hub *azhub.Hub
-	helper.InputOperator
 }
 
 // StartConsumers starts an Azure Event Hub handler for each partition_id.
@@ -69,7 +62,7 @@ func (e *EventHub) StopConsumers() error {
 
 // startConsumer starts polling an Azure Event Hub partition id for new events
 func (e *EventHub) startConsumer(ctx context.Context, partitionID string, hub *azhub.Hub) error {
-	if e.StartAtBeginning {
+	if e.startAtBeginning {
 		_, err := hub.Receive(
 			ctx, partitionID, e.Handler, azhub.ReceiveWithStartingOffset(""),
 			azhub.ReceiveWithPrefetchCount(e.PrefetchCount))
@@ -102,6 +95,6 @@ func (e *EventHub) startConsumer(ctx context.Context, partitionID string, hub *a
 // Connect initializes the connection to Azure Event Hub ensures the input parameters are valid
 func (e *EventHub) Connect() error {
 	var err error
-	e.hub, err = azhub.NewHubFromConnectionString(e.ConnStr, azhub.HubWithOffsetPersistence(e.Persist))
+	e.hub, err = azhub.NewHubFromConnectionString(e.ConnectionString, azhub.HubWithOffsetPersistence(e.Persist))
 	return err
 }

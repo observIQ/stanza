@@ -2,7 +2,6 @@ package loganalytics
 
 import (
 	"context"
-	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/observiq/stanza/operator"
@@ -35,37 +34,16 @@ type LogAnalyticsInputConfig struct {
 
 // Build will build a Azure Log Analytics input operator.
 func (c *LogAnalyticsInputConfig) Build(buildContext operator.BuildContext) ([]operator.Operator, error) {
-	inputOperator, err := c.InputConfig.Build(buildContext)
-	if err != nil {
+	if err := c.AzureConfig.Build(buildContext, c.InputConfig); err != nil {
 		return nil, err
-	}
-
-	if err := c.AzureConfig.Validate(); err != nil {
-		return nil, err
-	}
-
-	var startAtBegining bool
-	switch c.StartAt {
-	case "beginning":
-		startAtBegining = true
-	case "end":
-		startAtBegining = false
-	default:
-		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'start_at'", c.StartAt, operatorName)
 	}
 
 	logAnalyticsInput := &LogAnalyticsInput{
 		EventHub: azure.EventHub{
-			Namespace:        c.Namespace,
-			Name:             c.Name,
-			Group:            c.Group,
-			ConnStr:          c.ConnectionString,
-			PrefetchCount:    c.PrefetchCount,
-			StartAtBeginning: startAtBegining,
+			AzureConfig: c.AzureConfig,
 			Persist: &azure.Persister{
 				DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 			},
-			InputOperator: inputOperator,
 		},
 		json: jsoniter.ConfigFastest,
 	}
