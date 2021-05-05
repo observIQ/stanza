@@ -66,24 +66,24 @@ func (c *EventHubInputConfig) Build(buildContext operator.BuildContext) ([]opera
 		return nil, fmt.Errorf("invalid value '%d' for %s parameter 'prefetch_count'", c.PrefetchCount, operatorName)
 	}
 
-	var startAtEnd bool
+	var startAtBegining bool
 	switch c.StartAt {
 	case "beginning":
-		startAtEnd = false
+		startAtBegining = true
 	case "end":
-		startAtEnd = true
+		startAtBegining = false
 	default:
 		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'start_at'", c.StartAt, operatorName)
 	}
 
 	eventHubInput := &EventHubInput{
 		EventHub: azure.EventHub{
-			Namespace:     c.Namespace,
-			Name:          c.Name,
-			Group:         c.Group,
-			ConnStr:       c.ConnectionString,
-			PrefetchCount: c.PrefetchCount,
-			StartAtEnd:    startAtEnd,
+			Namespace:        c.Namespace,
+			Name:             c.Name,
+			Group:            c.Group,
+			ConnStr:          c.ConnectionString,
+			PrefetchCount:    c.PrefetchCount,
+			StartAtBeginning: startAtBegining,
 			Persist: &azure.Persister{
 				DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 			},

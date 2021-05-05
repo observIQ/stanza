@@ -12,15 +12,15 @@ import (
 
 // Eventhub provides methods for reading events from Azure Event Hub.
 type EventHub struct {
-	Namespace     string
-	Name          string
-	Group         string
-	ConnStr       string
-	PrefetchCount uint32
-	StartAtEnd    bool
-	Persist       *Persister
-	WG            sync.WaitGroup
-	Handler       func(context.Context, *azhub.Event) error
+	Namespace        string
+	Name             string
+	Group            string
+	ConnStr          string
+	PrefetchCount    uint32
+	StartAtBeginning bool
+	Persist          *Persister
+	WG               sync.WaitGroup
+	Handler          func(context.Context, *azhub.Event) error
 
 	hub *azhub.Hub
 	helper.InputOperator
@@ -69,8 +69,7 @@ func (e *EventHub) StopConsumers() error {
 
 // startConsumer starts polling an Azure Event Hub partition id for new events
 func (e *EventHub) startConsumer(ctx context.Context, partitionID string, hub *azhub.Hub) error {
-	// start at begining
-	if !e.StartAtEnd {
+	if e.StartAtBeginning {
 		_, err := hub.Receive(
 			ctx, partitionID, e.Handler, azhub.ReceiveWithStartingOffset(""),
 			azhub.ReceiveWithPrefetchCount(e.PrefetchCount))
