@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -219,6 +220,14 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 			t.Write(ctx, entry)
 		}
 		if err := scanner.Err(); err != nil {
+			// Use of closed network connection is expected if the context is canceled
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
 			t.Errorw("Scanner error", zap.Error(err))
 		}
 	}()
