@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jpillora/backoff"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -106,6 +107,12 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		maxBufferSize: int(c.MaxBufferSize),
 		tlsEnable:     c.TLS.Enable,
 		tlsKeyPair:    cert,
+		backoff: backoff.Backoff{
+			Min:    100 * time.Millisecond,
+			Max:    3 * time.Second,
+			Factor: 2,
+			Jitter: false,
+		},
 	}
 	return []operator.Operator{tcpInput}, nil
 }
@@ -117,6 +124,7 @@ type TCPInput struct {
 	maxBufferSize int
 	tlsEnable     bool
 	tlsKeyPair    tls.Certificate
+	backoff       backoff.Backoff
 
 	listener net.Listener
 	cancel   context.CancelFunc
@@ -173,8 +181,11 @@ func (t *TCPInput) goListen(ctx context.Context) {
 					return
 				default:
 					t.Debugw("Listener accept error", zap.Error(err))
+					time.Sleep(t.backoff.Duration())
+					continue
 				}
 			}
+			t.backoff.Reset()
 
 			t.Debugf("Received connection: %s", conn.RemoteAddr().String())
 			subctx, cancel := context.WithCancel(ctx)
