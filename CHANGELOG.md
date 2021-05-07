@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed TCP Input Operator panic [PR296](https://github.com/observIQ/stanza/pull/296)
 
-## [0.13.20] - 2021-05-06
+## [0.13.20] - 2021-05-06 
 
 ### Added
 - Added flatten Operator [PR 286](https://github.com/observIQ/stanza/pull/286)
