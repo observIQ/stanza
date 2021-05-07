@@ -4,11 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.19] - Unreleased
+## [0.13.21] - 2021-05-07
+
+### Changed
+- Renamed Azure Event Hub event_data field to message [PR297](https://github.com/observIQ/stanza/pull/297)
+
+## [0.13.20] - 2021-05-06
+
+### Added
+- Added flatten Operator [PR 286](https://github.com/observIQ/stanza/pull/286)
+- Added Azure Event Hub Operator [PR 287](https://github.com/observIQ/stanza/pull/287)
+- Added Azure Log Analytics Operator [PR 287](https://github.com/observIQ/stanza/pull/287)
+
+## [0.13.19] - 2021-04-15
 
 ### Added
 - Added float64 to Severity parser's supported types [PR 267](https://github.com/observIQ/stanza/issues/267)
-- Added remove operator
+
+### Changed
+- Switched to Go 1.16, from Go 1.14
+- Updated syslog operator to v0.1.5
+
 ## [0.13.18] - 2021-04-02
 
 ### Changed

@@ -1,5 +1,6 @@
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
+GOFLAGS=-mod=mod
 
 GIT_SHA=$(shell git rev-parse --short HEAD)
 
@@ -10,8 +11,8 @@ ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort 
 
 .PHONY: install-tools
 install-tools:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint
-	go install github.com/vektra/mockery/cmd/mockery
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/vektra/mockery/cmd/mockery@latest
 
 .PHONY: test
 test: vet test-only
