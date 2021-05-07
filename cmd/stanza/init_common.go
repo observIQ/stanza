@@ -29,7 +29,9 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/ratelimit"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/recombine"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/remove"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/restructure"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/retain"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/router"
 
 	_ "github.com/observiq/stanza/operator/builtin/output/drop"
