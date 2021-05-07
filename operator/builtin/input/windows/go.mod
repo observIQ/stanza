@@ -4,9 +4,9 @@ go 1.14
 
 require (
 	github.com/observiq/stanza v0.13.10
-	github.com/stretchr/testify v1.6.1
-	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
-	golang.org/x/text v0.3.3
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+	golang.org/x/text v0.3.6
 )
 
 replace github.com/observiq/stanza => ../../../../

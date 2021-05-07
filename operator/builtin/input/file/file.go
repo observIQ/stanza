@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bmatcuk/doublestar/v2"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -170,7 +171,7 @@ func getMatches(includes, excludes []string) []string {
 	INCLUDE:
 		for _, match := range matches {
 			for _, exclude := range excludes {
-				if itMatches, _ := filepath.Match(exclude, match); itMatches {
+				if itMatches, _ := doublestar.PathMatch(exclude, match); itMatches {
 					continue INCLUDE
 				}
 			}
