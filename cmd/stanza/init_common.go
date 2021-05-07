@@ -27,6 +27,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/transformer/hostmetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/k8smetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/metadata"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/move"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/ratelimit"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/recombine"
