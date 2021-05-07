@@ -22,6 +22,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/parser/uri"
 
 	_ "github.com/observiq/stanza/operator/builtin/transformer/add"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/copy"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/filter"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/hostmetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/k8smetadata"
