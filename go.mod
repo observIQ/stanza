@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.7
 	github.com/antonmedv/expr v1.8.2
+	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/jpillora/backoff v1.0.0
 	github.com/json-iterator/go v1.1.10
