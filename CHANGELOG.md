@@ -9,15 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Renamed Azure Event Hub event_data field to message [PR297](https://github.com/observIQ/stanza/pull/297)
 
+### Fixed
+- Fixed TCP Input Operator panic [PR296](https://github.com/observIQ/stanza/pull/296)
+
 ## [0.13.20] - 2021-05-06
 
 ### Added
 - Added flatten Operator [PR 286](https://github.com/observIQ/stanza/pull/286)
 - Added Azure Event Hub Operator [PR 287](https://github.com/observIQ/stanza/pull/287)
 - Added Azure Log Analytics Operator [PR 287](https://github.com/observIQ/stanza/pull/287)
-
-### Fixed
-- Fixed TCP Input Operator panic [PR296](https://github.com/observIQ/stanza/pull/296)
 
 ## [0.13.19] - 2021-04-15
 
