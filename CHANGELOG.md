@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Azure Log Analytics Operator [PR 287](https://github.com/observIQ/stanza/pull/287)
 
 ## [0.13.19] - 2021-04-15
-
+ 
 ### Added
 - Added float64 to Severity parser's supported types [PR 267](https://github.com/observIQ/stanza/issues/267)
 
