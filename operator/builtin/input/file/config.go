@@ -3,11 +3,11 @@ package file
 import (
 	"bufio"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/bmatcuk/doublestar/v2"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
@@ -76,7 +76,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 
 	// Ensure includes can be parsed as globs
 	for _, include := range c.Include {
-		_, err := filepath.Match(include, "matchstring")
+		_, err := doublestar.PathMatch(include, "matchstring")
 		if err != nil {
 			return nil, fmt.Errorf("parse include glob: %s", err)
 		}
@@ -84,7 +84,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 
 	// Ensure excludes can be parsed as globs
 	for _, exclude := range c.Exclude {
-		_, err := filepath.Match(exclude, "matchstring")
+		_, err := doublestar.PathMatch(exclude, "matchstring")
 		if err != nil {
 			return nil, fmt.Errorf("parse exclude glob: %s", err)
 		}
