@@ -3,13 +3,15 @@ package tcp
 import (
 	"bufio"
 	"context"
-	"fmt"
-	"net"
-	"sync"
-	"time"
 	"crypto/rand"
 	"crypto/tls"
+	"fmt"
+	"net"
+	"strings"
+	"sync"
+	"time"
 
+	"github.com/jpillora/backoff"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -18,11 +20,11 @@ import (
 const (
 	// minBufferSize is the initial size used for buffering
 	// TCP input
-	minBufferSize = 64*1024
+	minBufferSize = 64 * 1024
 
 	// DefaultMaxBufferSize is the max buffer sized used
 	// if MaxBufferSize is not set
-	DefaultMaxBufferSize = 1024*1024
+	DefaultMaxBufferSize = 1024 * 1024
 )
 
 func init() {
@@ -41,20 +43,20 @@ type TCPInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
 	MaxBufferSize helper.ByteSize `json:"max_buffer_size,omitempty" yaml:"max_buffer_size,omitempty"`
-	ListenAddress string    `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
-	TLS           TLSConfig `json:"tls,omitempty" yaml:"tls,omitempty"`
+	ListenAddress string          `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	TLS           TLSConfig       `json:"tls,omitempty" yaml:"tls,omitempty"`
 }
 
 // TLSConfig is the configuration for a TLS listener
 type TLSConfig struct {
 	// Enable forces the user of TLS
-	Enable     bool    `json:"enable,omitempty" yaml:"enable,omitempty"`
+	Enable bool `json:"enable,omitempty" yaml:"enable,omitempty"`
 
 	// Certificate is the file path for the certificate
 	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
 
 	// PrivateKey is the file path for the private key
-	PrivateKey  string `json:"private_key,omitempty" yaml:"private_key,omitempty"`
+	PrivateKey string `json:"private_key,omitempty" yaml:"private_key,omitempty"`
 }
 
 // Build will build a tcp input operator.
@@ -106,6 +108,12 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		maxBufferSize: int(c.MaxBufferSize),
 		tlsEnable:     c.TLS.Enable,
 		tlsKeyPair:    cert,
+		backoff: backoff.Backoff{
+			Min:    100 * time.Millisecond,
+			Max:    3 * time.Second,
+			Factor: 2,
+			Jitter: false,
+		},
 	}
 	return []operator.Operator{tcpInput}, nil
 }
@@ -117,6 +125,7 @@ type TCPInput struct {
 	maxBufferSize int
 	tlsEnable     bool
 	tlsKeyPair    tls.Certificate
+	backoff       backoff.Backoff
 
 	listener net.Listener
 	cancel   context.CancelFunc
@@ -136,7 +145,7 @@ func (t *TCPInput) Start() error {
 }
 
 func (t *TCPInput) configureListener() error {
-	if ! t.tlsEnable {
+	if !t.tlsEnable {
 		listener, err := net.Listen("tcp", t.address)
 		if err != nil {
 			return fmt.Errorf("failed to configure tcp listener: %w", err)
@@ -173,8 +182,11 @@ func (t *TCPInput) goListen(ctx context.Context) {
 					return
 				default:
 					t.Debugw("Listener accept error", zap.Error(err))
+					time.Sleep(t.backoff.Duration())
+					continue
 				}
 			}
+			t.backoff.Reset()
 
 			t.Debugf("Received connection: %s", conn.RemoteAddr().String())
 			subctx, cancel := context.WithCancel(ctx)
@@ -206,10 +218,10 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 		defer t.wg.Done()
 		defer cancel()
 
-        // Initial buffer size is 64k
-        buf := make([]byte, 0, 64 * 1024)
+		// Initial buffer size is 64k
+		buf := make([]byte, 0, 64*1024)
 		scanner := bufio.NewScanner(conn)
-        scanner.Buffer(buf, t.maxBufferSize * 1024)
+		scanner.Buffer(buf, t.maxBufferSize*1024)
 		for scanner.Scan() {
 			entry, err := t.NewEntry(scanner.Text())
 			if err != nil {
@@ -219,6 +231,14 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 			t.Write(ctx, entry)
 		}
 		if err := scanner.Err(); err != nil {
+			// Use of closed network connection is expected if the context is canceled
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
 			t.Errorw("Scanner error", zap.Error(err))
 		}
 	}()
