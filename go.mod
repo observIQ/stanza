@@ -7,6 +7,7 @@ require (
 	github.com/antonmedv/expr v1.8.2
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cenkalti/backoff/v4 v4.0.2
+	github.com/jpillora/backoff v1.0.0
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
