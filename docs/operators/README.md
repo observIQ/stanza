@@ -27,6 +27,7 @@ Outputs:
 - [Elasticsearch](/docs/operators/elastic_output.md)
 - [Stdout](/docs/operators/stdout.md)
 - [File](docs/operators/file_output.md)
+- [OTLP](docs/operators/otlp_output.md)
 
 General purpose:
 - [Rate Limit](/docs/operators/rate_limit.md)

@@ -3,7 +3,7 @@ module github.com/observiq/stanza/operator/builtin/output/otlp
 go 1.14
 
 require (
-	github.com/mitchellh/mapstructure v1.3.2
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/observiq/stanza v0.12.5
 	github.com/stretchr/testify v1.7.0
 	go.opentelemetry.io/collector v0.13.0
