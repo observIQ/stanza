@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.22] - Unreleased
+
+### Added
+- Added 'add' operator
+
 ## [0.13.21] - 2021-05-07
 
 ### Changed
@@ -23,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added float64 to Severity parser's supported types [PR 267](https://github.com/observIQ/stanza/issues/267)
-- Added 'add' operator from Open-Telementry
 
 ### Changed
 - Switched to Go 1.16, from Go 1.14
