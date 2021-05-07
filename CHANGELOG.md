@@ -3,20 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [0.13.22] - Unrealeased
+
+## [0.14.0] - 2021-05-07
 
 ### Added
-- Added doublestar support  
-
-## [0.13.22] - Unreleased
-
-## [0.13.21] - 2021-05-07
+- Added Move operator [PR271](https://github.com/observIQ/stanza/pull/271)
+- Added Add operator [PR272](https://github.com/observIQ/stanza/pull/272)
+- Added Remove operator [PR273](https://github.com/observIQ/stanza/pull/273)
+- Added Copy operator [PR278](https://github.com/observIQ/stanza/pull/278)
+- Added Retain operator [PR279](https://github.com/observIQ/stanza/pull/279)
+- Added Flatten operator [PR286](https://github.com/observIQ/stanza/pull/286)
 
 ### Changed
 - Renamed Azure Event Hub event_data field to message [PR297](https://github.com/observIQ/stanza/pull/297)
+- Added doublestar support to File Input [PR283](https://github.com/observIQ/stanza/pull/283)
 
 ### Fixed
 - Fixed TCP Input Operator panic [PR296](https://github.com/observIQ/stanza/pull/296)
+- Fixed Syslog parser race condition [PR284](https://github.com/observIQ/stanza/pull/284)
 
 ## [0.13.20] - 2021-05-06 
 
