@@ -38,7 +38,7 @@ func TestParseEvent(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTime,
 				Record: map[string]interface{}{
-					"event_data": "event hub entry",
+					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-sequence-number": &testSequenceNum,
 						"x-opt-enqueued-time":   &testTime,
@@ -77,7 +77,7 @@ func TestParseEvent(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTime,
 				Record: map[string]interface{}{
-					"event_data":    "hello world",
+					"message":    "hello world",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",
@@ -135,7 +135,7 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: enqueuedTime,
 				Record: map[string]interface{}{
-					"event_data": "event hub entry",
+					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
 					},
@@ -157,7 +157,7 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
 				Record: map[string]interface{}{
-					"event_data": "event hub entry",
+					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
 					},
@@ -180,7 +180,7 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: enqueuedTime,
 				Record: map[string]interface{}{
-					"event_data": "event hub entry",
+					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
@@ -204,7 +204,7 @@ func TestPromoteTime(t *testing.T) {
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
 				Record: map[string]interface{}{
-					"event_data": "event hub entry",
+					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &time.Time{},
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
