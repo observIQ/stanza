@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added doublestar support  
 
+## [0.13.22] - Unreleased
+### Added
+- Added retain operator
+
 ## [0.13.21] - 2021-05-07
 
 ### Changed
