@@ -193,13 +193,14 @@ func (c *CloudwatchInput) sessionBuilder() *cloudwatchlogs.CloudWatchLogs {
 func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs) {
 	nextToken := ""
 	st, err := c.persist.Read(c.logGroupName)
+	c.Debugf("Read start time %d from database", st)
 	if err != nil {
 		c.Errorf("failed to get persist: %s", err)
 	}
 	c.startTime = st
 	if c.startAtEnd && c.startTime == 0 {
 		c.startTime = currentTimeInUnixMilliseconds()
-		c.Debugf("Setting start time to current time: %s", c.startTime)
+		c.Debugf("Setting start time to current time: %d", c.startTime)
 	}
 	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", c.logGroupName, fromUnixMilli(c.startTime))
 	for {
@@ -215,7 +216,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 			c.Debug("No new events available from AWS Cloudwatch Logs")
 		}
 
-		c.handleBatchedEvents(ctx, resp.Events)
+		c.handleEvents(ctx, resp.Events)
 
 		if resp.NextToken == nil {
 			c.Debug("Finished getting events")
@@ -223,7 +224,6 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 		}
 		nextToken = *resp.NextToken
 		c.Debug("Reached event limit '%d'", c.eventLimit)
-		c.persist.DB.Sync()
 	}
 }
 
@@ -310,36 +310,27 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 	entry.Record = e
+
 	// Persist
 	if *event.IngestionTime > c.startTime {
+		c.startTime = *event.IngestionTime
+		c.Debugf("Writing start time %d to database", *event.IngestionTime)
 		c.persist.Write(c.logGroupName, *event.IngestionTime)
 	}
+
 	// Write Entry
 	c.Write(ctx, entry)
 	return nil
 }
 
-func (c *CloudwatchInput) handleBatchedEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent) error {
+func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	// Create an entry for each log in the batch.
-	wg := sync.WaitGroup{}
-	max := 10
-	gaurd := make(chan struct{}, max)
-	for i := 0; i < len(events); i++ {
-		e := events[i]
-		wg.Add(1)
-		gaurd <- struct{}{}
-		go func() {
-			defer func() {
-				wg.Done()
-				<-gaurd
-			}()
-			c.handleEvent(ctx, e)
-		}()
+	for _, event := range events {
+		c.handleEvent(ctx, event)
 	}
-	wg.Wait()
+	c.persist.DB.Sync()
 	return nil
 }
 
