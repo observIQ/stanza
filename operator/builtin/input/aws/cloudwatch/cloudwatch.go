@@ -212,7 +212,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 		}
 
 		if len(resp.Events) == 0 {
-			c.Debug("No events from AWS Cloudwatch Logs")
+			c.Debug("No new events available from AWS Cloudwatch Logs")
 		}
 
 		c.handleBatchedEvents(ctx, resp.Events)
@@ -301,7 +301,6 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	e["message"] = event.Message
 	e["event_id"] = event.EventId
 	e["log_stream_name"] = event.LogStreamName
-	e["timestamp"] = event.Timestamp
 	e["ingestion_time"] = event.IngestionTime
 
 	entry, err := c.NewEntry(nil)
