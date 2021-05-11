@@ -16,6 +16,7 @@ import (
 )
 
 const operatorName = "aws_cloudwatch_input"
+const eventLimit = 10000 //The maximum number of events to return. The default is up to 10,000 events or max of 1mb.
 
 func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewCloudwatchConfig("") })
@@ -26,7 +27,7 @@ func NewCloudwatchConfig(operatorID string) *CloudwatchInputConfig {
 	return &CloudwatchInputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, operatorName),
 
-		EventLimit:   10000,
+		EventLimit:   eventLimit,
 		PollInterval: helper.Duration{Duration: time.Minute * 1},
 		StartAt:      "end",
 	}
