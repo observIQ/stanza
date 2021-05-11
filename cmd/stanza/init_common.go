@@ -3,6 +3,8 @@ package main
 import (
 	// Load packages when importing input operators
 	_ "github.com/observiq/stanza/operator/builtin/input/aws/cloudwatch"
+	_ "github.com/observiq/stanza/operator/builtin/input/azure/eventhub"
+	_ "github.com/observiq/stanza/operator/builtin/input/azure/loganalytics"
 	_ "github.com/observiq/stanza/operator/builtin/input/file"
 	_ "github.com/observiq/stanza/operator/builtin/input/forward"
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
@@ -20,14 +22,19 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/parser/time"
 	_ "github.com/observiq/stanza/operator/builtin/parser/uri"
 
+	_ "github.com/observiq/stanza/operator/builtin/transformer/add"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/copy"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/filter"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/hostmetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/k8smetadata"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/metadata"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/move"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/noop"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/ratelimit"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/recombine"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/remove"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/restructure"
+	_ "github.com/observiq/stanza/operator/builtin/transformer/retain"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/router"
 
 	_ "github.com/observiq/stanza/operator/builtin/output/drop"
