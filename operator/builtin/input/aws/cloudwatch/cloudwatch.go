@@ -135,12 +135,7 @@ func (c *CloudwatchInput) Start() error {
 		return err
 	}
 
-	err := c.pollEvents(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.pollEvents(ctx)
 }
 
 // Stop will stop generating logs.
