@@ -12,8 +12,8 @@ The `aws_cloudwatch_input` operator will use the following order to get credenti
 | ---                       | ---                    | ---                                                                                                         |
 | `id`                      | `aws_cloudwatch_input` | A unique identifier for the operator.                                                                       |
 | `output`                  | Next in pipeline       | The connected operator(s) that will receive all outbound entries.                                           |
-| `LogGroupName`            | required               | The Cloudwatch Logs Log Group Name.                                                                         |
-| `Region`                  | required               | The AWS Region to be used.                                                                                  |
+| `log_group_name`          | required               | The Cloudwatch Logs Log Group Name.                                                                         |
+| `region`                  | required               | The AWS Region to be used.                                                                                  |
 | `log_stream_name_prefix`  |                        | The log stream name prefix to use. This will find any log stream name in the group with the starting prefix |
 | `log_stream_names`        |                        | An array of log stream names to get events from.                                                            |
 | `profile`                 |                        | Profile to use for authentication. Details on named profiles can be found [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) |
