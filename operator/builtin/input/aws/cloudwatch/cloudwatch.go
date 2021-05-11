@@ -1,19 +1,18 @@
-package Cloudwatch
+package cloudwatch
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
-	"go.uber.org/zap"
 )
 
 const operatorName = "aws_cloudwatch_input"
@@ -25,10 +24,11 @@ func init() {
 // NewCloudwatchConfig creates a new AWS Cloudwatch Logs input config with default values
 func NewCloudwatchConfig(operatorID string) *CloudwatchInputConfig {
 	return &CloudwatchInputConfig{
-		InputConfig:  helper.NewInputConfig(operatorID, operatorName),
-		Limit:        10000,
-		StartAt:      "end",
+		InputConfig: helper.NewInputConfig(operatorID, operatorName),
+
+		EventLimit:   10000,
 		PollInterval: helper.Duration{Duration: time.Minute * 1},
+		StartAt:      "end",
 	}
 }
 
@@ -39,11 +39,12 @@ type CloudwatchInputConfig struct {
 	// required
 	LogGroupName string `json:"log_group_name,omitempty" yaml:"log_group_name,omitempty"`
 	Region       string `json:"region,omitempty" yaml:"region,omitempty"`
-	Profile      string `json:"profile,omitempty" yaml:"profile,omitempty"`
 
 	// optional
 	LogStreamNamePrefix string          `json:"log_stream_name_prefix,omitempty" yaml:"log_stream_name_prefix,omitempty"`
-	Limit               int64           `json:"limit,omitempty" yaml:"limit,omitempty"`
+	LogStreamNames      []*string       `json:"log_stream_names,omitempty" yaml:"log_stream_names,omitempty"`
+	Profile             string          `json:"profile,omitempty" yaml:"profile,omitempty"`
+	EventLimit          int64           `json:"event_limit,omitempty" yaml:"event_limit,omitempty"`
 	PollInterval        helper.Duration `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 	StartAt             string          `json:"start_at,omitempty" yaml:"start_at,omitempty"`
 }
@@ -59,12 +60,20 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("missing required %s parameter 'log_group_name'", operatorName)
 	}
 
+	if len(c.LogStreamNames) > 0 && c.LogStreamNamePrefix != "" {
+		return nil, fmt.Errorf("must only use 'log_stream_names' or 'log_stream_name_prefix' %s parameters, cannot use both", operatorName)
+	}
+
 	if c.Region == "" {
 		return nil, fmt.Errorf("missing required %s parameter 'region'", operatorName)
 	}
 
-	if c.Limit < 1 || c.Limit > 10000 {
-		return nil, fmt.Errorf("invalid value '%d' for %s parameter 'limit'. Parameter 'limit' must be a value between 1 - 10000", c.Limit, operatorName)
+	if c.EventLimit < 1 || c.EventLimit > 10000 {
+		return nil, fmt.Errorf("invalid value '%d' for %s parameter 'event_limit'. Parameter 'event_limit' must be a value between 1 - 10000", c.EventLimit, operatorName)
+	}
+
+	if c.PollInterval.Raw() < time.Second*10 {
+		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' must be a value of 10 seconds or greater", c.PollInterval.String(), operatorName)
 	}
 
 	if c.StartAt != "beginning" && c.StartAt != "end" {
@@ -84,13 +93,16 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 	cloudwatchInput := &CloudwatchInput{
 		InputOperator:       inputOperator,
 		logGroupName:        c.LogGroupName,
+		logStreamNames:      c.LogStreamNames,
 		logStreamNamePrefix: c.LogStreamNamePrefix,
 		region:              c.Region,
-		limit:               c.Limit,
+		eventLimit:          c.EventLimit,
 		profile:             c.Profile,
 		pollInterval:        c.PollInterval,
 		startAtEnd:          startAtEnd,
-		persist:             *helper.NewScopedDBPersister(buildContext.Database, c.ID()),
+		persist: Persister{
+			DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
+		},
 	}
 	return []operator.Operator{cloudwatchInput}, nil
 }
@@ -102,13 +114,14 @@ type CloudwatchInput struct {
 	pollInterval helper.Duration
 
 	logGroupName        string
+	logStreamNames      []*string
 	logStreamNamePrefix string
 	region              string
-	limit               int64
+	eventLimit          int64
 	profile             string
 	startAtEnd          bool
 	startTime           int64
-	persist             helper.ScopedBBoltPersister
+	persist             Persister
 	wg                  sync.WaitGroup
 }
 
@@ -117,7 +130,7 @@ func (c *CloudwatchInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
 
-	if err := c.persist.Load(); err != nil {
+	if err := c.persist.DB.Load(); err != nil {
 		return err
 	}
 
@@ -139,56 +152,82 @@ func (c *CloudwatchInput) Stop() error {
 
 // pollEvents gets events from AWS Cloudwatch Logs every poll interval.
 func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
-	c.Info("Started polling AWS Cloudwatch using poll interval of ", c.pollInterval)
+	c.Infof("Started polling AWS Cloudwatch Logs group '%s' using poll interval of '%s'", c.logGroupName, c.pollInterval)
 	defer c.wg.Done()
 
-	region := aws.String(c.region)
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{Region: region},
+	// Create session to use when connecting to AWS Cloudwatch Logs
+	svc := c.sessionBuilder()
 
-		Profile: c.profile,
-	}))
-
-	svc := cloudwatchlogs.New(sess)
+	// Get events immediately when operator starts then use poll_interval duration.
+	c.getEvents(ctx, svc)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(c.pollInterval.Duration):
-			c.Debug("Getting events from AWS Cloudwatch Logs")
-			nextToken := ""
-			st := c.persist.Get(c.logGroupName)
-			c.startTime = bytesToInt64(st)
-			if c.startAtEnd && c.startTime == 0 {
-				c.Info("Setting start time to current time")
-				c.startTime = currentTimeInUnixMilliseconds()
-			}
-			c.Info("Start Time: ", c.startTime)
-			for {
-				input := c.filterLogEventsInputBuilder(nextToken)
-
-				resp, err := svc.FilterLogEvents(&input)
-				if err != nil {
-					c.Errorf("failed to get events: %s", err)
-					continue
-				}
-
-				if len(resp.Events) == 0 {
-					c.Debug("No events from AWS Cloudwatch Logs")
-				}
-
-				c.handleBatchedEvents(ctx, resp.Events)
-
-				if resp.NextToken == nil {
-					c.Debug("Finished getting events")
-					break
-				}
-				nextToken = *resp.NextToken
-				c.Debug("Reached event limit '%d'", c.limit)
-				c.persist.Sync()
-			}
+			c.getEvents(ctx, svc)
 		}
+	}
+}
+
+// sessionBuilder builds a session for AWS Cloudwatch Logs
+func (c *CloudwatchInput) sessionBuilder() *cloudwatchlogs.CloudWatchLogs {
+
+	region := aws.String(c.region)
+	var sess *session.Session
+	if c.profile != "" {
+		sess = session.Must(session.NewSessionWithOptions(session.Options{
+			Config: aws.Config{Region: region},
+
+			Profile: c.profile,
+		}))
+	}
+
+	if c.profile == "" {
+		sess = session.Must(session.NewSession(&aws.Config{
+			Region: region,
+		}))
+	}
+
+	return cloudwatchlogs.New(sess)
+}
+
+// getEvents uses a session to get events from AWS Cloudwatch Logs
+func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs) {
+	nextToken := ""
+	st, err := c.persist.Read(c.logGroupName)
+	if err != nil {
+		c.Errorf("failed to get persist: %s", err)
+	}
+	c.startTime = st
+	if c.startAtEnd && c.startTime == 0 {
+		c.startTime = currentTimeInUnixMilliseconds()
+		c.Debugf("Setting start time to current time: %s", c.startTime)
+	}
+	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", c.logGroupName, fromUnixMilli(c.startTime))
+	for {
+		input := c.filterLogEventsInputBuilder(nextToken)
+
+		resp, err := svc.FilterLogEvents(&input)
+		if err != nil {
+			c.Errorf("failed to get events: %s", err)
+			break
+		}
+
+		if len(resp.Events) == 0 {
+			c.Debug("No events from AWS Cloudwatch Logs")
+		}
+
+		c.handleBatchedEvents(ctx, resp.Events)
+
+		if resp.NextToken == nil {
+			c.Debug("Finished getting events")
+			break
+		}
+		nextToken = *resp.NextToken
+		c.Debug("Reached event limit '%d'", c.eventLimit)
+		c.persist.DB.Sync()
 	}
 }
 
@@ -196,27 +235,50 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
 // and returns completed input.
 func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwatchlogs.FilterLogEventsInput {
 	logGroupNamePtr := aws.String(c.logGroupName)
-	limit := aws.Int64(c.limit)
+	limit := aws.Int64(c.eventLimit)
+	startTime := aws.Int64(c.startTime)
 
 	if c.logStreamNamePrefix != "" && nextToken != "" {
-		logStreamNamePrefixPtr := aws.String(c.logStreamNamePrefix)
+		tmp := c.timeLayoutParser(c.logStreamNamePrefix)
+		logStreamNamePrefixPtr := aws.String(tmp)
 		nextTokenPtr := aws.String(nextToken)
 		return cloudwatchlogs.FilterLogEventsInput{
 			Limit:               limit,
 			LogGroupName:        logGroupNamePtr,
 			LogStreamNamePrefix: logStreamNamePrefixPtr,
-			StartTime:           aws.Int64(c.startTime),
+			StartTime:           startTime,
 			NextToken:           nextTokenPtr,
 		}
 	}
 
 	if c.logStreamNamePrefix != "" {
-		logStreamNamePrefixPtr := aws.String(c.logStreamNamePrefix)
+		tmp := c.timeLayoutParser(c.logStreamNamePrefix)
+		logStreamNamePrefixPtr := aws.String(tmp)
 		return cloudwatchlogs.FilterLogEventsInput{
 			Limit:               limit,
 			LogGroupName:        logGroupNamePtr,
 			LogStreamNamePrefix: logStreamNamePrefixPtr,
-			StartTime:           aws.Int64(c.startTime),
+			StartTime:           startTime,
+		}
+	}
+
+	if len(c.logStreamNames) > 0 && nextToken != "" {
+		nextTokenPtr := aws.String(nextToken)
+		return cloudwatchlogs.FilterLogEventsInput{
+			Limit:          limit,
+			LogGroupName:   logGroupNamePtr,
+			LogStreamNames: c.logStreamNames,
+			StartTime:      startTime,
+			NextToken:      nextTokenPtr,
+		}
+	}
+
+	if len(c.logStreamNames) > 0 {
+		return cloudwatchlogs.FilterLogEventsInput{
+			Limit:          limit,
+			LogGroupName:   logGroupNamePtr,
+			LogStreamNames: c.logStreamNames,
+			StartTime:      startTime,
 		}
 	}
 
@@ -225,7 +287,7 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 		return cloudwatchlogs.FilterLogEventsInput{
 			Limit:        limit,
 			LogGroupName: logGroupNamePtr,
-			StartTime:    aws.Int64(c.startTime),
+			StartTime:    startTime,
 			NextToken:    nextTokenPtr,
 		}
 	}
@@ -233,14 +295,12 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 	return cloudwatchlogs.FilterLogEventsInput{
 		Limit:        limit,
 		LogGroupName: logGroupNamePtr,
-		StartTime:    aws.Int64(c.startTime),
+		StartTime:    startTime,
 	}
 }
 
 // handleEvent is the handler for a AWS Cloudwatch Logs Filtered Event.
 func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent) error {
-	// c.wg.Add(1)
-
 	e := make(map[string]interface{})
 	e["message"] = event.Message
 	e["event_id"] = event.EventId
@@ -250,18 +310,17 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 
 	entry, err := c.NewEntry(nil)
 	if err != nil {
-		c.Error("Failed to create new entry from record", zap.Error(err))
+		return errors.Wrap(err, "Failed to create new entry from record")
 	}
-	// entry.Timestamp = time.Unix(0, *event.Timestamp*int64(time.Millisecond))
+
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 	entry.Record = e
 	// Persist
 	if *event.IngestionTime > c.startTime {
-		c.persist.Set(c.logGroupName, int64ToBytes(*event.IngestionTime))
+		c.persist.Write(c.logGroupName, *event.IngestionTime)
 	}
 	// Write Entry
 	c.Write(ctx, entry)
-	// c.wg.Done()
 	return nil
 }
 
@@ -294,24 +353,34 @@ func currentTimeInUnixMilliseconds() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
-// Helper function to persist start time
-func int64ToBytes(i int64) []byte {
-	var buf = make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(i))
-	return buf
-}
-
-// Helper function to get persisted start time
-func bytesToInt64(buf []byte) int64 {
-	var startTime int64
-	buffer := bytes.NewBuffer(buf)
-	binary.Read(buffer, binary.BigEndian, &startTime)
-	return startTime
-}
-
 // Helper function to convert Unix epoch time in milliseconds to go time
 func fromUnixMilli(ms int64) time.Time {
 	const millisInSecond = 1000
 	const nsInSecond = 1000000
 	return time.Unix(ms/int64(millisInSecond), (ms%int64(millisInSecond))*int64(nsInSecond))
+}
+
+// timeLayoutParser parses set of predefined variables and replaces with date equivalent
+func (c *CloudwatchInput) timeLayoutParser(layout string) string {
+	if strings.Contains(layout, "%") {
+		replace := map[string]string{
+			"%Y": "2006",    // Year, zero-padded
+			"%y": "06",      // Year, last two digits, zero-padded
+			"%m": "01",      // Month as a decimal number
+			"%q": "1",       // Month as a unpadded number
+			"%b": "Jan",     // Abbreviated month name
+			"%h": "Jan",     // Abbreviated month name
+			"%B": "January", // Full month name
+			"%d": "02",      // Day of the month, zero-padded
+			"%g": "2",       // Day of the month, unpadded
+			"%a": "Mon",     // Abbreviated weekday name
+			"%A": "Monday",  // Full weekday name
+		}
+
+		for key, value := range replace {
+			layout = strings.Replace(layout, key, value, 1)
+		}
+		return time.Now().Format(layout)
+	}
+	return layout
 }
