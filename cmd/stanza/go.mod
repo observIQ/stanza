@@ -7,21 +7,16 @@ require (
 	github.com/observiq/stanza v0.14.0
 	github.com/observiq/stanza/operator/builtin/input/k8sevent v0.1.0
 	github.com/observiq/stanza/operator/builtin/input/windows v0.1.1
-	github.com/observiq/stanza/operator/builtin/output/elastic v0.1.2 // indirect
-	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.1.3 // indirect
-	github.com/observiq/stanza/operator/builtin/output/newrelic v0.1.2 // indirect
-	github.com/observiq/stanza/operator/builtin/output/otlp v0.1.0 // indirect
-	github.com/observiq/stanza/operator/builtin/parser/syslog v0.1.5 // indirect
-	github.com/observiq/stanza/operator/builtin/transformer/k8smetadata v0.1.2 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/observiq/stanza/operator/builtin/output/elastic v0.1.2
+	github.com/observiq/stanza/operator/builtin/output/googlecloud v0.1.3
+	github.com/observiq/stanza/operator/builtin/output/newrelic v0.1.2
+	github.com/observiq/stanza/operator/builtin/output/otlp v0.1.0
+	github.com/observiq/stanza/operator/builtin/parser/syslog v0.1.5
+	github.com/observiq/stanza/operator/builtin/transformer/k8smetadata v0.1.2
 	github.com/spf13/cobra v1.1.3
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	go.etcd.io/bbolt v1.3.5
-	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/text v0.3.5 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
 replace github.com/observiq/stanza => ../../
