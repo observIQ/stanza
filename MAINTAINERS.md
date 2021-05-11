@@ -5,7 +5,7 @@ This file lists the maintainers of the Stanza project. The responsibilities of m
 ## Project Maintainers
 | Name | GitHub ID | Affiliation |
 | ---- | --------- | ----------- |
-| [Mike Kelly](mailto:mike.kelly@bluemedora.com) | [mkelly](https://github.com/mkelly) | observIQ |
-| [Dan Jaglowski](mailto:dan.jaglowski@bluemedora.com) | [djaglowski](https://github.com/djaglowski) | observIQ |
-| [Camden Cheek](mailto:camden.cheek@bluemedora.com) | [camdencheek](https://github.com/camdencheek) | observIQ |
-| [Joseph Howell](mailto:joseph.howell@bluemedora.com) | [jhowellbm](https://github.com/jhowellbm) | observIQ |
+| [Mike Kelly](mailto:mike.kelly@observiq.com.com) | [mkelly](https://github.com/mkelly) | observIQ |
+| [Dan Jaglowski](mailto:dan.jaglowski@observiq.com.com) | [djaglowski](https://github.com/djaglowski) | observIQ |
+| [Joseph Howell](mailto:joseph.howell@observiq.com.com) | [jhowellbm](https://github.com/jhowellbm) | observIQ |
+| [Joe Sirianni](mailto:joe.sirianni@observiq.com.com) | [jhowellbm](https://github.com/jsirianni) | observIQ |
