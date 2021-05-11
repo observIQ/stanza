@@ -62,7 +62,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 	}
 
 	if len(c.LogStreamNames) > 0 && c.LogStreamNamePrefix != "" {
-		return nil, fmt.Errorf("must only use 'log_stream_names' or 'log_stream_name_prefix' %s parameters, cannot use both", operatorName)
+		return nil, fmt.Errorf("invalid configuration. Cannot use both 'log_stream_names' and 'log_stream_name_prefix' %s parameters", operatorName)
 	}
 
 	if c.Region == "" {

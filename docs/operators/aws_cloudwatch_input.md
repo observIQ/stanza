@@ -4,26 +4,26 @@ The `aws_cloudwatch_input` operator reads logs from AWS Cloudwatch Logs using [A
 
 The `aws_cloudwatch_input` operator will use the `Timestamp` field of the event as the parsed entry's timestamp. All other fields are added to the entry's record.
 
-The `aws_cloudwatch_input` operator will use the following order to get credentials. Environment Variables, Shared Credentials file, Shared Configuration file (if SharedConfig is enabled), and EC2 Instance Metadata (credentials only). You can provide `profile` to specify which credential set to use from a Shared Credentials file.
+The `aws_cloudwatch_input` operator will use the following order to get credentials. Environment Variables (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html)), Shared Credentials file (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)), Shared Configuration file (if SharedConfig is enabled details [here](https://docs.aws.amazon.com/sdkref/latest/guide/creds-config-files.html)) , and EC2 Instance Metadata (credentials only details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-metadata.html)). You can provide `profile` to specify which credential set to use from a Shared Credentials file.
 
 ### Configuration Fields
 
-| Field                     | Default                | Description                                                                                   |
-| ---                       | ---                    | ---                                                                                           |
-| `id`                      | `aws_cloudwatch_input` | A unique identifier for the operator                                                          |
-| `output`                  | Next in pipeline       | The connected operator(s) that will receive all outbound entries                              |
-| `LogGroupName`            | required               | The Cloudwatch Logs Log Group Name                                                            |
-| `Region`                  | required               | The AWS Region to be used.                                                                    |
+| Field                     | Default                | Description                                                                                                 |
+| ---                       | ---                    | ---                                                                                                         |
+| `id`                      | `aws_cloudwatch_input` | A unique identifier for the operator.                                                                       |
+| `output`                  | Next in pipeline       | The connected operator(s) that will receive all outbound entries.                                           |
+| `LogGroupName`            | required               | The Cloudwatch Logs Log Group Name.                                                                         |
+| `Region`                  | required               | The AWS Region to be used.                                                                                  |
 | `log_stream_name_prefix`  |                        | The log stream name prefix to use. This will find any log stream name in the group with the starting prefix |
-| `log_stream_names`        |                        | The Event Hub [connection string](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-get-connection-string) |
-| `profile`                 |                        | Desired number of events to read at one time                                                  |
-| `event_limit`             | `10000`                | Desired number of events to read at one time                                                  |
-| `poll_interval`           | `1m`                   | Desired number of events to read at one time                                                  |
-| `start_at`                | `end`                  | At startup, where to start reading events. Options are `beginning` or `end`                   |
+| `log_stream_names`        |                        | An array of log stream names to get events from.                                                            |
+| `profile`                 |                        | Profile to use for authentication. Details on named profiles can be found [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) |
+| `event_limit`             | `10000`                | The maximum number of events to return per call.                                                            |
+| `poll_interval`           | `1m`                   | The duration between event calls.                                                                           |
+| `start_at`                | `end`                  | At startup, where to start reading events. Options are `beginning` or `end`                                 |
 
 ### Log Stream Prefix
 
-The log_stream_prefix allows the use of "directives" such as `%Y` (4-digit year) and `%d` (2-digit zero-padded day). These directives are based on `strptime` directives. There are a limited set of the `strptime` directives. These directives are listed below. When directive is detected within the prefix it will replace the first occurance of directive.
+The log_stream_prefix allows the use of "directives" such as `%Y` (4-digit year) and `%d` (2-digit zero-padded day). These directives are based on `strptime` directives. There are a limited set of the `strptime` directives. These directives are listed below. When directive is detected within the prefix it will replace the first occurance of directive with the data indicated in the description.
 
 #### Supported directives
 
@@ -41,40 +41,86 @@ The log_stream_prefix allows the use of "directives" such as `%Y` (4-digit year)
 | %a        | Abbreviated weekday name           |
 | %A        | Full weekday name                  |
 
-
 ### Example Configurations
 
-#### Simple Azure Event Hub input
+#### Simple AWS Cloudwatch Logs Example Input
 
 Configuration:
+
 ```yaml
 pipeline:
 - type: aws_cloudwatch_input
-  namespace: stanza
-  name: devel
-  group: Default
-  connection_string: 'Endpoint=sb://stanza.servicebus.windows.net/;SharedAccessKeyName=dev;SharedAccessKey=supersecretkey;EntityPath=devel'
-  start_at: end
+  LogGroupName: "/aws/lambda/service"
+  Region: us-east-2
 ```
 
-### Example Output
-
-A list of potential keys and their purpose can be found [here](https://github.com/Azure/azure-event-hubs-go/blob/master/event.go). Event Hub `system_properties` documentation can be found [here](https://docs.microsoft.com/en-us/azure/data-explorer/ingest-data-event-hub-overview#event-system-properties-mapping)
+### Simple AWS Cloudwatch Logs Example Output
 
 ```json
 {
-  "timestamp": "2021-04-19T18:44:34.619Z",
+  "timestamp": "2021-05-10T13:00:55.023-04:00",
   "severity": 0,
-  "resource": {
-    "event_id": "fea3c182-00a6-4951-8f6f-9331031f978f"
-  },
   "record": {
-    "message": "hello, world!",
-    "system_properties": {
-      "x-opt-enqueued-time": "2021-04-19T18:44:34.619Z",
-      "x-opt-offset": 6120,
-      "x-opt-sequence-number": 51
-    }
+    "event_id": "36142060744975733945009868546041203920891749688822923267",
+    "ingestion_time": 1620666055330,
+    "log_stream_name": "2021/05/10/[$LATEST]ff09d08f2836494690a1bd6b77365502",
+    "message": "REPORT RequestId: 291fe36c-116a-42fd-a563-a8615671bab9\tDuration: 4577.28 ms\tBilled Duration: 4578 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\tInit Duration: 401.54 ms\t\n"
+  }
+}
+```
+
+#### Log Stream Prefix Directives Example Input
+
+Configuration:
+
+```yaml
+pipeline:
+- type: aws_cloudwatch_input
+  LogGroupName: "/aws/lambda/service"
+  Region: us-east-2
+  log_stream_name_prefix: "%Y/%m/%d"
+```
+
+### Log Stream Prefix Directives Example Output
+
+```json
+{
+  "timestamp": "2021-05-10T13:00:55.023-04:00",
+  "severity": 0,
+  "record": {
+    "event_id": "36142060744975733945009868546041203920891749688822923267",
+    "ingestion_time": 1620666055330,
+    "log_stream_name": "2021/05/10/[$LATEST]ff09d08f2836494690a1bd6b77365502",
+    "message": "REPORT RequestId: 291fe36c-116a-42fd-a563-a8615671bab9\tDuration: 4577.28 ms\tBilled Duration: 4578 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\tInit Duration: 401.54 ms\t\n"
+  }
+}
+```
+
+#### Log Stream Names Example Input
+
+Configuration:
+
+```yaml
+pipeline:
+- type: aws_cloudwatch_input
+  LogGroupName: "/aws/lambda/service"
+  Region: us-east-2
+  log_stream_names:
+    - "2021/05/09/[$LATEST]62e990bb0e72460c95b1dcfc5d96adc5"
+    - "2021/05/08/[$LATEST]84d663604b6845e987d278272455ed95"
+```
+
+### Log Stream Names Example Output
+
+```json
+{
+  "timestamp": "2021-05-10T13:00:55.023-04:00",
+  "severity": 0,
+  "record": {
+    "event_id": "36142060744975733945009868546041203920891749688822923267",
+    "ingestion_time": 1620666055330,
+    "log_stream_name": "2021/05/10/[$LATEST]ff09d08f2836494690a1bd6b77365502",
+    "message": "REPORT RequestId: 291fe36c-116a-42fd-a563-a8615671bab9\tDuration: 4577.28 ms\tBilled Duration: 4578 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\tInit Duration: 401.54 ms\t\n"
   }
 }
 ```
