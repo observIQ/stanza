@@ -1,6 +1,6 @@
 ## `aws_cloudwatch_input` operator
 
-The `aws_cloudwatch_input` operator reads logs from AWS Cloudwatch Logs using [AWS's SDK](https://github.com/aws/aws-sdk-go)
+The `aws_cloudwatch_input` operator reads logs from AWS Cloudwatch Logs using [AWS's SDK](https://github.com/aws/aws-sdk-go).
 
 The `aws_cloudwatch_input` operator will use the `Timestamp` field of the event as the parsed entry's timestamp. All other fields are added to the entry's record.
 
