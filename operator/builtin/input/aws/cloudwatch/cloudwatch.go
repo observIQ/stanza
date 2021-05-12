@@ -151,14 +151,21 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
 	svc := c.sessionBuilder()
 
 	// Get events immediately when operator starts then use poll_interval duration.
-	c.getEvents(ctx, svc)
+	err := c.getEvents(ctx, svc)
+	if err != nil {
+		c.Errorf("failed to get events: %s", err)
+	}
 
+	// Get events after poll interval duration
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(c.pollInterval.Duration):
-			c.getEvents(ctx, svc)
+			err := c.getEvents(ctx, svc)
+			if err != nil {
+				c.Errorf("failed to get events: %s", err)
+			}
 		}
 	}
 }
@@ -185,7 +192,7 @@ func (c *CloudwatchInput) sessionBuilder() *cloudwatchlogs.CloudWatchLogs {
 }
 
 // getEvents uses a session to get events from AWS Cloudwatch Logs
-func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs) {
+func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs) error {
 	nextToken := ""
 	st, err := c.persist.Read(c.logGroupName)
 	c.Debugf("Read start time %d from database", st)
@@ -203,8 +210,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 
 		resp, err := svc.FilterLogEvents(&input)
 		if err != nil {
-			c.Errorf("failed to get events: %s", err)
-			break
+			return err
 		}
 
 		if len(resp.Events) == 0 {
@@ -220,6 +226,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 		nextToken = *resp.NextToken
 		c.Debugf("Reached event limit '%d'", c.eventLimit)
 	}
+	return nil
 }
 
 // filterLogEventsInputBuilder builds AWS Cloudwatch Logs Filter Log Events Input based on provided values
@@ -295,7 +302,6 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	e := make(map[string]interface{})
 	e["message"] = event.Message
 	e["event_id"] = event.EventId
-	e["log_stream_name"] = event.LogStreamName
 	e["ingestion_time"] = event.IngestionTime
 
 	entry, err := c.NewEntry(nil)
@@ -303,6 +309,9 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 		return errors.Wrap(err, "Failed to create new entry from record")
 	}
 
+	entry.AddResourceKey("log_group_name", c.logGroupName)
+	entry.AddResourceKey("region", c.region)
+	entry.AddResourceKey("log_stream_name", *event.LogStreamName)
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 	entry.Record = e
 

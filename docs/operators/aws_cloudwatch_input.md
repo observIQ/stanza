@@ -85,13 +85,17 @@ pipeline:
 
 ```json
 {
-  "timestamp": "2021-05-10T13:00:55.023-04:00",
+  "timestamp": "2021-05-12T13:03:47.941-04:00",
   "severity": 0,
+  "resource": {
+    "log_group_name": "/aws/lambda/service",
+    "log_stream_name": "2021/05/12/[$LATEST]0f36de8f623a491c9305990130201669",
+    "region": "us-east-2"
+  },
   "record": {
-    "event_id": "36142060744975733945009868546041203920891749688822923267",
-    "ingestion_time": 1620666055330,
-    "log_stream_name": "2021/05/10/[$LATEST]ff09d08f2836494690a1bd6b77365502",
-    "message": "REPORT RequestId: 291fe36c-116a-42fd-a563-a8615671bab9\tDuration: 4577.28 ms\tBilled Duration: 4578 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\tInit Duration: 401.54 ms\t\n"
+    "event_id": "36145918169946298276207227425947415243911741965970309123",
+    "ingestion_time": 1620839035104,
+    "message": "REPORT RequestId: d64685ba-913b-456f-acd7-d00021416e68\tDuration: 1852.30 ms\tBilled Duration: 1853 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\t\n"
   }
 }
 ```
@@ -114,13 +118,17 @@ pipeline:
 
 ```json
 {
-  "timestamp": "2021-05-10T13:00:55.023-04:00",
+  "timestamp": "2021-05-09T13:04:02.686-04:00",
   "severity": 0,
+  "resource": {
+    "log_group_name": "/aws/lambda/service",
+    "log_stream_name": "2021/05/09/[$LATEST]62e990bb0e72460c95b1dcfc5d96adc5",
+    "region": "us-east-2"
+  },
   "record": {
-    "event_id": "36142060744975733945009868546041203920891749688822923267",
-    "ingestion_time": 1620666055330,
-    "log_stream_name": "2021/05/10/[$LATEST]ff09d08f2836494690a1bd6b77365502",
-    "message": "REPORT RequestId: 291fe36c-116a-42fd-a563-a8615671bab9\tDuration: 4577.28 ms\tBilled Duration: 4578 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\tInit Duration: 401.54 ms\t\n"
+    "event_id": "36140138145615327091022666253954182481286730645124743171",
+    "ingestion_time": 1620579849837,
+    "message": "REPORT RequestId: 346b9fa2-9117-4d41-89f8-071f0100213b\tDuration: 1865.27 ms\tBilled Duration: 1866 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\t\n"
   }
 }
 ```
