@@ -4,7 +4,13 @@ The `aws_cloudwatch_input` operator reads logs from AWS Cloudwatch Logs using [A
 
 The `aws_cloudwatch_input` operator will use the `Timestamp` field of the event as the parsed entry's timestamp. All other fields are added to the entry's record.
 
-The `aws_cloudwatch_input` operator will use the following order to get credentials. Environment Variables (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html)), Shared Credentials file (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)), Shared Configuration file (if SharedConfig is enabled details [here](https://docs.aws.amazon.com/sdkref/latest/guide/creds-config-files.html)) , and EC2 Instance Metadata (credentials only details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-metadata.html)). You can provide `profile` to specify which credential set to use from a Shared Credentials file.
+The `aws_cloudwatch_input` operator will use the following order to get credentials. 
+- Environment Variables (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html))
+- Shared Credentials file (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)), 
+- Shared Configuration file (if SharedConfig is enabled details [here](https://docs.aws.amazon.com/sdkref/latest/guide/creds-config-files.html)) , 
+- EC2 Instance Metadata (credentials only details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-metadata.html)). 
+
+You can provide `profile` to specify which credential set to use from a Shared Credentials file.
 
 ### Configuration Fields
 
