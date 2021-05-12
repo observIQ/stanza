@@ -77,10 +77,6 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' must be a value of 10 seconds or greater", c.PollInterval.String(), operatorName)
 	}
 
-	if c.StartAt != "beginning" && c.StartAt != "end" {
-		return nil, fmt.Errorf("invalid value for parameter 'start_at'")
-	}
-
 	var startAtEnd bool
 	switch c.StartAt {
 	case "beginning":
@@ -169,22 +165,21 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
 
 // sessionBuilder builds a session for AWS Cloudwatch Logs
 func (c *CloudwatchInput) sessionBuilder() *cloudwatchlogs.CloudWatchLogs {
-
 	region := aws.String(c.region)
 	var sess *session.Session
-	if c.profile != "" {
-		sess = session.Must(session.NewSessionWithOptions(session.Options{
-			Config: aws.Config{Region: region},
-
-			Profile: c.profile,
-		}))
-	}
-
 	if c.profile == "" {
 		sess = session.Must(session.NewSession(&aws.Config{
 			Region: region,
 		}))
+
+		return cloudwatchlogs.New(sess)
 	}
+
+	sess = session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{Region: region},
+
+		Profile: c.profile,
+	}))
 
 	return cloudwatchlogs.New(sess)
 }
@@ -199,7 +194,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 	}
 	c.startTime = st
 	if c.startAtEnd && c.startTime == 0 {
-		c.startTime = currentTimeInUnixMilliseconds()
+		c.startTime = currentTimeInUnixMilliseconds(time.Now())
 		c.Debugf("Setting start time to current time: %d", c.startTime)
 	}
 	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", c.logGroupName, fromUnixMilli(c.startTime))
@@ -235,7 +230,7 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 	startTime := aws.Int64(c.startTime)
 
 	if c.logStreamNamePrefix != "" && nextToken != "" {
-		tmp := c.timeLayoutParser(c.logStreamNamePrefix)
+		tmp := timeLayoutParser(c.logStreamNamePrefix, time.Now())
 		logStreamNamePrefixPtr := aws.String(tmp)
 		nextTokenPtr := aws.String(nextToken)
 		return cloudwatchlogs.FilterLogEventsInput{
@@ -248,7 +243,7 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 	}
 
 	if c.logStreamNamePrefix != "" {
-		tmp := c.timeLayoutParser(c.logStreamNamePrefix)
+		tmp := timeLayoutParser(c.logStreamNamePrefix, time.Now())
 		logStreamNamePrefixPtr := aws.String(tmp)
 		return cloudwatchlogs.FilterLogEventsInput{
 			Limit:               limit,
@@ -335,8 +330,8 @@ func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatch
 }
 
 // Returns time.Now() as Unix Time in Milliseconds
-func currentTimeInUnixMilliseconds() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
+func currentTimeInUnixMilliseconds(timeNow time.Time) int64 {
+	return timeNow.UnixNano() / int64(time.Millisecond)
 }
 
 // Helper function to convert Unix epoch time in milliseconds to go time
@@ -347,7 +342,7 @@ func fromUnixMilli(ms int64) time.Time {
 }
 
 // timeLayoutParser parses set of predefined variables and replaces with date equivalent
-func (c *CloudwatchInput) timeLayoutParser(layout string) string {
+func timeLayoutParser(layout string, dateToUse time.Time) string {
 	if strings.Contains(layout, "%") {
 		replace := map[string]string{
 			"%Y": "2006",    // Year, zero-padded
@@ -366,7 +361,7 @@ func (c *CloudwatchInput) timeLayoutParser(layout string) string {
 		for key, value := range replace {
 			layout = strings.Replace(layout, key, value, 1)
 		}
-		return time.Now().Format(layout)
+		return dateToUse.Format(layout)
 	}
 	return layout
 }
