@@ -223,7 +223,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 			break
 		}
 		nextToken = *resp.NextToken
-		c.Debug("Reached event limit '%d'", c.eventLimit)
+		c.Debugf("Reached event limit '%d'", c.eventLimit)
 	}
 }
 
