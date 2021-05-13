@@ -28,7 +28,7 @@ func NewCloudwatchConfig(operatorID string) *CloudwatchInputConfig {
 		InputConfig: helper.NewInputConfig(operatorID, operatorName),
 
 		EventLimit:   eventLimit,
-		PollInterval: helper.Duration{Duration: time.Minute * 1},
+		PollInterval: helper.Duration{Duration: time.Minute},
 		StartAt:      "end",
 	}
 }
@@ -195,10 +195,10 @@ func (c *CloudwatchInput) sessionBuilder() *cloudwatchlogs.CloudWatchLogs {
 func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs) error {
 	nextToken := ""
 	st, err := c.persist.Read(c.logGroupName)
-	c.Debugf("Read start time %d from database", st)
 	if err != nil {
 		c.Errorf("failed to get persist: %s", err)
 	}
+	c.Debugf("Read start time %d from database", st)
 	c.startTime = st
 	if c.startAtEnd && c.startTime == 0 {
 		c.startTime = currentTimeInUnixMilliseconds(time.Now())
@@ -315,7 +315,11 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 	entry.Record = e
 
-	// Persist
+	// This will check ensures we only persist when needed.
+	// In testing I found that many events would have the same Ingestion Time.
+	// In this case it would write the ingestion time even though it was same.
+	// Added this check to reduce redundant writes.
+	// It also ensures we do not get an older ingestion time then what we already have.
 	if *event.IngestionTime > c.startTime {
 		c.startTime = *event.IngestionTime
 		c.Debugf("Writing start time %d to database", *event.IngestionTime)
@@ -328,9 +332,6 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 }
 
 func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent) error {
-	c.wg.Add(1)
-	defer c.wg.Done()
-
 	for _, event := range events {
 		c.handleEvent(ctx, event)
 	}

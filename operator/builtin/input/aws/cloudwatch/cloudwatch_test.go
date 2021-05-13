@@ -10,151 +10,134 @@ import (
 )
 
 func TestBuild(t *testing.T) {
+	basicConfig := func() *CloudwatchInputConfig {
+		cfg := NewCloudwatchConfig("test_operator_id")
+		cfg.LogGroupName = "test"
+		cfg.Region = "test"
+		return cfg
+	}
+
 	test := "test"
 	var testStreams = []*string{&test}
 	cases := []struct {
 		name      string
-		input     CloudwatchInputConfig
+		input     *CloudwatchInputConfig
 		expectErr bool
 	}{
 		{
 			"default",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"log-stream-name-prefix",
-			CloudwatchInputConfig{
-				LogGroupName:        "test",
-				LogStreamNamePrefix: "test",
-				Region:              "test",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogStreamNamePrefix = ""
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"event-limit",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				EventLimit:   5000,
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.EventLimit = 5000
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"poll-interval",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				PollInterval: helper.NewDuration(time.Second * 10),
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.PollInterval = helper.Duration{Duration: 15 * time.Second}
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"profile",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				Profile:      "test",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.Profile = "test"
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"log-stream-names",
-			CloudwatchInputConfig{
-				LogGroupName:   "test",
-				LogStreamNames: testStreams,
-				Region:         "test",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogStreamNames = testStreams
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"startat-end",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				StartAt:      "end",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.StartAt = "end"
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"logStreamNames and logStreamNamePrefix both parameters Error",
-			CloudwatchInputConfig{
-				LogGroupName:        "test",
-				LogStreamNames:      testStreams,
-				LogStreamNamePrefix: "test",
-				Region:              "test",
-				StartAt:             "beginning",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogStreamNames = testStreams
+				cfg.LogStreamNamePrefix = "test"
+				return cfg
+			}(),
 			true,
 		},
 		{
 			"startat-beginning",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.StartAt = "beginning"
+				cfg.LogStreamNamePrefix = "test"
+				return cfg
+			}(),
 			false,
 		},
 		{
 			"poll-interval-invalid",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				PollInterval: helper.Duration{Duration: time.Second * 1},
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.PollInterval = helper.Duration{Duration: time.Second * 0}
+				return cfg
+			}(),
 			true,
 		},
 		{
 			"event-limit-invalid",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				EventLimit:   10001,
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.EventLimit = 10001
+				return cfg
+			}(),
 			true,
 		},
 		{
 			"default-required-startat-invalid",
-			CloudwatchInputConfig{
-				LogGroupName: "test",
-				Region:       "test",
-				Profile:      "test",
-				StartAt:      "invalid",
-			},
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.StartAt = "invalid"
+				return cfg
+			}(),
 			true,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg := NewCloudwatchConfig("test_id")
-			cfg.LogGroupName = tc.input.LogGroupName
-			cfg.Region = tc.input.Region
-			cfg.Profile = tc.input.Profile
-
-			if tc.input.LogStreamNamePrefix != "" {
-				cfg.LogStreamNamePrefix = tc.input.LogStreamNamePrefix
-			}
-
-			if len(tc.input.LogStreamNames) > 0 {
-				cfg.LogStreamNames = tc.input.LogStreamNames
-			}
-
-			if tc.input.EventLimit > 0 {
-				cfg.EventLimit = tc.input.EventLimit
-			}
-
-			if tc.input.PollInterval.Raw() > time.Second*0 {
-				cfg.PollInterval = tc.input.PollInterval
-			}
-
-			if tc.input.StartAt != "" {
-				cfg.StartAt = tc.input.StartAt
-			}
-
+			cfg := tc.input
 			_, err := cfg.Build(testutil.NewBuildContext(t))
 			if tc.expectErr {
 				require.Error(t, err)

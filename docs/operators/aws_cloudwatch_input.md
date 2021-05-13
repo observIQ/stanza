@@ -2,13 +2,14 @@
 
 The `aws_cloudwatch_input` operator reads logs from AWS Cloudwatch Logs using [AWS's SDK](https://github.com/aws/aws-sdk-go).
 
-The `aws_cloudwatch_input` operator will use the `Timestamp` field of the event as the parsed entry's timestamp. All other fields are added to the entry's record.
+Fields `log_group`, `log_stream`,`region`, and `event_id` are promoted to resource field. The `Timestamp` field of the event is parsed as the entry's timestamp. 
 
-The `aws_cloudwatch_input` operator will use the following order to get credentials. 
+Credentials are used in the following order.
+
 - Environment Variables (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html))
-- Shared Credentials file (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)), 
-- Shared Configuration file (if SharedConfig is enabled details [here](https://docs.aws.amazon.com/sdkref/latest/guide/creds-config-files.html)) , 
-- EC2 Instance Metadata (credentials only details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-metadata.html)). 
+- Shared Credentials file (Details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)),
+- Shared Configuration file (if SharedConfig is enabled details [here](https://docs.aws.amazon.com/sdkref/latest/guide/creds-config-files.html)) ,
+- EC2 Instance Metadata (credentials only details [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-metadata.html)).
 
 You can provide `profile` to specify which credential set to use from a Shared Credentials file.
 
@@ -82,8 +83,8 @@ Configuration:
 ```yaml
 pipeline:
 - type: aws_cloudwatch_input
-  LogGroupName: "/aws/lambda/service"
-  Region: us-east-2
+  log_group_name: "/aws/lambda/service"
+  region: us-east-2
   log_stream_name_prefix: "%Y/%m/%d"
 ```
 
@@ -94,12 +95,12 @@ pipeline:
   "timestamp": "2021-05-12T13:03:47.941-04:00",
   "severity": 0,
   "resource": {
-    "log_group_name": "/aws/lambda/service",
-    "log_stream_name": "2021/05/12/[$LATEST]0f36de8f623a491c9305990130201669",
+    "event_id": "36145918169946098276207227425947415203911741965970309123",
+    "log_group": "/aws/lambda/service",
+    "log_stream": "2021/05/12/[$LATEST]0f36de8f623a491c9305990130201669",
     "region": "us-east-2"
   },
   "record": {
-    "event_id": "36145918169946298276207227425947415243911741965970309123",
     "ingestion_time": 1620839035104,
     "message": "REPORT RequestId: d64685ba-913b-456f-acd7-d00021416e68\tDuration: 1852.30 ms\tBilled Duration: 1853 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\t\n"
   }
@@ -113,8 +114,8 @@ Configuration:
 ```yaml
 pipeline:
 - type: aws_cloudwatch_input
-  LogGroupName: "/aws/lambda/service"
-  Region: us-east-2
+  log_group_name: "/aws/lambda/service"
+  region: us-east-2
   log_stream_names:
     - "2021/05/09/[$LATEST]62e990bb0e72460c95b1dcfc5d96adc5"
     - "2021/05/08/[$LATEST]84d663604b6845e987d278272455ed95"
@@ -127,12 +128,12 @@ pipeline:
   "timestamp": "2021-05-09T13:04:02.686-04:00",
   "severity": 0,
   "resource": {
-    "log_group_name": "/aws/lambda/service",
-    "log_stream_name": "2021/05/09/[$LATEST]62e990bb0e72460c95b1dcfc5d96adc5",
+    "event_id": "36140138145615327091042663253954182481286730645124743171",
+    "log_group": "/aws/lambda/service",
+    "log_stream": "2021/05/09/[$LATEST]62e990bb0e72460c95b1dcfc5d96adc5",
     "region": "us-east-2"
   },
   "record": {
-    "event_id": "36140138145615327091022666253954182481286730645124743171",
     "ingestion_time": 1620579849837,
     "message": "REPORT RequestId: 346b9fa2-9117-4d41-89f8-071f0100213b\tDuration: 1865.27 ms\tBilled Duration: 1866 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\t\n"
   }

@@ -15,14 +15,13 @@ type Persister struct {
 func (p *Persister) Read(key string) (int64, error) {
 	var startTime int64
 	buffer := bytes.NewBuffer(p.DB.Get(key))
-	binary.Read(buffer, binary.BigEndian, &startTime)
-	return startTime, nil
+	err := binary.Read(buffer, binary.BigEndian, &startTime)
+	return startTime, err
 }
 
 // Helper function to set persisted data
-func (p *Persister) Write(key string, value int64) error {
+func (p *Persister) Write(key string, value int64) {
 	var buf = make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(value))
 	p.DB.Set(key, buf)
-	return nil
 }
