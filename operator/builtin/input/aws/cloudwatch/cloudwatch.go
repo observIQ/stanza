@@ -301,7 +301,6 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent) error {
 	e := make(map[string]interface{})
 	e["message"] = event.Message
-	e["event_id"] = event.EventId
 	e["ingestion_time"] = event.IngestionTime
 
 	entry, err := c.NewEntry(nil)
@@ -309,9 +308,10 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 		return errors.Wrap(err, "Failed to create new entry from record")
 	}
 
-	entry.AddResourceKey("log_group_name", c.logGroupName)
+	entry.AddResourceKey("log_group", c.logGroupName)
 	entry.AddResourceKey("region", c.region)
-	entry.AddResourceKey("log_stream_name", *event.LogStreamName)
+	entry.AddResourceKey("log_stream", *event.LogStreamName)
+	entry.AddResourceKey("event_id", *event.EventId)
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 	entry.Record = e
 
