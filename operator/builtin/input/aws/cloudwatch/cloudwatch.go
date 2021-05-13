@@ -73,8 +73,8 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("invalid value '%d' for %s parameter 'event_limit'. Parameter 'event_limit' must be a value between 1 - 10000", c.EventLimit, operatorName)
 	}
 
-	if c.PollInterval.Raw() < time.Second*10 {
-		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' must be a value of 10 seconds or greater", c.PollInterval.String(), operatorName)
+	if c.PollInterval.Raw() < time.Second*1 {
+		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' has minimum of 1 second", c.PollInterval.String(), operatorName)
 	}
 
 	var startAtEnd bool
