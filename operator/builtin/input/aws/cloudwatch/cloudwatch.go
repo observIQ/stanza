@@ -209,7 +209,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", c.logGroupName, fromUnixMilli(c.startTime))
 	for {
 		select {
-		case <-(ctx).Done():
+		case <-ctx.Done():
 			return nil
 		default:
 			input := c.filterLogEventsInputBuilder(nextToken)
