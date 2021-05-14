@@ -16,7 +16,7 @@ import (
 )
 
 const operatorName = "aws_cloudwatch_input"
-const eventLimit = 10000 //The maximum number of events to return. The default is up to 10,000 events or max of 1mb.
+const eventLimit = 10_000 //The maximum number of events to return. The default is up to 10,000 events or max of 1mb.
 
 func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewCloudwatchConfig("") })
@@ -130,8 +130,9 @@ func (c *CloudwatchInput) Start() error {
 	if err := c.persist.DB.Load(); err != nil {
 		return err
 	}
-
-	return c.pollEvents(ctx)
+	c.wg.Add(1)
+	go c.pollEvents(ctx)
+	return nil
 }
 
 // Stop will stop generating logs.
@@ -143,12 +144,15 @@ func (c *CloudwatchInput) Stop() error {
 }
 
 // pollEvents gets events from AWS Cloudwatch Logs every poll interval.
-func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
+func (c *CloudwatchInput) pollEvents(ctx context.Context) {
 	c.Infof("Started polling AWS Cloudwatch Logs group '%s' using poll interval of '%s'", c.logGroupName, c.pollInterval)
 	defer c.wg.Done()
 
 	// Create session to use when connecting to AWS Cloudwatch Logs
-	svc := c.sessionBuilder()
+	svc, sessionErr := c.sessionBuilder()
+	if sessionErr != nil {
+		c.Errorf("failed to create new session: %s", sessionErr)
+	}
 
 	// Get events immediately when operator starts then use poll_interval duration.
 	err := c.getEvents(ctx, svc)
@@ -160,7 +164,7 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			break
 		case <-time.After(c.pollInterval.Duration):
 			err := c.getEvents(ctx, svc)
 			if err != nil {
@@ -171,24 +175,22 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) error {
 }
 
 // sessionBuilder builds a session for AWS Cloudwatch Logs
-func (c *CloudwatchInput) sessionBuilder() *cloudwatchlogs.CloudWatchLogs {
+func (c *CloudwatchInput) sessionBuilder() (*cloudwatchlogs.CloudWatchLogs, error) {
 	region := aws.String(c.region)
 	var sess *session.Session
 	if c.profile == "" {
-		sess = session.Must(session.NewSession(&aws.Config{
+		sess, err := session.NewSession(&aws.Config{
 			Region: region,
-		}))
-
-		return cloudwatchlogs.New(sess)
+		})
+		return cloudwatchlogs.New(sess), err
 	}
 
-	sess = session.Must(session.NewSessionWithOptions(session.Options{
+	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{Region: region},
 
 		Profile: c.profile,
-	}))
-
-	return cloudwatchlogs.New(sess)
+	})
+	return cloudwatchlogs.New(sess), err
 }
 
 // getEvents uses a session to get events from AWS Cloudwatch Logs
@@ -206,25 +208,28 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 	}
 	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", c.logGroupName, fromUnixMilli(c.startTime))
 	for {
-		input := c.filterLogEventsInputBuilder(nextToken)
+		select {
+		case <-(ctx).Done():
+			return nil
+		default:
+			input := c.filterLogEventsInputBuilder(nextToken)
 
-		resp, err := svc.FilterLogEvents(&input)
-		if err != nil {
-			return err
+			resp, err := svc.FilterLogEvents(&input)
+			if err != nil {
+				return err
+			}
+
+			if len(resp.Events) == 0 {
+				break
+			}
+
+			c.handleEvents(ctx, resp.Events)
+
+			if resp.NextToken == nil {
+				break
+			}
+			nextToken = *resp.NextToken
 		}
-
-		if len(resp.Events) == 0 {
-			c.Debug("No new events available from AWS Cloudwatch Logs")
-		}
-
-		c.handleEvents(ctx, resp.Events)
-
-		if resp.NextToken == nil {
-			c.Debug("Finished getting events")
-			break
-		}
-		nextToken = *resp.NextToken
-		c.Debugf("Reached event limit '%d'", c.eventLimit)
 	}
 	return nil
 }
@@ -299,11 +304,11 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 
 // handleEvent is the handler for a AWS Cloudwatch Logs Filtered Event.
 func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent) error {
-	e := make(map[string]interface{})
-	e["message"] = event.Message
-	e["ingestion_time"] = event.IngestionTime
-
-	entry, err := c.NewEntry(nil)
+	e := map[string]interface{}{
+		"message":        event.Message,
+		"ingestion_time": event.IngestionTime,
+	}
+	entry, err := c.NewEntry(e)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create new entry from record")
 	}
@@ -313,7 +318,6 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	entry.AddResourceKey("log_stream", *event.LogStreamName)
 	entry.AddResourceKey("event_id", *event.EventId)
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
-	entry.Record = e
 
 	// This will check ensures we only persist when needed.
 	// In testing I found that many events would have the same Ingestion Time.

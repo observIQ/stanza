@@ -21,14 +21,14 @@ You can provide `profile` to specify which credential set to use from a Shared C
 | `output`                  | Next in pipeline       | The connected operator(s) that will receive all outbound entries.                                           |
 | `log_group_name`          | required               | The Cloudwatch Logs Log Group Name.                                                                         |
 | `region`                  | required               | The AWS Region to be used.                                                                                  |
-| `log_stream_name_prefix`  |                        | The log stream name prefix to use. This will find any log stream name in the group with the starting prefix |
-| `log_stream_names`        |                        | An array of log stream names to get events from.                                                            |
+| `log_stream_name_prefix`  |                        | The log stream name prefix to use. This will find any log stream name in the group with the starting prefix. Cannot be used with `log_stream_names` |
+| `log_stream_names`        |                        | An array of log stream names to get events from. Cannot be used with `log_stream_name_prefix`               |
 | `profile`                 |                        | Profile to use for authentication. Details on named profiles can be found [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) |
 | `event_limit`             | `10000`                | The maximum number of events to return per call.                                                            |
 | `poll_interval`           | `1m`                   | The duration between event calls.                                                                           |
 | `start_at`                | `end`                  | At startup, where to start reading events. Options are `beginning` or `end`                                 |
 
-### Log Stream Prefix
+### Log Stream Name Prefix
 
 The log_stream_prefix allows the use of "directives" such as `%Y` (4-digit year) and `%d` (2-digit zero-padded day). These directives are based on `strptime` directives. There are a limited set of the `strptime` directives. These directives are listed below. When directive is detected within the prefix it will replace the first occurance of directive with the data indicated in the description.
 
