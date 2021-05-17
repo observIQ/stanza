@@ -81,7 +81,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 	switch c.StartAt {
 	case "beginning":
 		startAtEnd = false
-	case "end":
+	case "", "end":
 		startAtEnd = true
 	default:
 		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'start_at'", c.StartAt, operatorName)
@@ -164,7 +164,7 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			break
+			return
 		case <-time.After(c.pollInterval.Duration):
 			err := c.getEvents(ctx, svc)
 			if err != nil {
@@ -319,19 +319,15 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	entry.AddResourceKey("event_id", *event.EventId)
 	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 
-	// This will check ensures we only persist when needed.
-	// In testing I found that many events would have the same Ingestion Time.
-	// In this case it would write the ingestion time even though it was same.
-	// Added this check to reduce redundant writes.
-	// It also ensures we do not get an older ingestion time then what we already have.
+	// Write Entry
+	c.Write(ctx, entry)
+
+	// Keep track of which events have been consumed, in case of restart
 	if *event.IngestionTime > c.startTime {
 		c.startTime = *event.IngestionTime
 		c.Debugf("Writing start time %d to database", *event.IngestionTime)
-		c.persist.Write(c.logGroupName, *event.IngestionTime)
+		c.persist.Write(c.logGroupName, c.startTime)
 	}
-
-	// Write Entry
-	c.Write(ctx, entry)
 	return nil
 }
 
