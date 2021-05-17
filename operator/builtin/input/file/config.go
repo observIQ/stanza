@@ -165,7 +165,7 @@ var encodingOverrides = map[string]encoding.Encoding{
 	"ascii":    unicode.UTF8,
 	"us-ascii": unicode.UTF8,
 	"nop":      encoding.Nop,
-	"":         encoding.Nop,
+	"":         unicode.UTF8,
 }
 
 func lookupEncoding(enc string) (encoding.Encoding, error) {
