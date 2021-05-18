@@ -3,6 +3,7 @@ GOARCH=$(shell go env GOARCH)
 GOFLAGS=-mod=mod
 
 GIT_SHA=$(shell git rev-parse --short HEAD)
+GIT_COMMIT=$(shell git rev-parse HEAD)
 
 PROJECT_ROOT = $(shell pwd)
 ARTIFACTS = ${PROJECT_ROOT}/artifacts
@@ -67,7 +68,11 @@ generate:
 
 .PHONY: build
 build:
-	(cd ./cmd/stanza && CGO_ENABLED=0 go build -o ../../artifacts/stanza_$(GOOS)_$(GOARCH)  .)
+	(cd ./cmd/stanza && \
+		CGO_ENABLED=0 \
+		go build \
+		-ldflags "-X github.com/observiq/stanza/version.GitTag=${GIT_TAG} -X github.com/observiq/stanza/version.GitCommit=${GIT_COMMIT}" \
+		-o ../../artifacts/stanza_$(GOOS)_$(GOARCH)  .)
 
 .PHONY: install
 install:

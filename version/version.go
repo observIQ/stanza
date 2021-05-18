@@ -1,22 +1,21 @@
 package version
 
-import "runtime/debug"
+import "fmt"
 
-var version = func() string {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "unknown"
-	}
-
-	for _, mod := range bi.Deps {
-		if mod.Path == "github.com/observiq/stanza" {
-			return mod.Version
-		}
-	}
-	return "unknown"
-}()
+var (
+	GitCommit string
+	GitTag    string
+)
 
 // GetVersion returns the version of the stanza library
 func GetVersion() string {
-	return version
+	if GitTag != "" {
+		return GitTag
+	}
+
+	if GitCommit != "" {
+		return fmt.Sprintf("git-commit: %s", GitCommit)
+	}
+
+	return "unknown"
 }
