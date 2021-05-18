@@ -231,7 +231,6 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 			nextToken = *resp.NextToken
 		}
 	}
-	return nil
 }
 
 // filterLogEventsInputBuilder builds AWS Cloudwatch Logs Filter Log Events Input based on provided values
