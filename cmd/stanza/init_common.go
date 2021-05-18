@@ -2,6 +2,7 @@ package main
 
 import (
 	// Load packages when importing input operators
+	_ "github.com/observiq/stanza/operator/builtin/input/aws/cloudwatch"
 	_ "github.com/observiq/stanza/operator/builtin/input/azure/eventhub"
 	_ "github.com/observiq/stanza/operator/builtin/input/azure/loganalytics"
 	_ "github.com/observiq/stanza/operator/builtin/input/file"
