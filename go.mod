@@ -3,7 +3,7 @@ module github.com/observiq/stanza
 go 1.14
 
 require (
-	github.com/Azure/azure-event-hubs-go/v3 v3.3.7
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.8
 	github.com/antonmedv/expr v1.8.2
 	github.com/aws/aws-sdk-go v1.38.31
 	github.com/bmatcuk/doublestar/v2 v2.0.4
