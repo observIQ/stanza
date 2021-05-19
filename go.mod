@@ -24,7 +24,7 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211 // indirect
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.6
 	golang.org/x/tools v0.0.0-20200904185747-39188db58858 // indirect
 	gonum.org/v1/gonum v0.6.2
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
