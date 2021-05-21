@@ -104,7 +104,7 @@ type DiskBuffer struct {
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
 
-	reconfigMutex sync.Mutex
+	reconfigMutex sync.RWMutex
 }
 
 // NewDiskBuffer creates a new DiskBuffer
@@ -244,7 +244,9 @@ LOOP:
 
 // ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
 func (d *DiskBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
+	d.reconfigMutex.RLock()
 	entries := make([]*entry.Entry, d.maxChunkSize)
+	d.reconfigMutex.RUnlock()
 	for {
 		select {
 		case <-ctx.Done():
@@ -252,7 +254,9 @@ func (d *DiskBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, er
 		default:
 		}
 
+		d.reconfigMutex.RLock()
 		ctx, cancel := context.WithTimeout(ctx, d.maxChunkDelay)
+		d.reconfigMutex.RUnlock()
 		defer cancel()
 		flushFunc, n, err := d.ReadWait(ctx, entries)
 		if n > 0 {
@@ -315,10 +319,16 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f Clearer, i int, err error) {
 	return d.newClearer(newRead), readCount, nil
 }
 
+func (d *DiskBuffer) SetMaxChunkSize(size uint) {
+	d.reconfigMutex.Lock()
+	d.maxChunkSize = size
+	d.reconfigMutex.Unlock()
+}
+
 func (d *DiskBuffer) SetMaxChunkDelay(delay time.Duration) {
 	d.reconfigMutex.Lock()
-	defer d.reconfigMutex.Unlock()
 	d.maxChunkDelay = delay
+	d.reconfigMutex.Unlock()
 }
 
 // newFlushFunc returns a function that marks read entries as flushed

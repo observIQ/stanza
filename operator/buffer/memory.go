@@ -68,7 +68,7 @@ type MemoryBuffer struct {
 	sem           *semaphore.Weighted
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
-	reconfigMutex sync.Mutex
+	reconfigMutex sync.RWMutex
 }
 
 // Add inserts an entry into the memory database, blocking until there is space
@@ -106,7 +106,9 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (Clearer, int, error) {
 
 // ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
 func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
+	m.reconfigMutex.RLock()
 	entries := make([]*entry.Entry, m.maxChunkSize)
+	m.reconfigMutex.RUnlock()
 	for {
 		select {
 		case <-ctx.Done():
@@ -114,7 +116,9 @@ func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, 
 		default:
 		}
 
+		m.reconfigMutex.RLock()
 		ctx, cancel := context.WithTimeout(ctx, m.maxChunkDelay)
+		m.reconfigMutex.RUnlock()
 		defer cancel()
 		flushFunc, n, err := m.ReadWait(ctx, entries)
 		if n > 0 {
@@ -146,10 +150,16 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Cleare
 	return m.newClearer(inFlightIDs[:i]), i, nil
 }
 
+func (m *MemoryBuffer) SetMaxChunkSize(size uint) {
+	m.reconfigMutex.Lock()
+	m.maxChunkSize = size
+	m.reconfigMutex.Unlock()
+}
+
 func (m *MemoryBuffer) SetMaxChunkDelay(delay time.Duration) {
 	m.reconfigMutex.Lock()
-	defer m.reconfigMutex.Unlock()
 	m.maxChunkDelay = delay
+	m.reconfigMutex.Unlock()
 }
 
 type memoryClearer struct {

@@ -18,6 +18,7 @@ type Buffer interface {
 	ReadChunk(context.Context) ([]*entry.Entry, Clearer, error)
 	Close() error
 	SetMaxChunkDelay(time.Duration)
+	SetMaxChunkSize(uint)
 }
 
 // Config is a struct that wraps a Builder
