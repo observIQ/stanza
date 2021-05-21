@@ -103,6 +103,8 @@ type DiskBuffer struct {
 
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
+
+	reconfigMutex sync.Mutex
 }
 
 // NewDiskBuffer creates a new DiskBuffer
@@ -311,6 +313,12 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f Clearer, i int, err error) {
 	d.addUnreadCount(-int64(readCount))
 
 	return d.newClearer(newRead), readCount, nil
+}
+
+func (d *DiskBuffer) SetMaxChunkDelay(delay time.Duration) {
+	d.reconfigMutex.Lock()
+	defer d.reconfigMutex.Unlock()
+	d.maxChunkDelay = delay
 }
 
 // newFlushFunc returns a function that marks read entries as flushed

@@ -68,6 +68,7 @@ type MemoryBuffer struct {
 	sem           *semaphore.Weighted
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
+	reconfigMutex sync.Mutex
 }
 
 // Add inserts an entry into the memory database, blocking until there is space
@@ -143,6 +144,12 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Cleare
 	}
 
 	return m.newClearer(inFlightIDs[:i]), i, nil
+}
+
+func (m *MemoryBuffer) SetMaxChunkDelay(delay time.Duration) {
+	m.reconfigMutex.Lock()
+	defer m.reconfigMutex.Unlock()
+	m.maxChunkDelay = delay
 }
 
 type memoryClearer struct {
