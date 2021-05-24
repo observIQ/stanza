@@ -12,6 +12,7 @@ The `udp_input` operator listens for logs from UDP packets.
 | `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry |
 | `labels`          | {}               | A map of `key: value` labels to add to the entry's labels                         |
 | `resource`        | {}               | A map of `key: value` labels to add to the entry's resource                       |
+| `add_labels`      | false            | Adds `net.transport`, `net.peer.ip`, `net.peer.port`, `net.host.ip` and `net.host.port` labels |
 
 ### Example Configurations
 

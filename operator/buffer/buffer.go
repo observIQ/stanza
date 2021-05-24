@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
@@ -16,6 +17,10 @@ type Buffer interface {
 	ReadWait(context.Context, []*entry.Entry) (Clearer, int, error)
 	ReadChunk(context.Context) ([]*entry.Entry, Clearer, error)
 	Close() error
+	MaxChunkDelay() time.Duration
+	MaxChunkSize() uint
+	SetMaxChunkDelay(time.Duration)
+	SetMaxChunkSize(uint)
 }
 
 // Config is a struct that wraps a Builder
