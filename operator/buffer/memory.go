@@ -106,9 +106,7 @@ func (m *MemoryBuffer) Read(dst []*entry.Entry) (Clearer, int, error) {
 
 // ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
 func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
-	m.reconfigMutex.RLock()
-	entries := make([]*entry.Entry, m.maxChunkSize)
-	m.reconfigMutex.RUnlock()
+	entries := make([]*entry.Entry, m.MaxChunkSize())
 	for {
 		select {
 		case <-ctx.Done():
@@ -116,9 +114,7 @@ func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, 
 		default:
 		}
 
-		m.reconfigMutex.RLock()
-		ctx, cancel := context.WithTimeout(ctx, m.maxChunkDelay)
-		m.reconfigMutex.RUnlock()
+		ctx, cancel := context.WithTimeout(ctx, m.MaxChunkDelay())
 		defer cancel()
 		flushFunc, n, err := m.ReadWait(ctx, entries)
 		if n > 0 {
@@ -148,6 +144,18 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Cleare
 	}
 
 	return m.newClearer(inFlightIDs[:i]), i, nil
+}
+
+func (m *MemoryBuffer) MaxChunkSize() uint {
+	m.reconfigMutex.RLock()
+	defer m.reconfigMutex.RUnlock()
+	return m.maxChunkSize
+}
+
+func (m *MemoryBuffer) MaxChunkDelay() time.Duration {
+	m.reconfigMutex.RLock()
+	defer m.reconfigMutex.RUnlock()
+	return m.maxChunkDelay
 }
 
 func (m *MemoryBuffer) SetMaxChunkSize(size uint) {

@@ -17,6 +17,8 @@ type Buffer interface {
 	ReadWait(context.Context, []*entry.Entry) (Clearer, int, error)
 	ReadChunk(context.Context) ([]*entry.Entry, Clearer, error)
 	Close() error
+	MaxChunkDelay() time.Duration
+	MaxChunkSize() uint
 	SetMaxChunkDelay(time.Duration)
 	SetMaxChunkSize(uint)
 }
