@@ -21,7 +21,7 @@ require (
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.6.1
-	go.etcd.io/bbolt v1.3.4
+	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/collector v0.13.0
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.16.0
