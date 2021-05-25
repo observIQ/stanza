@@ -123,7 +123,6 @@ func TestLineStartSplitFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		cfg := NewInputConfig("")
 		cfg := &MultilineConfig{
 			LineStartPattern: tc.Pattern,
 		}
@@ -232,7 +231,6 @@ func TestLineEndSplitFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		cfg := NewInputConfig("")
 		cfg := &MultilineConfig{
 			LineEndPattern: tc.Pattern,
 		}
