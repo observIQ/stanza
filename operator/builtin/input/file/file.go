@@ -15,7 +15,6 @@ import (
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding"
 )
 
 // InputOperator is an operator that monitors files for entries
@@ -41,7 +40,7 @@ type InputOperator struct {
 
 	fingerprintSize int
 
-	encoding encoding.Encoding
+	encoding helper.Encoding
 
 	wg         sync.WaitGroup
 	readerWg   sync.WaitGroup
