@@ -2,6 +2,8 @@ package file
 
 import (
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -197,6 +199,67 @@ func TestFingerprintStartsWith(t *testing.T) {
 			require.Equal(t, strings.HasPrefix(tc.a, tc.b), fa.StartsWith(fb))
 			require.Equal(t, strings.HasPrefix(tc.b, tc.a), fb.StartsWith(fa))
 		})
+	}
+}
+
+// Generates a file filled with many random bytes, then
+// writes the same bytes to a second file, one byte at a time.
+// Validates, after each byte is written, that fingerprint
+// matching would successfully associate the two files.
+// The static file can be thought of as the present state of
+// the file, while each iteration of the growing file represents
+// a possible state of the same file at a previous time.
+func TestFingerprintStartsWith_FromFile(t *testing.T) {
+	r := rand.New(rand.NewSource(112358))
+
+	operator, _, tempDir := newTestFileOperator(t, nil, nil)
+	operator.fingerprintSize *= 10
+
+	fileLength := 12 * operator.fingerprintSize
+
+	// Make a []byte we can write one at a time
+	content := make([]byte, fileLength)
+	r.Read(content) // Fill slice with random bytes
+
+	// Overwrite some bytes with \n to ensure
+	// we are testing a file with multiple lines
+	newlineMask := make([]byte, fileLength)
+	r.Read(newlineMask) // Fill slice with random bytes
+	for i, b := range newlineMask {
+		if b == 0 && i != 0 { // 1/256 chance, but never first byte
+			content[i] = byte('\n')
+		}
+	}
+
+	fullFile, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer fullFile.Close()
+
+	_, err = fullFile.Write(content)
+	require.NoError(t, err)
+
+	fff, err := operator.NewFingerprint(fullFile)
+	require.NoError(t, err)
+
+	partialFile, err := ioutil.TempFile(tempDir, "")
+	require.NoError(t, err)
+	defer partialFile.Close()
+
+	// Write the first byte before comparing, since empty files will never match
+	_, err = partialFile.Write(content[:1])
+	require.NoError(t, err)
+	content = content[1:]
+
+	// Write one byte at a time and validate that
+	// full fingerprint still starts with updated partial
+	for i := range content {
+		_, err = partialFile.Write(content[i:i])
+		require.NoError(t, err)
+
+		pff, err := operator.NewFingerprint(partialFile)
+		require.NoError(t, err)
+
+		require.True(t, fff.StartsWith(pff))
 	}
 }
 

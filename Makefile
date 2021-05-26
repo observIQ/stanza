@@ -10,10 +10,11 @@ ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 
 
+TOOLS_MOD_DIR := ./internal/tools
 .PHONY: install-tools
 install-tools:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/vektra/mockery/cmd/mockery@latest
+	cd $(TOOLS_MOD_DIR) && go install github.com/golangci/golangci-lint/cmd/golangci-lint
+	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/cmd/mockery
 
 .PHONY: test
 test: vet test-only
@@ -44,7 +45,7 @@ listmod:
 
 .PHONY: lint
 lint:
-	golangci-lint run ./...
+	$$GOPATH/bin/golangci-lint run --timeout 2m0s --allow-parallel-runners ./...
 
 .PHONY: vet
 vet: check-missing-modules
