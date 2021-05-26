@@ -482,7 +482,7 @@ func TestConfig(t *testing.T) {
 				return cfg
 			}(),
 		},
-		/*{
+		{
 			Name:      "encoding_lower",
 			ExpectErr: false,
 			Expect: func() *InputConfig {
@@ -499,7 +499,7 @@ func TestConfig(t *testing.T) {
 				cfg.Encoding = helper.EncodingConfig{Encoding: "UTF-16lE"}
 				return cfg
 			}(),
-		},*/
+		},
 	}
 
 	for _, tc := range cases {

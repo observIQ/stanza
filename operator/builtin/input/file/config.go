@@ -48,7 +48,7 @@ type InputConfig struct {
 	FingerprintSize    helper.ByteSize        `json:"fingerprint_size,omitempty"     yaml:"fingerprint_size,omitempty"`
 	MaxLogSize         helper.ByteSize        `json:"max_log_size,omitempty"         yaml:"max_log_size,omitempty"`
 	MaxConcurrentFiles int                    `json:"max_concurrent_files,omitempty" yaml:"max_concurrent_files,omitempty"`
-	Encoding           helper.EncodingConfig  `json:"encoding,omitempty"             yaml:"encoding,omitempty"`
+	Encoding           helper.EncodingConfig  `json:",inline,omitempty"              yaml:",inline,omitempty"`
 }
 
 // Build will build a file input operator from the supplied configuration
