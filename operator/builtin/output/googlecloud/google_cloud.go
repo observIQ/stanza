@@ -195,7 +195,10 @@ func (g *GoogleCloudOutput) Stop() error {
 	if err := g.buffer.Close(); err != nil {
 		return err
 	}
-	return g.client.Close()
+	if g.client != nil {
+		return g.client.Close()
+	}
+	return nil
 }
 
 // Process processes an entry
