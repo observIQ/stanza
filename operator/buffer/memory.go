@@ -59,12 +59,12 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 // at which point it saves the entries into a database. It provides no guarantees about
 // lost entries if shut down uncleanly.
 type MemoryBuffer struct {
+	entryID       uint64
 	db            database.Database
 	pluginID      string
 	buf           chan *entry.Entry
 	inFlight      map[uint64]*entry.Entry
 	inFlightMux   sync.Mutex
-	entryID       uint64
 	sem           *semaphore.Weighted
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
