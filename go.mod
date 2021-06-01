@@ -8,7 +8,7 @@ require (
 	github.com/antonmedv/expr v1.8.2
 	github.com/aws/aws-sdk-go v1.38.31
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/cenkalti/backoff/v4 v4.1.0
+	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/go-uuid v1.0.2
