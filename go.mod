@@ -29,7 +29,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324
 	golang.org/x/text v0.3.6
-	gonum.org/v1/gonum v0.6.2
+	gonum.org/v1/gonum v0.9.1
 	google.golang.org/api v0.46.0
 	google.golang.org/genproto v0.0.0-20210518161634-ec7691c0a37d
 	google.golang.org/grpc v1.38.0
