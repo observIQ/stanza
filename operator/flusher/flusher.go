@@ -51,11 +51,11 @@ func (c *Config) Build(logger *zap.SugaredLogger) *Flusher {
 // Flusher is used to flush entries from a buffer concurrently. It handles max concurrency,
 // retry behavior, and cancellation.
 type Flusher struct {
+	chunkIDCounter uint64
 	ctx            context.Context
 	cancel         context.CancelFunc
 	sem            *semaphore.Weighted
 	wg             sync.WaitGroup
-	chunkIDCounter uint64
 	*zap.SugaredLogger
 }
 

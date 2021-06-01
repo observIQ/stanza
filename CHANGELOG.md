@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed panic during shutdown when Google Cloud Output credential file not found [Issue 264](https://github.com/observIQ/stanza/issues/264)
 
+## [1.0.0] - 2021-05-27
+
+### Changed
+- Stanza is now a single module [PR304](https://github.com/observIQ/stanza/pull/304)
+
 ## [0.14.2] - 2021-05-24
 
 ### Changed
