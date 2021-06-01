@@ -149,7 +149,7 @@ func TestBuild(t *testing.T) {
 		{
 			"MultilineConfiguredStartAndEndPatterns",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{
+				f.Multiline = helper.MultilineConfig{
 					LineEndPattern:   "Exists",
 					LineStartPattern: "Exists",
 				}
@@ -160,7 +160,7 @@ func TestBuild(t *testing.T) {
 		{
 			"MultilineConfiguredStartPattern",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{
+				f.Multiline = helper.MultilineConfig{
 					LineStartPattern: "START.*",
 				}
 			},
@@ -170,7 +170,7 @@ func TestBuild(t *testing.T) {
 		{
 			"MultilineConfiguredEndPattern",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{
+				f.Multiline = helper.MultilineConfig{
 					LineEndPattern: "END.*",
 				}
 			},
@@ -180,7 +180,7 @@ func TestBuild(t *testing.T) {
 		{
 			"InvalidEncoding",
 			func(f *InputConfig) {
-				f.Encoding = "UTF-3233"
+				f.Encoding = helper.EncodingConfig{Encoding: "UTF-3233"}
 			},
 			require.Error,
 			nil,
@@ -188,7 +188,7 @@ func TestBuild(t *testing.T) {
 		{
 			"LineStartAndEnd",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{
+				f.Multiline = helper.MultilineConfig{
 					LineStartPattern: ".*",
 					LineEndPattern:   ".*",
 				}
@@ -199,15 +199,15 @@ func TestBuild(t *testing.T) {
 		{
 			"NoLineStartOrEnd",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{}
+				f.Multiline = helper.MultilineConfig{}
 			},
-			require.Error,
-			nil,
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {},
 		},
 		{
 			"InvalidLineStartRegex",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{
+				f.Multiline = helper.MultilineConfig{
 					LineStartPattern: "(",
 				}
 			},
@@ -217,7 +217,7 @@ func TestBuild(t *testing.T) {
 		{
 			"InvalidLineEndRegex",
 			func(f *InputConfig) {
-				f.Multiline = &MultilineConfig{
+				f.Multiline = helper.MultilineConfig{
 					LineEndPattern: "(",
 				}
 			},
@@ -1293,7 +1293,7 @@ func TestEncodings(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			operator, receivedEntries, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
-				cfg.Encoding = tc.encoding
+				cfg.Encoding = helper.EncodingConfig{Encoding: tc.encoding}
 			}, nil)
 
 			// Popualte the file
