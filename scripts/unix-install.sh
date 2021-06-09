@@ -922,6 +922,8 @@ create_systemd_file()
 [Unit]
 Description=Stanza Log Agent
 After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -934,6 +936,8 @@ ExecStart=$agent_binary --log_file $agent_log --database $agent_database
 SuccessExitStatus=143
 TimeoutSec=0
 StandardOutput=null
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
