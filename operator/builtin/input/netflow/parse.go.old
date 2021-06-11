@@ -1,9 +1,11 @@
 package netflow
 
 import (
+	"fmt"
 	"net"
 
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
+	log "github.com/sirupsen/logrus"
 )
 
 func ToMapStringInterface(m *flowmessage.FlowMessage) (map[string]interface{}, error) {
@@ -19,19 +21,55 @@ func ToMapStringInterface(m *flowmessage.FlowMessage) (map[string]interface{}, e
 	parsedMap["Bytes"] = m.GetBytes()
 	parsedMap["Packets"] = m.GetPackets()
 
-	var samplerAddress net.IP = m.GetSamplerAddress()
-	parsedMap["SamplerAddress"] = samplerAddress.String()
+	x, err := bytesToIP(m.GetSamplerAddress())
+	if err != nil {
+		log.Error(err)
+	} else {
+		parsedMap["SamplerAddress"] = x.String()
+	}
 
-	var srcAddr net.IP = m.GetSrcAddr()
-	parsedMap["SrcAddr"] = srcAddr.String()
+	x, err = bytesToIP(m.GetSrcAddr())
+	if err != nil {
+		log.Error(err)
+	} else {
+		parsedMap["SrcAddr"] = x.String()
+	}
 
-	var dstAddr net.IP = m.GetDstAddr()
-	parsedMap["DstAddr"] = dstAddr.String()
+	x, err = bytesToIP(m.GetDstAddr())
+	if err != nil {
+		log.Error(err)
+	} else {
+		parsedMap["DstAddr"] = x.String()
+	}
 
-	var nextHop net.IP = m.GetNextHop()
-	parsedMap["NextHop"] = nextHop.String()
+	x, err = bytesToIP(m.GetNextHop())
+	if err != nil {
+		log.Error(err)
+	} else {
+		parsedMap["NextHop"] = x.String()
+	}
+
+	x, err = bytesToIP(make([5]byte{}))
+	if err != nil {
+		log.Error(err)
+	} else {
+		parsedMap["NextHop"] = x.String()
+	}
 
 	return parsedMap, nil
+}
+
+// goflow uses []byte to represent an ip address
+// ip address will always be 4 or 16 bytes in length
+// https://golang.org/src/net/ip.go?s=946:960#L22
+func bytesToIP(b []byte) (net.IP, error) {
+	switch x := len(b); x {
+	case 4, 16:
+		var ip net.IP = b
+		return ip, nil
+	default:
+		return nil, fmt.Errorf("cannot convert byte slice to ip address, expected length of 4 or 16 got %d", x)
+	}
 }
 
 // FlowMessage is a Stanza friendly version of flowprotob FlowMessage

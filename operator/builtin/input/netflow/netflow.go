@@ -1,14 +1,14 @@
 package netflow
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
-	"fmt"
 	"runtime"
 	"sync"
 
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
 	"github.com/cloudflare/goflow/v3/utils"
+	"github.com/fatih/structs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,10 +22,10 @@ var (
 	SFlowPort   = flag.Int("sflow.port", 6343, "sFlow listening port")
 	SFlowReuse  = flag.Bool("sflow.reuserport", false, "Enable so_reuseport for sFlow")
 
-	NFLEnable = flag.Bool("nfl", true, "Enable NetFlow v5")
+	/*NFLEnable = flag.Bool("nfl", true, "Enable NetFlow v5")
 	NFLAddr   = flag.String("nfl.addr", "", "NetFlow v5 listening address")
 	NFLPort   = flag.Int("nfl.port", 2056, "NetFlow v5 listening port")
-	NFLReuse  = flag.Bool("nfl.reuserport", false, "Enable so_reuseport for NetFlow v5")
+	NFLReuse  = flag.Bool("nfl.reuserport", false, "Enable so_reuseport for NetFlow v5")*/
 
 	NFEnable = flag.Bool("nf", true, "Enable NetFlow/IPFIX")
 	NFAddr   = flag.String("nf.addr", "", "NetFlow/IPFIX listening address")
@@ -46,43 +46,29 @@ var (
 	Version = flag.Bool("v", false, "Print version")
 )
 
-// Transport Implementation
-type Transport struct {
-}
-
-// Initialize is required by GoFlows util.Transport interface
-func (t *Transport) Initialize() {
-
-}
-
 // Publish is required by GoFlows util.Transport interface
-func (t Transport) Publish(messages []*flowmessage.FlowMessage) {
-	t.Initialize() // TODO: probably should go somewhere else
-
+func (n NetflowInput) Publish(messages []*flowmessage.FlowMessage) {
 	go func() {
 		for _, msg := range messages {
-			m, err := ToMapStringInterface(msg)
+			// parse msg type into map[string]interface{} and
+			// respect json tags
+			structParser := structs.New(msg)
+			structParser.TagName = "json"
+			m := structParser.Map()
+
+			entry, err := n.NewEntry(m)
 			if err != nil {
 				log.Error(err)
 				continue
 			}
-
-			b, err := json.Marshal(m)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			fmt.Println(string(b))
-
-			// Process messages
-			// Putting the messages in a channel without forking a new thread instead would also work.
+			n.Write(context.Background(), entry)
 		}
 	}()
 
 }
 
 // more or less copied from goflows main package
-func startGoFlow(transport utils.Transport) {
+func startGoFlow(transport utils.Transport, NFLEnable, NFLReuse bool, NFLAddr string, NFLPort int) {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -133,14 +119,14 @@ func startGoFlow(transport utils.Transport) {
 			wg.Done()
 		}()
 	}
-	if *NFLEnable {
+	if NFLEnable {
 		wg.Add(1)
 		go func() {
 			log.WithFields(log.Fields{
 				"Type": "NetFlowLegacy"}).
-				Infof("Listening on UDP %v:%v", *NFLAddr, *NFLPort)
+				Infof("Listening on UDP %v:%v", NFLAddr, NFLPort)
 
-			err := sNFL.FlowRoutine(*Workers, *NFLAddr, *NFLPort, *NFLReuse)
+			err := sNFL.FlowRoutine(*Workers, NFLAddr, NFLPort, NFLReuse)
 			if err != nil {
 				log.Fatalf("Fatal error: could not listen to UDP (%v)", err)
 			}
