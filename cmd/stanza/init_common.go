@@ -9,6 +9,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/input/forward"
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	_ "github.com/observiq/stanza/operator/builtin/input/k8sevent"
+	_ "github.com/observiq/stanza/operator/builtin/input/netflow"
 	_ "github.com/observiq/stanza/operator/builtin/input/stanza"
 	_ "github.com/observiq/stanza/operator/builtin/input/stdin"
 	_ "github.com/observiq/stanza/operator/builtin/input/tcp"
