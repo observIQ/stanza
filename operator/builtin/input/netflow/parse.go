@@ -1,6 +1,7 @@
 package netflow
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -8,7 +9,27 @@ import (
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
 	"github.com/fatih/structs"
 	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/operator/helper"
+	"go.uber.org/zap"
 )
+
+// Publish writes netflow messages as entries
+func Publish(ctx context.Context, o helper.InputOperator, messages []*flowmessage.FlowMessage) {
+	for _, msg := range messages {
+		m, err := Parse(*msg)
+		if err != nil {
+			o.Errorf("Failed to parse netflow message", zap.Error(err))
+			continue
+		}
+
+		entry, err := o.NewEntry(m)
+		if err != nil {
+			o.Errorf(err.Error())
+			continue
+		}
+		o.Write(ctx, entry)
+	}
+}
 
 // Parse parses a netflow message into a map
 func Parse(message flowmessage.FlowMessage) (map[string]interface{}, error) {

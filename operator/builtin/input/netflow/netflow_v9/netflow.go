@@ -10,7 +10,6 @@ import (
 	"github.com/observiq/stanza/operator/builtin/input/netflow"
 	"github.com/observiq/stanza/operator/helper"
 	log "github.com/sirupsen/logrus"
-	"go.uber.org/zap"
 )
 
 const operatorName = "netflow_v9_input"
@@ -88,17 +87,7 @@ func (n *NetflowV9Input) Stop() error {
 
 // Publish is required by GoFlows util.Transport interface
 func (n NetflowV9Input) Publish(messages []*flowmessage.FlowMessage) {
-	for _, msg := range messages {
-		m, err := netflow.Parse(*msg)
-		if err != nil {
-			n.Errorf("Failed to netflow v9 message", zap.Error(err))
-		}
-
-		entry, err := n.NewEntry(m)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-		n.Write(n.ctx, entry)
-	}
+	n.wg.Add(1)
+	netflow.Publish(n.ctx, n.InputOperator, messages)
+	n.wg.Done()
 }
