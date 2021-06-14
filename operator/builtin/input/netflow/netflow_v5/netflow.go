@@ -91,7 +91,7 @@ func (n NetflowV5Input) Publish(messages []*flowmessage.FlowMessage) {
 	for _, msg := range messages {
 		m, err := netflow.Parse(*msg)
 		if err != nil {
-			n.Errorf("Failed to parse sflow message", zap.Error(err))
+			n.Errorf("Failed to parse netflow v5 message", zap.Error(err))
 		}
 
 		entry, err := n.NewEntry(m)
