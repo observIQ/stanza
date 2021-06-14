@@ -6,7 +6,6 @@ import "fmt"
 type NetflowConfig struct {
 	Address string `json:"address,omitempty" yaml:"address,omitempty"`
 	Port    uint   `json:"port,omitempty"    yaml:"port,omitempty"`
-	Reuse   bool   `json:"reuse,omitempty"   yaml:"reuse,omitempty"`
 	Workers uint   `json:"workers,omitempty" yaml:"workers,omitempty"`
 }
 
@@ -17,10 +16,6 @@ func (c *NetflowConfig) Init() error {
 
 	if c.Port == 0 {
 		return fmt.Errorf("port is a required parameter")
-	}
-
-	if c.Workers == 0 {
-		c.Workers = 1
 	}
 
 	if c.Workers == 0 {

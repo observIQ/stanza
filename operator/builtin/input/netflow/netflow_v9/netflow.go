@@ -69,7 +69,7 @@ func (n *NetflowV9Input) Start() error {
 		Logger:    log.StandardLogger(),
 	}
 	go func() {
-		err := flow.FlowRoutine(int(n.Workers), n.Address, int(n.Port), n.Reuse)
+		err := flow.FlowRoutine(int(n.Workers), n.Address, int(n.Port), true)
 		if err != nil {
 			n.Errorf(err.Error())
 		}
