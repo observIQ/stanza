@@ -57,7 +57,6 @@ func Parse(message flowmessage.FlowMessage) (map[string]interface{}, error) {
 					return nil, errors.Wrap(err, "error converting DstAddr to string")
 				}
 				m[key] = ip.String()
-				return m, nil
 			default:
 				return nil, fmt.Errorf("type %T cannot be parsed as an IP address", val)
 			}
