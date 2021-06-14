@@ -1,4 +1,4 @@
-package sflow
+package netflowv9
 
 import (
 	"context"
@@ -19,20 +19,20 @@ func init() {
 }
 
 // NewNetflowV9InputConfig creates a new netflow V9 input config with default values
-func NewNetflowV9InputConfig(operatorID string) *NetflowV9nputConfig {
-	return &NetflowV9nputConfig{
+func NewNetflowV9InputConfig(operatorID string) *NetflowV9InputConfig {
+	return &NetflowV9InputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, operatorName),
 	}
 }
 
-// NetflowV9nputConfig is the configuration of a netflow V9 input operator.
-type NetflowV9nputConfig struct {
+// NetflowV9InputConfig is the configuration of a netflow V9 input operator.
+type NetflowV9InputConfig struct {
 	helper.InputConfig    `yaml:",inline"`
 	netflow.NetflowConfig `yaml:",inline"`
 }
 
 // Build will build a sflow input operator.
-func (c *NetflowV9nputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
+func (c *NetflowV9InputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err

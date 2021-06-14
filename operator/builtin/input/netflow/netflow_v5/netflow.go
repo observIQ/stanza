@@ -1,4 +1,4 @@
-package sflow
+package netflowv5
 
 import (
 	"context"
@@ -19,20 +19,20 @@ func init() {
 }
 
 // NewNetflowV5InputConfig creates a new netflow v5 input config with default values
-func NewNetflowV5InputConfig(operatorID string) *NetflowV5nputConfig {
-	return &NetflowV5nputConfig{
+func NewNetflowV5InputConfig(operatorID string) *NetflowV5InputConfig {
+	return &NetflowV5InputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, operatorName),
 	}
 }
 
-// NetflowV5nputConfig is the configuration of a netflow v5 input operator.
-type NetflowV5nputConfig struct {
+// NetflowV5InputConfig is the configuration of a netflow v5 input operator.
+type NetflowV5InputConfig struct {
 	helper.InputConfig    `yaml:",inline"`
 	netflow.NetflowConfig `yaml:",inline"`
 }
 
 // Build will build a sflow input operator.
-func (c *NetflowV5nputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
+func (c *NetflowV5InputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
 		return nil, err
