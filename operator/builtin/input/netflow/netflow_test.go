@@ -24,7 +24,6 @@ func TestInit(t *testing.T) {
 			NetflowConfig{
 				Address: "10.1.1.1",
 				Port:    2056,
-				Reuse:   false,
 				Workers: 10,
 			},
 			false,
@@ -33,7 +32,6 @@ func TestInit(t *testing.T) {
 			"missing-port",
 			NetflowConfig{
 				Address: "10.1.1.1",
-				Reuse:   false,
 				Workers: 10,
 			},
 			true,
