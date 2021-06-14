@@ -47,11 +47,20 @@ func Parse(message flowmessage.FlowMessage) (map[string]interface{}, error) {
 		"SrcAddrEncap",
 		"DstAddrEncap",
 	}
-	var err error
 	for _, key := range byteKeys {
-		m, err = mapBytesToString(m, key)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("error converting %s to string", key))
+		if val, ok := m[key]; ok {
+			delete(m, key)
+			switch x := val.(type) {
+			case []byte:
+				ip, err := bytesToIP(x)
+				if err != nil {
+					return nil, errors.Wrap(err, "error converting DstAddr to string")
+				}
+				m[key] = ip.String()
+				return m, nil
+			default:
+				return nil, fmt.Errorf("type %T cannot be parsed as an IP address", val)
+			}
 		}
 	}
 
@@ -67,27 +76,6 @@ func toLower(m map[string]interface{}) map[string]interface{} {
 		x[strings.ToLower(k)] = v
 	}
 	return x
-}
-
-// converts a key from []byte to string if it exists
-func mapBytesToString(m map[string]interface{}, key string) (map[string]interface{}, error) {
-	if val, ok := m[key]; ok {
-		delete(m, key)
-		switch x := val.(type) {
-		case []byte:
-			ip, err := bytesToIP(x)
-			if err != nil {
-				return nil, errors.Wrap(err, "error converting DstAddr to string")
-			}
-			m[key] = ip.String()
-			return m, nil
-		default:
-			return nil, fmt.Errorf("type %T cannot be parsed as an IP address", val)
-		}
-
-	}
-	// if key does not exist, return without error
-	return m, nil
 }
 
 // converts []byte to ip address
