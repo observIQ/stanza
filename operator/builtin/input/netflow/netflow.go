@@ -3,11 +3,8 @@ package netflow
 import (
 	"context"
 	"flag"
-	"runtime"
-	"sync"
 
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
-	"github.com/cloudflare/goflow/v3/utils"
 	"github.com/fatih/structs"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,10 +14,10 @@ var (
 	buildinfos = ""
 	AppVersion = "GoFlow " + version + " " + buildinfos
 
-	SFlowEnable = flag.Bool("sflow", true, "Enable sFlow")
+	/*SFlowEnable = flag.Bool("sflow", true, "Enable sFlow")
 	SFlowAddr   = flag.String("sflow.addr", "", "sFlow listening address")
 	SFlowPort   = flag.Int("sflow.port", 6343, "sFlow listening port")
-	SFlowReuse  = flag.Bool("sflow.reuserport", false, "Enable so_reuseport for sFlow")
+	SFlowReuse  = flag.Bool("sflow.reuserport", false, "Enable so_reuseport for sFlow")*/
 
 	/*NFLEnable = flag.Bool("nfl", true, "Enable NetFlow v5")
 	NFLAddr   = flag.String("nfl.addr", "", "NetFlow v5 listening address")
@@ -68,7 +65,7 @@ func (n NetflowInput) Publish(messages []*flowmessage.FlowMessage) {
 }
 
 // more or less copied from goflows main package
-func startGoFlow(transport utils.Transport, NFLEnable, NFLReuse bool, NFLAddr string, NFLPort int) {
+/*func startGoFlow(transport utils.Transport, NFLEnable, NFLReuse bool, NFLAddr string, NFLPort int) {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -135,3 +132,4 @@ func startGoFlow(transport utils.Transport, NFLEnable, NFLReuse bool, NFLAddr st
 	}
 	wg.Wait()
 }
+*/
