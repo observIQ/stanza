@@ -55,6 +55,7 @@ type SflowInput struct {
 	helper.InputOperator
 	wg     sync.WaitGroup
 	cancel context.CancelFunc
+	ctx    context.Context
 
 	netflow.NetflowConfig
 }
@@ -87,19 +88,18 @@ func (n *SflowInput) Stop() error {
 
 // Publish is required by GoFlows util.Transport interface
 func (n SflowInput) Publish(messages []*flowmessage.FlowMessage) {
-	go func() {
-		for _, msg := range messages {
-			m, err := netflow.Parse(*msg)
-			if err != nil {
-				n.Errorf("Failed to parse sflow message", zap.Error(err))
-			}
-
-			entry, err := n.NewEntry(m)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			n.Write(context.Background(), entry)
+	for _, msg := range messages {
+		m, err := netflow.Parse(*msg)
+		if err != nil {
+			n.Errorf("Failed to parse sflow message", zap.Error(err))
 		}
-	}()
+
+		entry, err := n.NewEntry(m)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		n.Write(n.ctx, entry)
+	}
+
 }
