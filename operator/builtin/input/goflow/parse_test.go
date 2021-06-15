@@ -20,18 +20,20 @@ var (
 )
 
 func TestParse(t *testing.T) {
-	ipStringError := "expected ip address to be converted to a string"
-
 	cases := []struct {
-		name  string
-		input flowmessage.FlowMessage
+		name       string
+		input      flowmessage.FlowMessage
+		expect     map[string]interface{}
+		expectTime time.Time
 	}{
 		{
 			"minimal",
 			flowmessage.FlowMessage{},
+			map[string]interface{}{},
+			time.Time{},
 		},
 		{
-			"Addresses",
+			"addresses",
 			flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
@@ -40,66 +42,52 @@ func TestParse(t *testing.T) {
 				SrcAddrEncap:   SrcAddrEncap,
 				DstAddrEncap:   DstAddrEncap,
 			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Time{},
+		},
+		{
+			"promote-time",
+			flowmessage.FlowMessage{
+				TimeReceived:   1623774351,
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        SrcAddr,
+				DstAddr:        DstAddr,
+				NextHop:        NextHop,
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   DstAddrEncap,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Unix(int64(1623774351), 0),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := Parse(tc.input)
+			output, outputTime, err := Parse(tc.input)
 			require.NoError(t, err)
+			require.Equal(t, tc.expect, output)
 
-			for k, v := range output {
-
-				// expect all keys to be lower case
-				require.Equal(t, strings.ToLower(k), k)
-
-				// check ip addresses is correct type and value if present
-				switch k {
-				case "sampleraddress":
-					switch v := v.(type) {
-					case string:
-						require.Equal(t, SamplerAddress.String(), v)
-					default:
-						require.IsType(t, "string", v, ipStringError)
-					}
-				case "srcaddr":
-					switch v := v.(type) {
-					case string:
-						require.Equal(t, SrcAddr.String(), v)
-					default:
-						require.IsType(t, "string", v, ipStringError)
-					}
-				case "dstaddr":
-					switch v := v.(type) {
-					case string:
-						require.Equal(t, DstAddr.String(), v)
-					default:
-						require.IsType(t, "string", v, ipStringError)
-					}
-				case "nexthop":
-					switch v := v.(type) {
-					case string:
-						require.Equal(t, NextHop.String(), v)
-					default:
-						require.IsType(t, "string", v, ipStringError)
-					}
-				case "srcaddrencap":
-					switch v := v.(type) {
-					case string:
-						require.Equal(t, SrcAddrEncap.String(), v)
-					default:
-						require.IsType(t, "string", v, ipStringError)
-					}
-				case "dstaddrencap":
-					switch v := v.(type) {
-					case string:
-						require.Equal(t, DstAddrEncap.String(), v)
-					default:
-						require.IsType(t, "string", v, ipStringError)
-					}
-				}
+			if tc.input.TimeReceived > 0 {
+				require.Equal(t, tc.expectTime, outputTime, "expected field timereceived to be promoted to timestamp")
 			}
 
+			for k, _ := range output {
+				require.Equal(t, strings.ToLower(k), k, "expected all keys to be lowercase")
+			}
 		})
 	}
 }
@@ -129,7 +117,10 @@ func BenchmarkRandInt(b *testing.B) {
 
 	// run the Fib function b.N times
 	for n := 0; n < b.N; n++ {
-		Parse(m)
+		_, _, err := Parse(m)
+		if err != nil {
+			b.FailNow()
+		}
 	}
 
 }
