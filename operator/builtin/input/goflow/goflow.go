@@ -10,6 +10,7 @@ import (
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const operatorName = "goflow_input"
@@ -87,8 +88,7 @@ type GoflowInput struct {
 
 // Start will start generating log entries.
 func (n *GoflowInput) Start() error {
-	_, cancel := context.WithCancel(context.Background())
-	n.cancel = cancel
+	n.ctx, n.cancel = context.WithCancel(context.Background())
 
 	reuse := true
 
@@ -144,7 +144,25 @@ func (n *GoflowInput) Stop() error {
 	return nil
 }
 
-// Publish wraps WriteGoFlowMessage and is required by GoFlows util.Transport interface
-func (n GoflowInput) Publish(messages []*flowmessage.FlowMessage) {
-	n.WriteGoFlowMessage(n.ctx, messages)
+// Publish writes entries and satisfies GoFlow's util.Transport interface
+func (n *GoflowInput) Publish(messages []*flowmessage.FlowMessage) {
+	n.wg.Add(1)
+	defer n.wg.Done()
+
+	for _, msg := range messages {
+		m, t, err := Parse(*msg)
+		if err != nil {
+			n.Errorf("Failed to parse netflow message", zap.Error(err))
+			continue
+		}
+
+		entry, err := n.NewEntry(m)
+		if err != nil {
+			n.Errorf("Failed to create new entry", zap.Error(err))
+		}
+		if !t.IsZero() {
+			entry.Timestamp = t
+		}
+		n.Write(n.ctx, entry)
+	}
 }

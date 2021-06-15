@@ -1,7 +1,6 @@
 package goflow
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -10,30 +9,7 @@ import (
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
 	"github.com/fatih/structs"
 	"github.com/observiq/stanza/errors"
-	"go.uber.org/zap"
 )
-
-// WriteGoFlowMessage writes netflow messages as entries
-func (n *GoflowInput) WriteGoFlowMessage(ctx context.Context, messages []*flowmessage.FlowMessage) {
-	n.wg.Add(1)
-	for _, msg := range messages {
-		m, t, err := Parse(*msg)
-		if err != nil {
-			n.Errorf("Failed to parse netflow message", zap.Error(err))
-			continue
-		}
-
-		entry, err := n.NewEntry(m)
-		if err != nil {
-			n.Errorf("Failed to create new entry", zap.Error(err))
-		}
-		if !t.IsZero() {
-			entry.Timestamp = t
-		}
-		n.Write(ctx, entry)
-	}
-	n.wg.Done()
-}
 
 // Parse parses a netflow message into an entry
 func Parse(message flowmessage.FlowMessage) (map[string]interface{}, time.Time, error) {
