@@ -238,7 +238,7 @@ func TestParserCSVInvalidJSONInput(t *testing.T) {
 		entry := entry.New()
 		entry.Record = "{\"name\": \"stanza\"}"
 		err = op.Process(context.Background(), entry)
-		require.Nil(t, err, "parse error on line 1, column 1: bare \" in non-quoted-field")
+		require.Error(t, err, "parse error on line 1, column 1: bare \" in non-quoted-field")
 		fake.ExpectRecord(t, "{\"name\": \"stanza\"}")
 	})
 }

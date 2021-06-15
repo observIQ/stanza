@@ -98,6 +98,37 @@ func TestParserInvalidParse(t *testing.T) {
 	require.Contains(t, err.Error(), "parse failure")
 }
 
+func TestParserInvalidParseSend(t *testing.T) {
+	buildContext := testutil.NewBuildContext(t)
+	fakeOut := testutil.NewFakeOutput(t)
+	writer := WriterOperator{
+		BasicOperator: BasicOperator{
+			OperatorID:    "test-id",
+			OperatorType:  "test-type",
+			SugaredLogger: buildContext.Logger.SugaredLogger,
+		},
+		OutputIDs: []string{fakeOut.ID()},
+	}
+	writer.SetOutputs([]operator.Operator{fakeOut})
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: writer,
+			OnError:        SendOnError,
+		},
+		ParseFrom: entry.NewRecordField(),
+	}
+	parse := func(i interface{}) (interface{}, error) {
+		return i, fmt.Errorf("parse failure")
+	}
+	ctx := context.Background()
+	testEntry := entry.New()
+	err := parser.ProcessWith(ctx, testEntry, parse)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "parse failure")
+	fakeOut.ExpectEntry(t, testEntry)
+	fakeOut.ExpectNoEntry(t, 100*time.Millisecond)
+}
+
 func TestParserInvalidTimeParse(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	parser := ParserOperator{
