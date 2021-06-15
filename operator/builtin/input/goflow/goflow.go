@@ -18,14 +18,14 @@ func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewGoflowInputConfig("") })
 }
 
-// NewGoflowInputConfig creates a new sflow input config with default values
+// NewGoflowInputConfig creates a new goflow input config with default values
 func NewGoflowInputConfig(operatorID string) *GoflowInputConfig {
 	return &GoflowInputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, operatorName),
 	}
 }
 
-// GoflowInputConfig is the configuration of a sflow input operator.
+// GoflowInputConfig is the configuration of a goflow input operator.
 type GoflowInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
@@ -35,7 +35,7 @@ type GoflowInputConfig struct {
 	Workers uint   `json:"workers,omitempty" yaml:"workers,omitempty"`
 }
 
-// Build will build a sflow input operator.
+// Build will build a goflow input operator.
 func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	inputOperator, err := c.InputConfig.Build(context)
 	if err != nil {
@@ -132,6 +132,8 @@ func (n *GoflowInput) Start() error {
 	default:
 		return fmt.Errorf("%s is not a supported Goflow mode", n.mode)
 	}
+
+	n.Infof("Started Goflow on %s:%d in %s mode", n.address, n.port, n.mode)
 	return nil
 }
 
@@ -142,9 +144,7 @@ func (n *GoflowInput) Stop() error {
 	return nil
 }
 
-// Publish is required by GoFlows util.Transport interface
+// Publish wraps WriteGoFlowMessage and is required by GoFlows util.Transport interface
 func (n GoflowInput) Publish(messages []*flowmessage.FlowMessage) {
-	n.wg.Add(1)
-	Publish(n.ctx, n.InputOperator, messages)
-	n.wg.Done()
+	n.WriteGoFlowMessage(n.ctx, messages)
 }

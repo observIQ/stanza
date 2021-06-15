@@ -9,26 +9,29 @@ import (
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
 	"github.com/fatih/structs"
 	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
 )
 
-// Publish writes netflow messages as entries
-func Publish(ctx context.Context, o helper.InputOperator, messages []*flowmessage.FlowMessage) {
+// WriteGoFlowMessage writes netflow messages as entries
+func (n *GoflowInput) WriteGoFlowMessage(ctx context.Context, messages []*flowmessage.FlowMessage) {
+	n.wg.Add(1)
+
 	for _, msg := range messages {
 		m, err := Parse(*msg)
 		if err != nil {
-			o.Errorf("Failed to parse netflow message", zap.Error(err))
+			n.Errorf("Failed to parse netflow message", zap.Error(err))
 			continue
 		}
 
-		entry, err := o.NewEntry(m)
+		entry, err := n.NewEntry(m)
 		if err != nil {
-			o.Errorf(err.Error())
+			n.Errorf(err.Error())
 			continue
 		}
-		o.Write(ctx, entry)
+		n.Write(ctx, entry)
 	}
+
+	n.wg.Done()
 }
 
 // Parse parses a netflow message into a map
