@@ -73,18 +73,12 @@ func TestParserMissingField(t *testing.T) {
 	require.Contains(t, err.Error(), "Entry is missing the expected parse_from field.")
 }
 
-func TestParserInvalidParse(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
+func TestParserInvalidParseDrop(t *testing.T) {
+	writer, fakeOut := writerWithFakeOut(t)
 	parser := ParserOperator{
 		TransformerOperator: TransformerOperator{
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
-				},
-			},
-			OnError: DropOnError,
+			WriterOperator: *writer,
+			OnError:        DropOnError,
 		},
 		ParseFrom: entry.NewRecordField(),
 	}
@@ -96,23 +90,14 @@ func TestParserInvalidParse(t *testing.T) {
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "parse failure")
+	fakeOut.ExpectNoEntry(t, 100*time.Millisecond)
 }
 
 func TestParserInvalidParseSend(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
-	fakeOut := testutil.NewFakeOutput(t)
-	writer := WriterOperator{
-		BasicOperator: BasicOperator{
-			OperatorID:    "test-id",
-			OperatorType:  "test-type",
-			SugaredLogger: buildContext.Logger.SugaredLogger,
-		},
-		OutputIDs: []string{fakeOut.ID()},
-	}
-	writer.SetOutputs([]operator.Operator{fakeOut})
+	writer, fakeOut := writerWithFakeOut(t)
 	parser := ParserOperator{
 		TransformerOperator: TransformerOperator{
-			WriterOperator: writer,
+			WriterOperator: *writer,
 			OnError:        SendOnError,
 		},
 		ParseFrom: entry.NewRecordField(),
@@ -129,18 +114,12 @@ func TestParserInvalidParseSend(t *testing.T) {
 	fakeOut.ExpectNoEntry(t, 100*time.Millisecond)
 }
 
-func TestParserInvalidTimeParse(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
+func TestParserInvalidTimeParseDrop(t *testing.T) {
+	writer, fakeOut := writerWithFakeOut(t)
 	parser := ParserOperator{
 		TransformerOperator: TransformerOperator{
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
-				},
-			},
-			OnError: DropOnError,
+			WriterOperator: *writer,
+			OnError:        DropOnError,
 		},
 		ParseFrom: entry.NewRecordField(),
 		ParseTo:   entry.NewRecordField(),
@@ -159,20 +138,42 @@ func TestParserInvalidTimeParse(t *testing.T) {
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "time parser: log entry does not have the expected parse_from field")
+	fakeOut.ExpectNoEntry(t, 100*time.Millisecond)
 }
 
-func TestParserInvalidSeverityParse(t *testing.T) {
-	buildContext := testutil.NewBuildContext(t)
+func TestParserInvalidTimeParseSend(t *testing.T) {
+	writer, fakeOut := writerWithFakeOut(t)
 	parser := ParserOperator{
 		TransformerOperator: TransformerOperator{
-			WriterOperator: WriterOperator{
-				BasicOperator: BasicOperator{
-					OperatorID:    "test-id",
-					OperatorType:  "test-type",
-					SugaredLogger: buildContext.Logger.SugaredLogger,
-				},
-			},
-			OnError: DropOnError,
+			WriterOperator: *writer,
+			OnError:        SendOnError,
+		},
+		ParseFrom: entry.NewRecordField(),
+		ParseTo:   entry.NewRecordField(),
+		TimeParser: &TimeParser{
+			ParseFrom: func() *entry.Field {
+				f := entry.NewRecordField("missing-key")
+				return &f
+			}(),
+		},
+	}
+	parse := func(i interface{}) (interface{}, error) {
+		return i, nil
+	}
+	ctx := context.Background()
+	testEntry := entry.New()
+	err := parser.ProcessWith(ctx, testEntry, parse)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "time parser: log entry does not have the expected parse_from field")
+	fakeOut.ExpectEntry(t, testEntry)
+	fakeOut.ExpectNoEntry(t, 100*time.Millisecond)
+}
+func TestParserInvalidSeverityParseDrop(t *testing.T) {
+	writer, fakeOut := writerWithFakeOut(t)
+	parser := ParserOperator{
+		TransformerOperator: TransformerOperator{
+			WriterOperator: *writer,
+			OnError:        DropOnError,
 		},
 		SeverityParser: &SeverityParser{
 			ParseFrom: entry.NewRecordField("missing-key"),
@@ -188,6 +189,7 @@ func TestParserInvalidSeverityParse(t *testing.T) {
 	err := parser.ProcessWith(ctx, testEntry, parse)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "severity parser: log entry does not have the expected parse_from field")
+	fakeOut.ExpectNoEntry(t, 100*time.Millisecond)
 }
 
 func TestParserInvalidTimeValidSeverityParse(t *testing.T) {
@@ -406,4 +408,19 @@ func TestParserPreserve(t *testing.T) {
 			require.Equal(t, tc.outputRecord, e.Record)
 		})
 	}
+}
+
+func writerWithFakeOut(t *testing.T) (*WriterOperator, *testutil.FakeOutput) {
+	buildContext := testutil.NewBuildContext(t)
+	fakeOut := testutil.NewFakeOutput(t)
+	writer := &WriterOperator{
+		BasicOperator: BasicOperator{
+			OperatorID:    "test-id",
+			OperatorType:  "test-type",
+			SugaredLogger: buildContext.Logger.SugaredLogger,
+		},
+		OutputIDs: []string{fakeOut.ID()},
+	}
+	writer.SetOutputs([]operator.Operator{fakeOut})
+	return writer, fakeOut
 }
