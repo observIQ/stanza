@@ -23,6 +23,14 @@ test: vet test-only
 test-only:
 	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
+.PHONY: test-integration
+test-integration:
+	mkdir -p artifacts
+	curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./artifacts/stanza-plugins.tar.gz
+	docker build . -t stanza-integration:latest
+	$(MAKE) for-all CMD="go clean -testcache ./... ./..."
+	$(MAKE) for-all CMD="go test -tags integration ./... ./..."
+
 .PHONY: bench
 bench:
 	$(MAKE) for-all CMD="go test -run=NONE -bench '.*' ./... -benchmem"

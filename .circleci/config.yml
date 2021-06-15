@@ -98,6 +98,9 @@ jobs:
       - run:
           name: Run Unit Tests
           command: make test
+      - run:
+          name: Run Integration Tests
+          command: make test-integration
       - codecov/upload:
           file: '**/coverage.txt'
 
