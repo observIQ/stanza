@@ -22,9 +22,9 @@ func TestBuild(t *testing.T) {
 			false,
 		},
 		{
-			"minimal-netflow-v9",
+			"minimal-netflow-ipfix",
 			GoflowInputConfig{
-				Mode: "netflow_v5",
+				Mode: "netflow_ipfix",
 				Port: 2056,
 			},
 			false,

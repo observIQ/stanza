@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	operatorName  = "goflow_input"
-	modeSflow     = "sflow"
-	modeNetflowV5 = "netflow_v5"
-	modeNetflowV9 = "netflow_v9"
+	operatorName     = "goflow_input"
+	modeSflow        = "sflow"
+	modeNetflowV5    = "netflow_v5"
+	modeNetflowIPFIX = "netflow_ipfix"
 )
 
 func init() {
@@ -51,7 +51,7 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 	}
 
 	switch c.Mode {
-	case "sflow", "netflow_v5", "netflow_v9":
+	case "sflow", "netflow_v5", "netflow_ipfix":
 		break
 	default:
 		return nil, fmt.Errorf("%s is not a supported Goflow mode", c.Mode)
@@ -128,7 +128,7 @@ func (n *GoflowInput) Start() error {
 			case modeNetflowV5:
 				flow := &utils.StateNFLegacy{Transport: n, Logger: n}
 				goflowErr = flow.FlowRoutine(n.workers, n.address, n.port, reuse)
-			case modeNetflowV9:
+			case modeNetflowIPFIX:
 				flow := &utils.StateNetFlow{Transport: n, Logger: n}
 				goflowErr = flow.FlowRoutine(n.workers, n.address, n.port, reuse)
 			}
