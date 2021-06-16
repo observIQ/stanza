@@ -3,6 +3,7 @@
 package goflow
 
 import (
+	"bufio"
 	"context"
 	"io/ioutil"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	flowmessage "github.com/cloudflare/goflow/v3/pb"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
@@ -127,17 +130,127 @@ func TestNetflowV5(t *testing.T) {
 	}
 	require.Equal(t, 4, len(strings.Split(string(b), "\n")), "expected stanza.log to contain exactly 3 lines")
 
-	// Expect file_output to contain parsed logs, the test will usually dump 40+ logs
-	/**
-	{"timestamp":"2021-06-15T21:10:35Z","severity":0,"record":{"bytes":329,"dstaddr":"172.30.190.10","dstas":30207,"dstnet":24,"dstport":161,"etype":2048,"nexthop":"172.199.15.1","packets":663,"proto":17,"sampleraddress":"172.17.0.4","sequencenum":1,"srcaddr":"112.10.20.10","srcas":64858,"srcport":40,"timeflowend":1623791435,"timeflowstart":1623791435,"type":2}}
-	{"timestamp":"2021-06-15T21:10:35Z","severity":0,"record":{"bytes":177,"dstaddr":"132.12.130.10","dstas":23810,"dstnet":11,"etype":2048,"nexthop":"132.12.130.1","packets":233,"proto":1,"sampleraddress":"172.17.0.4","sequencenum":1,"srcaddr":"172.16.50.10","srcas":44850,"srcnet":1,"timeflowend":1623791435,"timeflowstart":1623791435,"type":2}}
-	{"timestamp":"2021-06-15T21:10:35Z","severity":0,"record":{"bytes":1006,"dstaddr":"242.164.127.44","dstas":45852,"dstport":19218,"etype":2048,"nexthop":"130.148.218.75","packets":1015,"proto":6,"sampleraddress":"172.17.0.4","sequencenum":1,"srcaddr":"165.148.192.105","srcas":2641,"srcnet":27,"srcport":39402,"timeflowend":1623791435,"timeflowstart":1623791435,"type":2}}
-	**/
-	b, err = ioutil.ReadFile("./testdata/out.log") // just pass the file name
+	// Test file_output contents
+	f, err := os.Open("./testdata/out.log")
 	if err != nil {
-		require.NoError(t, err, "expected to read testdata/out.log")
+		require.NoError(t, err)
 		return
 	}
-	lines := len(strings.Split(string(b), "\n"))
-	require.Greater(t, lines, 5, "expected out.log to contain log entries")
+	defer f.Close()
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		m := OutputEntry{}
+		if err := json.Unmarshal(scanner.Bytes(), &m); err != nil {
+			require.NoError(t, err, "expected to unmarshal stanza file output to FlowMessage struct")
+			return
+		}
+		require.NotEmpty(t, m.Record)
+		require.NotEqual(t, m.Timestamp, time.Time{})
+		return
+	}
+	if err := scanner.Err(); err != nil {
+		require.NoError(t, err)
+		return
+	}
+}
+
+type OutputEntry struct {
+	Timestamp time.Time `json:"timestamp"`
+	Severity  int       `json:"severity"`
+	Record    struct {
+		/*Bytes          int    `json:"bytes"`
+		Dstaddr        string `json:"dstaddr"`
+		Dstas          int    `json:"dstas"`
+		Dstnet         int    `json:"dstnet"`
+		Dstport        int    `json:"dstport"`
+		Etype          int    `json:"etype"`
+		Nexthop        string `json:"nexthop"`
+		Packets        int    `json:"packets"`
+		Proto          int    `json:"proto"`
+		Sampleraddress string `json:"sampleraddress"`
+		Sequencenum    int    `json:"sequencenum"`
+		Srcaddr        string `json:"srcaddr"`
+		Srcas          int    `json:"srcas"`
+		Srcnet         int    `json:"srcnet"`
+		Srcport        int    `json:"srcport"`
+		Timeflowend    int    `json:"timeflowend"`
+		Timeflowstart  int    `json:"timeflowstart"`
+		Type           int    `json:"type"`*/
+
+		// based on https://github.com/cloudflare/goflow/blob/ddd88a7faa89bd9a8e75f0ceca17cbb443c14a8f/pb/flow.pb.go
+		// all ip addresses are strings instead of []byte, and noted with a comment
+		Type          flowmessage.FlowMessage_FlowType `json:"type,omitempty"`
+		TimeReceived  uint64                           `json:"timereceived,omitempty"`
+		SequenceNum   uint32                           `json:"sequencenum,omitempty"`
+		SamplingRate  uint64                           `json:"samplingrate,omitempty"`
+		FlowDirection uint32                           `json:"flowdirection,omitempty"`
+		// converted to string
+		SamplerAddress string `json:"sampleraddress,omitempty"`
+		TimeFlowStart  uint64 `json:"timeflowstart,omitempty"`
+		TimeFlowEnd    uint64 `json:"timeflowend,omitempty"`
+		Bytes          uint64 `json:"bytes,omitempty"`
+		Packets        uint64 `json:"packets,omitempty"`
+		// converted to string
+		SrcAddr string `json:"srcaddr,omitempty"`
+		// converted to string
+		DstAddr          string `json:"dstaddr,omitempty"`
+		Etype            uint32 `json:"etype,omitempty"`
+		Proto            uint32 `json:"proto,omitempty"`
+		SrcPort          uint32 `json:"srcport,omitempty"`
+		DstPort          uint32 `json:"dstport,omitempty"`
+		InIf             uint32 `json:"inif,omitempty"`
+		OutIf            uint32 `json:"outif,omitempty"`
+		SrcMac           uint64 `json:"srcmac,omitempty"`
+		DstMac           uint64 `json:"dstmac,omitempty"`
+		SrcVlan          uint32 `json:"srcvlan,omitempty"`
+		DstVlan          uint32 `json:"dstvlan,omitempty"`
+		VlanId           uint32 `json:"vlanid,omitempty"`
+		IngressVrfID     uint32 `json:"ingressvrfid,omitempty"`
+		EgressVrfID      uint32 `json:"egressvrfid,omitempty"`
+		IPTos            uint32 `json:"iptos,omitempty"`
+		ForwardingStatus uint32 `json:"forwardingstatus,omitempty"`
+		IPTTL            uint32 `json:"ipttl,omitempty"`
+		TCPFlags         uint32 `json:"tcpflags,omitempty"`
+		IcmpType         uint32 `json:"icmptype,omitempty"`
+		IcmpCode         uint32 `json:"icmpcode,omitempty"`
+		IPv6FlowLabel    uint32 `json:"ipv6flowlabel,omitempty"`
+		FragmentId       uint32 `json:"fragmentid,omitempty"`
+		FragmentOffset   uint32 `json:"fragmentoffset,omitempty"`
+		BiFlowDirection  uint32 `json:"biflowdirection,omitempty"`
+		SrcAS            uint32 `json:"srcas,omitempty"`
+		DstAS            uint32 `json:"dstas,omitempty"`
+		// converted to string
+		NextHop   string `json:"nexthop,omitempty"`
+		NextHopAS uint32 `json:"nexthopas,omitempty"`
+		SrcNet    uint32 `json:"srcnet,omitempty"`
+		DstNet    uint32 `json:"dstnet,omitempty"`
+		HasEncap  bool   `json:"hasencap,omitempty"`
+		// converted to string
+		SrcAddrEncap string `json:"srcaddrencap,omitempty"`
+		// converted to string
+		DstAddrEncap         string   `json:"dstaddrencap,omitempty"`
+		ProtoEncap           uint32   `json:"protoencap,omitempty"`
+		EtypeEncap           uint32   `json:"etypeencap,omitempty"`
+		IPTosEncap           uint32   `json:"iptosencap,omitempty"`
+		IPTTLEncap           uint32   `json:"ipttlencap,omitempty"`
+		IPv6FlowLabelEncap   uint32   `json:"ipv6flowlabelencap,omitempty"`
+		FragmentIdEncap      uint32   `json:"fragmentidencap,omitempty"`
+		FragmentOffsetEncap  uint32   `json:"fragmentoffsetencap,omitempty"`
+		HasMPLS              bool     `json:"hasmpls,omitempty"`
+		MPLSCount            uint32   `json:"mplscount,omitempty"`
+		MPLS1TTL             uint32   `json:"mpls1ttl,omitempty"`
+		MPLS1Label           uint32   `json:"mpls1label,omitempty"`
+		MPLS2TTL             uint32   `json:"mpls2ttl,omitempty"`
+		MPLS2Label           uint32   `json:"mpls2label,omitempty"`
+		MPLS3TTL             uint32   `json:"mpls3ttl,omitempty"`
+		MPLS3Label           uint32   `json:"mpls3label,omitempty"`
+		MPLSLastTTL          uint32   `json:"mplslastttl,omitempty"`
+		MPLSLastLabel        uint32   `json:"mplslastlabel,omitempty"`
+		HasPPP               bool     `json:"hasppp,omitempty"`
+		PPPAddressControl    uint32   `json:"pppaddresscontrol,omitempty"`
+		XXX_NoUnkeyedLiteral struct{} `json:"-"`
+		XXX_unrecognized     []byte   `json:"-"`
+		XXX_sizecache        int32    `json:"-"`
+	} `json:"record"`
 }
