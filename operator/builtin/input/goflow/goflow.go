@@ -12,7 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
-const operatorName = "goflow_input"
+const (
+	operatorName  = "goflow_input"
+	modeSflow     = "sflow"
+	modeNetflowV5 = "netflow_v5"
+	modeNetflowV9 = "netflow_v9"
+)
 
 func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewGoflowInputConfig("") })
@@ -90,44 +95,34 @@ func (n *GoflowInput) Start() error {
 	n.ctx, n.cancel = context.WithCancel(context.Background())
 
 	reuse := true
-
 	switch n.mode {
-	case "sflow":
-		flow := &utils.StateSFlow{
-			Transport: n,
-			Logger:    n,
-		}
+	case modeSflow:
+		flow := &utils.StateSFlow{Transport: n, Logger: n}
 		go func() {
 			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
 			if err != nil {
-				n.Errorf(err.Error())
+				n.Fatalf("Goflow failed %v", err)
 			}
+			n.Fatalf("Goflow stopped unexpectedly without error")
 		}()
-
-	case "netflow_v5":
-		flow := &utils.StateNFLegacy{
-			Transport: n,
-			Logger:    n,
-		}
+	case modeNetflowV5:
+		flow := &utils.StateNFLegacy{Transport: n, Logger: n}
 		go func() {
 			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
 			if err != nil {
-				n.Errorf(err.Error())
+				n.Fatalf("Goflow failed %v", err)
 			}
+			n.Fatalf("Goflow stopped unexpectedly without error")
 		}()
-
-	case "netflow_v9":
-		flow := &utils.StateNetFlow{
-			Transport: n,
-			Logger:    n,
-		}
+	case modeNetflowV9:
+		flow := &utils.StateNetFlow{Transport: n, Logger: n}
 		go func() {
 			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
 			if err != nil {
-				n.Errorf(err.Error())
+				n.Fatalf("Goflow failed %v", err)
 			}
+			n.Fatalf("Goflow stopped unexpectedly without error")
 		}()
-
 	default:
 		return fmt.Errorf("%s is not a supported Goflow mode", n.mode)
 	}
