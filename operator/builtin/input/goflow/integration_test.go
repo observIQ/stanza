@@ -131,6 +131,12 @@ func TestNetflowV5(t *testing.T) {
 	require.Equal(t, 4, len(strings.Split(string(b), "\n")), "expected stanza.log to contain exactly 3 lines")
 
 	// Test file_output contents
+	samplerAddress, err := loadgen.ContainerIP(context.Background())
+	if err != nil {
+		require.NoError(t, err, "expected nil error when getting stanza container ip")
+		return
+	}
+
 	f, err := os.Open("./testdata/out.log")
 	if err != nil {
 		require.NoError(t, err)
@@ -147,6 +153,7 @@ func TestNetflowV5(t *testing.T) {
 		}
 		require.NotEmpty(t, m.Record)
 		require.NotEqual(t, m.Timestamp, time.Time{})
+		require.Equal(t, samplerAddress, m.Record.SamplerAddress, "expected sampleraddress to be the loadgen container's ip address")
 		return
 	}
 	if err := scanner.Err(); err != nil {
