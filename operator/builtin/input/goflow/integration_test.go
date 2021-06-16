@@ -166,25 +166,6 @@ type OutputEntry struct {
 	Timestamp time.Time `json:"timestamp"`
 	Severity  int       `json:"severity"`
 	Record    struct {
-		/*Bytes          int    `json:"bytes"`
-		Dstaddr        string `json:"dstaddr"`
-		Dstas          int    `json:"dstas"`
-		Dstnet         int    `json:"dstnet"`
-		Dstport        int    `json:"dstport"`
-		Etype          int    `json:"etype"`
-		Nexthop        string `json:"nexthop"`
-		Packets        int    `json:"packets"`
-		Proto          int    `json:"proto"`
-		Sampleraddress string `json:"sampleraddress"`
-		Sequencenum    int    `json:"sequencenum"`
-		Srcaddr        string `json:"srcaddr"`
-		Srcas          int    `json:"srcas"`
-		Srcnet         int    `json:"srcnet"`
-		Srcport        int    `json:"srcport"`
-		Timeflowend    int    `json:"timeflowend"`
-		Timeflowstart  int    `json:"timeflowstart"`
-		Type           int    `json:"type"`*/
-
 		// based on https://github.com/cloudflare/goflow/blob/ddd88a7faa89bd9a8e75f0ceca17cbb443c14a8f/pb/flow.pb.go
 		// all ip addresses are strings instead of []byte, and noted with a comment
 		Type          flowmessage.FlowMessage_FlowType `json:"type,omitempty"`
