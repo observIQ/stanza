@@ -3,10 +3,13 @@ package goflow
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
+	"time"
 
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
 	"github.com/cloudflare/goflow/v3/utils"
+	"github.com/jpillora/backoff"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -62,6 +65,18 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 		return nil, fmt.Errorf("port is a required parameter")
 	}
 
+	addr := net.UDPAddr{
+		IP:   net.ParseIP(c.Address),
+		Port: int(c.Port),
+	}
+	conn, err := net.ListenUDP("udp", &addr)
+	if err != nil {
+		return nil, fmt.Errorf("expected udp socket %s:%d to be available, got %w", c.Address, c.Port, err)
+	}
+	if err := conn.Close(); err != nil {
+		return nil, fmt.Errorf("unexpected error closing udp connection while validating Goflow parameters: %w", err)
+	}
+
 	if c.Workers == 0 {
 		c.Workers = 1
 	}
@@ -94,40 +109,47 @@ type GoflowInput struct {
 func (n *GoflowInput) Start() error {
 	n.ctx, n.cancel = context.WithCancel(context.Background())
 
-	reuse := true
-	switch n.mode {
-	case modeSflow:
-		flow := &utils.StateSFlow{Transport: n, Logger: n}
-		go func() {
-			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
-			if err != nil {
-				n.Fatalf("Goflow failed %v", err)
-			}
-			n.Fatalf("Goflow stopped unexpectedly without error")
-		}()
-	case modeNetflowV5:
-		flow := &utils.StateNFLegacy{Transport: n, Logger: n}
-		go func() {
-			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
-			if err != nil {
-				n.Fatalf("Goflow failed %v", err)
-			}
-			n.Fatalf("Goflow stopped unexpectedly without error")
-		}()
-	case modeNetflowV9:
-		flow := &utils.StateNetFlow{Transport: n, Logger: n}
-		go func() {
-			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
-			if err != nil {
-				n.Fatalf("Goflow failed %v", err)
-			}
-			n.Fatalf("Goflow stopped unexpectedly without error")
-		}()
-	default:
-		return fmt.Errorf("%s is not a supported Goflow mode", n.mode)
-	}
+	go func() {
+		var goflowErr error
+		var reuse = true
 
-	n.Infof("Started Goflow on %s:%d in %s mode", n.address, n.port, n.mode)
+		backoff := backoff.Backoff{
+			Min:    100 * time.Millisecond,
+			Max:    3 * time.Second,
+			Factor: 2,
+			Jitter: false,
+		}
+		for {
+			n.Infof("Starting Goflow on %s:%d in %s mode", n.address, n.port, n.mode)
+			switch n.mode {
+			case modeSflow:
+				flow := &utils.StateSFlow{Transport: n, Logger: n}
+				goflowErr = flow.FlowRoutine(n.workers, n.address, n.port, reuse)
+			case modeNetflowV5:
+				flow := &utils.StateNFLegacy{Transport: n, Logger: n}
+				goflowErr = flow.FlowRoutine(n.workers, n.address, n.port, reuse)
+			case modeNetflowV9:
+				flow := &utils.StateNetFlow{Transport: n, Logger: n}
+				goflowErr = flow.FlowRoutine(n.workers, n.address, n.port, reuse)
+			}
+
+			select {
+			case <-n.ctx.Done():
+				return
+			default:
+			}
+
+			if goflowErr != nil {
+				n.Errorf("Goflow quit with error", zap.Error(goflowErr))
+			} else {
+				n.Errorf("Goflow quit with unknown error")
+			}
+
+			time.Sleep(backoff.Duration())
+			n.Infof("Restarting Goflow")
+		}
+	}()
+
 	return nil
 }
 
