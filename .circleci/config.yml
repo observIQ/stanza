@@ -94,15 +94,10 @@ jobs:
     resource_class: large
 
     steps:
-      - setup_remote_docker:
-          version: 19.03.13
       - checkout
       - run:
           name: Run Unit Tests
           command: make test
-      - run:
-          name: Run Integration Tests
-          command: make test-integration
       - codecov/upload:
           file: '**/coverage.txt'
 
