@@ -9,7 +9,6 @@ import (
 	"github.com/cloudflare/goflow/v3/utils"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
-	log "github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 )
 
@@ -96,7 +95,7 @@ func (n *GoflowInput) Start() error {
 	case "sflow":
 		flow := &utils.StateSFlow{
 			Transport: n,
-			Logger:    log.StandardLogger(),
+			Logger:    n,
 		}
 		go func() {
 			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
@@ -108,7 +107,7 @@ func (n *GoflowInput) Start() error {
 	case "netflow_v5":
 		flow := &utils.StateNFLegacy{
 			Transport: n,
-			Logger:    log.StandardLogger(),
+			Logger:    n,
 		}
 		go func() {
 			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
@@ -120,7 +119,7 @@ func (n *GoflowInput) Start() error {
 	case "netflow_v9":
 		flow := &utils.StateNetFlow{
 			Transport: n,
-			Logger:    log.StandardLogger(),
+			Logger:    n,
 		}
 		go func() {
 			err := flow.FlowRoutine(n.workers, n.address, n.port, reuse)
@@ -165,4 +164,9 @@ func (n *GoflowInput) Publish(messages []*flowmessage.FlowMessage) {
 		}
 		n.Write(n.ctx, entry)
 	}
+}
+
+// Printf is required by goflows logging interface
+func (n *GoflowInput) Printf(format string, args ...interface{}) {
+	n.Infof(format, args)
 }
