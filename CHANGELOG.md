@@ -6,8 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Added Goflow operator for receiving Netflow (v5, v9, ipfix) and Sflow [PR 332](https://github.com/observIQ/stanza/pull/332)
+
+## 1.0.1 - 2021-06-16
+
 ### Fixed
 - Fixed panic during shutdown when Google Cloud Output credential file not found [Issue 264](https://github.com/observIQ/stanza/issues/264)
+- Fixed bug where logs can be duplicated when a parser has on_error=send [PR 330](https://github.com/observIQ/stanza/pull/330)
 
 ## [1.0.0] - 2021-05-27
 

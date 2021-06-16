@@ -107,7 +107,7 @@ func TestTransformerSendOnError(t *testing.T) {
 	}
 
 	err := transformer.ProcessWith(ctx, testEntry, transform)
-	require.NoError(t, err)
+	require.Error(t, err)
 	output.AssertCalled(t, "Process", mock.Anything, mock.Anything)
 }
 
@@ -145,42 +145,44 @@ func TestTransformerIf(t *testing.T) {
 		ifExpr      string
 		inputRecord string
 		expected    string
+		errExpected bool
 	}{
 		{
-			"NoIf",
-			"",
-			"test",
-			"parsed",
+			name:        "NoIf",
+			ifExpr:      "",
+			inputRecord: "test",
+			expected:    "parsed",
 		},
 		{
-			"TrueIf",
-			"true",
-			"test",
-			"parsed",
+			name:        "TrueIf",
+			ifExpr:      "true",
+			inputRecord: "test",
+			expected:    "parsed",
 		},
 		{
-			"FalseIf",
-			"false",
-			"test",
-			"test",
+			name:        "FalseIf",
+			ifExpr:      "false",
+			inputRecord: "test",
+			expected:    "test",
 		},
 		{
-			"EvaluatedTrue",
-			"$record == 'test'",
-			"test",
-			"parsed",
+			name:        "EvaluatedTrue",
+			ifExpr:      "$record == 'test'",
+			inputRecord: "test",
+			expected:    "parsed",
 		},
 		{
-			"EvaluatedFalse",
-			"$record == 'notest'",
-			"test",
-			"test",
+			name:        "EvaluatedFalse",
+			ifExpr:      "$record == 'notest'",
+			inputRecord: "test",
+			expected:    "test",
 		},
 		{
-			"FailingExpressionEvaluation",
-			"$record.test.noexist == 'notest'",
-			"test",
-			"test",
+			name:        "FailingExpressionEvaluation",
+			ifExpr:      "$record.test.noexist == 'notest'",
+			inputRecord: "test",
+			expected:    "test",
+			errExpected: true,
 		},
 	}
 
@@ -201,7 +203,11 @@ func TestTransformerIf(t *testing.T) {
 				e.Record = "parsed"
 				return nil
 			})
-			require.NoError(t, err)
+			if tc.errExpected {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 
 			fake.ExpectRecord(t, tc.expected)
 		})
