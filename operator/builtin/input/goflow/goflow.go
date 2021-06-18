@@ -37,10 +37,9 @@ func NewGoflowInputConfig(operatorID string) *GoflowInputConfig {
 type GoflowInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
-	Mode    string `json:"mode,omitempty"    yaml:"mode,omitempty"`
-	Address string `json:"address,omitempty" yaml:"address,omitempty"`
-	Port    uint   `json:"port,omitempty"    yaml:"port,omitempty"`
-	Workers uint   `json:"workers,omitempty" yaml:"workers,omitempty"`
+	Mode          string `json:"mode,omitempty"           yaml:"mode,omitempty"`
+	ListenAddress string `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	Workers       uint   `json:"workers,omitempty"        yaml:"workers,omitempty"`
 }
 
 // Build will build a goflow input operator.
@@ -50,28 +49,29 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 		return nil, err
 	}
 
+	if c.Mode == "" {
+		c.Mode = modeNetflowIPFIX
+	}
+
 	switch c.Mode {
 	case modeSflow, modeNetflowV5, modeNetflowIPFIX:
 		break
 	default:
-		c.Mode = modeNetflowIPFIX
+		return nil, fmt.Errorf("%s is not a supported Goflow mode", c.Mode)
 	}
 
-	if c.Address == "" {
-		c.Address = "0.0.0.0"
+	if c.ListenAddress == "" {
+		return nil, fmt.Errorf("listen_address is a required parameter")
 	}
 
-	if c.Port == 0 {
-		return nil, fmt.Errorf("port is a required parameter")
-	}
-
-	addr := net.UDPAddr{
-		IP:   net.ParseIP(c.Address),
-		Port: int(c.Port),
-	}
-	conn, err := net.ListenUDP("udp", &addr)
+	addr, err := net.ResolveUDPAddr("udp", c.ListenAddress)
 	if err != nil {
-		return nil, fmt.Errorf("expected udp socket %s:%d to be available, got %w", c.Address, c.Port, err)
+		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
+	}
+
+	conn, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("expected udp socket %s to be available, got %w", addr.String(), err)
 	}
 	if err := conn.Close(); err != nil {
 		return nil, fmt.Errorf("unexpected error closing udp connection while validating Goflow parameters: %w", err)
@@ -84,8 +84,8 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 	goflowInput := &GoflowInput{
 		InputOperator: inputOperator,
 		mode:          c.Mode,
-		address:       c.Address,
-		port:          int(c.Port),
+		address:       addr.IP.String(),
+		port:          addr.Port,
 		workers:       int(c.Workers),
 	}
 	return []operator.Operator{goflowInput}, nil

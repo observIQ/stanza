@@ -14,42 +14,48 @@ func TestBuild(t *testing.T) {
 		expectErr   bool
 	}{
 		{
+			"minimal-default-mode",
+			GoflowInputConfig{
+				ListenAddress: "0.0.0.0:2056",
+			},
+			false,
+		},
+		{
 			"minimal-netflow-v5",
 			GoflowInputConfig{
-				Mode: "netflow_v5",
-				Port: 2056,
+				Mode:          "netflow_v5",
+				ListenAddress: "0.0.0.0:2056",
 			},
 			false,
 		},
 		{
 			"minimal-netflow-ipfix",
 			GoflowInputConfig{
-				Mode: "netflow_ipfix",
-				Port: 2056,
+				Mode:          "netflow_ipfix",
+				ListenAddress: "0.0.0.0:2056",
 			},
 			false,
 		},
 		{
 			"minimal-netflow-sflow",
 			GoflowInputConfig{
-				Mode: "netflow_v5",
-				Port: 2056,
+				Mode:          "netflow_v5",
+				ListenAddress: "0.0.0.0:2056",
 			},
 			false,
 		},
 		{
 			"invalid mode",
 			GoflowInputConfig{
-				Mode: "netflow",
-				Port: 2056,
+				Mode:          "netflow",
+				ListenAddress: "0.0.0.0:2056",
 			},
 			true,
 		},
 		{
-			"missing-port",
+			"missing-address",
 			GoflowInputConfig{
-				Mode:    "sflow",
-				Address: "0.0.0.0",
+				Mode: "sflow",
 			},
 			true,
 		},
@@ -58,8 +64,8 @@ func TestBuild(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := NewGoflowInputConfig("test_id")
+			cfg.ListenAddress = tc.inputRecord.ListenAddress
 			cfg.Mode = tc.inputRecord.Mode
-			cfg.Port = tc.inputRecord.Port
 
 			_, err := cfg.Build(testutil.NewBuildContext(t))
 			if tc.expectErr {
