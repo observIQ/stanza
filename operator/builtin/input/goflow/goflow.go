@@ -51,7 +51,7 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 	}
 
 	switch c.Mode {
-	case "sflow", "netflow_v5", "netflow_ipfix":
+	case modeSflow, modeNetflowV5, modeNetflowIPFIX:
 		break
 	default:
 		return nil, fmt.Errorf("%s is not a supported Goflow mode", c.Mode)
