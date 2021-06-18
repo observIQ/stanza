@@ -54,7 +54,7 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 	case modeSflow, modeNetflowV5, modeNetflowIPFIX:
 		break
 	default:
-		return nil, fmt.Errorf("%s is not a supported Goflow mode", c.Mode)
+		c.Mode = modeNetflowIPFIX
 	}
 
 	if c.Address == "" {

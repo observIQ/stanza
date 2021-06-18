@@ -10,7 +10,7 @@ The `timereceived` field is promoted as the entries Timestamp.
 | ---          | ---                 | ---                                                                                           |
 | `id`         | `goflow_input`      | A unique identifier for the operator                                                          |
 | `output`     | Next in pipeline    | The connected operator(s) that will receive all outbound entries                              |
-| `mode`       | required            | The Goflow mode [`netflow_ipfix`, `netflow_v5`, `sflow`]                                         |
+| `mode`       | `netflow_ipfix`     | The Goflow mode [`netflow_ipfix`, `netflow_v5`, `sflow`]                                      |
 | `address`    | `0.0.0.0`           | The ip address to bind to                                                                     |
 | `port`       | required            | The port to bind to                                                                           |
 | `workers`    | `1`                 | Number of worker processes spawned by the underlying [Goflow package](https://github.com/cloudflare/goflow)  |
