@@ -188,7 +188,7 @@ func (e *EventLogInput) processEvent(ctx context.Context, event Event) {
 
 	publisher := NewPublisher()
 	if err := publisher.Open(simpleEvent.Provider.Name); err != nil {
-		e.Errorf("Failed to open publisher: %s")
+		e.Errorf("Failed to open publisher: %s", err)
 		e.sendEvent(ctx, simpleEvent)
 		return
 	}

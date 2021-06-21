@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 1.1.1 - 2021-06-21
+
+### Fixed
+- Log error returned by publisher.Open in `operator/builtin/input/windows/operator.go` [PR 334](https://github.com/observIQ/stanza/pull/334)
+
 ## 1.1.0 - 2021-06-18
 
 ### Added
