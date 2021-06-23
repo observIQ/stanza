@@ -19,9 +19,6 @@ func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 		Use:   "offsets",
 		Short: "Manage input operator offsets",
 		Args:  cobra.NoArgs,
-		Run: func(command *cobra.Command, args []string) {
-			stdout.Write([]byte("No offsets subcommand specified. See `stanza offsets help` for details\n"))
-		},
 	}
 
 	offsets.AddCommand(NewOffsetsClearCmd(rootFlags))
