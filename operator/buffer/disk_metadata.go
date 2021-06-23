@@ -56,7 +56,8 @@ func OpenMetadata(path string, sync bool) (*Metadata, error) {
 	if sync {
 		flags |= os.O_SYNC
 	}
-	if m.file, err = os.OpenFile(path, flags, 0755); err != nil {
+	// #nosec - configs load based on user specified directory
+	if m.file, err = os.OpenFile(path, flags, 0600); err != nil {
 		return &Metadata{}, err
 	}
 
@@ -108,8 +109,7 @@ func (m *Metadata) Close() error {
 	if err != nil {
 		return err
 	}
-	m.file.Close()
-	return nil
+	return m.file.Close()
 }
 
 // setDeadRange sets the dead range start and length, then persists it to disk
