@@ -143,7 +143,9 @@ func (u *UDPInput) readMessage() (string, net.Addr, error) {
 // Stop will stop listening for udp messages.
 func (u *UDPInput) Stop() error {
 	u.cancel()
-	u.connection.Close()
+	if err := u.connection.Close(); err != nil {
+		u.Errorf("failed to close connection, got error: %s", err)
+	}
 	u.wg.Wait()
 	return nil
 }
