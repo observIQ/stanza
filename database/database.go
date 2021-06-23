@@ -49,7 +49,8 @@ func OpenDatabase(file string) (Database, error) {
 
 	if _, err := os.Stat(filepath.Dir(file)); err != nil {
 		if os.IsNotExist(err) {
-			err := os.MkdirAll(filepath.Dir(file), 0755)
+			// Ensure permissions restrict access to the running user only
+			err := os.MkdirAll(filepath.Dir(file), 0600)
 			if err != nil {
 				return nil, fmt.Errorf("creating database directory: %s", err)
 			}
