@@ -74,7 +74,7 @@ type FileOutput struct {
 // Start will open the output file.
 func (fo *FileOutput) Start() error {
 	var err error
-	fo.file, err = os.OpenFile(fo.path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	fo.file, err = os.OpenFile(fo.path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
