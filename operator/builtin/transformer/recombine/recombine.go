@@ -3,14 +3,15 @@ package recombine
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
-	"strings"
-	"sync"
-	"time"
 )
 
 func init() {
@@ -233,7 +234,10 @@ func (r *RecombineOperator) flushCombined() error {
 	}
 
 	// Set the recombined field on the entry
-	base.Set(r.combineField, recombined.String())
+	err := base.Set(r.combineField, recombined.String())
+	if err != nil {
+		return err
+	}
 
 	r.Write(context.Background(), base)
 	r.batch = r.batch[:0]
