@@ -237,10 +237,11 @@ func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
 		if err != nil {
 			return errors.NewError("unexpected status code", "", "status", res.Status)
 		} else {
-			res.Body.Close()
+			if err := res.Body.Close(); err != nil {
+				nro.Errorf(err.Error())
+			}
 			return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
 	}
-	res.Body.Close()
-	return nil
+	return res.Body.Close()
 }
