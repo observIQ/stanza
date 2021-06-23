@@ -35,7 +35,7 @@ func Parse(message flowmessage.FlowMessage) (map[string]interface{}, time.Time, 
 			case []byte:
 				ip, err := bytesToIP(x)
 				if err != nil {
-					return nil, timestamp, errors.Wrap(err, "error converting DstAddr to string")
+					return nil, timestamp, errors.Wrap(err, fmt.Sprintf("error converting %s to string", key))
 				}
 				m[key] = ip.String()
 			default:
