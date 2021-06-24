@@ -25,12 +25,14 @@ func TestParse(t *testing.T) {
 		input      flowmessage.FlowMessage
 		expect     map[string]interface{}
 		expectTime time.Time
+		expectErr  bool
 	}{
 		{
 			"minimal",
 			flowmessage.FlowMessage{},
 			map[string]interface{}{},
 			time.Time{},
+			false,
 		},
 		{
 			"addresses",
@@ -51,6 +53,128 @@ func TestParse(t *testing.T) {
 				"dstaddrencap":   DstAddrEncap.String(),
 			},
 			time.Time{},
+			false,
+		},
+		{
+			"empty-srcaddr",
+			flowmessage.FlowMessage{
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        []byte{},
+				DstAddr:        DstAddr,
+				NextHop:        NextHop,
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   DstAddrEncap,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"empty-dstaddr",
+			flowmessage.FlowMessage{
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        SrcAddr,
+				DstAddr:        []byte{},
+				NextHop:        NextHop,
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   DstAddrEncap,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"nexthop":        NextHop.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"empty-nexthop",
+			flowmessage.FlowMessage{
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        SrcAddr,
+				DstAddr:        DstAddr,
+				NextHop:        []byte{},
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   DstAddrEncap,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"dstaddr":        DstAddr.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"empty-srcaddrencap",
+			flowmessage.FlowMessage{
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        SrcAddr,
+				DstAddr:        DstAddr,
+				NextHop:        NextHop,
+				SrcAddrEncap:   []byte{},
+				DstAddrEncap:   DstAddrEncap,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"empty-dstaddrencap",
+			flowmessage.FlowMessage{
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        SrcAddr,
+				DstAddr:        DstAddr,
+				NextHop:        NextHop,
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   []byte{},
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"malformed-addresses",
+			flowmessage.FlowMessage{
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        []byte("ip:10.1.1.1"),
+				DstAddr:        DstAddr,
+				NextHop:        NextHop,
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   DstAddrEncap,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        "ip:10.1.1.1",
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Time{},
+			true,
 		},
 		{
 			"promote-time",
@@ -72,12 +196,17 @@ func TestParse(t *testing.T) {
 				"dstaddrencap":   DstAddrEncap.String(),
 			},
 			time.Unix(int64(1623774351), 0),
+			false,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			output, outputTime, err := Parse(tc.input)
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tc.expect, output)
 
