@@ -17,8 +17,14 @@ jobs:
         uses: actions/checkout@v1
 
       # License scanner requires a built binary
-      - name: Install Modules
-        run: make build
+      - name: Build Stanza
+        run: make build-all
 
-      - name: Scan Licenses
+      - name: Scan Licenses Linux
         run: lichen --config=./license.yaml "./artifacts/stanza_linux_amd64"
+
+      - name: Scan Licenses Windows
+        run: lichen --config=./license.yaml "./artifacts/stanza_windows_amd64"
+
+      - name: Scan Licenses MacOS
+        run: lichen --config=./license.yaml "./artifacts/stanza_darwin_amd64"

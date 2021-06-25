@@ -18,8 +18,10 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 
 .PHONY: scan-license
-scan-license: build
-	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_${GOOS}_${GOARCH}"
+scan-license: build-all
+	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_linux_amd64"
+	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_windows_amd64"
+	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_darwin_amd64"
 
 .PHONY: test
 test: vet test-only
