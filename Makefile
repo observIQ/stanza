@@ -15,6 +15,13 @@ TOOLS_MOD_DIR := ./internal/tools
 install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/golangci/golangci-lint/cmd/golangci-lint
 	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/cmd/mockery
+	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
+
+.PHONY: scan-license
+scan-license: build-all
+	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_linux_amd64"
+	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_windows_amd64"
+	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_darwin_amd64"
 
 .PHONY: test
 test: vet test-only
