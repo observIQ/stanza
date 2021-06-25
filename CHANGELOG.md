@@ -4,10 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.1.2 - 2021-06-24
+
+### Fixed
+- Resolved an issue where empty ip address fields result in failed parsing [PR 336](https://github.com/observIQ/stanza/pull/336)
+
+## 1.1.1 - 2021-06-21
+
+### Fixed
+- Log error returned by publisher.Open in `operator/builtin/input/windows/operator.go` [PR 334](https://github.com/observIQ/stanza/pull/334)
+
+## 1.1.0 - 2021-06-18
+
+### Added
+- Added Goflow operator for receiving Netflow (v5, v9, ipfix) and Sflow [PR 332](https://github.com/observIQ/stanza/pull/332)
+
+## 1.0.1 - 2021-06-16
 
 ### Fixed
 - Fixed panic during shutdown when Google Cloud Output credential file not found [Issue 264](https://github.com/observIQ/stanza/issues/264)
+- Fixed bug where logs can be duplicated when a parser has on_error=send [PR 330](https://github.com/observIQ/stanza/pull/330)
 
 ## [1.0.0] - 2021-05-27
 

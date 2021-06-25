@@ -19,7 +19,7 @@ Example usage:
 Remove a value from the record
 ```yaml
 - type: remove 
-    field: key1
+  field: key1
 ```
 
 <table>
@@ -57,7 +57,7 @@ Remove a value from the record
 Remove an object from the record
 ```yaml
 - type: remove 
-    field: object
+  field: object
 ```
 
 <table>
@@ -100,7 +100,7 @@ Remove an object from the record
 Remove a value from labels
 ```yaml
 - type: remove 
-    field: $labels.otherkey
+  field: $labels.otherkey
 ```
 
 <table>
@@ -143,7 +143,7 @@ Remove a value from resource
 
 ```yaml
 - type: remove 
-    field: $resource.otherkey
+  field: $resource.otherkey
 ```
 
 <table>
