@@ -15,7 +15,7 @@ exceptions:
     - path: "github.com/hashicorp/go-uuid"
       licenses: ["MPL-2.0"]
 
-    # ICS
+    # ISC
     - path: "github.com/davecgh/go-spew"
       licenses: ["ISC"]
     - path: "github.com/libp2p/go-reuseport"
