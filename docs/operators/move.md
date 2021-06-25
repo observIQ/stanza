@@ -20,8 +20,8 @@ Example usage:
 Rename value
 ```yaml
 - type: move
-    from: key1
-    to: key3
+  from: key1
+  to: key3
 ```
 
 <table>
@@ -63,8 +63,8 @@ Move a value from the record to resource
 
 ```yaml
 - type: move
-    from: uuid
-    to: $resoruce.uuid
+  from: uuid
+  to: $resoruce.uuid
 ```
 
 <table>
@@ -105,8 +105,8 @@ Move a value from the record to labels
 
 ```yaml
 - type: move
-    from: ip
-    to: $labels.ip
+  from: ip
+  to: $labels.ip
 ```
 
 <table>
@@ -146,8 +146,8 @@ Move a value from the record to labels
 Replace the record with an individual value nested within the record
 ```yaml
 - type: move
-    from: log
-    to: $record
+  from: log
+  to: $record
 ```
 
 <table>
@@ -185,8 +185,8 @@ Replace the record with an individual value nested within the record
 Remove a layer from the record
 ```yaml
 - type: move
-    from: wrapper
-    to: $record
+  from: wrapper
+  to: $record
 ```
 
 <table>
@@ -233,8 +233,8 @@ Remove a layer from the record
 Merge a layer to the record
 ```yaml
 - type: move
-    from: wrapper
-    to: $record
+  from: wrapper
+  to: $record
 ```
 
 <table>
