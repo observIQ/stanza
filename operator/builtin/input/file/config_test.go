@@ -19,11 +19,14 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/operator/helper/operatortest"
+	"github.com/observiq/stanza/testutil"
+	"github.com/stretchr/testify/require"
 )
 
-func TestConfig(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	cases := []operatortest.ConfigUnmarshalTest{
 		{
 			Name:      "default",
@@ -509,6 +512,155 @@ func TestConfig(t *testing.T) {
 	}
 }
 
+func TestBuild(t *testing.T) {
+	t.Parallel()
+	fakeOutput := testutil.NewMockOperator("$.fake")
+
+	basicConfig := func() *InputConfig {
+		cfg := NewInputConfig("testfile")
+		cfg.OutputIDs = []string{"fake"}
+		cfg.Include = []string{"/var/log/testpath.*"}
+		cfg.Exclude = []string{"/var/log/testpath.ex*"}
+		cfg.PollInterval = helper.Duration{Duration: 10 * time.Millisecond}
+		return cfg
+	}
+
+	cases := []struct {
+		name             string
+		modifyBaseConfig func(*InputConfig)
+		errorRequirement require.ErrorAssertionFunc
+		validate         func(*testing.T, *InputOperator)
+	}{
+		{
+			"Basic",
+			func(f *InputConfig) { return },
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {
+				require.Equal(t, f.OutputOperators[0], fakeOutput)
+				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
+				require.Equal(t, f.FilePathField, entry.NewNilField())
+				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
+				require.Equal(t, f.PollInterval, 10*time.Millisecond)
+			},
+		},
+		{
+			"BadIncludeGlob",
+			func(f *InputConfig) {
+				f.Include = []string{"["}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"BadExcludeGlob",
+			func(f *InputConfig) {
+				f.Include = []string{"["}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"MultilineConfiguredStartAndEndPatterns",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{
+					LineEndPattern:   "Exists",
+					LineStartPattern: "Exists",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"MultilineConfiguredStartPattern",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{
+					LineStartPattern: "START.*",
+				}
+			},
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {},
+		},
+		{
+			"MultilineConfiguredEndPattern",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{
+					LineEndPattern: "END.*",
+				}
+			},
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {},
+		},
+		{
+			"InvalidEncoding",
+			func(f *InputConfig) {
+				f.Encoding = helper.EncodingConfig{Encoding: "UTF-3233"}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"LineStartAndEnd",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{
+					LineStartPattern: ".*",
+					LineEndPattern:   ".*",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"NoLineStartOrEnd",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{}
+			},
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {},
+		},
+		{
+			"InvalidLineStartRegex",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{
+					LineStartPattern: "(",
+				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"InvalidLineEndRegex",
+			func(f *InputConfig) {
+				f.Multiline = helper.MultilineConfig{
+					LineEndPattern: "(",
+				}
+			},
+			require.Error,
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			t.Parallel()
+			cfg := basicConfig()
+			tc.modifyBaseConfig(cfg)
+
+			ops, err := cfg.Build(testutil.NewBuildContext(t))
+			tc.errorRequirement(t, err)
+			if err != nil {
+				return
+			}
+			op := ops[0]
+
+			err = op.SetOutputs([]operator.Operator{fakeOutput})
+			require.NoError(t, err)
+
+			fileInput := op.(*InputOperator)
+			tc.validate(t, fileInput)
+		})
+	}
+}
 func defaultCfg() *InputConfig {
 	return NewInputConfig("file_input")
 }
