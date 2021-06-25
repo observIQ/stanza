@@ -20,7 +20,7 @@ import (
 
 func newDefaultConfig(tempDir string) *InputConfig {
 	cfg := NewInputConfig("testfile")
-	cfg.PollInterval = helper.Duration{Duration: 50 * time.Millisecond}
+	cfg.PollInterval = helper.Duration{Duration: 200 * time.Millisecond}
 	cfg.StartAt = "beginning"
 	cfg.Include = []string{fmt.Sprintf("%s/*", tempDir)}
 	cfg.OutputIDs = []string{"fake"}
@@ -107,7 +107,7 @@ func waitForOne(t *testing.T, c chan *entry.Entry) *entry.Entry {
 	select {
 	case e := <-c:
 		return e
-	case <-time.After(time.Second):
+	case <-time.After(3 * time.Second):
 		require.FailNow(t, "Timed out waiting for message")
 		return nil
 	}
@@ -119,7 +119,7 @@ func waitForN(t *testing.T, c chan *entry.Entry, n int) []string {
 		select {
 		case e := <-c:
 			messages = append(messages, e.Record.(string))
-		case <-time.After(time.Second):
+		case <-time.After(3 * time.Second):
 			require.FailNow(t, "Timed out waiting for message")
 			return nil
 		}
@@ -131,7 +131,7 @@ func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
 	case e := <-c:
 		require.Equal(t, expected, e.Record.(string))
-	case <-time.After(time.Second):
+	case <-time.After(3 * time.Second):
 		require.FailNow(t, "Timed out waiting for message", expected)
 	}
 }
