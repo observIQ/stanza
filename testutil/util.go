@@ -10,6 +10,7 @@ import (
 	"github.com/observiq/stanza/logger"
 	"github.com/observiq/stanza/operator"
 	"go.etcd.io/bbolt"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -57,7 +58,7 @@ func NewTestDatabase(t testing.TB) *bbolt.DB {
 func NewBuildContext(t testing.TB) operator.BuildContext {
 	return operator.BuildContext{
 		Database:  NewTestDatabase(t),
-		Logger:    logger.New(zaptest.NewLogger(t).Sugar()),
+		Logger:    logger.New(zaptest.NewLogger(t, zaptest.Level(zapcore.ErrorLevel)).Sugar()),
 		Namespace: "$",
 	}
 }
