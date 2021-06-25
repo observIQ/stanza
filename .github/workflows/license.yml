@@ -1,4 +1,4 @@
-name: Scan Licenses
+name: license
 on: [push, pull_request]
 jobs:
   build:
