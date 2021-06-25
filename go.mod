@@ -21,7 +21,6 @@ require (
 	github.com/observiq/ctimefmt v1.0.0
 	github.com/observiq/go-syslog/v3 v3.0.2
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
-	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.11.0
@@ -33,7 +32,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324
 	golang.org/x/text v0.3.6
-	gonum.org/v1/gonum v0.6.2
+	gonum.org/v1/gonum v0.9.1
 	google.golang.org/api v0.46.0
 	google.golang.org/genproto v0.0.0-20210518161634-ec7691c0a37d
 	google.golang.org/grpc v1.38.0

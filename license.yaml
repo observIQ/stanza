@@ -1,0 +1,22 @@
+# minimum confidence percentage used during license classification
+threshold: .90
+
+# all permitted licenses - if no list is specified, all licenses are assumed to be allowed
+allow:
+  - "MIT"
+  - "Apache-2.0"
+  - "BSD-3-Clause"
+  - "BSD-2-Clause"
+  - "Zlib"
+
+exceptions:
+  licenseNotPermitted:
+    # MPL is approved as long as the source is not modified
+    - path: "github.com/hashicorp/go-uuid"
+      licenses: ["MPL-2.0"]
+
+    # ISC
+    - path: "github.com/davecgh/go-spew"
+      licenses: ["ISC"]
+    - path: "github.com/libp2p/go-reuseport"
+      licenses: ["ISC"]

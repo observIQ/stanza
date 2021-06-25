@@ -20,8 +20,8 @@ Copy a value from the record to resource
 
 ```yaml
 - type: copy
-    from: key
-    to: $resource.newkey
+  from: key
+  to: $resource.newkey
 ```
 
 <table>
@@ -63,8 +63,8 @@ Copy a value from the record to resource
 Copy a value from the record to labels
 ```yaml
 - type: copy
-    from: key2
-    to: $labels.newkey
+  from: key2
+  to: $labels.newkey
 ```
 
 <table>
@@ -108,8 +108,8 @@ Copy a value from the record to labels
 Copy a value from labels to the record
 ```yaml
 - type: copy
-    from: $labels.key
-    to: newkey
+  from: $labels.key
+  to: newkey
 ```
 
 <table>
@@ -156,8 +156,8 @@ Copy a value from labels to the record
 Copy a value within the record
 ```yaml
 - type: copy
-    from: obj.nested
-    to: newkey
+  from: obj.nested
+  to: newkey
 ```
 
 <table>
