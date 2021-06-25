@@ -20,7 +20,10 @@ type DirectedPipeline struct {
 
 // Start will start the operators in a pipeline in reverse topological order
 func (p *DirectedPipeline) Start() error {
-	sortedNodes, _ := topo.Sort(p.Graph)
+	sortedNodes, err := topo.Sort(p.Graph)
+	if err != nil {
+		return err
+	}
 	for i := len(sortedNodes) - 1; i >= 0; i-- {
 		operator := sortedNodes[i].(OperatorNode).Operator()
 		operator.Logger().Debug("Starting operator")
@@ -35,7 +38,10 @@ func (p *DirectedPipeline) Start() error {
 
 // Stop will stop the operators in a pipeline in topological order
 func (p *DirectedPipeline) Stop() error {
-	sortedNodes, _ := topo.Sort(p.Graph)
+	sortedNodes, err := topo.Sort(p.Graph)
+	if err != nil {
+		return err
+	}
 	for _, node := range sortedNodes {
 		operator := node.(OperatorNode).Operator()
 		operator.Logger().Debug("Stopping operator")
