@@ -134,11 +134,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	// Close all files
-	for _, reader := range readers {
-		reader.Close()
-	}
-
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
 }
