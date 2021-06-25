@@ -2,7 +2,7 @@ name: Scan Licenses
 on: [push, pull_request]
 jobs:
   build:
-    name: scan
+    name: Scan Licenses
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -10,11 +10,15 @@ jobs:
         with:
           go-version: 1.16
 
+      - name: Install License Scanner
+        run: go install github.com/uw-labs/lichen@latest
+
       - name: Check out source code
         uses: actions/checkout@v1
 
-      - name: Install Tools
-        run: make install-tools
+      # License scanner requires a built binary
+      - name: Install Modules
+        run: make build
 
-      - name: Scan
-        run: make scan-license 
+      - name: Scan Licenses
+        run: lichen --config=./license.yaml "./artifacts/stanza_linux_amd64"
