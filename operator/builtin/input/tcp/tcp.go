@@ -158,7 +158,17 @@ func (t *TCPInput) configureListener() error {
 		return nil
 	}
 
-	config := tls.Config{Certificates: []tls.Certificate{t.tlsKeyPair}}
+	// TLS 1.0 is the package default since Go 1.2
+	// https://golang.org/pkg/crypto/tls/
+	// An issue has been filed to support modifyingn the minimum version
+	// https://github.com/observIQ/stanza/issues/349
+	var tlsVersion uint16 = tls.VersionTLS10
+
+	// #nosec - Go defaults to TLS 1.0, and some users may require it
+	config := tls.Config{
+		Certificates: []tls.Certificate{t.tlsKeyPair},
+		MinVersion:   tlsVersion,
+	}
 	config.Time = func() time.Time { return time.Now() }
 	config.Rand = rand.Reader
 
