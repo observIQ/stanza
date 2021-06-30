@@ -105,7 +105,7 @@ func (f *InputOperator) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (f *InputOperator) poll(ctx context.Context) {
-
+	f.maxBatchFiles = f.MaxConcurrentFiles / 2
 	var matches []string
 	if len(f.queuedMatches) > f.maxBatchFiles {
 		matches, f.queuedMatches = f.queuedMatches[:f.maxBatchFiles], f.queuedMatches[f.maxBatchFiles:]
