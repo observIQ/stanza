@@ -88,7 +88,7 @@ func (fo *FileOutput) Start() error {
 // Stop will close the output file.
 func (fo *FileOutput) Stop() error {
 	if fo.file != nil {
-		fo.file.Close()
+		return fo.file.Close()
 	}
 	return nil
 }
