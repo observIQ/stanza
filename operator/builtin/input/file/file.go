@@ -179,7 +179,7 @@ func (f *InputOperator) makeReaders(filePaths []string) []*Reader {
 			}
 			f.SeenPaths[path] = struct{}{}
 		}
-		file, err := os.Open(path)
+		file, err := os.Open(path) // #nosec - operator must read in files defined by user
 		if err != nil {
 			f.Errorw("Failed to open file", zap.Error(err))
 			continue
