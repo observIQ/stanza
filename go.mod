@@ -15,7 +15,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/jpillora/backoff v1.0.0
-	github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go v1.1.11
 	github.com/kardianos/service v1.2.0
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/observiq/ctimefmt v1.0.0
