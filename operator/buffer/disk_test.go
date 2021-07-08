@@ -142,6 +142,8 @@ func TestDiskBuffer(t *testing.T) {
 		err = b2.Open(dir, false)
 		require.NoError(t, err)
 		readN(t, b2, 20, 0)
+		err = b2.Close()
+		require.NoError(t, err)
 	})
 
 	t.Run("Write20Flush10CloseRead20", func(t *testing.T) {
@@ -160,6 +162,8 @@ func TestDiskBuffer(t *testing.T) {
 		err = b2.Open(dir, false)
 		require.NoError(t, err)
 		readN(t, b2, 10, 10)
+		err = b2.Close()
+		require.NoError(t, err)
 	})
 
 	t.Run("ReadWaitTimesOut", func(t *testing.T) {
@@ -178,6 +182,11 @@ func TestDiskBuffer(t *testing.T) {
 		b := NewDiskBuffer(100) // Enough space for 1, but not 2 entries
 		dir := testutil.NewTempDir(t)
 		err := b.Open(dir, false)
+		defer func() {
+			if err := b.Close(); err != nil {
+				t.Error(err.Error())
+			}
+		}()
 		require.NoError(t, err)
 
 		// Add a first entry
@@ -214,6 +223,11 @@ func TestDiskBuffer(t *testing.T) {
 			b := NewDiskBuffer(1 << 30)
 			dir := testutil.NewTempDir(t)
 			err := b.Open(dir, false)
+			defer func() {
+				if err := b.Close(); err != nil {
+					t.Error(err.Error())
+				}
+			}()
 			require.NoError(t, err)
 
 			writes := 0
@@ -247,6 +261,11 @@ func TestDiskBufferBuild(t *testing.T) {
 		cfg.Path = testutil.NewTempDir(t)
 		b, err := cfg.Build(testutil.NewBuildContext(t), "test")
 		require.NoError(t, err)
+		defer func() {
+			if err := b.Close(); err != nil {
+				t.Error(err.Error())
+			}
+		}()
 		diskBuffer := b.(*DiskBuffer)
 		require.Equal(t, diskBuffer.atEnd, false)
 		require.Len(t, diskBuffer.entryAdded, 1)

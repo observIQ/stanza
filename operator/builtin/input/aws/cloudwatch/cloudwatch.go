@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 )
@@ -302,14 +301,14 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 }
 
 // handleEvent is the handler for a AWS Cloudwatch Logs Filtered Event.
-func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent) error {
+func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent) {
 	e := map[string]interface{}{
 		"message":        event.Message,
 		"ingestion_time": event.IngestionTime,
 	}
 	entry, err := c.NewEntry(e)
 	if err != nil {
-		return errors.Wrap(err, "Failed to create new entry from record")
+		c.Errorf("Failed to create new entry from record: %s", err)
 	}
 
 	entry.AddResourceKey("log_group", c.logGroupName)
@@ -327,15 +326,15 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 		c.Debugf("Writing start time %d to database", *event.IngestionTime)
 		c.persist.Write(c.logGroupName, c.startTime)
 	}
-	return nil
 }
 
-func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent) error {
+func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent) {
 	for _, event := range events {
 		c.handleEvent(ctx, event)
 	}
-	c.persist.DB.Sync()
-	return nil
+	if err := c.persist.DB.Sync(); err != nil {
+		c.Errorf("Failed to sync offset database: %s", err)
+	}
 }
 
 // Returns time.Now() as Unix Time in Milliseconds

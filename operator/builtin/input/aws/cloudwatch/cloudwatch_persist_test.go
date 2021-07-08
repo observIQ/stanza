@@ -25,6 +25,11 @@ func TestPersisterLoad(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
 	db, openDbErr := database.OpenDatabase(filepath.Join(tempDir, "test.db"))
 	require.NoError(t, openDbErr)
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Error(err.Error())
+		}
+	}()
 	persister := Persister{
 		DB: helper.NewScopedDBPersister(db, "test"),
 	}

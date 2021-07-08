@@ -59,5 +59,6 @@ func registerWindowsSink() {
 }
 
 func newWinFileSink(u *url.URL) (zap.Sink, error) {
-	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	// Ensure permissions restrict access to the running user only
+	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
 }

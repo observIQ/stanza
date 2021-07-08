@@ -181,10 +181,11 @@ func (o *OTLPOutput) handleResponse(res *http.Response) error {
 		if err != nil {
 			return errors.NewError("non-success status code", "", "status", fmt.Sprint(res.StatusCode))
 		} else {
-			res.Body.Close()
+			if err := res.Body.Close(); err != nil {
+				o.Errorf(err.Error())
+			}
 			return errors.NewError("non-success status code", "", "status", fmt.Sprint(res.StatusCode), "body", string(body))
 		}
 	}
-	res.Body.Close()
-	return nil
+	return res.Body.Close()
 }

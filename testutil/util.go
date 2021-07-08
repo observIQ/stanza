@@ -23,7 +23,9 @@ func NewTempDir(t testing.TB) string {
 	}
 
 	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf(err.Error())
+		}
 	})
 
 	return tempDir
@@ -38,7 +40,9 @@ func NewTestDatabase(t testing.TB) *bbolt.DB {
 	}
 
 	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf(err.Error())
+		}
 	})
 
 	db, err := bbolt.Open(filepath.Join(tempDir, "test.db"), 0666, nil)
@@ -48,7 +52,9 @@ func NewTestDatabase(t testing.TB) *bbolt.DB {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		if err := db.Close(); err != nil {
+			t.Errorf(err.Error())
+		}
 	})
 
 	return db

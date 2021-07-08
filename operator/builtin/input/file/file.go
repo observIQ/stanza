@@ -214,7 +214,7 @@ func (f *InputOperator) makeReaders(filePaths []string) []*Reader {
 			}
 			f.SeenPaths[path] = struct{}{}
 		}
-		file, err := os.Open(path)
+		file, err := os.Open(path) // #nosec - operator must read in files defined by user
 		if err != nil {
 			f.Errorw("Failed to open file", zap.Error(err))
 			continue
@@ -238,7 +238,9 @@ OUTER:
 	for i := 0; i < len(fps); i++ {
 		fp := fps[i]
 		if len(fp.FirstBytes) == 0 {
-			files[i].Close()
+			if err := files[i].Close(); err != nil {
+				f.Errorf("problem closing file", "file", files[i].Name())
+			}
 			// Empty file, don't read it until we can compare its fingerprint
 			fps = append(fps[:i], fps[i+1:]...)
 			files = append(files[:i], files[i+1:]...)

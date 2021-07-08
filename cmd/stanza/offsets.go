@@ -9,6 +9,7 @@ import (
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
+	"go.uber.org/zap"
 )
 
 var stdout io.Writer = os.Stdout
@@ -19,9 +20,6 @@ func NewOffsetsCmd(rootFlags *RootFlags) *cobra.Command {
 		Use:   "offsets",
 		Short: "Manage input operator offsets",
 		Args:  cobra.NoArgs,
-		Run: func(command *cobra.Command, args []string) {
-			stdout.Write([]byte("No offsets subcommand specified. See `stanza offsets help` for details\n"))
-		},
 	}
 
 	offsets.AddCommand(NewOffsetsClearCmd(rootFlags))
@@ -46,7 +44,10 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 
 			if all {
 				if len(args) != 0 {
-					stdout.Write([]byte("Providing a list of operator IDs does nothing with the --all flag\n"))
+					_, err := stdout.Write([]byte("Providing a list of operator IDs does nothing with the --all flag\n"))
+					if err != nil {
+						exitOnErr("", err)
+					}
 				}
 
 				err := db.Update(func(tx *bbolt.Tx) error {
@@ -59,7 +60,10 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 				exitOnErr("Failed to delete offsets", err)
 			} else {
 				if len(args) == 0 {
-					stdout.Write([]byte("Must either specify a list of operators or the --all flag\n"))
+					_, err := stdout.Write([]byte("Must either specify a list of operators or the --all flag\n"))
+					if err != nil {
+						exitOnErr("", err)
+					}
 					os.Exit(1)
 				}
 
@@ -101,8 +105,8 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 				}
 
 				return offsetBucket.ForEach(func(key, value []byte) error {
-					stdout.Write(append(key, '\n'))
-					return nil
+					_, err := stdout.Write(append(key, '\n'))
+					return err
 				})
 			})
 			if err != nil {
@@ -115,8 +119,12 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 }
 
 func exitOnErr(msg string, err error) {
+	var sugaredLogger *zap.SugaredLogger
 	if err != nil {
-		os.Stderr.WriteString(fmt.Sprintf("%s: %s\n", msg, err))
+		_, err := os.Stderr.WriteString(fmt.Sprintf("%s: %s\n", msg, err))
+		if err != nil {
+			sugaredLogger.Errorw("Failed to write to stdout", zap.Any("error", err))
+		}
 		os.Exit(1)
 	}
 }

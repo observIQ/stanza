@@ -49,7 +49,7 @@ func OpenDatabase(file string) (Database, error) {
 
 	if _, err := os.Stat(filepath.Dir(file)); err != nil {
 		if os.IsNotExist(err) {
-			err := os.MkdirAll(filepath.Dir(file), 0755)
+			err := os.MkdirAll(filepath.Dir(file), 0755) // #nosec - 0755 directory permissions are okay
 			if err != nil {
 				return nil, fmt.Errorf("creating database directory: %s", err)
 			}
@@ -59,5 +59,5 @@ func OpenDatabase(file string) (Database, error) {
 	}
 
 	options := &bbolt.Options{Timeout: 1 * time.Second}
-	return bbolt.Open(file, 0666, options)
+	return bbolt.Open(file, 0600, options)
 }

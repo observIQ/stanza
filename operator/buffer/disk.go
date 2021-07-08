@@ -125,7 +125,8 @@ func (d *DiskBuffer) Open(path string, sync bool) error {
 	if sync {
 		flags |= os.O_SYNC
 	}
-	if d.data, err = os.OpenFile(dataPath, flags, 0755); err != nil {
+	// #nosec - configs load based on user specified directory
+	if d.data, err = os.OpenFile(dataPath, flags, 0600); err != nil {
 		return err
 	}
 
