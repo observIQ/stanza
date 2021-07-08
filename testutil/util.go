@@ -25,7 +25,6 @@ func NewTempDir(t testing.TB) string {
 	t.Cleanup(func() {
 		if err := os.RemoveAll(tempDir); err != nil {
 			t.Errorf(err.Error())
-			t.FailNow()
 		}
 	})
 
@@ -43,7 +42,6 @@ func NewTestDatabase(t testing.TB) *bbolt.DB {
 	t.Cleanup(func() {
 		if err := os.RemoveAll(tempDir); err != nil {
 			t.Errorf(err.Error())
-			t.FailNow()
 		}
 	})
 
@@ -56,7 +54,6 @@ func NewTestDatabase(t testing.TB) *bbolt.DB {
 	t.Cleanup(func() {
 		if err := db.Close(); err != nil {
 			t.Errorf(err.Error())
-			t.FailNow()
 		}
 	})
 
