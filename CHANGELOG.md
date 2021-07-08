@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.1.4 - Unreleased
+## 1.1.4 - 2021-07-08
 
 ### Added
-- Added license scanner to CI [PR 347](https://github.com/observIQ/stanza/pull/347)
+- Added [license scanner](https://github.com/uw-labs/lichen) to CI [PR 347](https://github.com/observIQ/stanza/pull/347)
+- Added [Gosec](https://github.com/securego/gosec) to CI [PR 358](https://github.com/observIQ/stanza/pull/358)
 
 ### Fixed
 - Fixed file input issue that resulted in minor dataloss when log files are rotating symlinks 
@@ -18,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - https://github.com/observIQ/stanza/pull/345
   - https://github.com/observIQ/stanza/pull/344
   - https://github.com/observIQ/stanza/pull/343
+- Resolved [Gosec](https://github.com/securego/gosec) suggestions
+  - https://github.com/observIQ/stanza/pull/338
+  - https://github.com/observIQ/stanza/pull/357
 
 ### Changed
 - K8s daemonset example refreshed [PR 348](https://github.com/observIQ/stanza/pull/348)
