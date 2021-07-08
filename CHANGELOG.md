@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.4 - Unreleased
+
+### Added
+- Added license scanner to CI [PR 347](https://github.com/observIQ/stanza/pull/347)
+
+### Fixed
+- Fixed file input issue that resulted in minor dataloss when log files are rotating symlinks 
+  - Based on Open Telemetry implementation
+    - [Origonal Issue](https://github.com/open-telemetry/opentelemetry-log-collection/issues/85)
+    - [Open Telemetry Log Collection PR 182](https://github.com/open-telemetry/opentelemetry-log-collection/pull/182)
+  - https://github.com/observIQ/stanza/pull/346
+  - https://github.com/observIQ/stanza/pull/345
+  - https://github.com/observIQ/stanza/pull/344
+  - https://github.com/observIQ/stanza/pull/343
+
+### Changed
+- K8s daemonset example refreshed [PR 348](https://github.com/observIQ/stanza/pull/348)
+
+## 1.1.3 - 2021-06-30
+
+No changes, releasing for [Stanza Plugins v0.0.66](https://github.com/observIQ/stanza-plugins/releases/tag/v0.0.66)
+
 ## 1.1.2 - 2021-06-24
 
 ### Fixed
