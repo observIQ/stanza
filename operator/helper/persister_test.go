@@ -20,6 +20,11 @@ func TestPersisterCache(t *testing.T) {
 func TestPersisterLoad(t *testing.T) {
 	tempDir := testutil.NewTempDir(t)
 	db, err := database.OpenDatabase(filepath.Join(tempDir, "test.db"))
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Error(err.Error())
+		}
+	}()
 	persister := NewScopedDBPersister(db, "test")
 	persister.Set("key", []byte("value"))
 
