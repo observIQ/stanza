@@ -48,6 +48,20 @@ func Parse(message flowmessage.FlowMessage) (map[string]interface{}, time.Time, 
 		}
 	}
 
+	// If Proto field exists, add mapped value
+	if val, ok := m["Proto"]; ok {
+		switch val := val.(type) {
+		case uint32:
+			const field = "proto_name"
+			switch val {
+			case 6:
+				m[field] = "tcp"
+			case 17:
+				m[field] = "udp"
+			}
+		}
+	}
+
 	m = toLower(m)
 
 	const timeField = "timereceived"
