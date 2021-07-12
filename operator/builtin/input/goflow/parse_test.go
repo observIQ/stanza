@@ -198,6 +198,31 @@ func TestParse(t *testing.T) {
 			time.Unix(int64(1623774351), 0),
 			false,
 		},
+		{
+			"proto_name",
+			flowmessage.FlowMessage{
+				TimeReceived:   1623774351,
+				SamplerAddress: SamplerAddress,
+				SrcAddr:        SrcAddr,
+				DstAddr:        DstAddr,
+				NextHop:        NextHop,
+				SrcAddrEncap:   SrcAddrEncap,
+				DstAddrEncap:   DstAddrEncap,
+				Proto:          1,
+			},
+			map[string]interface{}{
+				"sampleraddress": SamplerAddress.String(),
+				"srcaddr":        SrcAddr.String(),
+				"dstaddr":        DstAddr.String(),
+				"nexthop":        NextHop.String(),
+				"proto":          uint32(1),
+				"proto_name":     "ICMP",
+				"srcaddrencap":   SrcAddrEncap.String(),
+				"dstaddrencap":   DstAddrEncap.String(),
+			},
+			time.Unix(int64(1623774351), 0),
+			false,
+		},
 	}
 
 	for _, tc := range cases {
@@ -213,6 +238,57 @@ func TestParse(t *testing.T) {
 			if tc.input.TimeReceived > 0 {
 				require.Equal(t, tc.expectTime, outputTime, "expected field timereceived to be promoted to timestamp")
 			}
+
+			for k, _ := range output {
+				require.Equal(t, strings.ToLower(k), k, "expected all keys to be lowercase")
+			}
+		})
+	}
+}
+
+func TestParseProtoName(t *testing.T) {
+	cases := []struct {
+		name       string
+		input      flowmessage.FlowMessage
+		expect     map[string]interface{}
+		expectTime time.Time
+		expectErr  bool
+	}{
+		{
+			"icmp",
+			flowmessage.FlowMessage{
+				Proto: 1,
+			},
+			map[string]interface{}{
+				"proto":      uint32(1),
+				"proto_name": "ICMP",
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"igmp",
+			flowmessage.FlowMessage{
+				Proto: 2,
+			},
+			map[string]interface{}{
+				"proto":      uint32(2),
+				"proto_name": "IGMP",
+			},
+			time.Time{},
+			false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, _, err := Parse(tc.input)
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expect, output)
 
 			for k, _ := range output {
 				require.Equal(t, strings.ToLower(k), k, "expected all keys to be lowercase")
