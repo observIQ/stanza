@@ -97,7 +97,7 @@ func Parse(message flowmessage.FlowMessage) (map[string]interface{}, time.Time, 
 			case 20:
 				m[field] = "HMP"
 			case 21:
-				m[ield] = "PRM"
+				m[field] = "PRM"
 			case 22:
 				m[field] = "XNS-IDP"
 			case 23:
