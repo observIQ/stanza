@@ -381,7 +381,7 @@ func TestParseProtoName(t *testing.T) {
 			},
 			map[string]interface{}{
 				"proto":      uint32(10),
-				"proto_name": "BBN-RRC-MON",
+				"proto_name": "BBN-RCC-MON",
 			},
 			time.Time{},
 			false,
@@ -1497,7 +1497,7 @@ func TestParseProtoName(t *testing.T) {
 			},
 			map[string]interface{}{
 				"proto":      uint32(103),
-				"proto_name": "pim",
+				"proto_name": "PIM",
 			},
 			time.Time{},
 			false,
@@ -1977,7 +1977,7 @@ func TestParseProtoName(t *testing.T) {
 			},
 			map[string]interface{}{
 				"proto":      uint32(143),
-				"proto_name": "ETHERNET",
+				"proto_name": "Ethernet",
 			},
 			time.Time{},
 			false,
