@@ -90,9 +90,12 @@ func Parse(message *flowmessage.FlowMessage) (map[string]interface{}, time.Time,
 		m["etype"] = int(message.Etype)
 	}
 
-	// always set proto
-	m["proto"] = int(message.Proto)
-	m["proto_name"] = protoName(int(message.Proto))
+	// Goflow input does not support HOPOPT as it maps to 0, meaning HOPOPT would
+	// be set anytime the proto field is not present.
+	if message.Proto > 0 {
+		m["proto"] = int(message.Proto)
+		m["proto_name"] = protoName(int(message.Proto))
+	}
 
 	if message.SrcPort > 0 {
 		m["srcport"] = int(message.SrcPort)
