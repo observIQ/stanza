@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	flowmessage "github.com/cloudflare/goflow/v3/pb"
 	jsoniter "github.com/json-iterator/go"
+	flowmessage "github.com/observiq/goflow/v3/pb"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )

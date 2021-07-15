@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	flowmessage "github.com/cloudflare/goflow/v3/pb"
-	"github.com/cloudflare/goflow/v3/utils"
 	"github.com/jpillora/backoff"
+	flowmessage "github.com/observiq/goflow/v3/pb"
+	"github.com/observiq/goflow/v3/utils"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -166,7 +166,7 @@ func (n *GoflowInput) Publish(messages []*flowmessage.FlowMessage) {
 	defer n.wg.Done()
 
 	for _, msg := range messages {
-		m, t, err := Parse(*msg)
+		m, t, err := Parse(msg)
 		if err != nil {
 			n.Errorf("Failed to parse netflow message", zap.Error(err))
 			continue
