@@ -16,6 +16,10 @@ func Parse(message flowmessage.FlowMessage) (map[string]interface{}, time.Time, 
 
 	timestamp := time.Unix(int64(message.TimeReceived), 0)
 
+	if t := message.Type.String(); t != "" {
+		m["type"] = t
+	}
+
 	if message.SequenceNum > 0 {
 		m["sequencenum"] = int(message.SequenceNum)
 	}
