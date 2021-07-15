@@ -22,14 +22,14 @@ var (
 func TestParse(t *testing.T) {
 	cases := []struct {
 		name       string
-		input      flowmessage.FlowMessage
+		input      *flowmessage.FlowMessage
 		expect     map[string]interface{}
 		expectTime time.Time
 		expectErr  bool
 	}{
 		{
 			"minimal",
-			flowmessage.FlowMessage{},
+			&flowmessage.FlowMessage{},
 			map[string]interface{}{
 				"proto":      0,
 				"proto_name": "HOPOPT",
@@ -41,7 +41,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"addresses",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
 				DstAddr:        DstAddr,
@@ -62,7 +62,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"empty-srcaddr",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        []byte{},
 				DstAddr:        DstAddr,
@@ -82,7 +82,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"empty-dstaddr",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
 				DstAddr:        []byte{},
@@ -102,7 +102,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"empty-nexthop",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
 				DstAddr:        DstAddr,
@@ -122,7 +122,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"empty-srcaddrencap",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
 				DstAddr:        DstAddr,
@@ -143,7 +143,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"empty-dstaddrencap",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
 				DstAddr:        DstAddr,
@@ -164,7 +164,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"malformed-addresses",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        []byte("ip:10.1.1.1"),
 				DstAddr:        DstAddr,
@@ -185,7 +185,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"promote-time",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				TimeReceived:   1623774351,
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
@@ -207,7 +207,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"proto_name",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				TimeReceived:   1623774351,
 				SamplerAddress: SamplerAddress,
 				SrcAddr:        SrcAddr,
@@ -230,7 +230,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"full",
-			flowmessage.FlowMessage{
+			&flowmessage.FlowMessage{
 				TimeReceived:        1623774351,
 				SequenceNum:         100,
 				SamplingRate:        10,
@@ -378,7 +378,7 @@ func TestParse(t *testing.T) {
 }
 
 func BenchmarkParse(b *testing.B) {
-	m := flowmessage.FlowMessage{
+	m := &flowmessage.FlowMessage{
 		Type:                flowmessage.FlowMessage_NETFLOW_V5,
 		TimeReceived:        uint64(time.Nanosecond),
 		SequenceNum:         100,

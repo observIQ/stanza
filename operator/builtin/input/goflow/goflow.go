@@ -166,7 +166,7 @@ func (n *GoflowInput) Publish(messages []*flowmessage.FlowMessage) {
 	defer n.wg.Done()
 
 	for _, msg := range messages {
-		m, t, err := Parse(*msg)
+		m, t, err := Parse(msg)
 		if err != nil {
 			n.Errorf("Failed to parse netflow message", zap.Error(err))
 			continue

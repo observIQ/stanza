@@ -11,7 +11,7 @@ import (
 
 // Parse parses a netflow message into an entry. It is assumed that Proto,
 // InIf, and OutIf are always set because 0 values are valid.
-func Parse(message flowmessage.FlowMessage) (map[string]interface{}, time.Time, error) {
+func Parse(message *flowmessage.FlowMessage) (map[string]interface{}, time.Time, error) {
 	m := make(map[string]interface{})
 
 	timestamp := time.Unix(int64(message.TimeReceived), 0)
