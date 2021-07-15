@@ -40,6 +40,35 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"omit-type",
+			&flowmessage.FlowMessage{
+				Type: flowmessage.FlowMessage_FLOWUNKNOWN,
+			},
+			map[string]interface{}{
+				"proto":      0,
+				"proto_name": "HOPOPT",
+				"inif":       0,
+				"outif":      0,
+			},
+			time.Time{},
+			false,
+		},
+		{
+			"type",
+			&flowmessage.FlowMessage{
+				Type: flowmessage.FlowMessage_IPFIX,
+			},
+			map[string]interface{}{
+				"proto":      0,
+				"proto_name": "HOPOPT",
+				"inif":       0,
+				"outif":      0,
+				"type":       "IPFIX",
+			},
+			time.Time{},
+			false,
+		},
+		{
 			"addresses",
 			&flowmessage.FlowMessage{
 				SamplerAddress: SamplerAddress,
