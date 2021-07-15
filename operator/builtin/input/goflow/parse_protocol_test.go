@@ -12,10 +12,10 @@ func TestParseProtoName(t *testing.T) {
 		name  string
 		input int
 	}{
-		{
+		/*{ ommitting hopopt, see parse.go
 			"hopopt",
 			0,
-		},
+		},*/
 		{
 			"icmp",
 			1,
