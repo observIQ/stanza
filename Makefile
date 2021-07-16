@@ -8,7 +8,7 @@ GIT_COMMIT=$(shell git rev-parse HEAD)
 PROJECT_ROOT = $(shell pwd)
 ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
-
+FIELDALIGNMENT_DIRS := ./...
 
 TOOLS_MOD_DIR := ./internal/tools
 .PHONY: install-tools
@@ -16,6 +16,7 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/golangci/golangci-lint/cmd/golangci-lint
 	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/cmd/mockery
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
+	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
 
 .PHONY: scan-license
 scan-license: build-all
@@ -61,6 +62,14 @@ listmod:
 .PHONY: lint
 lint:
 	$$GOPATH/bin/golangci-lint run --timeout 2m0s --allow-parallel-runners ./...
+
+.PHONY: fieldalignment
+fieldalignment:
+	fieldalignment $(FIELDALIGNMENT_DIRS)
+
+.PHONY: fieldalignment-fix
+fieldalignment-fix:
+	fieldalignment -fix $(FIELDALIGNMENT_DIRS)
 
 .PHONY: vet
 vet: check-missing-modules
