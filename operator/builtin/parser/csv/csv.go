@@ -93,11 +93,11 @@ func (r *CSVParser) Process(ctx context.Context, entry *entry.Entry) error {
 // parse will parse a value using the supplied csv header.
 func (r *CSVParser) parse(value interface{}) (interface{}, error) {
 	var csvLine string
-	switch value.(type) {
+	switch t := value.(type) {
 	case string:
-		csvLine += value.(string)
+		csvLine += t
 	case []byte:
-		csvLine += string(value.([]byte))
+		csvLine += string(t)
 	default:
 		return nil, fmt.Errorf("type '%T' cannot be parsed as csv", value)
 	}
