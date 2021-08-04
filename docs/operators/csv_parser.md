@@ -70,6 +70,7 @@ Configuration:
 - type: csv_parser
   parse_from: message
   header: 'id,severity,message'
+  header_delimiter: ","
   delimiter: "\t"
 ```
 

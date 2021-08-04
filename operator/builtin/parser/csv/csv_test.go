@@ -182,6 +182,20 @@ func TestParserCSV(t *testing.T) {
 				"msg":  "started agent",
 			},
 		},
+		{
+			"tab-delimiter",
+			func(p *CSVParserConfig) {
+				p.Header = testHeader
+				p.HeaderDelimiter = ","
+				p.FieldDelimiter = "\t"
+			},
+			"stanza\tINFO\tstarted agent",
+			map[string]interface{}{
+				"name": "stanza",
+				"sev":  "INFO",
+				"msg":  "started agent",
+			},
+		},
 	}
 
 	for _, tc := range cases {
