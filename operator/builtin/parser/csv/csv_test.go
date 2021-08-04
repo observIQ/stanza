@@ -169,6 +169,19 @@ func TestParserCSV(t *testing.T) {
 				"position": "agent",
 			},
 		},
+		{
+			"header-delimiter",
+			func(p *CSVParserConfig) {
+				p.Header = "name+sev+msg"
+				p.HeaderDelimiter = "+"
+			},
+			"stanza,INFO,started agent",
+			map[string]interface{}{
+				"name": "stanza",
+				"sev":  "INFO",
+				"msg":  "started agent",
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -270,7 +283,7 @@ func TestBuildParserCSV(t *testing.T) {
 		c.Header = "name"
 		_, err := c.Build(testutil.NewBuildContext(t))
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "missing field delimiter in header")
+		require.Contains(t, err.Error(), "missing header delimiter in header")
 	})
 
 	t.Run("InvalidHeaderFieldWrongDelimiter", func(t *testing.T) {
@@ -286,6 +299,25 @@ func TestBuildParserCSV(t *testing.T) {
 		c.FieldDelimiter = ":"
 		_, err := c.Build(testutil.NewBuildContext(t))
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "missing field delimiter in header")
+		require.Contains(t, err.Error(), "missing header delimiter in header")
+	})
+
+	t.Run("HeaderDelimiter", func(t *testing.T) {
+		c := newBasicCSVParser()
+		c.Header = "name+position+number"
+		c.HeaderDelimiter = "+"
+		c.FieldDelimiter = ":"
+		_, err := c.Build(testutil.NewBuildContext(t))
+		require.NoError(t, err)
+	})
+
+	t.Run("InvalidHeaderDelimiter", func(t *testing.T) {
+		c := newBasicCSVParser()
+		c.Header = "name,position,number"
+		c.HeaderDelimiter = "+"
+		c.FieldDelimiter = ":"
+		_, err := c.Build(testutil.NewBuildContext(t))
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "missing header delimiter in header")
 	})
 }
