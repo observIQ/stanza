@@ -27,13 +27,13 @@ require (
 	go.opentelemetry.io/collector v0.13.0
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
+	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/text v0.3.6
 	gonum.org/v1/gonum v0.9.1
-	google.golang.org/api v0.46.0
-	google.golang.org/genproto v0.0.0-20210518161634-ec7691c0a37d
+	google.golang.org/api v0.52.0
+	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/grpc v1.39.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.21.2
