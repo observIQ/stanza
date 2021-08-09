@@ -42,7 +42,6 @@ data:
     pipeline:
       - type: kubernetes_container
         cluster_name: stanza_example
-        container_name: '*'
         # avoid parsing stanza's log output
         exclude:
           - /var/log/containers/stanza-*_*-*.log
@@ -93,8 +92,6 @@ spec:
               subPath: config.yaml
             - mountPath: /var/log
               name: varlog
-            - mountPath: /var/lib/docker/containers
-              name: dockerlogs
             - mountPath: /stanza_home/database/
               name: database
               readOnly: false
@@ -104,9 +101,6 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-        - name: dockerlogs
-          hostPath:
-            path: /var/lib/docker/containers
         - name: config
           configMap:
             name: stanza-config
