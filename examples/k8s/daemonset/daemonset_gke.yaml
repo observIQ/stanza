@@ -41,14 +41,16 @@ data:
   config.yaml: |2-
     pipeline:
       - type: kubernetes_container
-        cluster_name: stanza_example
+        cluster_name: stanza_gke
         # avoid parsing stanza's log output
         exclude:
           - /var/log/containers/stanza-*_*-*.log
         start_at: end
 
-      # watch stanza's output with 'kubectl logs -f <pod name> | jq .'
-      - type: stdout
+      # https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
+      # When Stanza is running on GKE, a project_id and credentials_file parameters are not required when
+      # the node pool as the "logging" scope enabled
+      - type: google_cloud_output
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -80,12 +82,14 @@ spec:
             - --plugin_dir
             - /stanza_home/plugins
           resources:
+            # keeping limit and request the same gives stanza
+            # a higher QoS
             limits:
-              memory: "250Mi"
-              cpu: 100m
+              memory: "500Mi"
+              cpu: 500m
             requests:
-              memory: "250Mi"
-              cpu: 100m
+              memory: "500Mi"
+              cpu: 500m
           volumeMounts:
             - mountPath: /stanza_home/config.yaml
               name: config
