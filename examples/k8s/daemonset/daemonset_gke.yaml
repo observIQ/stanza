@@ -72,8 +72,9 @@ spec:
           # Production deployments should use an image tag other than latest
           image: observiq/stanza:latest
           imagePullPolicy: Always
-          # Override args in order to set database location
+          # Override entrypoint args in order to set database location
           # to the database hostPath volume
+          command: ["/stanza_home/stanza"]
           args:
             - --config
             - /stanza_home/config.yaml
@@ -96,6 +97,8 @@ spec:
               subPath: config.yaml
             - mountPath: /var/log
               name: varlog
+            - mountPath: /var/lib/docker/containers
+              name: dockerlogs
             - mountPath: /stanza_home/database/
               name: database
               readOnly: false
@@ -105,6 +108,9 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
+        - name: dockerlogs
+          hostPath:
+            path: /var/lib/docker/containers
         - name: config
           configMap:
             name: stanza-config

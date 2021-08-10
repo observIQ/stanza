@@ -70,8 +70,9 @@ spec:
           # Production deployments should use an image tag other than latest
           image: observiq/stanza:latest
           imagePullPolicy: Always
-          # Override args in order to set database location
+          # Override entrypoint args in order to set database location
           # to the database hostPath volume
+          command: ["/stanza_home/stanza"]
           args:
             - --config
             - /stanza_home/config.yaml
