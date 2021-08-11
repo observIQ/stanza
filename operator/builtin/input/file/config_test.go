@@ -503,6 +503,15 @@ func TestUnmarshal(t *testing.T) {
 				return cfg
 			}(),
 		},
+		{
+			Name:      "label_regex",
+			ExpectErr: false,
+			Expect: func() *InputConfig {
+				cfg := defaultCfg()
+				cfg.LabelRegex = "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"
+				return cfg
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
@@ -633,6 +642,30 @@ func TestBuild(t *testing.T) {
 				f.Multiline = helper.MultilineConfig{
 					LineEndPattern: "(",
 				}
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"ValidLabelRegex",
+			func(f *InputConfig) {
+				f.LabelRegex = "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"
+			},
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {},
+		},
+		{
+			"InvalidLabelRegexPattern",
+			func(f *InputConfig) {
+				f.LabelRegex = "^(?P<something>[a-zA-z]"
+			},
+			require.Error,
+			nil,
+		},
+		{
+			"InvalidLabelRegexCaptureGroup",
+			func(f *InputConfig) {
+				f.LabelRegex = "^(?P<something>[a-zA-z]+ [A-Z]+): (?P<invalid>.*)"
 			},
 			require.Error,
 			nil,

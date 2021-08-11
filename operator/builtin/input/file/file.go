@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
 
@@ -43,6 +44,8 @@ type InputOperator struct {
 	startAtBeginning bool
 
 	fingerprintSize int
+
+	labelRegex *regexp.Regexp
 
 	encoding helper.Encoding
 

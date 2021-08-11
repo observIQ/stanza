@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding"
@@ -96,11 +97,50 @@ func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 	return nil
 }
 
+// ReadHeaders will read a files headers when labelRegex is set
+func (f *Reader) ReadHeaders(ctx context.Context) {
+	// TODO: probably do not want a splitfunc here?
+	var offset int64 = 0
+	headerReader := NewFingerprintUpdatingReader(f.file, offset, f.Fingerprint, f.fileInput.fingerprintSize)
+	headerScanner := NewPositionalScanner(headerReader, f.fileInput.MaxLogSize, offset, f.fileInput.SplitFunc)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		ok := headerScanner.Scan()
+		if !ok {
+			if err := getScannerError(headerScanner); err != nil {
+				f.Errorw("Failed during header scan", zap.Error(err))
+			}
+			return
+		}
+
+		byteMatches := f.fileInput.labelRegex.FindSubmatch(headerScanner.Bytes())
+		if len(byteMatches) != 3 {
+			return
+		}
+		matches := make([]string, len(byteMatches))
+		for i, byteSlice := range byteMatches {
+			matches[i] = string(byteSlice)
+		}
+		f.Fingerprint.Labels[matches[1]] = matches[2]
+		continue
+	}
+}
+
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
 		return
+	}
+
+	if f.fileInput.labelRegex != nil {
+		f.ReadHeaders(ctx)
 	}
 
 	fr := NewFingerprintUpdatingReader(f.file, f.Offset, f.Fingerprint, f.fileInput.fingerprintSize)
@@ -168,6 +208,14 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	}
 	if err := e.Set(f.fileInput.FileNameResolvedField, f.fileLabels.ResolvedName); err != nil {
 		return err
+	}
+
+	// Set W3C headers as labels
+	for k, v := range f.Fingerprint.Labels {
+		field := entry.NewLabelField(k)
+		if err := e.Set(field, v); err != nil {
+			return err
+		}
 	}
 
 	f.fileInput.Write(ctx, e)
