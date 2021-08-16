@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -68,6 +69,9 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 
 	switch {
 	case c.Directory != nil:
+		if _, err := os.Stat(*c.Directory); os.IsNotExist(err) {
+			return nil, fmt.Errorf("invalid value '%s' for parameter 'directory', directory does not exist: %s", *c.Directory, err)
+		}
 		args = append(args, "--directory", *c.Directory)
 	case len(c.Files) > 0:
 		for _, file := range c.Files {
