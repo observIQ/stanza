@@ -102,11 +102,21 @@ jobs:
           file: '**/coverage.txt'
 
   test-linux-arm64:
-    executor: golang
-    resource_class: arm.medium
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
 
     steps:
       - checkout
+      - run:
+          name: Download golang
+          command: curl -SL https://golang.org/dl/go1.16.3.linux-arm64.tar.gz -O
+      - run:
+          name: Extract golang
+          command: tar -C ~ -xzf go1.16.3.linux-arm64.tar.gz
+      - run:
+          name: Add Golang to Path
+          command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
       - run:
           name: Run Unit Tests
           command: make test
