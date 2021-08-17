@@ -400,7 +400,7 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
-      - test-linux-amd64:
+      - test-linux-arm64:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
