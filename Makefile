@@ -114,6 +114,10 @@ build-darwin-amd64:
 build-linux-amd64:
 	@GOOS=linux GOARCH=amd64 $(MAKE) build
 
+.PHONY: build-linux-arm64
+build-linux-arm64:
+	@GOOS=linux GOARCH=arm64 $(MAKE) build
+
 .PHONY: build-windows-amd64
 build-windows-amd64:
 	@GOOS=windows GOARCH=amd64 $(MAKE) build
