@@ -158,8 +158,8 @@ func (operator *JournaldInput) startPoller(ctx context.Context) {
 func (operator *JournaldInput) poll(ctx context.Context) error {
 	operator.wg.Add(1)
 
-	defer operator.syncOffsets()
 	defer operator.wg.Done()
+	defer operator.syncOffsets()
 
 	// Start from a cursor if there is a saved offset
 	cursor := operator.persist.Get(lastReadCursorKey)
