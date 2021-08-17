@@ -400,6 +400,10 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
+      - test-linux-amd64:
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+.*/
       - test-macos:
           filters:
             tags:
@@ -421,6 +425,7 @@ workflows:
       - wait-for-validation:
           requires:
             - test-linux
+            - test-linux-arm64
             - test-macos
             - test-windows
             - build
