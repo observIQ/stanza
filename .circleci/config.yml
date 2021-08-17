@@ -101,6 +101,18 @@ jobs:
       - codecov/upload:
           file: '**/coverage.txt'
 
+  test-linux-arm64:
+    executor: golang
+    resource_class: arm.large
+
+    steps:
+      - checkout
+      - run:
+          name: Run Unit Tests
+          command: make test
+      - codecov/upload:
+          file: '**/coverage.txt'
+
   test-macos:
     executor: mac
 
