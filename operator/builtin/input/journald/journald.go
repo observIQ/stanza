@@ -138,6 +138,9 @@ func (operator *JournaldInput) Start() error {
 func (operator *JournaldInput) startPoller(ctx context.Context) {
 	go func() {
 		globTicker := time.NewTicker(operator.pollInterval)
+		operator.wg.Add(1)
+
+		defer operator.wg.Done()
 		defer globTicker.Stop()
 
 		for {
