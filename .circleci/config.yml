@@ -92,11 +92,21 @@ jobs:
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
 
             docker buildx build \
-              --platform linux/arm64/v8,linux/amd64 \ \
+              --platform linux/amd64 \
+              --build-arg platform=linux_amd64
               --tag observiq/stanza:${docker_tag} .
+
+            docker buildx build \
+              --platform linux/arm64 \
+              --build-arg platform=linux_arm64 \
+              --tag observiq/stanza:${docker_tag} .
+
             docker tag observiq/stanza:${docker_tag} observiq/stanza:latest
             docker push observiq/stanza:${docker_tag}
             docker push observiq/stanza:latest
+
+
+
 
   test-linux:
     executor: golang
