@@ -103,7 +103,7 @@ jobs:
 
   test-linux-arm64:
     executor: golang
-    resource_class: arm.large
+    resource_class: arm.medium
 
     steps:
       - checkout
