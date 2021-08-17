@@ -80,13 +80,22 @@ jobs:
       - attach_workspace:
           at: ./artifacts
       - run:
+          name: "Configure Docker multi arch builds"
+          command: |
+            curl -fL https://github.com/docker/buildx/releases/download/v0.6.1/buildx-v0.6.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+            sudo apt-get install -y binfmt-support qemu-user-static
+      - run:
           name: "Publish Release on Docker Hub"
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
-            docker build -t observiq/stanza:${docker_tag} .
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
-            docker push observiq/stanza:${docker_tag}
+
+            docker buildx build \
+              --platform linux/arm64/v8,linux/amd64 \ \
+              --tag observiq/stanza:${docker_tag} .
             docker tag observiq/stanza:${docker_tag} observiq/stanza:latest
+            docker push observiq/stanza:${docker_tag}
             docker push observiq/stanza:latest
 
   test-linux:
