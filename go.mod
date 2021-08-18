@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.11.1
-	go.etcd.io/bbolt v1.3.5
+	go.etcd.io/bbolt v1.3.6
 	go.opentelemetry.io/collector v0.13.0
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.16.0
