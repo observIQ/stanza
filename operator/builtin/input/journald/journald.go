@@ -85,10 +85,11 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 		InputOperator: inputOperator,
 		persist:       helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 		newCmd: func(ctx context.Context, cursor []byte) cmd {
+			finalArgs := args
 			if cursor != nil {
-				args = append(args, "--after-cursor", string(cursor))
+				finalArgs = append(finalArgs, "--after-cursor", string(cursor))
 			}
-			return exec.CommandContext(ctx, "journalctl", args...) // #nosec - ...
+			return exec.CommandContext(ctx, "journalctl", finalArgs...) // #nosec - ...
 			// journalctl is an executable that is required for this operator to function
 		},
 		json:         jsoniter.ConfigFastest,
@@ -115,6 +116,7 @@ type cmd interface {
 	StdoutPipe() (io.ReadCloser, error)
 	Start() error
 	Wait() error
+	String() string
 }
 
 var lastReadCursorKey = "lastReadCursor"
@@ -184,7 +186,7 @@ func (operator *JournaldInput) poll(ctx context.Context) error {
 
 	err = cmd.Start()
 	if err != nil {
-		return fmt.Errorf("start journalctl: %s", err)
+		return fmt.Errorf("start journalctl with command '%s': %s", cmd.String(), err)
 	}
 
 	stdoutBuf := bufio.NewReader(stdout)
