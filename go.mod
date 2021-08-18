@@ -25,7 +25,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.11.1
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/collector v0.13.0
-	go.uber.org/multierr v1.5.0
+	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
