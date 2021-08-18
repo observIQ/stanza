@@ -16,6 +16,11 @@ func TestParseDuration(t *testing.T) {
 		expected Duration
 	}{
 		{
+			"simple mills",
+			`"1ms"`,
+			Duration{time.Millisecond},
+		},
+		{
 			"simple second",
 			`"1s"`,
 			Duration{time.Second},
