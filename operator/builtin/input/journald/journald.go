@@ -116,7 +116,6 @@ type cmd interface {
 	StdoutPipe() (io.ReadCloser, error)
 	Start() error
 	Wait() error
-	String() string
 }
 
 var lastReadCursorKey = "lastReadCursor"
@@ -186,7 +185,7 @@ func (operator *JournaldInput) poll(ctx context.Context) error {
 
 	err = cmd.Start()
 	if err != nil {
-		return fmt.Errorf("start journalctl with command '%s': %s", cmd.String(), err)
+		return fmt.Errorf("start journalctl with command '%s': %s", cmd, err)
 	}
 
 	stdoutBuf := bufio.NewReader(stdout)
