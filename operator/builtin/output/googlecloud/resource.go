@@ -35,6 +35,11 @@ func detectResourceType(e *entry.Entry) string {
 		if hasResource("container.name", e) {
 			return "k8s_container"
 		}
+		if hasResource("k8s.container.name", e) {
+			e.Resource["container.name"] = e.Resource["k8s.container.name"]
+			delete(e.Resource, "k8s.container.name")
+			return "k8s_container"
+		}
 		return "k8s_pod"
 	}
 

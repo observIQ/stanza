@@ -27,8 +27,9 @@ func init() {
 
 func NewJournaldInputConfig(operatorID string) *JournaldInputConfig {
 	return &JournaldInputConfig{
-		InputConfig: helper.NewInputConfig(operatorID, "journald_input"),
-		StartAt:     "end",
+		InputConfig:  helper.NewInputConfig(operatorID, "journald_input"),
+		StartAt:      "end",
+		PollInterval: helper.Duration{Duration: 200 * time.Millisecond},
 	}
 }
 
@@ -36,9 +37,10 @@ func NewJournaldInputConfig(operatorID string) *JournaldInputConfig {
 type JournaldInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
-	Directory *string  `json:"directory,omitempty" yaml:"directory,omitempty"`
-	Files     []string `json:"files,omitempty"     yaml:"files,omitempty"`
-	StartAt   string   `json:"start_at,omitempty"  yaml:"start_at,omitempty"`
+	Directory    *string         `json:"directory,omitempty"     yaml:"directory,omitempty"`
+	Files        []string        `json:"files,omitempty"         yaml:"files,omitempty"`
+	StartAt      string          `json:"start_at,omitempty"      yaml:"start_at,omitempty"`
+	PollInterval helper.Duration `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 }
 
 // Build will build a journald input operator from the supplied configuration
@@ -56,8 +58,8 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 	// Export logs as JSON
 	args = append(args, "--output=json")
 
-	// Continue watching logs until cancelled
-	args = append(args, "--follow")
+	// Give raw json output and then exit the process
+	args = append(args, "--no-pager")
 
 	switch c.StartAt {
 	case "end":
@@ -83,13 +85,15 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 		InputOperator: inputOperator,
 		persist:       helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 		newCmd: func(ctx context.Context, cursor []byte) cmd {
+			finalArgs := args
 			if cursor != nil {
-				args = append(args, "--after-cursor", string(cursor))
+				finalArgs = append(finalArgs, "--after-cursor", string(cursor))
 			}
-			return exec.CommandContext(ctx, "journalctl", args...) // #nosec - ...
+			return exec.CommandContext(ctx, "journalctl", finalArgs...) // #nosec - ...
 			// journalctl is an executable that is required for this operator to function
 		},
-		json: jsoniter.ConfigFastest,
+		json:         jsoniter.ConfigFastest,
+		pollInterval: c.PollInterval.Raw(),
 	}
 	return []operator.Operator{journaldInput}, nil
 }
@@ -100,6 +104,8 @@ type JournaldInput struct {
 
 	newCmd func(ctx context.Context, cursor []byte) cmd
 
+	pollInterval time.Duration
+
 	persist helper.Persister
 	json    jsoniter.API
 	cancel  context.CancelFunc
@@ -109,6 +115,7 @@ type JournaldInput struct {
 type cmd interface {
 	StdoutPipe() (io.ReadCloser, error)
 	Start() error
+	Wait() error
 }
 
 var lastReadCursorKey = "lastReadCursor"
@@ -123,6 +130,41 @@ func (operator *JournaldInput) Start() error {
 		return err
 	}
 
+	operator.startPoller(ctx)
+	return nil
+}
+
+// startPoller kicks off a goroutine that will poll journald periodically,
+// checking if there are new files or new logs in the watched files
+func (operator *JournaldInput) startPoller(ctx context.Context) {
+	go func() {
+		globTicker := time.NewTicker(operator.pollInterval)
+		operator.wg.Add(1)
+
+		defer operator.wg.Done()
+		defer globTicker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-globTicker.C:
+			}
+
+			if err := operator.poll(ctx); err != nil {
+				operator.Errorf("error while polling jouranld: %s", err)
+			}
+		}
+	}()
+}
+
+// poll checks all the watched paths for new entries
+func (operator *JournaldInput) poll(ctx context.Context) error {
+	operator.wg.Add(1)
+
+	defer operator.wg.Done()
+	defer operator.syncOffsets()
+
 	// Start from a cursor if there is a saved offset
 	cursor := operator.persist.Get(lastReadCursorKey)
 
@@ -132,53 +174,46 @@ func (operator *JournaldInput) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to get journalctl stdout: %s", err)
 	}
+	defer func() {
+		if err := stdout.Close(); err != nil {
+			operator.Errorf("error closing stdout stream: %s", err)
+		}
+		if err := cmd.Wait(); err != nil {
+			operator.Errorf("failed to stop journalctl sub process: %s", err)
+		}
+	}()
+
 	err = cmd.Start()
 	if err != nil {
-		return fmt.Errorf("start journalctl: %s", err)
+		return fmt.Errorf("start journalctl with command '%s': %s", cmd, err)
 	}
 
-	// Start a goroutine to periodically flush the offsets
-	operator.wg.Add(1)
-	go func() {
-		defer operator.wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Second):
-				operator.syncOffsets()
-			}
+	stdoutBuf := bufio.NewReader(stdout)
+
+	for {
+		select {
+		case <-ctx.Done():
+			break
+		default:
 		}
-	}()
 
-	// Start the reader goroutine
-	operator.wg.Add(1)
-	go func() {
-		defer operator.wg.Done()
-		defer operator.syncOffsets()
-
-		stdoutBuf := bufio.NewReader(stdout)
-
-		for {
-			line, err := stdoutBuf.ReadBytes('\n')
-			if err != nil {
-				if err != io.EOF {
-					operator.Errorw("Received error reading from journalctl stdout", zap.Error(err))
-				}
-				return
+		line, err := stdoutBuf.ReadBytes('\n')
+		if err != nil {
+			if err != io.EOF {
+				operator.Errorw("Received error reading from journalctl stdout", zap.Error(err))
 			}
-
-			entry, cursor, err := operator.parseJournalEntry(line)
-			if err != nil {
-				operator.Warnw("Failed to parse journal entry", zap.Error(err))
-				continue
-			}
-			operator.persist.Set(lastReadCursorKey, []byte(cursor))
-			operator.Write(ctx, entry)
+			// return early when at end of journalctl output
+			return nil
 		}
-	}()
 
-	return nil
+		entry, cursor, err := operator.parseJournalEntry(line)
+		if err != nil {
+			operator.Warnw("Failed to parse journal entry", zap.Error(err))
+			continue
+		}
+		operator.persist.Set(lastReadCursorKey, []byte(cursor))
+		operator.Write(ctx, entry)
+	}
 }
 
 func (operator *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, string, error) {
