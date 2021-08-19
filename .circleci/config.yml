@@ -85,6 +85,8 @@ jobs:
             mkdir -p ~/.docker/cli-plugins
             curl -fL https://github.com/docker/buildx/releases/download/v0.6.1/buildx-v0.6.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
             chmod a+x ~/.docker/cli-plugins/docker-buildx
+            docker buildx create --name stanza --use
+            docker buildx inspect --bootstrap
       - run:
           name: "Publish Release on Docker Hub"
           command: |
@@ -93,21 +95,11 @@ jobs:
             export DOCKER_CLI_EXPERIMENTAL=enabled
 
             docker buildx build \
-              --platform linux/amd64 \
-              --build-arg platform=linux_amd64 \
-              --tag observiq/stanza:${docker_tag} .
-
-            docker buildx build \
-              --platform linux/arm64 \
-              --build-arg platform=linux_arm64 \
-              --tag observiq/stanza:${docker_tag} .
-
-            docker tag observiq/stanza:${docker_tag} observiq/stanza:latest
-            docker push observiq/stanza:${docker_tag}
-            docker push observiq/stanza:latest
-
-
-
+              --platform linux/amd64,linux/arm64 \
+              --tag observiq/stanza:${docker_tag} \
+              --tag observiq/stanza:latest \
+              --push \
+              .
 
   test-linux:
     executor: golang
