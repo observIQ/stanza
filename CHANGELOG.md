@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 1.1.8 - Unreleased
 
+### Fixed
+
+- Resolved an issue where log type is not set correctly when using kubernetes_container plugin and Google output [PR 392](https://github.com/observIQ/stanza/pull/392)
+
 ## 1.1.7 - 2021-08-19
 
 ### Added
