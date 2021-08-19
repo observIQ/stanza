@@ -82,7 +82,6 @@ func k8sContainerResource(e *entry.Entry) *mrpb.MonitoredResource {
 			"pod_name":       e.Resource["k8s.pod.name"],
 			"namespace_name": e.Resource["k8s.namespace.name"],
 			"cluster_name":   e.Resource["k8s.cluster.name"],
-
 			// TODO project id
 		},
 	}
