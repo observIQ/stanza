@@ -90,6 +90,7 @@ jobs:
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
+            export DOCKER_CLI_EXPERIMENTAL=enabled
 
             docker buildx build \
               --platform linux/amd64 \
