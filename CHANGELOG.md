@@ -4,11 +4,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.1.6 - Unreleased
+## 1.1.9 - Unreleased
+
+### Changed
+
+- Updated dependencies:
+  - go.uber.org/multierr [PR387](https://github.com/observIQ/stanza/pull/387)
+  - go.etcd.io/bbolt [PR385](https://github.com/observIQ/stanza/pull/385)
+  - k8s client [PR377](https://github.com/observIQ/stanza/pull/377)
+    - k8s.io/api
+	  - k8s.io/apimachinery
+	  - k8s.io/client-go
+  - github.com/golangci/golangci-lint [PR382](https://github.com/observIQ/stanza/pull/382)
+  - cloud.google.com/go/logging [PR394](https://github.com/observIQ/stanza/pull/394)
+  - google.golang.org/grpc [PR383](https://github.com/observIQ/stanza/pull/383)
+  - github.com/aws/aws-sdk-go [PR395](https://github.com/observIQ/stanza/pull/395)
+  - golang.org/x/text  [PR386](https://github.com/observIQ/stanza/pull/386)
+- ARM64 Container Image: [PR381](https://github.com/observIQ/stanza/pull/381)
+
+## 1.1.8 - 2021-08-19
+
+### Changed
+
+- Docker base image switch to [stanza base image](https://github.com/observIQ/stanza-base-image) [PR 393](https://github.com/observIQ/stanza/pull/393)
+  - 100MB image size reduction
+  - Pinned package versions
+
+### Fixed
+
+- Resolved an issue where log type is not set correctly when using kubernetes_container plugin and Google output [PR 392](https://github.com/observIQ/stanza/pull/392)
+
+## 1.1.7 - 2021-08-19
+
+### Added
+- Enabled [flatten operator](https://github.com/observIQ/stanza/blob/master/docs/operators/flatten.md) [PR 390](https://github.com/observIQ/stanza/pull/390)
+
+### Fixed
+- Resolved journald bug introduced in previous patch release (1.1.6) [PR 389](https://github.com/observIQ/stanza/pull/389)
+
+## 1.1.6 - 2021-08-17
 
 ### Added
 - File input: Added optional labels for resolved symlink file name and path [PR 364](https://github.com/observIQ/stanza/pull/364)
 - CSV Parser: Added optional configuration field `header_delimiter` [PR 370](https://github.com/observIQ/stanza/pull/370)
+
+### Changed
+- Journald input: Switched from long running process to polling strategy [PR380](https://github.com/observIQ/stanza/pull/380)
 
 ## 1.1.5 - 2021-07-15
 

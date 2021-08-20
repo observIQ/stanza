@@ -12,6 +12,7 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 | ---               | ---              | ---                                                                                              |
 | `id`              | `journald_input` | A unique identifier for the operator                                                             |
 | `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                                 |
+| `poll_interval`   | 200ms            | The duration between journal polls                                                               |
 | `directory`       |                  | A directory containing journal files to read entries from                                        |
 | `files`           |                  | A list of journal files to read entries from                                                     |
 | `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry                |

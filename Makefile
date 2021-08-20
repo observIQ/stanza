@@ -104,7 +104,7 @@ install:
 	(cd ./cmd/stanza && CGO_ENABLED=0 go install .)
 
 .PHONY: build-all
-build-all: build-darwin-amd64 build-linux-amd64 build-windows-amd64
+build-all: build-darwin-amd64 build-linux-amd64 build-linux-arm64 build-windows-amd64
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
@@ -113,6 +113,10 @@ build-darwin-amd64:
 .PHONY: build-linux-amd64
 build-linux-amd64:
 	@GOOS=linux GOARCH=amd64 $(MAKE) build
+
+.PHONY: build-linux-arm64
+build-linux-arm64:
+	@GOOS=linux GOARCH=arm64 $(MAKE) build
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
