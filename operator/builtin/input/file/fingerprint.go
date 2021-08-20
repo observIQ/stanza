@@ -16,10 +16,6 @@ const minFingerprintSize = 16       // bytes
 type Fingerprint struct {
 	// FirstBytes represents the first N bytes of a file
 	FirstBytes []byte
-
-	// Labels is an optional map that contains entry labels
-	// added to every record from a given file
-	Labels map[string]string
 }
 
 // NewFingerprint creates a new fingerprint from an open file
@@ -34,8 +30,6 @@ func (f *InputOperator) NewFingerprint(file *os.File) (*Fingerprint, error) {
 	fp := &Fingerprint{
 		FirstBytes: buf[:n],
 	}
-
-	fp.Labels = make(map[string]string)
 
 	return fp, nil
 }
