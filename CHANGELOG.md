@@ -8,19 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- File Input: Added optional LabelRegex parameter, for parsing log file headers as labels [PR 376](https://github.com/observIQ/stanza/pull/376)
 - Updated dependencies:
-  - go.uber.org/multierr [PR387](https://github.com/observIQ/stanza/pull/387)
-  - go.etcd.io/bbolt [PR385](https://github.com/observIQ/stanza/pull/385)
-  - k8s client [PR377](https://github.com/observIQ/stanza/pull/377)
+  - go.uber.org/multierr [PR 387](https://github.com/observIQ/stanza/pull/387)
+  - go.etcd.io/bbolt [PR 385](https://github.com/observIQ/stanza/pull/385)
+  - k8s client [PR 377](https://github.com/observIQ/stanza/pull/377)
     - k8s.io/api
 	  - k8s.io/apimachinery
 	  - k8s.io/client-go
-  - github.com/golangci/golangci-lint [PR382](https://github.com/observIQ/stanza/pull/382)
-  - cloud.google.com/go/logging [PR394](https://github.com/observIQ/stanza/pull/394)
-  - google.golang.org/grpc [PR383](https://github.com/observIQ/stanza/pull/383)
-  - github.com/aws/aws-sdk-go [PR395](https://github.com/observIQ/stanza/pull/395)
-  - golang.org/x/text  [PR386](https://github.com/observIQ/stanza/pull/386)
-- ARM64 Container Image: [PR381](https://github.com/observIQ/stanza/pull/381)
+  - github.com/golangci/golangci-lint [PR 382](https://github.com/observIQ/stanza/pull/382)
+  - cloud.google.com/go/logging [PR 394](https://github.com/observIQ/stanza/pull/394)
+  - google.golang.org/grpc [PR 383](https://github.com/observIQ/stanza/pull/383)
+  - github.com/aws/aws-sdk-go [PR 395](https://github.com/observIQ/stanza/pull/395)
+  - golang.org/x/text  [PR 386](https://github.com/observIQ/stanza/pull/386)
+- ARM64 Container Image: [PR 381](https://github.com/observIQ/stanza/pull/381)
 
 ## 1.1.8 - 2021-08-19
 
