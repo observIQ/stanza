@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"runtime"
+
 	"github.com/observiq/stanza/version"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +15,7 @@ func NewVersionCommand() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "Print the stanza version",
 		Run: func(_ *cobra.Command, _ []string) {
-			println(version.GetVersion())
+			fmt.Println(version.GetVersion(), runtime.GOOS, runtime.GOARCH)
 		},
 	}
 }
