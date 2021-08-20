@@ -134,8 +134,6 @@ func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 		if err := consumer(ctx, scanner.Bytes()); err != nil {
 			// return if header parsing is done
 			if err == errEndOfHeaders {
-				// de-increment offset because scanner.Bytes()'s value was read but not used
-				f.Offset = f.Offset - 1
 				return
 			}
 			f.Error("Failed to consume entry", zap.Error(err))
