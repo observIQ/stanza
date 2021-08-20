@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 1.1.9 - Unreleased
 
+### Changed
+
+- Updated dependencies:
+  - go.uber.org/multierr [PR387](https://github.com/observIQ/stanza/pull/387)
+  - go.etcd.io/bbolt [PR385](https://github.com/observIQ/stanza/pull/385)
+  - k8s client [PR377](https://github.com/observIQ/stanza/pull/377)
+    - k8s.io/api
+	  - k8s.io/apimachinery
+	  - k8s.io/client-go
+  - github.com/golangci/golangci-lint [PR382](https://github.com/observIQ/stanza/pull/382)
+  - cloud.google.com/go/logging [PR394](https://github.com/observIQ/stanza/pull/394)
+  - google.golang.org/grpc [PR383](https://github.com/observIQ/stanza/pull/383)
+  - github.com/aws/aws-sdk-go [PR395](https://github.com/observIQ/stanza/pull/395)
+  - golang.org/x/text  [PR386](https://github.com/observIQ/stanza/pull/386)
+
 ## 1.1.8 - 2021-08-19
 
 ### Changed
