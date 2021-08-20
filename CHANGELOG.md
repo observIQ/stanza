@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - google.golang.org/grpc [PR383](https://github.com/observIQ/stanza/pull/383)
   - github.com/aws/aws-sdk-go [PR395](https://github.com/observIQ/stanza/pull/395)
   - golang.org/x/text  [PR386](https://github.com/observIQ/stanza/pull/386)
+- ARM64 Container Image: [PR381](https://github.com/observIQ/stanza/pull/381)
 
 ## 1.1.8 - 2021-08-19
 
