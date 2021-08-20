@@ -7,7 +7,6 @@ RUN make build
 WORKDIR /stanza/artifacts
 # hack: "mv stanza_* stanza" gives an error because mv does not like '_*'
 RUN for f in stanza_*; do mv "$f" stanza; done
-#RUN mv ./artifacts/stanza_* ./artifacts/stanza
 
 FROM gcr.io/observiq-container-images/stanza-base:v1.0.0
 
