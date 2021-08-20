@@ -3,7 +3,7 @@ module github.com/observiq/stanza
 go 1.14
 
 require (
-	cloud.google.com/go/logging v1.4.1
+	cloud.google.com/go/logging v1.4.2
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.11
 	github.com/antonmedv/expr v1.8.9
 	github.com/aws/aws-sdk-go v1.38.31
