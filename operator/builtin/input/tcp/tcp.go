@@ -59,6 +59,9 @@ type TLSConfig struct {
 
 	// PrivateKey is the file path for the private key
 	PrivateKey string `json:"private_key,omitempty" yaml:"private_key,omitempty"`
+
+	// MinVersion is the minimum tls version
+	MinVersion float32 `json:"min_version,omitempty" yaml:"min_version,omitempty"`
 }
 
 // Build will build a tcp input operator.
@@ -104,6 +107,21 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		cert = c
 	}
 
+	var tlsMinVersion uint16
+	switch c.TLS.MinVersion {
+	case 0, 1.0:
+		// TLS 1.0 is the default version implemented by cypto/tls https://pkg.go.dev/crypto/tls#Config
+		tlsMinVersion = tls.VersionTLS10
+	case 1.1:
+		tlsMinVersion = tls.VersionTLS11
+	case 1.2:
+		tlsMinVersion = tls.VersionTLS12
+	case 1.3:
+		tlsMinVersion = tls.VersionTLS13
+	default:
+		return nil, fmt.Errorf("unsupported tls version: %f", c.TLS.MinVersion)
+	}
+
 	tcpInput := &TCPInput{
 		InputOperator: inputOperator,
 		address:       c.ListenAddress,
@@ -111,6 +129,7 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		addLabels:     c.AddLabels,
 		tlsEnable:     c.TLS.Enable,
 		tlsKeyPair:    cert,
+		tlsMinVersion: tlsMinVersion,
 		backoff: backoff.Backoff{
 			Min:    100 * time.Millisecond,
 			Max:    3 * time.Second,
@@ -129,6 +148,7 @@ type TCPInput struct {
 	addLabels     bool
 	tlsEnable     bool
 	tlsKeyPair    tls.Certificate
+	tlsMinVersion uint16
 	backoff       backoff.Backoff
 
 	listener net.Listener
@@ -158,16 +178,9 @@ func (t *TCPInput) configureListener() error {
 		return nil
 	}
 
-	// TLS 1.0 is the package default since Go 1.2
-	// https://golang.org/pkg/crypto/tls/
-	// An issue has been filed to support modifyingn the minimum version
-	// https://github.com/observIQ/stanza/issues/349
-	var tlsVersion uint16 = tls.VersionTLS10
-
-	// #nosec - Go defaults to TLS 1.0, and some users may require it
 	config := tls.Config{
 		Certificates: []tls.Certificate{t.tlsKeyPair},
-		MinVersion:   tlsVersion,
+		MinVersion:   t.tlsMinVersion,
 	}
 	config.Time = func() time.Time { return time.Now() }
 	config.Rand = rand.Reader
