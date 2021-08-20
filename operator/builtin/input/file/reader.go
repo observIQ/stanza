@@ -97,24 +97,33 @@ func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 	return nil
 }
 
+type consumerFunc func(context.Context, []byte) error
+
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
+	f.readFile(ctx, f.emit)
+}
+
+// ReadHeaders will read a files headers
+func (f *Reader) ReadHeaders(ctx context.Context) {
+	f.readFile(ctx, f.readHeaders)
+}
+
+func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
 		return
 	}
-
 	fr := NewFingerprintUpdatingReader(f.file, f.Offset, f.Fingerprint, f.fileInput.fingerprintSize)
 	scanner := NewPositionalScanner(fr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
 
-	// Iterate over the tokenized file, emitting entries as we go
+	// Iterate over the tokenized file
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-
 		ok := scanner.Scan()
 		if !ok {
 			if err := getScannerError(scanner); err != nil {
@@ -122,12 +131,37 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 			}
 			break
 		}
-
-		if err := f.emit(ctx, scanner.Bytes()); err != nil {
-			f.Error("Failed to emit entry", zap.Error(err))
+		if err := consumer(ctx, scanner.Bytes()); err != nil {
+			// return if header parsing is done
+			if err == errEndOfHeaders {
+				// de-increment offset because scanner.Bytes()'s value was read but not used
+				f.Offset = f.Offset - 1
+				return
+			}
+			f.Error("Failed to consume entry", zap.Error(err))
 		}
 		f.Offset = scanner.Pos()
 	}
+}
+
+var errEndOfHeaders = fmt.Errorf("finished header parsing, no header found")
+
+func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
+	byteMatches := f.fileInput.labelRegex.FindSubmatch(msgBuf)
+	if len(byteMatches) != 3 {
+		// return early, assume this failure means the file does not
+		// contain anymore headers
+		return errEndOfHeaders
+	}
+	matches := make([]string, len(byteMatches))
+	for i, byteSlice := range byteMatches {
+		matches[i] = string(byteSlice)
+	}
+	if f.Fingerprint.Labels == nil {
+		f.Fingerprint.Labels = make(map[string]string)
+	}
+	f.Fingerprint.Labels[matches[1]] = matches[2]
+	return nil
 }
 
 // Close will close the file
