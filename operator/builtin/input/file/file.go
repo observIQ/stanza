@@ -132,7 +132,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 		}
 	}
 
-	readers := f.makeReaders(matches)
+	readers := f.makeReaders(ctx, matches)
 	f.firstCheck = false
 
 	// Detect files that have been rotated out of matching pattern
@@ -207,7 +207,7 @@ func getMatches(includes, excludes []string) []string {
 // makeReaders takes a list of paths, then creates readers from each of those paths,
 // discarding any that have a duplicate fingerprint to other files that have already
 // been read this polling interval
-func (f *InputOperator) makeReaders(filePaths []string) []*Reader {
+func (f *InputOperator) makeReaders(ctx context.Context, filePaths []string) []*Reader {
 	// Open the files first to minimize the time between listing and opening
 	files := make([]*os.File, 0, len(filePaths))
 	for _, path := range filePaths {
@@ -265,7 +265,7 @@ OUTER:
 
 	readers := make([]*Reader, 0, len(fps))
 	for i := 0; i < len(fps); i++ {
-		reader, err := f.newReader(files[i], fps[i], f.firstCheck)
+		reader, err := f.newReader(ctx, files[i], fps[i], f.firstCheck)
 		if err != nil {
 			f.Errorw("Failed to create reader", zap.Error(err))
 			continue
@@ -297,7 +297,7 @@ func (f *InputOperator) saveCurrent(readers []*Reader) {
 	}
 }
 
-func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
+func (f *InputOperator) newReader(ctx context.Context, file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
 	// Check if the new path has the same fingerprint as an old path
 	if oldReader, ok := f.findFingerprintMatch(fp); ok {
 		newReader, err := oldReader.Copy(file)
@@ -313,11 +313,63 @@ func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck boo
 	if err != nil {
 		return nil, err
 	}
+	if f.labelRegex != nil {
+		if err := newReader.readHeaders(ctx); err != nil {
+			f.Errorf("error while reading file headers: %s", err)
+		}
+	}
 	startAtBeginning := !firstCheck || f.startAtBeginning
 	if err := newReader.InitializeOffset(startAtBeginning); err != nil {
 		return nil, fmt.Errorf("initialize offset: %s", err)
 	}
 	return newReader, nil
+}
+
+// readHeaders will read a files headers when labelRegex is set
+func (f *Reader) readHeaders(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		if f.Fingerprint.Labels == nil {
+			return fmt.Errorf("fingerprint labels map is nil, cannot read file headers")
+		}
+		if x := len(f.Fingerprint.Labels); x > 0 {
+			return fmt.Errorf("expected fingerprint labels map to be empty, got length %d", x)
+		}
+
+		file, err := os.Open(f.fileLabels.ResolvedPath)
+		if err != nil {
+			return fmt.Errorf("failed to open file: %s", err)
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				f.Errorf("failed to close file: %s", err)
+			}
+		}()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			byteMatches := f.fileInput.labelRegex.FindSubmatch(scanner.Bytes())
+			if len(byteMatches) != 3 {
+				// return early, assume this failure means the file does not
+				// contain anymore headers
+				return nil
+			}
+			matches := make([]string, len(byteMatches))
+			for i, byteSlice := range byteMatches {
+				matches[i] = string(byteSlice)
+			}
+			f.Fingerprint.Labels[matches[1]] = matches[2]
+		}
+
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("scanner error: %s", err)
+		}
+	}
 }
 
 func (f *InputOperator) findFingerprintMatch(fp *Fingerprint) (*Reader, bool) {

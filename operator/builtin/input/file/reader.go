@@ -97,49 +97,6 @@ func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 	return nil
 }
 
-// readHeaders will read a files headers when labelRegex is set
-func (f *Reader) readHeaders(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		file, err := os.Open(f.fileLabels.ResolvedPath)
-		if err != nil {
-			return fmt.Errorf("failed to open file: %s", err)
-		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				f.Errorf("failed to close file: %s", err)
-			}
-		}()
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			byteMatches := f.fileInput.labelRegex.FindSubmatch(scanner.Bytes())
-			if len(byteMatches) != 3 {
-				// return early, assume this failure means the file does not
-				// contain anymore headers
-				return nil
-			}
-			matches := make([]string, len(byteMatches))
-			for i, byteSlice := range byteMatches {
-				matches[i] = string(byteSlice)
-			}
-			if f.Fingerprint.Labels == nil {
-				f.Fingerprint.Labels = make(map[string]string)
-			}
-			f.Fingerprint.Labels[matches[1]] = matches[2]
-		}
-
-		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("scanner error: %s", err)
-		}
-	}
-}
-
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
@@ -149,12 +106,6 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 
 	fr := NewFingerprintUpdatingReader(f.file, f.Offset, f.Fingerprint, f.fileInput.fingerprintSize)
 	scanner := NewPositionalScanner(fr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
-
-	if f.fileInput.labelRegex != nil {
-		if err := f.readHeaders(ctx); err != nil {
-			f.Errorf("error while reading file headers: %s", err)
-		}
-	}
 
 	// Iterate over the tokenized file, emitting entries as we go
 	for {
