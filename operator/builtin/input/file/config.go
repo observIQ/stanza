@@ -128,7 +128,14 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 
 		keys := r.SubexpNames()
 		// keys[0] is always the empty string
-		if len(keys) != 3 || keys[1] != "key" || keys[2] != "value" {
+		if x := len(keys); x != 3 {
+			return nil, fmt.Errorf("label_regex must contain two capture groups named 'key' and 'value', got %d capture groups", x)
+		}
+
+		hasKeys := make(map[string]bool)
+		hasKeys[keys[1]] = true
+		hasKeys[keys[2]] = true
+		if !hasKeys["key"] || !hasKeys["value"] {
 			return nil, fmt.Errorf("label_regex must contain two capture groups named 'key' and 'value'")
 		}
 		labelRegex = r

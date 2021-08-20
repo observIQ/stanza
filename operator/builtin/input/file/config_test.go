@@ -655,6 +655,14 @@ func TestBuild(t *testing.T) {
 			func(t *testing.T, f *InputOperator) {},
 		},
 		{
+			"ValidLabelRegexReverse",
+			func(f *InputConfig) {
+				f.LabelRegex = "^(?P<value>[a-zA-z]+ [A-Z]+): (?P<key>.*)"
+			},
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {},
+		},
+		{
 			"InvalidLabelRegexPattern",
 			func(f *InputConfig) {
 				f.LabelRegex = "^(?P<something>[a-zA-z]"
