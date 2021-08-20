@@ -30,7 +30,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
-	golang.org/x/text v0.3.6
+	golang.org/x/text v0.3.7
 	gonum.org/v1/gonum v0.9.1
 	google.golang.org/api v0.52.0
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
