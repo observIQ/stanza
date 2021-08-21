@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - File Input: Added optional LabelRegex parameter, for parsing log file headers as labels [PR 376](https://github.com/observIQ/stanza/pull/376)
+- CSV Parser: Dynamic field names [PR 404](https://github.com/observIQ/stanza/pull/404)
 - ARM64 Container Image: [PR 381](https://github.com/observIQ/stanza/pull/381)
 - TCP Input: Minimum TLS version is now configurable: [PR 400](https://github.com/observIQ/stanza/pull/400)
 - Systemd service: Set `TimeoutSec` [PR 402](https://github.com/observIQ/stanza/pull/402)
