@@ -934,7 +934,7 @@ Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 WorkingDirectory=$agent_home
 ExecStart=$agent_binary --log_file $agent_log --database $agent_database
 SuccessExitStatus=143
-TimeoutSec=0
+TimeoutSec=120
 StandardOutput=null
 Restart=on-failure
 RestartSec=5s
