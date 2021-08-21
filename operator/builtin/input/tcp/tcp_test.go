@@ -306,6 +306,90 @@ func TestBuild(t *testing.T) {
 			false,
 		},
 		{
+			"tls-min-version-default",
+			TCPInputConfig{
+				MaxBufferSize: 65536,
+				ListenAddress: "10.0.0.1:9000",
+				TLS: TLSConfig{
+					Enable:      false,
+					Certificate: "/tmp/cert",
+					PrivateKey:  "/tmp/key",
+					MinVersion:  0,
+				},
+			},
+			false,
+		},
+		{
+			"tls-min-version-1.0",
+			TCPInputConfig{
+				MaxBufferSize: 65536,
+				ListenAddress: "10.0.0.1:9000",
+				TLS: TLSConfig{
+					Enable:      false,
+					Certificate: "/tmp/cert",
+					PrivateKey:  "/tmp/key",
+					MinVersion:  1.0,
+				},
+			},
+			false,
+		},
+		{
+			"tls-min-version-1.1",
+			TCPInputConfig{
+				MaxBufferSize: 65536,
+				ListenAddress: "10.0.0.1:9000",
+				TLS: TLSConfig{
+					Enable:      false,
+					Certificate: "/tmp/cert",
+					PrivateKey:  "/tmp/key",
+					MinVersion:  1.1,
+				},
+			},
+			false,
+		},
+		{
+			"tls-min-version-1.2",
+			TCPInputConfig{
+				MaxBufferSize: 65536,
+				ListenAddress: "10.0.0.1:9000",
+				TLS: TLSConfig{
+					Enable:      false,
+					Certificate: "/tmp/cert",
+					PrivateKey:  "/tmp/key",
+					MinVersion:  1.2,
+				},
+			},
+			false,
+		},
+		{
+			"tls-min-version-1.3",
+			TCPInputConfig{
+				MaxBufferSize: 65536,
+				ListenAddress: "10.0.0.1:9000",
+				TLS: TLSConfig{
+					Enable:      false,
+					Certificate: "/tmp/cert",
+					PrivateKey:  "/tmp/key",
+					MinVersion:  1.3,
+				},
+			},
+			false,
+		},
+		{
+			"tls-invalid-min-version-1.4",
+			TCPInputConfig{
+				MaxBufferSize: 65536,
+				ListenAddress: "10.0.0.1:9000",
+				TLS: TLSConfig{
+					Enable:      false,
+					Certificate: "/tmp/cert",
+					PrivateKey:  "/tmp/key",
+					MinVersion:  1.4,
+				},
+			},
+			true,
+		},
+		{
 			"tls-enabled-with-no-such-file-error",
 			TCPInputConfig{
 				MaxBufferSize: 65536,
