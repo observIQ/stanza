@@ -61,10 +61,11 @@ func TestCSVParserInvalidType(t *testing.T) {
 
 func TestParserCSV(t *testing.T) {
 	cases := []struct {
-		name         string
-		configure    func(*CSVParserConfig)
-		inputEntry   entry.Entry
-		outputRecord interface{}
+		name           string
+		configure      func(*CSVParserConfig)
+		inputEntry     entry.Entry
+		outputRecord   interface{}
+		expectBuildErr bool
 	}{
 		{
 			"basic",
@@ -79,6 +80,7 @@ func TestParserCSV(t *testing.T) {
 				"sev":  "INFO",
 				"msg":  "started agent",
 			},
+			false,
 		},
 		{
 			"advanced",
@@ -96,6 +98,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 		},
 		{
 			"dynamic-fields",
@@ -115,6 +118,7 @@ func TestParserCSV(t *testing.T) {
 				"height": "400",
 				"number": "555-555-5555",
 			},
+			false,
 		},
 		{
 			"dynamic-fields-tab",
@@ -135,6 +139,41 @@ func TestParserCSV(t *testing.T) {
 				"height": "400",
 				"number": "555-555-5555",
 			},
+			false,
+		},
+		{
+			"missing-header-field",
+			func(p *CSVParserConfig) {
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Record: "stanza,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			true,
+		},
+		{
+			"header-and-dynamic-header",
+			func(p *CSVParserConfig) {
+				p.Header = "name,age,height,number"
+				p.HeaderDelimiter = "Fields"
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Record: "stanza,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			true,
 		},
 		{
 			"mariadb-audit-log",
@@ -156,6 +195,7 @@ func TestParserCSV(t *testing.T) {
 				"object":       "",
 				"retcode":      "0",
 			},
+			false,
 		},
 		{
 			"empty field",
@@ -172,6 +212,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 		},
 		{
 			"tab delimiter",
@@ -189,6 +230,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 		},
 		{
 			"comma in quotes",
@@ -205,6 +247,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 		},
 		{
 			"quotes in quotes",
@@ -221,6 +264,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 		},
 		{
 			"header-delimiter",
@@ -236,6 +280,7 @@ func TestParserCSV(t *testing.T) {
 				"sev":  "INFO",
 				"msg":  "started agent",
 			},
+			false,
 		},
 		{
 			"tab-delimiter",
@@ -252,6 +297,42 @@ func TestParserCSV(t *testing.T) {
 				"sev":  "INFO",
 				"msg":  "started agent",
 			},
+			false,
+		},
+		{
+			"missing-header-delimiter-in-header",
+			func(p *CSVParserConfig) {
+				p.Header = "name:age:height:number"
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Record: "stanza,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			true,
+		},
+		{
+			"invalid-delimiter",
+			func(p *CSVParserConfig) {
+				// expect []rune of length 1
+				p.Header = "name,,age,,height,,number"
+				p.FieldDelimiter = ",,"
+			},
+			entry.Entry{
+				Record: "stanza,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			true,
 		},
 	}
 
@@ -262,6 +343,10 @@ func TestParserCSV(t *testing.T) {
 			tc.configure(cfg)
 
 			ops, err := cfg.Build(testutil.NewBuildContext(t))
+			if tc.expectBuildErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			op := ops[0]
 
