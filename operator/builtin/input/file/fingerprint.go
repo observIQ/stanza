@@ -14,6 +14,7 @@ const minFingerprintSize = 16       // bytes
 // A file's fingerprint is the first N bytes of the file,
 // where N is the fingerprintSize on the file_input operator
 type Fingerprint struct {
+	// FirstBytes represents the first N bytes of a file
 	FirstBytes []byte
 }
 

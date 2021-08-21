@@ -1,0 +1,2 @@
+type: file_input
+label_regex: "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"

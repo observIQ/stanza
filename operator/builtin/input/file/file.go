@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
 
@@ -43,6 +44,8 @@ type InputOperator struct {
 	startAtBeginning bool
 
 	fingerprintSize int
+
+	labelRegex *regexp.Regexp
 
 	encoding helper.Encoding
 
@@ -129,7 +132,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 		}
 	}
 
-	readers := f.makeReaders(matches)
+	readers := f.makeReaders(ctx, matches)
 	f.firstCheck = false
 
 	// Detect files that have been rotated out of matching pattern
@@ -204,7 +207,7 @@ func getMatches(includes, excludes []string) []string {
 // makeReaders takes a list of paths, then creates readers from each of those paths,
 // discarding any that have a duplicate fingerprint to other files that have already
 // been read this polling interval
-func (f *InputOperator) makeReaders(filePaths []string) []*Reader {
+func (f *InputOperator) makeReaders(ctx context.Context, filePaths []string) []*Reader {
 	// Open the files first to minimize the time between listing and opening
 	files := make([]*os.File, 0, len(filePaths))
 	for _, path := range filePaths {
@@ -262,7 +265,7 @@ OUTER:
 
 	readers := make([]*Reader, 0, len(fps))
 	for i := 0; i < len(fps); i++ {
-		reader, err := f.newReader(files[i], fps[i], f.firstCheck)
+		reader, err := f.newReader(ctx, files[i], fps[i], f.firstCheck)
 		if err != nil {
 			f.Errorw("Failed to create reader", zap.Error(err))
 			continue
@@ -294,7 +297,7 @@ func (f *InputOperator) saveCurrent(readers []*Reader) {
 	}
 }
 
-func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
+func (f *InputOperator) newReader(ctx context.Context, file *os.File, fp *Fingerprint, firstCheck bool) (*Reader, error) {
 	// Check if the new path has the same fingerprint as an old path
 	if oldReader, ok := f.findFingerprintMatch(fp); ok {
 		newReader, err := oldReader.Copy(file)
@@ -309,6 +312,12 @@ func (f *InputOperator) newReader(file *os.File, fp *Fingerprint, firstCheck boo
 	newReader, err := f.NewReader(file.Name(), file, fp)
 	if err != nil {
 		return nil, err
+	}
+	if f.labelRegex != nil {
+		/*if err := newReader.readHeaders(ctx); err != nil {
+			f.Errorf("error while reading file headers: %s", err)
+		}*/
+		newReader.ReadHeaders(ctx)
 	}
 	startAtBeginning := !firstCheck || f.startAtBeginning
 	if err := newReader.InitializeOffset(startAtBeginning); err != nil {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding"
@@ -48,6 +49,10 @@ type Reader struct {
 	Fingerprint *Fingerprint
 	Offset      int64
 
+	// HeaderLabels is an optional map that contains entry labels
+	// derived from a log files' headers, added to every record
+	HeaderLabels map[string]string
+
 	generation int
 	fileInput  *InputOperator
 	file       *os.File
@@ -63,6 +68,7 @@ type Reader struct {
 func (f *InputOperator) NewReader(path string, file *os.File, fp *Fingerprint) (*Reader, error) {
 	r := &Reader{
 		Fingerprint:   fp,
+		HeaderLabels:  make(map[string]string),
 		file:          file,
 		fileInput:     f,
 		SugaredLogger: f.SugaredLogger.With("path", path),
@@ -80,6 +86,9 @@ func (f *Reader) Copy(file *os.File) (*Reader, error) {
 		return nil, err
 	}
 	reader.Offset = f.Offset
+	for k, v := range f.HeaderLabels {
+		reader.HeaderLabels[k] = v
+	}
 	return reader, nil
 }
 
@@ -96,24 +105,33 @@ func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 	return nil
 }
 
+type consumerFunc func(context.Context, []byte) error
+
 // ReadToEnd will read until the end of the file
 func (f *Reader) ReadToEnd(ctx context.Context) {
+	f.readFile(ctx, f.emit)
+}
+
+// ReadHeaders will read a files headers
+func (f *Reader) ReadHeaders(ctx context.Context) {
+	f.readFile(ctx, f.readHeaders)
+}
+
+func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
 		return
 	}
-
 	fr := NewFingerprintUpdatingReader(f.file, f.Offset, f.Fingerprint, f.fileInput.fingerprintSize)
 	scanner := NewPositionalScanner(fr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
 
-	// Iterate over the tokenized file, emitting entries as we go
+	// Iterate over the tokenized file
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-
 		ok := scanner.Scan()
 		if !ok {
 			if err := getScannerError(scanner); err != nil {
@@ -121,12 +139,35 @@ func (f *Reader) ReadToEnd(ctx context.Context) {
 			}
 			break
 		}
-
-		if err := f.emit(ctx, scanner.Bytes()); err != nil {
-			f.Error("Failed to emit entry", zap.Error(err))
+		if err := consumer(ctx, scanner.Bytes()); err != nil {
+			// return if header parsing is done
+			if err == errEndOfHeaders {
+				return
+			}
+			f.Error("Failed to consume entry", zap.Error(err))
 		}
 		f.Offset = scanner.Pos()
 	}
+}
+
+var errEndOfHeaders = fmt.Errorf("finished header parsing, no header found")
+
+func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
+	byteMatches := f.fileInput.labelRegex.FindSubmatch(msgBuf)
+	if len(byteMatches) != 3 {
+		// return early, assume this failure means the file does not
+		// contain anymore headers
+		return errEndOfHeaders
+	}
+	matches := make([]string, len(byteMatches))
+	for i, byteSlice := range byteMatches {
+		matches[i] = string(byteSlice)
+	}
+	if f.HeaderLabels == nil {
+		f.HeaderLabels = make(map[string]string)
+	}
+	f.HeaderLabels[matches[1]] = matches[2]
+	return nil
 }
 
 // Close will close the file
@@ -168,6 +209,14 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	}
 	if err := e.Set(f.fileInput.FileNameResolvedField, f.fileLabels.ResolvedName); err != nil {
 		return err
+	}
+
+	// Set W3C headers as labels
+	for k, v := range f.HeaderLabels {
+		field := entry.NewLabelField(k)
+		if err := e.Set(field, v); err != nil {
+			return err
+		}
 	}
 
 	f.fileInput.Write(ctx, e)
