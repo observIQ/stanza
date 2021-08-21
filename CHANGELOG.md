@@ -4,25 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.1.9 - Unreleased
+## 1.2.0 - Unreleased
 
 ### Changed
 
 - File Input: Added optional LabelRegex parameter, for parsing log file headers as labels [PR 376](https://github.com/observIQ/stanza/pull/376)
+- ARM64 Container Image: [PR 381](https://github.com/observIQ/stanza/pull/381)
+- TCP Input: Minimum TLS version is now configurable: [PR 400](https://github.com/observIQ/stanza/pull/400)
+- Systemd service: Set `TimeoutSec` [PR 402](https://github.com/observIQ/stanza/pull/402)
 - Updated dependencies:
   - go.uber.org/multierr [PR 387](https://github.com/observIQ/stanza/pull/387)
   - go.etcd.io/bbolt [PR 385](https://github.com/observIQ/stanza/pull/385)
   - k8s client [PR 377](https://github.com/observIQ/stanza/pull/377)
     - k8s.io/api
-	  - k8s.io/apimachinery
-	  - k8s.io/client-go
+    - k8s.io/apimachinery
+    - k8s.io/client-go
   - github.com/golangci/golangci-lint [PR 382](https://github.com/observIQ/stanza/pull/382)
   - cloud.google.com/go/logging [PR 394](https://github.com/observIQ/stanza/pull/394)
   - google.golang.org/grpc [PR 383](https://github.com/observIQ/stanza/pull/383)
   - github.com/aws/aws-sdk-go [PR 395](https://github.com/observIQ/stanza/pull/395)
   - golang.org/x/text  [PR 386](https://github.com/observIQ/stanza/pull/386)
-- ARM64 Container Image: [PR 381](https://github.com/observIQ/stanza/pull/381)
-- TCP Input: Minimum TLS version is now configurable: [PR 400](https://github.com/observIQ/stanza/pull/400)
+  - github.com/antonmedv/expr [PR 396](https://github.com/observIQ/stanza/pull/396)
+
 
 ## 1.1.8 - 2021-08-19
 
