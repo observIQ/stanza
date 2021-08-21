@@ -98,6 +98,45 @@ func TestParserCSV(t *testing.T) {
 			},
 		},
 		{
+			"dynamic-fields",
+			func(p *CSVParserConfig) {
+				p.HeaderLabel = "Fields"
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Labels: map[string]string{
+					"Fields": "name,age,height,number",
+				},
+				Record: "stanza dev,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza dev",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+		},
+		{
+			"dynamic-fields-tab",
+			func(p *CSVParserConfig) {
+				p.HeaderLabel = "columns"
+				p.FieldDelimiter = ","
+				p.HeaderDelimiter = "\t"
+			},
+			entry.Entry{
+				Labels: map[string]string{
+					"columns": "name	age	height	number",
+				},
+				Record: "stanza dev,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza dev",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+		},
+		{
 			"mariadb-audit-log",
 			func(p *CSVParserConfig) {
 				p.Header = "timestamp,serverhost,username,host,connectionid,queryid,operation,database,object,retcode"
