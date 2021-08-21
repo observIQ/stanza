@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ARM64 Container Image: [PR 381](https://github.com/observIQ/stanza/pull/381)
 - TCP Input: Minimum TLS version is now configurable: [PR 400](https://github.com/observIQ/stanza/pull/400)
 - Systemd service: Set `TimeoutSec` [PR 402](https://github.com/observIQ/stanza/pull/402)
+- Journald input: Opetioanl `unit` parameter for filtering [PR 403](https://github.com/observIQ/stanza/pull/403)
 - Updated dependencies:
   - go.uber.org/multierr [PR 387](https://github.com/observIQ/stanza/pull/387)
   - go.etcd.io/bbolt [PR 385](https://github.com/observIQ/stanza/pull/385)
