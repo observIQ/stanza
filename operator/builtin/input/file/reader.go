@@ -49,6 +49,10 @@ type Reader struct {
 	Fingerprint *Fingerprint
 	Offset      int64
 
+	// HeaderLabels is an optional map that contains entry labels
+	// derived from a log files' headers, added to every record
+	HeaderLabels map[string]string
+
 	generation int
 	fileInput  *InputOperator
 	file       *os.File
@@ -64,6 +68,7 @@ type Reader struct {
 func (f *InputOperator) NewReader(path string, file *os.File, fp *Fingerprint) (*Reader, error) {
 	r := &Reader{
 		Fingerprint:   fp,
+		HeaderLabels:  make(map[string]string),
 		file:          file,
 		fileInput:     f,
 		SugaredLogger: f.SugaredLogger.With("path", path),
@@ -81,6 +86,9 @@ func (f *Reader) Copy(file *os.File) (*Reader, error) {
 		return nil, err
 	}
 	reader.Offset = f.Offset
+	for k, v := range f.HeaderLabels {
+		reader.HeaderLabels[k] = v
+	}
 	return reader, nil
 }
 
@@ -155,10 +163,10 @@ func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
 	for i, byteSlice := range byteMatches {
 		matches[i] = string(byteSlice)
 	}
-	if f.Fingerprint.Labels == nil {
-		f.Fingerprint.Labels = make(map[string]string)
+	if f.HeaderLabels == nil {
+		f.HeaderLabels = make(map[string]string)
 	}
-	f.Fingerprint.Labels[matches[1]] = matches[2]
+	f.HeaderLabels[matches[1]] = matches[2]
 	return nil
 }
 
@@ -204,7 +212,7 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 	}
 
 	// Set W3C headers as labels
-	for k, v := range f.Fingerprint.Labels {
+	for k, v := range f.HeaderLabels {
 		field := entry.NewLabelField(k)
 		if err := e.Set(field, v); err != nil {
 			return err
