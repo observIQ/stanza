@@ -178,6 +178,7 @@ func (t *TCPInput) configureListener() error {
 		return nil
 	}
 
+	// #nosec - User to specify tls minimum version
 	config := tls.Config{
 		Certificates: []tls.Certificate{t.tlsKeyPair},
 		MinVersion:   t.tlsMinVersion,
