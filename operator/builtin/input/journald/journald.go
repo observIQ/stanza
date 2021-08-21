@@ -40,6 +40,7 @@ type JournaldInputConfig struct {
 	Directory    *string         `json:"directory,omitempty"     yaml:"directory,omitempty"`
 	Files        []string        `json:"files,omitempty"         yaml:"files,omitempty"`
 	StartAt      string          `json:"start_at,omitempty"      yaml:"start_at,omitempty"`
+	Unit         string          `json:"unit,omitempty"          yaml:"unit,omitempty"`
 	PollInterval helper.Duration `json:"poll_interval,omitempty" yaml:"poll_interval,omitempty"`
 }
 
@@ -79,6 +80,10 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 		for _, file := range c.Files {
 			args = append(args, "--file", file)
 		}
+	}
+
+	if c.Unit != "" {
+		args = append(args, fmt.Sprintf("--unit=%s", c.Unit))
 	}
 
 	journaldInput := &JournaldInput{

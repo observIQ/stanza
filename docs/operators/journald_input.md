@@ -15,6 +15,7 @@ The `journald_input` operator will use the `__REALTIME_TIMESTAMP` field of the j
 | `poll_interval`   | 200ms            | The duration between journal polls                                                               |
 | `directory`       |                  | A directory containing journal files to read entries from                                        |
 | `files`           |                  | A list of journal files to read entries from                                                     |
+| `unit`            |                  | Filter on a specific unit                                                                        |
 | `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry                |
 | `start_at`        | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`          |
 | `labels`          | {}               | A map of `key: value` labels to add to the entry's labels                                        |
@@ -68,6 +69,48 @@ Output entry sample:
     "_UID": "1000",
     "__CURSOR": "s=b1e713b587ae4001a9ca482c4b12c005;i=1efec9;b=c4fa36de06824d21835c05ff80c54468;m=a001b7ec5a;t=5a369c4a3cd88;x=f9717e0b5608807b",
     "__MONOTONIC_TIMESTAMP": "687223598170"
+  }
+}
+```
+
+#### Filter on a Unit
+
+Configuration:
+```yaml
+pipeline:
+- type: journald_input
+  unit: docker.service
+```
+
+Output entry sample:
+```json
+{
+  "timestamp": "2021-08-20T20:44:33.72269-04:00",
+  "severity": 0,
+  "record": {
+    "MESSAGE": "time=\"2021-08-20T20:44:33.722649189-04:00\" level=warning msg=\"cleanup warnings time=\\\"2021-08-20T20:44:33-04:00\\\" level=info msg=\\\"starting signal loop\\\" namespace=moby pid=1221814\\n\"",
+    "PRIORITY": "6",
+    "SYSLOG_FACILITY": "3",
+    "SYSLOG_IDENTIFIER": "dockerd",
+    "_BOOT_ID": "da9e7908ac5748e4b1452e4f18355fec",
+    "_CAP_EFFECTIVE": "1ffffffffff",
+    "_CMDLINE": "containerd --config /var/run/docker/containerd/containerd.toml --log-level info",
+    "_COMM": "containerd",
+    "_EXE": "/usr/bin/containerd",
+    "_GID": "0",
+    "_HOSTNAME": "control-plane.minikube.internal",
+    "_MACHINE_ID": "3d7a7d5c419d468e81ff7c9a59b2deec",
+    "_PID": "3875",
+    "_SELINUX_CONTEXT": "kernel",
+    "_STREAM_ID": "4b96fbe8fcff41ee8663b7cf125dc0fb",
+    "_SYSTEMD_CGROUP": "/system.slice/docker.service",
+    "_SYSTEMD_INVOCATION_ID": "6dbcbf51f10e471a9616319be9b575cb",
+    "_SYSTEMD_SLICE": "system.slice",
+    "_SYSTEMD_UNIT": "docker.service",
+    "_TRANSPORT": "stdout",
+    "_UID": "0",
+    "__CURSOR": "s=b7ef2bc7c5d3441ebfa90e7b94ab92ee;i=5d93f9;b=da9e7908ac5748e4b1452e4f18355fec;m=c2a7fc009;t=5ca0716724542;x=f85983418a47c115",
+    "__MONOTONIC_TIMESTAMP": "52252622857"
   }
 }
 ```
