@@ -61,11 +61,12 @@ func TestCSVParserInvalidType(t *testing.T) {
 
 func TestParserCSV(t *testing.T) {
 	cases := []struct {
-		name           string
-		configure      func(*CSVParserConfig)
-		inputEntry     entry.Entry
-		outputRecord   interface{}
-		expectBuildErr bool
+		name             string
+		configure        func(*CSVParserConfig)
+		inputEntry       entry.Entry
+		outputRecord     interface{}
+		expectBuildErr   bool
+		expectProcessErr bool
 	}{
 		{
 			"basic",
@@ -80,6 +81,7 @@ func TestParserCSV(t *testing.T) {
 				"sev":  "INFO",
 				"msg":  "started agent",
 			},
+			false,
 			false,
 		},
 		{
@@ -98,6 +100,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 			false,
 		},
 		{
@@ -118,6 +121,7 @@ func TestParserCSV(t *testing.T) {
 				"height": "400",
 				"number": "555-555-5555",
 			},
+			false,
 			false,
 		},
 		{
@@ -140,6 +144,25 @@ func TestParserCSV(t *testing.T) {
 				"number": "555-555-5555",
 			},
 			false,
+			false,
+		},
+		{
+			"dynamic-fields-label-missing",
+			func(p *CSVParserConfig) {
+				p.HeaderLabel = "Fields"
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Record: "stanza dev,1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza dev",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			false,
+			true,
 		},
 		{
 			"missing-header-field",
@@ -156,6 +179,7 @@ func TestParserCSV(t *testing.T) {
 				"number": "555-555-5555",
 			},
 			true,
+			false,
 		},
 		{
 			"header-and-dynamic-header",
@@ -174,6 +198,7 @@ func TestParserCSV(t *testing.T) {
 				"number": "555-555-5555",
 			},
 			true,
+			false,
 		},
 		{
 			"mariadb-audit-log",
@@ -196,6 +221,7 @@ func TestParserCSV(t *testing.T) {
 				"retcode":      "0",
 			},
 			false,
+			false,
 		},
 		{
 			"empty field",
@@ -212,6 +238,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 			false,
 		},
 		{
@@ -231,6 +258,7 @@ func TestParserCSV(t *testing.T) {
 				"position": "agent",
 			},
 			false,
+			false,
 		},
 		{
 			"comma in quotes",
@@ -247,6 +275,7 @@ func TestParserCSV(t *testing.T) {
 				"phone":    "555-5555",
 				"position": "agent",
 			},
+			false,
 			false,
 		},
 		{
@@ -265,6 +294,7 @@ func TestParserCSV(t *testing.T) {
 				"position": "agent",
 			},
 			false,
+			false,
 		},
 		{
 			"header-delimiter",
@@ -280,6 +310,7 @@ func TestParserCSV(t *testing.T) {
 				"sev":  "INFO",
 				"msg":  "started agent",
 			},
+			false,
 			false,
 		},
 		{
@@ -298,6 +329,7 @@ func TestParserCSV(t *testing.T) {
 				"msg":  "started agent",
 			},
 			false,
+			false,
 		},
 		{
 			"missing-header-delimiter-in-header",
@@ -315,6 +347,7 @@ func TestParserCSV(t *testing.T) {
 				"number": "555-555-5555",
 			},
 			true,
+			false,
 		},
 		{
 			"invalid-delimiter",
@@ -332,6 +365,43 @@ func TestParserCSV(t *testing.T) {
 				"height": "400",
 				"number": "555-555-5555",
 			},
+			true,
+			false,
+		},
+		{
+			"parse-failure-num-fields-mismatch",
+			func(p *CSVParserConfig) {
+				p.Header = "name,age,height,number"
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Record: "1,400,555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			false,
+			true,
+		},
+		{
+			"parse-failure-wrong-field-delimiter",
+			func(p *CSVParserConfig) {
+				p.Header = "name,age,height,number"
+				p.FieldDelimiter = ","
+			},
+			entry.Entry{
+				Record: "stanza:1:400:555-555-5555",
+			},
+			map[string]interface{}{
+				"name":   "stanza",
+				"age":    "1",
+				"height": "400",
+				"number": "555-555-5555",
+			},
+			false,
 			true,
 		},
 	}
@@ -354,6 +424,10 @@ func TestParserCSV(t *testing.T) {
 			op.SetOutputs([]operator.Operator{fake})
 
 			err = op.Process(context.Background(), &tc.inputEntry)
+			if tc.expectProcessErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 
 			fake.ExpectRecord(t, tc.outputRecord)
