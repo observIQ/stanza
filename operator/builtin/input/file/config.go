@@ -2,6 +2,7 @@ package file
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/bmatcuk/doublestar/v2"
@@ -53,6 +54,7 @@ type InputConfig struct {
 	FingerprintSize         helper.ByteSize        `json:"fingerprint_size,omitempty"            yaml:"fingerprint_size,omitempty"`
 	MaxLogSize              helper.ByteSize        `json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
 	MaxConcurrentFiles      int                    `json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
+	LabelRegex              string                 `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
 	Encoding                helper.EncodingConfig  `json:",inline,omitempty"                     yaml:",inline,omitempty"`
 }
 
@@ -117,6 +119,28 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
 	}
 
+	var labelRegex *regexp.Regexp
+	if c.LabelRegex != "" {
+		r, err := regexp.Compile(c.LabelRegex)
+		if err != nil {
+			return nil, fmt.Errorf("compiling regex: %s", err)
+		}
+
+		keys := r.SubexpNames()
+		// keys[0] is always the empty string
+		if x := len(keys); x != 3 {
+			return nil, fmt.Errorf("label_regex must contain two capture groups named 'key' and 'value', got %d capture groups", x)
+		}
+
+		hasKeys := make(map[string]bool)
+		hasKeys[keys[1]] = true
+		hasKeys[keys[2]] = true
+		if !hasKeys["key"] || !hasKeys["value"] {
+			return nil, fmt.Errorf("label_regex must contain two capture groups named 'key' and 'value'")
+		}
+		labelRegex = r
+	}
+
 	fileNameField := entry.NewNilField()
 	if c.IncludeFileName {
 		fileNameField = entry.NewLabelField("file_name")
@@ -150,6 +174,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		FileNameResolvedField: fileNameResolvedField,
 		startAtBeginning:      startAtBeginning,
 		queuedMatches:         make([]string, 0),
+		labelRegex:            labelRegex,
 		encoding:              encoding,
 		firstCheck:            true,
 		cancel:                func() {},
