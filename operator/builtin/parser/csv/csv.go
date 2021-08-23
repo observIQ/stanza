@@ -85,7 +85,6 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 		ParserOperator:  parserOperator,
 		header:          c.Header,
 		headerLabel:     c.HeaderLabel,
-		dynamicHeader:   dynamic,
 		headerDelimiter: headerDelimiter,
 		fieldDelimiter:  fieldDelimiter,
 		numFields:       numFields,
@@ -102,7 +101,6 @@ type CSVParser struct {
 	helper.ParserOperator
 	header          string
 	headerLabel     string
-	dynamicHeader   bool
 	headerDelimiter rune
 	fieldDelimiter  rune
 	numFields       int
@@ -111,7 +109,7 @@ type CSVParser struct {
 
 // Process will parse an entry for csv.
 func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
-	if r.dynamicHeader {
+	if r.headerLabel != "" {
 		h, ok := e.Labels[r.headerLabel]
 		if !ok {
 			// TODO: returned error is not logged, so log it here
