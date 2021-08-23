@@ -63,8 +63,8 @@ func TestParserCSV(t *testing.T) {
 	cases := []struct {
 		name             string
 		configure        func(*CSVParserConfig)
-		inputEntry       entry.Entry
-		outputRecord     interface{}
+		inputEntry       []entry.Entry
+		outputRecord     []interface{}
 		expectBuildErr   bool
 		expectProcessErr bool
 	}{
@@ -73,13 +73,53 @@ func TestParserCSV(t *testing.T) {
 			func(p *CSVParserConfig) {
 				p.Header = testHeader
 			},
-			entry.Entry{
-				Record: "stanza,INFO,started agent",
+			[]entry.Entry{
+				{
+					Record: "stanza,INFO,started agent",
+				},
 			},
-			map[string]interface{}{
-				"name": "stanza",
-				"sev":  "INFO",
-				"msg":  "started agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name": "stanza",
+					"sev":  "INFO",
+					"msg":  "started agent",
+				},
+			},
+			false,
+			false,
+		},
+		{
+			"basic-multiple-static-records",
+			func(p *CSVParserConfig) {
+				p.Header = testHeader
+			},
+			[]entry.Entry{
+				{
+					Record: "stanza,INFO,started agent",
+				},
+				{
+					Record: "stanza,ERROR,agent killed",
+				},
+				{
+					Record: "kernel,TRACE,oom",
+				},
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"name": "stanza",
+					"sev":  "INFO",
+					"msg":  "started agent",
+				},
+				map[string]interface{}{
+					"name": "stanza",
+					"sev":  "ERROR",
+					"msg":  "agent killed",
+				},
+				map[string]interface{}{
+					"name": "kernel",
+					"sev":  "TRACE",
+					"msg":  "oom",
+				},
 			},
 			false,
 			false,
@@ -90,15 +130,19 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name;address;age;phone;position"
 				p.FieldDelimiter = ";"
 			},
-			entry.Entry{
-				Record: "stanza;Evergreen;1;555-5555;agent",
+			[]entry.Entry{
+				{
+					Record: "stanza;Evergreen;1;555-5555;agent",
+				},
 			},
-			map[string]interface{}{
-				"name":     "stanza",
-				"address":  "Evergreen",
-				"age":      "1",
-				"phone":    "555-5555",
-				"position": "agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name":     "stanza",
+					"address":  "Evergreen",
+					"age":      "1",
+					"phone":    "555-5555",
+					"position": "agent",
+				},
 			},
 			false,
 			false,
@@ -109,17 +153,70 @@ func TestParserCSV(t *testing.T) {
 				p.HeaderLabel = "Fields"
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Labels: map[string]string{
-					"Fields": "name,age,height,number",
+			[]entry.Entry{
+				{
+					Labels: map[string]string{
+						"Fields": "name,age,height,number",
+					},
+					Record: "stanza dev,1,400,555-555-5555",
 				},
-				Record: "stanza dev,1,400,555-555-5555",
 			},
-			map[string]interface{}{
-				"name":   "stanza dev",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza dev",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
+			},
+			false,
+			false,
+		},
+		{
+			"dynamic-fields-multiple-entries",
+			func(p *CSVParserConfig) {
+				p.HeaderLabel = "Fields"
+				p.FieldDelimiter = ","
+			},
+			[]entry.Entry{
+				{
+					Labels: map[string]string{
+						"Fields": "name,age,height,number",
+					},
+					Record: "stanza dev,1,400,555-555-5555",
+				},
+				{
+					Labels: map[string]string{
+						"Fields": "x,y",
+					},
+					Record: "000100,2",
+				},
+				{
+					Labels: map[string]string{
+						"Fields": "a,b,c,d,e,f",
+					},
+					Record: "1,2,3,4,5,6",
+				},
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza dev",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
+				map[string]interface{}{
+					"x": "000100",
+					"y": "2",
+				},
+				map[string]interface{}{
+					"a": "1",
+					"b": "2",
+					"c": "3",
+					"d": "4",
+					"e": "5",
+					"f": "6",
+				},
 			},
 			false,
 			false,
@@ -131,17 +228,21 @@ func TestParserCSV(t *testing.T) {
 				p.FieldDelimiter = ","
 				p.HeaderDelimiter = "\t"
 			},
-			entry.Entry{
-				Labels: map[string]string{
-					"columns": "name	age	height	number",
+			[]entry.Entry{
+				{
+					Labels: map[string]string{
+						"columns": "name	age	height	number",
+					},
+					Record: "stanza dev,1,400,555-555-5555",
 				},
-				Record: "stanza dev,1,400,555-555-5555",
 			},
-			map[string]interface{}{
-				"name":   "stanza dev",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza dev",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			false,
 			false,
@@ -152,14 +253,18 @@ func TestParserCSV(t *testing.T) {
 				p.HeaderLabel = "Fields"
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Record: "stanza dev,1,400,555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "stanza dev,1,400,555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza dev",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza dev",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			false,
 			true,
@@ -169,14 +274,18 @@ func TestParserCSV(t *testing.T) {
 			func(p *CSVParserConfig) {
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Record: "stanza,1,400,555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "stanza,1,400,555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			true,
 			false,
@@ -188,14 +297,18 @@ func TestParserCSV(t *testing.T) {
 				p.HeaderDelimiter = "Fields"
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Record: "stanza,1,400,555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "stanza,1,400,555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			true,
 			false,
@@ -205,20 +318,24 @@ func TestParserCSV(t *testing.T) {
 			func(p *CSVParserConfig) {
 				p.Header = "timestamp,serverhost,username,host,connectionid,queryid,operation,database,object,retcode"
 			},
-			entry.Entry{
-				Record: "20210316 17:08:01,oiq-int-mysql,load,oiq-int-mysql.bluemedora.localnet,5,0,DISCONNECT,,,0",
+			[]entry.Entry{
+				{
+					Record: "20210316 17:08:01,oiq-int-mysql,load,oiq-int-mysql.bluemedora.localnet,5,0,DISCONNECT,,,0",
+				},
 			},
-			map[string]interface{}{
-				"timestamp":    "20210316 17:08:01",
-				"serverhost":   "oiq-int-mysql",
-				"username":     "load",
-				"host":         "oiq-int-mysql.bluemedora.localnet",
-				"connectionid": "5",
-				"queryid":      "0",
-				"operation":    "DISCONNECT",
-				"database":     "",
-				"object":       "",
-				"retcode":      "0",
+			[]interface{}{
+				map[string]interface{}{
+					"timestamp":    "20210316 17:08:01",
+					"serverhost":   "oiq-int-mysql",
+					"username":     "load",
+					"host":         "oiq-int-mysql.bluemedora.localnet",
+					"connectionid": "5",
+					"queryid":      "0",
+					"operation":    "DISCONNECT",
+					"database":     "",
+					"object":       "",
+					"retcode":      "0",
+				},
 			},
 			false,
 			false,
@@ -228,15 +345,19 @@ func TestParserCSV(t *testing.T) {
 			func(p *CSVParserConfig) {
 				p.Header = "name,address,age,phone,position"
 			},
-			entry.Entry{
-				Record: "stanza,Evergreen,,555-5555,agent",
+			[]entry.Entry{
+				{
+					Record: "stanza,Evergreen,,555-5555,agent",
+				},
 			},
-			map[string]interface{}{
-				"name":     "stanza",
-				"address":  "Evergreen",
-				"age":      "",
-				"phone":    "555-5555",
-				"position": "agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name":     "stanza",
+					"address":  "Evergreen",
+					"age":      "",
+					"phone":    "555-5555",
+					"position": "agent",
+				},
 			},
 			false,
 			false,
@@ -247,15 +368,19 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name	address	age	phone	position"
 				p.FieldDelimiter = "\t"
 			},
-			entry.Entry{
-				Record: "stanza	Evergreen	1	555-5555	agent",
+			[]entry.Entry{
+				{
+					Record: "stanza	Evergreen	1	555-5555	agent",
+				},
 			},
-			map[string]interface{}{
-				"name":     "stanza",
-				"address":  "Evergreen",
-				"age":      "1",
-				"phone":    "555-5555",
-				"position": "agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name":     "stanza",
+					"address":  "Evergreen",
+					"age":      "1",
+					"phone":    "555-5555",
+					"position": "agent",
+				},
 			},
 			false,
 			false,
@@ -265,15 +390,19 @@ func TestParserCSV(t *testing.T) {
 			func(p *CSVParserConfig) {
 				p.Header = "name,address,age,phone,position"
 			},
-			entry.Entry{
-				Record: "stanza,\"Evergreen,49508\",1,555-5555,agent",
+			[]entry.Entry{
+				{
+					Record: "stanza,\"Evergreen,49508\",1,555-5555,agent",
+				},
 			},
-			map[string]interface{}{
-				"name":     "stanza",
-				"address":  "Evergreen,49508",
-				"age":      "1",
-				"phone":    "555-5555",
-				"position": "agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name":     "stanza",
+					"address":  "Evergreen,49508",
+					"age":      "1",
+					"phone":    "555-5555",
+					"position": "agent",
+				},
 			},
 			false,
 			false,
@@ -283,15 +412,19 @@ func TestParserCSV(t *testing.T) {
 			func(p *CSVParserConfig) {
 				p.Header = "name,address,age,phone,position"
 			},
-			entry.Entry{
-				Record: "\"bob \"\"the man\"\"\",Evergreen,1,555-5555,agent",
+			[]entry.Entry{
+				{
+					Record: "\"bob \"\"the man\"\"\",Evergreen,1,555-5555,agent",
+				},
 			},
-			map[string]interface{}{
-				"name":     "bob \"the man\"",
-				"address":  "Evergreen",
-				"age":      "1",
-				"phone":    "555-5555",
-				"position": "agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name":     "bob \"the man\"",
+					"address":  "Evergreen",
+					"age":      "1",
+					"phone":    "555-5555",
+					"position": "agent",
+				},
 			},
 			false,
 			false,
@@ -302,13 +435,17 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name+sev+msg"
 				p.HeaderDelimiter = "+"
 			},
-			entry.Entry{
-				Record: "stanza,INFO,started agent",
+			[]entry.Entry{
+				{
+					Record: "stanza,INFO,started agent",
+				},
 			},
-			map[string]interface{}{
-				"name": "stanza",
-				"sev":  "INFO",
-				"msg":  "started agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name": "stanza",
+					"sev":  "INFO",
+					"msg":  "started agent",
+				},
 			},
 			false,
 			false,
@@ -320,13 +457,17 @@ func TestParserCSV(t *testing.T) {
 				p.HeaderDelimiter = ","
 				p.FieldDelimiter = "\t"
 			},
-			entry.Entry{
-				Record: "stanza\tINFO\tstarted agent",
+			[]entry.Entry{
+				{
+					Record: "stanza\tINFO\tstarted agent",
+				},
 			},
-			map[string]interface{}{
-				"name": "stanza",
-				"sev":  "INFO",
-				"msg":  "started agent",
+			[]interface{}{
+				map[string]interface{}{
+					"name": "stanza",
+					"sev":  "INFO",
+					"msg":  "started agent",
+				},
 			},
 			false,
 			false,
@@ -337,14 +478,18 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name:age:height:number"
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Record: "stanza,1,400,555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "stanza,1,400,555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			true,
 			false,
@@ -356,14 +501,18 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name,,age,,height,,number"
 				p.FieldDelimiter = ",,"
 			},
-			entry.Entry{
-				Record: "stanza,1,400,555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "stanza,1,400,555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			true,
 			false,
@@ -374,14 +523,18 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name,age,height,number"
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Record: "1,400,555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "1,400,555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			false,
 			true,
@@ -392,14 +545,18 @@ func TestParserCSV(t *testing.T) {
 				p.Header = "name,age,height,number"
 				p.FieldDelimiter = ","
 			},
-			entry.Entry{
-				Record: "stanza:1:400:555-555-5555",
+			[]entry.Entry{
+				{
+					Record: "stanza:1:400:555-555-5555",
+				},
 			},
-			map[string]interface{}{
-				"name":   "stanza",
-				"age":    "1",
-				"height": "400",
-				"number": "555-555-5555",
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza",
+					"age":    "1",
+					"height": "400",
+					"number": "555-555-5555",
+				},
 			},
 			false,
 			true,
@@ -423,14 +580,16 @@ func TestParserCSV(t *testing.T) {
 			fake := testutil.NewFakeOutput(t)
 			op.SetOutputs([]operator.Operator{fake})
 
-			err = op.Process(context.Background(), &tc.inputEntry)
-			if tc.expectProcessErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
+			for i, inputEntry := range tc.inputEntry {
+				err = op.Process(context.Background(), &inputEntry)
+				if tc.expectProcessErr {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
 
-			fake.ExpectRecord(t, tc.outputRecord)
+				fake.ExpectRecord(t, tc.outputRecord[i])
+			}
 		})
 	}
 }
