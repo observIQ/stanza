@@ -74,23 +74,15 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 		return nil, fmt.Errorf("missing header delimiter in header")
 	}
 
-	// encoding/csv defaults to 0 (auto detection), however, if number of fields
-	// is known, set it here to avoid checking it in the parse function on every entry
-	numFields := 0
-	if !dynamic {
-		numFields = len(strings.Split(c.Header, c.HeaderDelimiter))
-	}
-
 	csvParser := &CSVParser{
 		ParserOperator:  parserOperator,
 		header:          c.Header,
 		headerLabel:     c.HeaderLabel,
 		headerDelimiter: headerDelimiter,
 		fieldDelimiter:  fieldDelimiter,
-		numFields:       numFields,
 
 		// initial parse function, overwritten when dynamic headers are enabled
-		parse: generateParseFunc(c.Header, headerDelimiter, fieldDelimiter, numFields),
+		parse: generateParseFunc(c.Header, headerDelimiter, fieldDelimiter),
 	}
 
 	return []operator.Operator{csvParser}, nil
@@ -103,7 +95,6 @@ type CSVParser struct {
 	headerLabel     string
 	headerDelimiter rune
 	fieldDelimiter  rune
-	numFields       int
 	parse           ParseFunc
 }
 
@@ -117,7 +108,7 @@ func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
 			r.Error(err)
 			return err
 		}
-		r.parse = generateParseFunc(h, r.headerDelimiter, r.fieldDelimiter, r.numFields)
+		r.parse = generateParseFunc(h, r.headerDelimiter, r.fieldDelimiter)
 	}
 	return r.ParserOperator.ProcessWith(ctx, e, r.parse)
 }
@@ -127,7 +118,7 @@ type ParseFunc func(interface{}) (interface{}, error)
 // generateParseFunc returns a parse function for a given header, allowing
 // each entry to have a potentially unique set of fields when using dynamic
 // field names retrieved from an entry's label
-func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, numFields int) ParseFunc {
+func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune) ParseFunc {
 	return func(value interface{}) (interface{}, error) {
 		var csvLine string
 		switch t := value.(type) {
@@ -139,9 +130,11 @@ func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, numF
 			return nil, fmt.Errorf("type '%T' cannot be parsed as csv", value)
 		}
 
+		headerFields := strings.Split(header, string([]rune{headerDelimiter}))
+
 		reader := csvparser.NewReader(strings.NewReader(csvLine))
 		reader.Comma = fieldDelimiter
-		reader.FieldsPerRecord = numFields
+		reader.FieldsPerRecord = len(headerFields)
 		parsedValues := make(map[string]interface{})
 
 		for {
@@ -152,17 +145,6 @@ func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, numF
 
 			if err != nil {
 				return nil, err
-			}
-
-			headerFields := strings.Split(header, string([]rune{headerDelimiter}))
-
-			// When numFields is less than 1 (due to dynamic header detection) we need to check if
-			// the correct number of fields exists before looping. When numFields is greater than 0,
-			// encoding/csv will return its own error when this mismatch occurs.
-			if numFields < 1 {
-				if len(headerFields) != len(record) {
-					return nil, fmt.Errorf("number of fields does not match number of fields defined by the header '%s'", headerFields)
-				}
 			}
 
 			for i, key := range headerFields {
