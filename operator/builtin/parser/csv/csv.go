@@ -82,7 +82,7 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 		fieldDelimiter:  fieldDelimiter,
 
 		// initial parse function, overwritten when dynamic headers are enabled
-		parse: generateParseFunc(c.Header, headerDelimiter, fieldDelimiter),
+		parse: generateParseFunc(c.Header, headerDelimiter, fieldDelimiter, false),
 	}
 
 	return []operator.Operator{csvParser}, nil
@@ -108,7 +108,7 @@ func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
 			r.Error(err)
 			return err
 		}
-		r.parse = generateParseFunc(h, r.headerDelimiter, r.fieldDelimiter)
+		r.parse = generateParseFunc(h, r.headerDelimiter, r.fieldDelimiter, true)
 	}
 	return r.ParserOperator.ProcessWith(ctx, e, r.parse)
 }
@@ -118,7 +118,9 @@ type ParseFunc func(interface{}) (interface{}, error)
 // generateParseFunc returns a parse function for a given header, allowing
 // each entry to have a potentially unique set of fields when using dynamic
 // field names retrieved from an entry's label
-func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune) ParseFunc {
+func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, isDynamic bool) ParseFunc {
+	headerFields := strings.Split(header, string([]rune{headerDelimiter}))
+
 	return func(value interface{}) (interface{}, error) {
 		var csvLine string
 		switch t := value.(type) {
@@ -130,7 +132,9 @@ func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune) Pars
 			return nil, fmt.Errorf("type '%T' cannot be parsed as csv", value)
 		}
 
-		headerFields := strings.Split(header, string([]rune{headerDelimiter}))
+		if isDynamic {
+			headerFields = strings.Split(header, string([]rune{headerDelimiter}))
+		}
 
 		reader := csvparser.NewReader(strings.NewReader(csvLine))
 		reader.Comma = fieldDelimiter
