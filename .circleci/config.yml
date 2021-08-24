@@ -49,7 +49,7 @@ jobs:
             curl -fL https://github.com/docker/buildx/releases/download/v0.6.1/buildx-v0.6.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
             chmod a+x ~/.docker/cli-plugins/docker-buildx
             docker context create tls-environment
-            docker buildx create --name stanza --use
+            docker buildx create --name stanza --use tls-environment
             docker buildx inspect --bootstrap
       - run:
           name: "Build container image"
@@ -114,7 +114,7 @@ jobs:
             curl -fL https://github.com/docker/buildx/releases/download/v0.6.1/buildx-v0.6.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
             chmod a+x ~/.docker/cli-plugins/docker-buildx
             docker context create tls-environment
-            docker buildx create --name stanza --use
+            docker buildx create --name stanza --use tls-environment
             docker buildx inspect --bootstrap
       - run:
           name: "Publish Release on Docker Hub"
