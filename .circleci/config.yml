@@ -215,7 +215,7 @@ jobs:
           command: mkdir {bin,out,tmp}
       - run:
           name: Build Stanza Agent
-          command: (cd ./cmd/stanza && GO111MODULE=on GOPROXY=direct go build -v -o ../../bin/stanza ./)
+          command: (cd ./cmd/stanza && go build -v -o ../../bin/stanza ./)
       - run:
           name: Build Log Bench
           command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
