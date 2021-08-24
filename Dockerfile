@@ -8,7 +8,7 @@ WORKDIR /stanza/artifacts
 # hack: "mv stanza_* stanza" gives an error because mv does not like '_*'
 RUN for f in stanza_*; do mv "$f" stanza; done
 
-FROM gcr.io/observiq-container-images/stanza-base:v1.0.0
+FROM gcr.io/observiq-container-images/stanza-base:v1.1.0
 
 RUN mkdir -p /stanza_home
 ENV STANZA_HOME=/stanza_home
