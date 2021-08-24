@@ -39,9 +39,18 @@ jobs:
       - image: circleci/buildpack-deps:stretch
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.14
       - attach_workspace:
           at: ./artifacts
+      - run:
+          name: "Configure Docker experimental"
+          command: |
+            ssh remote-docker \<<EOF
+                sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
+                sudo systemctl restart docker
+                sudo docker info
+            EOF
       - run:
           name: "Configure Docker multi arch builds"
           command: |
@@ -107,9 +116,18 @@ jobs:
       - image: circleci/buildpack-deps:stretch
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.14
       - attach_workspace:
           at: ./artifacts
+      - run:
+          name: "Configure Docker experimental"
+          command: |
+            ssh remote-docker \<<EOF
+                sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
+                sudo systemctl restart docker
+                sudo docker info
+            EOF
       - run:
           name: "Configure Docker multi arch builds"
           command: |
