@@ -26,7 +26,7 @@ require (
 	github.com/prometheus/common v0.14.0 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
-	github.com/testcontainers/testcontainers-go v0.11.1
+	github.com/testcontainers/testcontainers-go v0.11.0
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.16.0
