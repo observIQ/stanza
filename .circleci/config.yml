@@ -35,6 +35,7 @@ jobs:
           paths:
             - "*"
   build-docker:
+    resource_class: large
     docker:
       - image: circleci/buildpack-deps:stretch
     steps:
@@ -127,6 +128,7 @@ jobs:
             ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/
 
   publish-docker-release:
+    resource_class: large
     docker:
       - image: circleci/buildpack-deps:stretch
     steps:
