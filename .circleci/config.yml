@@ -6,7 +6,6 @@ orbs:
   gcp-cli: circleci/gcp-cli@2.2.0
   codecov: codecov/codecov@1.0.2
   pr-comment: benjlevesque/pr-comment@0.1.4
-  docker-buildx: sensu/docker-buildx@1.1.1
 
 executors:
   golang:
@@ -44,13 +43,38 @@ jobs:
           version: 19.03.14
       - attach_workspace:
           at: ./artifacts
-      - docker-buildx/install
       - run:
-          name: "Configure Docker multi arch builds"
+          name: Install Docker buildx
           command: |
-            docker context create tls-environment
-            docker buildx create --name stanza --use tls-environment
-            docker buildx inspect --bootstrap
+            mkdir -p ~/.docker/cli-plugins
+            curl -sSL -o ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.6.2/buildx-v0.6.2.linux-amd64
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+      - run:
+          name: Enable experimental Docker features
+          command: echo 'export DOCKER_CLI_EXPERIMENTAL="enabled"' >> $BASH_ENV
+      - run:
+          name: Initialize Docker buildx
+          command: docker buildx install
+      - run:
+          name: Start multiarch/qemu-user-static container
+          command: >
+            docker run --rm --privileged
+            multiarch/qemu-user-static:<< parameters.qemu-user-static-version >>
+            --reset -p yes
+      - run:
+          name: Remove buildx multiarch container in case it exists
+          command: docker rm -f buildx_buildkit_docker-multiarch0 || continue
+      - run:
+          name: Create docker-multiarch builder
+          command: >
+            docker buildx create --name docker-multiarch
+            --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x
+      - run:
+          name: Inspect & bootstrap docker-multiarch builder
+          command: docker buildx inspect --builder docker-multiarch --bootstrap
+      - run:
+          name: Set docker-multiarch as default builder
+          command: docker buildx use docker-multiarch
       - run:
           name: "Build container image"
           command: |
@@ -108,13 +132,38 @@ jobs:
           version: 19.03.14
       - attach_workspace:
           at: ./artifacts
-      - docker-buildx/install
       - run:
-          name: "Configure Docker multi arch builds"
+          name: Install Docker buildx
           command: |
-            docker context create tls-environment
-            docker buildx create --name stanza --use tls-environment
-            docker buildx inspect --bootstrap
+            mkdir -p ~/.docker/cli-plugins
+            curl -sSL -o ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.6.2/buildx-v0.6.2.linux-amd64
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+      - run:
+          name: Enable experimental Docker features
+          command: echo 'export DOCKER_CLI_EXPERIMENTAL="enabled"' >> $BASH_ENV
+      - run:
+          name: Initialize Docker buildx
+          command: docker buildx install
+      - run:
+          name: Start multiarch/qemu-user-static container
+          command: >
+            docker run --rm --privileged
+            multiarch/qemu-user-static:<< parameters.qemu-user-static-version >>
+            --reset -p yes
+      - run:
+          name: Remove buildx multiarch container in case it exists
+          command: docker rm -f buildx_buildkit_docker-multiarch0 || continue
+      - run:
+          name: Create docker-multiarch builder
+          command: >
+            docker buildx create --name docker-multiarch
+            --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x
+      - run:
+          name: Inspect & bootstrap docker-multiarch builder
+          command: docker buildx inspect --builder docker-multiarch --bootstrap
+      - run:
+          name: Set docker-multiarch as default builder
+          command: docker buildx use docker-multiarch
       - run:
           name: "Publish Release on Docker Hub"
           command: |
