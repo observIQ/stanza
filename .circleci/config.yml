@@ -6,6 +6,7 @@ orbs:
   gcp-cli: circleci/gcp-cli@1.8.4
   codecov: codecov/codecov@1.0.2
   pr-comment: benjlevesque/pr-comment@0.1.4
+  docker-buildx: sensu/docker-buildx@1.1.1
 
 executors:
   golang:
@@ -46,9 +47,6 @@ jobs:
       - run:
           name: "Configure Docker multi arch builds"
           command: |
-            mkdir -p ~/.docker/cli-plugins
-            curl -fL https://github.com/docker/buildx/releases/download/v0.6.1/buildx-v0.6.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
-            chmod a+x ~/.docker/cli-plugins/docker-buildx
             docker context create tls-environment
             docker buildx create --name stanza --use tls-environment
             docker buildx inspect --bootstrap
@@ -115,9 +113,6 @@ jobs:
       - run:
           name: "Configure Docker multi arch builds"
           command: |
-            mkdir -p ~/.docker/cli-plugins
-            curl -fL https://github.com/docker/buildx/releases/download/v0.6.1/buildx-v0.6.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
-            chmod a+x ~/.docker/cli-plugins/docker-buildx
             docker context create tls-environment
             docker buildx create --name stanza --use tls-environment
             docker buildx inspect --bootstrap
