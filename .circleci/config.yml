@@ -81,7 +81,7 @@ jobs:
           command: docker buildx use docker-multiarch
       - run:
           name: "Build container image"
-          no_output_timeout: 30m
+          no_output_timeout: 45m
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
@@ -177,7 +177,7 @@ jobs:
           command: docker buildx use docker-multiarch
       - run:
           name: "Publish Release on Docker Hub"
-          no_output_timeout: 30m
+          no_output_timeout: 45m
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
