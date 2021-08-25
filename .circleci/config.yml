@@ -53,6 +53,9 @@ jobs:
           name: Enable experimental Docker features
           command: echo 'export DOCKER_CLI_EXPERIMENTAL="enabled"' >> $BASH_ENV
       - run:
+          name: Create Docker context
+          command: docker context create tls-environment
+      - run:
           name: Initialize Docker buildx
           command: docker buildx install
       - run:
@@ -141,6 +144,9 @@ jobs:
       - run:
           name: Enable experimental Docker features
           command: echo 'export DOCKER_CLI_EXPERIMENTAL="enabled"' >> $BASH_ENV
+      - run:
+          name: Create Docker context
+          command: docker context create tls-environment
       - run:
           name: Initialize Docker buildx
           command: docker buildx install
