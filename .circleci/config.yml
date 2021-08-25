@@ -51,9 +51,6 @@ jobs:
             docker buildx create --name stanza --use tls-environment
             docker buildx inspect --bootstrap
       - run:
-          name: Download Plugins Tarball
-          command: curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./artifacts/stanza-plugins.tar.gz
-      - run:
           name: "Build container image"
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
@@ -116,9 +113,6 @@ jobs:
             docker context create tls-environment
             docker buildx create --name stanza --use tls-environment
             docker buildx inspect --bootstrap
-      - run:
-          name: Download Plugins Tarball
-          command: curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./artifacts/stanza-plugins.tar.gz
       - run:
           name: "Publish Release on Docker Hub"
           command: |
@@ -476,6 +470,9 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
+          requires:
+            - build
+            - fetch-plugins
       - fetch-plugins:
           filters:
             branches:
