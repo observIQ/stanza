@@ -59,7 +59,7 @@ jobs:
           name: Start multiarch/qemu-user-static container
           command: >
             docker run --rm --privileged
-            multiarch/qemu-user-static:<< parameters.qemu-user-static-version >>
+            multiarch/qemu-user-static:5.2.0-2
             --reset -p yes
       - run:
           name: Remove buildx multiarch container in case it exists
@@ -148,7 +148,7 @@ jobs:
           name: Start multiarch/qemu-user-static container
           command: >
             docker run --rm --privileged
-            multiarch/qemu-user-static:<< parameters.qemu-user-static-version >>
+            multiarch/qemu-user-static:5.2.0-2
             --reset -p yes
       - run:
           name: Remove buildx multiarch container in case it exists
