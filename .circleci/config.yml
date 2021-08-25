@@ -129,7 +129,8 @@ jobs:
             ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/
 
   publish-docker-release:
-    resource_class: large
+    # building amd64 + arm64 is compute intensive
+    resource_class: 2xlarge
     docker:
       - image: circleci/buildpack-deps:stretch
     steps:
@@ -175,6 +176,7 @@ jobs:
           command: docker buildx use docker-multiarch
       - run:
           name: "Publish Release on Docker Hub"
+          no_output_timeout: 30m
           command: |
             docker_tag=$(echo ${CIRCLE_TAG} | cut -b2- )
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_TOKEN}
