@@ -87,6 +87,7 @@ jobs:
             export DOCKER_CLI_EXPERIMENTAL=enabled
 
             docker buildx build \
+              --progress=plain \
               --platform linux/amd64,linux/arm64 \
               --tag observiq/stanza:latest \
               .
@@ -180,6 +181,7 @@ jobs:
             export DOCKER_CLI_EXPERIMENTAL=enabled
 
             docker buildx build \
+              --progress=plain \
               --platform linux/amd64,linux/arm64 \
               --tag observiq/stanza:${docker_tag} \
               --tag observiq/stanza:latest \
