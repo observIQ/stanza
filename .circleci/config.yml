@@ -305,6 +305,7 @@ jobs:
             go build -o ./bin/logbench github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/
 
       - gcp-cli/install
+          version: "354.0.0"
       - gcp-cli/initialize:
           gcloud-service-key: SERVICE_ACCOUNT
           google-project-id: PROJECT
