@@ -536,9 +536,10 @@ workflows:
               only: /^v\d+\.\d+\.\d+.*/
           requires:
             - build
-            - fetch-plugins
       - fetch-plugins:
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v\d+\.\d+\.\d+.*/
       - wait-for-validation:
