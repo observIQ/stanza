@@ -189,6 +189,7 @@ func (g *GoogleCloudOutput) startFlushing() {
 
 // Stop will flush the google cloud logger and close the underlying connection
 func (g *GoogleCloudOutput) Stop() error {
+	g.Debug("stopping")
 	g.cancel()
 	g.wg.Wait()
 	g.flusher.Stop()
@@ -198,6 +199,7 @@ func (g *GoogleCloudOutput) Stop() error {
 	if g.client != nil {
 		return g.client.Close()
 	}
+	g.Debug("stopped")
 	return nil
 }
 
@@ -208,12 +210,14 @@ func (g *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
 
 // testConnection will attempt to send a test entry to google cloud logging
 func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
+	g.Debug("performing test connection")
 	testEntry := entry.New()
 	testEntry.Record = map[string]interface{}{"message": "Test connection"}
 	req := g.createWriteRequest([]*entry.Entry{testEntry})
 	if _, err := g.client.WriteLogEntries(ctx, req); err != nil {
 		return fmt.Errorf("test connection: %s", err)
 	}
+	g.Debug("test connection successful")
 	return nil
 }
 
@@ -227,8 +231,9 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
+		g.Debugf("processing %d entries", len(entries))
 		g.flusher.Do(func(ctx context.Context) error {
-			return (&splittingSender{g}).Send(ctx, clearer, entries, 0)
+			return (&splittingSender{bruteSender: g}).Send(ctx, clearer, entries, 0)
 		})
 	}
 }
@@ -239,9 +244,14 @@ type bruteSender interface {
 }
 
 func (g *GoogleCloudOutput) Send(ctx context.Context, entries []*entry.Entry) error {
+	g.Debugf("sending %d entries", len(entries))
 	req := g.createWriteRequest(entries)
 	_, err := g.client.WriteLogEntries(ctx, req)
-	return err
+	if err != nil {
+		return err
+	}
+	g.Debugf("successfully sent %d entries")
+	return nil
 }
 
 func (g *GoogleCloudOutput) IsTooLargeError(err error) bool {
@@ -251,6 +261,7 @@ func (g *GoogleCloudOutput) IsTooLargeError(err error) bool {
 
 type splittingSender struct {
 	bruteSender
+	*zap.SugaredLogger
 }
 
 func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entries []*entry.Entry, offset uint) error {
@@ -265,9 +276,12 @@ func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entri
 	}
 
 	if numEnts == 1 {
+		s.Debugw("single entry too large: %s", entries[0], zap.Any("error", err))
 		entries[0].Record = err.Error()
 		return s.Send(ctx, clearer, entries, offset)
 	}
+
+	s.Debugf("entries too large, attempting to split them: %s", err)
 
 	mid := numEnts / 2
 	errLeft := s.Send(ctx, clearer, entries[0:mid], offset)
