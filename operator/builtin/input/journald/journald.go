@@ -137,6 +137,7 @@ func (operator *JournaldInput) Start() error {
 // startPoller kicks off a goroutine that will poll journald periodically,
 // checking if there are new files or new logs in the watched files
 func (operator *JournaldInput) startPoller(ctx context.Context) {
+	operator.Debug("starting poller")
 	go func() {
 		globTicker := time.NewTicker(operator.pollInterval)
 		operator.wg.Add(1)
@@ -147,15 +148,17 @@ func (operator *JournaldInput) startPoller(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				operator.Debug("stopping poller")
 				return
 			case <-globTicker.C:
 			}
 
 			if err := operator.poll(ctx); err != nil {
-				operator.Errorf("error while polling jouranld: %s", err)
+				operator.Errorf("error while polling journald: %s", err)
 			}
 		}
 	}()
+	operator.Debug("poller started")
 }
 
 // poll checks all the watched paths for new entries
@@ -175,21 +178,25 @@ func (operator *JournaldInput) poll(ctx context.Context) error {
 		return fmt.Errorf("failed to get journalctl stdout: %s", err)
 	}
 	defer func() {
+		operator.Debug("stopping polling cycle")
 		if err := stdout.Close(); err != nil {
 			operator.Errorf("error closing stdout stream: %s", err)
 		}
 		if err := cmd.Wait(); err != nil {
 			operator.Errorf("failed to stop journalctl sub process: %s", err)
 		}
+		operator.Debug("polling cycle finished")
 	}()
 
 	err = cmd.Start()
 	if err != nil {
 		return fmt.Errorf("start journalctl with command '%s': %s", cmd, err)
 	}
+	operator.Debugf("started journald with command: %s", cmd)
 
 	stdoutBuf := bufio.NewReader(stdout)
 
+	count := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -203,6 +210,7 @@ func (operator *JournaldInput) poll(ctx context.Context) error {
 				operator.Errorw("Received error reading from journalctl stdout", zap.Error(err))
 			}
 			// return early when at end of journalctl output
+			operator.Debugf("finished processing %d entries from journald", count)
 			return nil
 		}
 
@@ -213,6 +221,7 @@ func (operator *JournaldInput) poll(ctx context.Context) error {
 		}
 		operator.persist.Set(lastReadCursorKey, []byte(cursor))
 		operator.Write(ctx, entry)
+		count++
 	}
 }
 
@@ -268,7 +277,9 @@ func (operator *JournaldInput) syncOffsets() {
 
 // Stop will stop generating logs.
 func (operator *JournaldInput) Stop() error {
+	operator.Debugf("stopping")
 	operator.cancel()
 	operator.wg.Wait()
+	operator.Debugf("stopped")
 	return nil
 }
