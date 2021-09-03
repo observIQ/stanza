@@ -53,10 +53,14 @@ type WriterOperator struct {
 func (w *WriterOperator) Write(ctx context.Context, e *entry.Entry) {
 	for i, operator := range w.OutputOperators {
 		if i == len(w.OutputOperators)-1 {
-			_ = operator.Process(ctx, e)
+			if err := operator.Process(ctx, e); err != nil {
+				w.Errorf("error while writing entry: %s", err)
+			}
 			return
 		}
-		_ = operator.Process(ctx, e.Copy())
+		if err := operator.Process(ctx, e.Copy()); err != nil {
+			w.Errorf("error while writing entry: %s", err)
+		}
 	}
 }
 
