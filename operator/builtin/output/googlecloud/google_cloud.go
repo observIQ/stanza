@@ -252,7 +252,7 @@ func (g *GoogleCloudOutput) Send(ctx context.Context, entries []*entry.Entry) er
 	if err != nil {
 		return err
 	}
-	g.Debugf("successfully sent %d entries")
+	g.Debugf("successfully sent %d entries", len(entries))
 	return nil
 }
 
