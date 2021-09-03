@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.2 - 2021-09-02
+
+### Changed
+
+Added debug logging to journald_input and google_cloud_output operators [PR 413](https://github.com/observIQ/stanza/pull/413)
+
+## 1.2.1 - 2021-08-25
+
+### Changed
+
+This release includes Stanza Plugins 0.0.72, which includes the new [W3C plugin](https://github.com/observIQ/stanza-plugins/pull/307)
+
+### Fixed
+
+- ARM64 container image release process [PR 407](https://github.com/observIQ/stanza/pull/407)
+- CI benchmark failures [PR 408](https://github.com/observIQ/stanza/pull/408)
+
 ## 1.2.0 - 2021-08-24
 
 ### Changed
