@@ -233,7 +233,7 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 
 		g.Debugf("processing %d entries", len(entries))
 		g.flusher.Do(func(ctx context.Context) error {
-			return (&splittingSender{bruteSender: g}).Send(ctx, clearer, entries, 0)
+			return (&splittingSender{g}).Send(ctx, clearer, entries, 0)
 		})
 	}
 }
@@ -241,6 +241,8 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 type bruteSender interface {
 	Send(context.Context, []*entry.Entry) error
 	IsTooLargeError(error) bool
+	Debugf(template string, args ...interface{})
+	Debugw(template string, args ...interface{})
 }
 
 func (g *GoogleCloudOutput) Send(ctx context.Context, entries []*entry.Entry) error {
@@ -261,7 +263,6 @@ func (g *GoogleCloudOutput) IsTooLargeError(err error) bool {
 
 type splittingSender struct {
 	bruteSender
-	*zap.SugaredLogger
 }
 
 func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entries []*entry.Entry, offset uint) error {

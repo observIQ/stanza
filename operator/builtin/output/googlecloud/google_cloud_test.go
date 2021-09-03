@@ -637,6 +637,14 @@ type mockSender struct {
 	splits  int
 }
 
+func (s *mockSender) Debugf(template string, args ...interface{}) {
+	return
+}
+
+func (s *mockSender) Debugw(template string, args ...interface{}) {
+	return
+}
+
 func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
 	totalSize := 0
 	for _, ent := range entries {
