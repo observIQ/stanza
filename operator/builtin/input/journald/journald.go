@@ -58,6 +58,9 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 	// Export logs as JSON
 	args = append(args, "--output=json")
 
+	// Show all fields without encoding or truncation
+	args = append(args, "--all")
+
 	// Give raw json output and then exit the process
 	args = append(args, "--no-pager")
 
@@ -138,11 +141,12 @@ func (operator *JournaldInput) Start() error {
 // checking if there are new files or new logs in the watched files
 func (operator *JournaldInput) startPoller(ctx context.Context) {
 	operator.Debug("starting poller")
-	go func() {
-		globTicker := time.NewTicker(operator.pollInterval)
-		operator.wg.Add(1)
+	operator.wg.Add(1)
 
+	go func() {
 		defer operator.wg.Done()
+
+		globTicker := time.NewTicker(operator.pollInterval)
 		defer globTicker.Stop()
 
 		for {
@@ -163,9 +167,6 @@ func (operator *JournaldInput) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (operator *JournaldInput) poll(ctx context.Context) error {
-	operator.wg.Add(1)
-
-	defer operator.wg.Done()
 	defer operator.syncOffsets()
 
 	// Start from a cursor if there is a saved offset
