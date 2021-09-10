@@ -54,6 +54,7 @@ type InputConfig struct {
 	FingerprintSize         helper.ByteSize        `json:"fingerprint_size,omitempty"            yaml:"fingerprint_size,omitempty"`
 	MaxLogSize              helper.ByteSize        `json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
 	MaxConcurrentFiles      int                    `json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
+	DeleteAfterRead         bool                   `json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
 	LabelRegex              string                 `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
 	Encoding                helper.EncodingConfig  `json:",inline,omitempty"                     yaml:",inline,omitempty"`
 }
@@ -114,6 +115,9 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 	case "beginning":
 		startAtBeginning = true
 	case "end":
+		if c.DeleteAfterRead {
+			return nil, fmt.Errorf("delete_after_read cannot be used with start_at 'end'")
+		}
 		startAtBeginning = false
 	default:
 		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
@@ -173,6 +177,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		FilePathResolvedField: filePathResolvedField,
 		FileNameResolvedField: fileNameResolvedField,
 		startAtBeginning:      startAtBeginning,
+		deleteAfterRead:       c.DeleteAfterRead,
 		queuedMatches:         make([]string, 0),
 		labelRegex:            labelRegex,
 		encoding:              encoding,

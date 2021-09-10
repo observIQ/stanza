@@ -592,6 +592,51 @@ func TestFileBatching(t *testing.T) {
 	require.ElementsMatch(t, expectedMessages, actualMessages)
 }
 
+func TestDeleteAfterRead(t *testing.T) {
+	t.Parallel()
+
+	files := 100
+	linesPerFile := 10
+	totalLines := files * linesPerFile
+
+	expectedMessages := make([]string, 0, totalLines)
+	actualMessages := make([]string, 0, totalLines)
+
+	operator, logReceived, tempDir := newTestFileOperator(t,
+		func(cfg *InputConfig) {
+			cfg.DeleteAfterRead = true
+		},
+		func(out *testutil.FakeOutput) {
+			out.Received = make(chan *entry.Entry, totalLines)
+		},
+	)
+	defer operator.Stop()
+
+	temps := make([]*os.File, 0, files)
+	for i := 0; i < files; i++ {
+		temps = append(temps, openTemp(t, tempDir))
+	}
+
+	// Write logs to each file
+	for i, temp := range temps {
+		for j := 0; j < linesPerFile; j++ {
+			message := fmt.Sprintf("%s %d %d", stringWithLength(100), i, j)
+			temp.WriteString(message + "\n")
+			expectedMessages = append(expectedMessages, message)
+		}
+	}
+
+	operator.poll(context.Background())
+	actualMessages = append(actualMessages, waitForN(t, logReceived, totalLines)...)
+
+	require.ElementsMatch(t, expectedMessages, actualMessages)
+
+	for _, temp := range temps {
+		_, err := os.Stat(temp.Name())
+		require.True(t, os.IsNotExist(err))
+	}
+}
+
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
 
