@@ -174,14 +174,16 @@ OUTER:
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	// Rotate files for next poll
-	if !f.deleteAfterRead {
-		for _, reader := range f.lastPollReaders {
-			reader.Close()
-		}
-
-		f.lastPollReaders = readers
+	if f.deleteAfterRead {
+		// No need to track files, since we only consume them once
+		return
 	}
+
+	for _, reader := range f.lastPollReaders {
+		reader.Close()
+	}
+
+	f.lastPollReaders = readers
 
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
