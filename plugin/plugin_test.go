@@ -578,6 +578,46 @@ parameters:
 pipeline:
 `,
 		},
+		{
+			name:      "hidden",
+			expectErr: true,
+			template: `version: 0.0.0
+title: Test Plugin
+description: This is a test plugin
+parameters:
+  - name: path
+    label: Parameter
+    description: The thing of the thing
+    type: int
+    valid_values: [1, 2, 3]
+  - name: listen_address
+    label: network socket
+	description: Network socket to listen on
+	type: string
+	hidden: true
+pipeline:
+`,
+		},
+		{
+			name:      "advanced-config",
+			expectErr: true,
+			template: `version: 0.0.0
+title: Test Plugin
+description: This is a test plugin
+parameters:
+  - name: path
+    label: Parameter
+    description: The thing of the thing
+    type: int
+    valid_values: [1, 2, 3]
+  - name: listen_address
+    label: network socket
+	description: Network socket to listen on
+	type: string
+	advanced_config: true
+pipeline:
+`,
+		},
 	}
 
 	for _, tc := range testCases {
