@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.4 - 2021-09-10
+
+### Added
+
+- File Input: Added optional delete_after_read parameter [PR 417](https://github.com/observIQ/stanza/pull/417)
+  - Useful for cleaning up files after they are read. Important when reading from a directory that is constantly adding new files and never modifying old files.
+  - Can only be used with `start_at: beginning`
+
+### Changed
+
+- Plugins Version [0.0.75](https://github.com/observIQ/stanza-plugins/releases/tag/v0.0.75)
+
 ## 1.2.3 - 2021-09-08
 
 ### Fixed
