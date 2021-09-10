@@ -624,6 +624,7 @@ func TestDeleteAfterRead(t *testing.T) {
 			temp.WriteString(message + "\n")
 			expectedMessages = append(expectedMessages, message)
 		}
+		require.NoError(t, temp.Close())
 	}
 
 	operator.poll(context.Background())
