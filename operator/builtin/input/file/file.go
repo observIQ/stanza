@@ -42,6 +42,7 @@ type InputOperator struct {
 	lastPollReaders []*Reader
 
 	startAtBeginning bool
+	deleteAfterRead  bool
 
 	fingerprintSize int
 
@@ -161,13 +162,23 @@ OUTER:
 		go func(r *Reader) {
 			defer wg.Done()
 			r.ReadToEnd(ctx)
+			if f.deleteAfterRead {
+				r.Close()
+				if err := os.Remove(r.file.Name()); err != nil {
+					f.Errorf("could not delete %s", r.file.Name())
+				}
+			}
 		}(reader)
 	}
 
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	// Close all files
+	if f.deleteAfterRead {
+		// No need to track files, since we only consume them once
+		return
+	}
+
 	for _, reader := range f.lastPollReaders {
 		reader.Close()
 	}
