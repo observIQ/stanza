@@ -28,8 +28,10 @@ type Parameter struct {
 	ValidValues []string `json:"validValues" yaml:"valid_values"`
 
 	// Must be valid according to Type & ValidValues
-	Default    interface{}                       `json:"default" yaml:"default"`
-	RelevantIf map[string]map[string]interface{} `json:"relevantIf" yaml:"relevant_if"`
+	Default        interface{}                       `json:"default" yaml:"default"`
+	RelevantIf     map[string]map[string]interface{} `json:"relevantIf" yaml:"relevant_if"`
+	Hidden         bool                              `json:"hidden" yaml:"hidden"`
+	AdvancedConfig bool                              `json:"advanced_config" yaml:"advanced_config"`
 }
 
 func (p Parameter) validateValue(value interface{}) error {
