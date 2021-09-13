@@ -42,6 +42,9 @@ type CloudwatchInputConfig struct {
 	// LogGroups is a list of log groups
 	LogGroups []string `json:"log_groups,omitempty" yaml:"log_groups,omitempty"`
 
+	// LogGroupPrefix is used to append to LogGroups and can be used in conjunction with LogGroups
+	LogGroupPrefix string `json:"log_group_prefix,omitempty" yaml:"log_group_prefix,omitempty"`
+
 	// Region is the AWS region to target
 	Region string `json:"region,omitempty" yaml:"region,omitempty"`
 
@@ -61,12 +64,17 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, err
 	}
 
-	if c.LogGroupName == "" && len(c.LogGroups) == 0 {
-		return nil, fmt.Errorf("missing required %s parameter 'log_group_name' or 'log_groups'", operatorName)
+	if c.LogGroupName == "" && len(c.LogGroups) == 0 && c.LogGroupPrefix == "" {
+		// LogGroupName is depricated, do not log it
+		return nil, fmt.Errorf("missing required %s parameter 'log_groups', or log_group_prefix", operatorName)
 	}
 
 	if c.LogGroupName != "" && len(c.LogGroups) > 0 {
 		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_group_name' and 'log_groups' %s parameters", operatorName)
+	}
+
+	if c.LogGroupName != "" && c.LogGroupPrefix != "" {
+		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_group_name' and 'log_group_prefix' %s parameters", operatorName)
 	}
 
 	if len(c.LogStreamNames) > 0 && c.LogStreamNamePrefix != "" {
@@ -103,6 +111,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 	cloudwatchInput := &CloudwatchInput{
 		InputOperator:       inputOperator,
 		logGroups:           c.LogGroups,
+		logGroupPrefix:      c.LogGroupPrefix,
 		logStreamNames:      c.LogStreamNames,
 		logStreamNamePrefix: c.LogStreamNamePrefix,
 		region:              c.Region,
@@ -124,6 +133,7 @@ type CloudwatchInput struct {
 	pollInterval helper.Duration
 
 	logGroups           []string
+	logGroupPrefix      string
 	logStreamNames      []*string
 	logStreamNamePrefix string
 	region              string
@@ -142,6 +152,10 @@ func (c *CloudwatchInput) Start() error {
 
 	if err := c.persist.DB.Load(); err != nil {
 		return err
+	}
+
+	if c.logGroupPrefix != "" {
+		c.detectLogGroups()
 	}
 
 	for _, logGroup := range c.logGroups {
@@ -216,7 +230,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 	if err != nil {
 		c.Errorf("failed to get persist: %s", err)
 	}
-	c.Debugf("Read start time %d from database", st)
+	c.Debugf("Read start time %d for log group %s from database", st, logGroupName)
 	c.startTime = st
 	if c.startAtEnd && c.startTime == 0 {
 		c.startTime = currentTimeInUnixMilliseconds(time.Now())
@@ -351,6 +365,49 @@ func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatch
 	}
 	if err := c.persist.DB.Sync(); err != nil {
 		c.Errorf("Failed to sync offset database: %s", err)
+	}
+}
+
+// detectLogGroups detects log groups from a prefix
+func (c *CloudwatchInput) detectLogGroups() {
+	var session *cloudwatchlogs.CloudWatchLogs
+	s, err := c.sessionBuilder()
+	if err != nil {
+		c.Errorf("failed to configure aws session: %s", err)
+		return
+	}
+	session = s
+
+	limit := int64(50) // Max allowed by aws
+	req := &cloudwatchlogs.DescribeLogGroupsInput{
+		Limit:              &limit,
+		LogGroupNamePrefix: &c.logGroupPrefix,
+	}
+
+	resp, err := session.DescribeLogGroups(req)
+	if err != nil {
+		c.Errorf("failed to detect log group names: %s", err)
+		return
+	}
+
+	for _, logGroup := range resp.LogGroups {
+		g := *logGroup.LogGroupName
+
+		found := false
+		for _, logGroup := range c.logGroups {
+			if logGroup == g {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.Debugf("detected log group '%s'", g)
+			c.logGroups = append(c.logGroups, g)
+		}
+	}
+
+	if resp.NextToken != nil {
+		req.NextToken = resp.NextToken
 	}
 }
 

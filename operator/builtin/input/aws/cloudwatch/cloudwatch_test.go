@@ -214,6 +214,38 @@ func TestBuild(t *testing.T) {
 			}(),
 			true,
 		},
+		{
+			"log-group-prefix",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-group-prefix-and-log-groups",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-group-prefix-and-log-group-name",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				cfg.LogGroupName = "test"
+				return cfg
+			}(),
+			true,
+		},
 	}
 
 	for _, tc := range cases {
