@@ -85,20 +85,6 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' has minimum of 1 second", c.PollInterval.String(), operatorName)
 	}
 
-	// LogGroupName is depricated, add it to list of groups if set
-	if c.LogGroupName != "" {
-		found := false
-		for _, group := range c.LogGroups {
-			if c.LogGroupName == group {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.LogGroups = append(c.LogGroups, c.LogGroupName)
-		}
-	}
-
 	var startAtEnd bool
 	switch c.StartAt {
 	case "beginning":
@@ -111,6 +97,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 
 	cloudwatchInput := &CloudwatchInput{
 		InputOperator:       inputOperator,
+		logGroupName:        c.LogGroupName,
 		logGroups:           c.LogGroups,
 		logGroupPrefix:      c.LogGroupPrefix,
 		logStreamNames:      c.LogStreamNames,
@@ -133,6 +120,7 @@ type CloudwatchInput struct {
 	cancel       context.CancelFunc
 	pollInterval helper.Duration
 
+	logGroupName        string
 	logGroups           []string
 	logGroupPrefix      string
 	logStreamNames      []*string
@@ -155,12 +143,10 @@ func (c *CloudwatchInput) Start() error {
 
 	c.configureSession()
 
+	c.buildLogGroupList()
+
 	if err := c.persist.DB.Load(); err != nil {
 		return err
-	}
-
-	if c.logGroupPrefix != "" {
-		c.detectLogGroups()
 	}
 
 	for _, logGroup := range c.logGroups {
@@ -385,6 +371,26 @@ func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatch
 	}
 	if err := c.persist.DB.Sync(); err != nil {
 		c.Errorf("Failed to sync offset database: %s", err)
+	}
+}
+
+// buildLogGroupList merges log_group_name and log_group_prefix into log_groups
+func (c *CloudwatchInput) buildLogGroupList() {
+	if c.logGroupName != "" {
+		found := false
+		for _, group := range c.logGroups {
+			if c.logGroupName == group {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.logGroups = append(c.logGroups, c.logGroupName)
+		}
+	}
+
+	if c.logGroupPrefix != "" {
+		c.detectLogGroups()
 	}
 }
 
