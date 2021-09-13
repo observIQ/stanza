@@ -36,9 +36,14 @@ func NewCloudwatchConfig(operatorID string) *CloudwatchInputConfig {
 type CloudwatchInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
-	// required
+	// LogGroupName is deprecated but still supported for compatibility with older configurations
 	LogGroupName string `json:"log_group_name,omitempty" yaml:"log_group_name,omitempty"`
-	Region       string `json:"region,omitempty" yaml:"region,omitempty"`
+
+	// LogGroups is a list of log groups
+	LogGroups []string `json:"log_groups,omitempty" yaml:"log_groups,omitempty"`
+
+	// Region is the AWS region to target
+	Region string `json:"region,omitempty" yaml:"region,omitempty"`
 
 	// optional
 	LogStreamNamePrefix string          `json:"log_stream_name_prefix,omitempty" yaml:"log_stream_name_prefix,omitempty"`
@@ -56,12 +61,16 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, err
 	}
 
-	if c.LogGroupName == "" {
-		return nil, fmt.Errorf("missing required %s parameter 'log_group_name'", operatorName)
+	if c.LogGroupName == "" && len(c.LogGroups) == 0 {
+		return nil, fmt.Errorf("missing required %s parameter 'log_group_name' or 'log_groups'", operatorName)
+	}
+
+	if c.LogGroupName != "" && len(c.LogGroups) > 0 {
+		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_group_name' and 'log_groups' %s parameters", operatorName)
 	}
 
 	if len(c.LogStreamNames) > 0 && c.LogStreamNamePrefix != "" {
-		return nil, fmt.Errorf("invalid configuration. Cannot use both 'log_stream_names' and 'log_stream_name_prefix' %s parameters", operatorName)
+		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_stream_names' and 'log_stream_name_prefix' %s parameters", operatorName)
 	}
 
 	if c.Region == "" {
@@ -76,6 +85,11 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' has minimum of 1 second", c.PollInterval.String(), operatorName)
 	}
 
+	// LogGroupName is depricated
+	if c.LogGroupName != "" {
+		c.LogGroups = []string{c.LogGroupName}
+	}
+
 	var startAtEnd bool
 	switch c.StartAt {
 	case "beginning":
@@ -88,7 +102,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 
 	cloudwatchInput := &CloudwatchInput{
 		InputOperator:       inputOperator,
-		logGroupName:        c.LogGroupName,
+		logGroups:           c.LogGroups,
 		logStreamNames:      c.LogStreamNames,
 		logStreamNamePrefix: c.LogStreamNamePrefix,
 		region:              c.Region,
@@ -109,7 +123,7 @@ type CloudwatchInput struct {
 	cancel       context.CancelFunc
 	pollInterval helper.Duration
 
-	logGroupName        string
+	logGroups           []string
 	logStreamNames      []*string
 	logStreamNamePrefix string
 	region              string
@@ -129,8 +143,11 @@ func (c *CloudwatchInput) Start() error {
 	if err := c.persist.DB.Load(); err != nil {
 		return err
 	}
-	c.wg.Add(1)
-	go c.pollEvents(ctx)
+
+	for _, logGroup := range c.logGroups {
+		c.wg.Add(1)
+		go c.pollEvents(ctx, logGroup)
+	}
 	return nil
 }
 
@@ -143,8 +160,8 @@ func (c *CloudwatchInput) Stop() error {
 }
 
 // pollEvents gets events from AWS Cloudwatch Logs every poll interval.
-func (c *CloudwatchInput) pollEvents(ctx context.Context) {
-	c.Infof("Started polling AWS Cloudwatch Logs group '%s' using poll interval of '%s'", c.logGroupName, c.pollInterval)
+func (c *CloudwatchInput) pollEvents(ctx context.Context, logGroupName string) {
+	c.Infof("Started polling AWS Cloudwatch Logs group '%s' using poll interval of '%s'", logGroupName, c.pollInterval)
 	defer c.wg.Done()
 
 	// Create session to use when connecting to AWS Cloudwatch Logs
@@ -154,7 +171,7 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) {
 	}
 
 	// Get events immediately when operator starts then use poll_interval duration.
-	err := c.getEvents(ctx, svc)
+	err := c.getEvents(ctx, svc, logGroupName)
 	if err != nil {
 		c.Errorf("failed to get events: %s", err)
 	}
@@ -165,7 +182,7 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(c.pollInterval.Duration):
-			err := c.getEvents(ctx, svc)
+			err := c.getEvents(ctx, svc, logGroupName)
 			if err != nil {
 				c.Errorf("failed to get events: %s", err)
 			}
@@ -193,9 +210,9 @@ func (c *CloudwatchInput) sessionBuilder() (*cloudwatchlogs.CloudWatchLogs, erro
 }
 
 // getEvents uses a session to get events from AWS Cloudwatch Logs
-func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs) error {
+func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs, logGroupName string) error {
 	nextToken := ""
-	st, err := c.persist.Read(c.logGroupName)
+	st, err := c.persist.Read(logGroupName)
 	if err != nil {
 		c.Errorf("failed to get persist: %s", err)
 	}
@@ -205,13 +222,13 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 		c.startTime = currentTimeInUnixMilliseconds(time.Now())
 		c.Debugf("Setting start time to current time: %d", c.startTime)
 	}
-	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", c.logGroupName, fromUnixMilli(c.startTime))
+	c.Debugf("Getting events from AWS Cloudwatch Logs groupname '%s' using start time of %s", logGroupName, fromUnixMilli(c.startTime))
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			input := c.filterLogEventsInputBuilder(nextToken)
+			input := c.filterLogEventsInputBuilder(nextToken, logGroupName)
 
 			resp, err := svc.FilterLogEvents(&input)
 			if err != nil {
@@ -222,7 +239,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 				break
 			}
 
-			c.handleEvents(ctx, resp.Events)
+			c.handleEvents(ctx, resp.Events, logGroupName)
 
 			if resp.NextToken == nil {
 				break
@@ -234,8 +251,8 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 
 // filterLogEventsInputBuilder builds AWS Cloudwatch Logs Filter Log Events Input based on provided values
 // and returns completed input.
-func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwatchlogs.FilterLogEventsInput {
-	logGroupNamePtr := aws.String(c.logGroupName)
+func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string, logGroupName string) cloudwatchlogs.FilterLogEventsInput {
+	logGroupNamePtr := aws.String(logGroupName)
 	limit := aws.Int64(c.eventLimit)
 	startTime := aws.Int64(c.startTime)
 
@@ -301,7 +318,7 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string) cloudwat
 }
 
 // handleEvent is the handler for a AWS Cloudwatch Logs Filtered Event.
-func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent) {
+func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent, logGroupName string) {
 	e := map[string]interface{}{
 		"message":        event.Message,
 		"ingestion_time": event.IngestionTime,
@@ -311,7 +328,7 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 		c.Errorf("Failed to create new entry from record: %s", err)
 	}
 
-	entry.AddResourceKey("log_group", c.logGroupName)
+	entry.AddResourceKey("log_group", logGroupName)
 	entry.AddResourceKey("region", c.region)
 	entry.AddResourceKey("log_stream", *event.LogStreamName)
 	entry.AddResourceKey("event_id", *event.EventId)
@@ -324,13 +341,13 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	if *event.IngestionTime > c.startTime {
 		c.startTime = *event.IngestionTime
 		c.Debugf("Writing start time %d to database", *event.IngestionTime)
-		c.persist.Write(c.logGroupName, c.startTime)
+		c.persist.Write(logGroupName, c.startTime)
 	}
 }
 
-func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent) {
+func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent, logGroupName string) {
 	for _, event := range events {
-		c.handleEvent(ctx, event)
+		c.handleEvent(ctx, event, logGroupName)
 	}
 	if err := c.persist.DB.Sync(); err != nil {
 		c.Errorf("Failed to sync offset database: %s", err)
