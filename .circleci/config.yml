@@ -10,7 +10,7 @@ orbs:
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.16
+      - image: circleci/golang:1.17
   mac:
     macos:
       xcode: 11.4.1
@@ -212,10 +212,10 @@ jobs:
       - checkout
       - run:
           name: Download golang
-          command: curl -SL https://golang.org/dl/go1.16.3.linux-arm64.tar.gz -O
+          command: curl -SL https://golang.org/dl/go1.17.1.linux-arm64.tar.gz -O
       - run:
           name: Extract golang
-          command: tar -C ~ -xzf go1.16.3.linux-arm64.tar.gz
+          command: tar -C ~ -xzf go1.17.1.linux-arm64.tar.gz
       - run:
           name: Add Golang to Path
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
@@ -234,10 +234,10 @@ jobs:
       - checkout
       - run:
           name: Download golang
-          command: curl -SL https://golang.org/dl/go1.16.3.darwin-amd64.tar.gz -O
+          command: curl -SL https://golang.org/dl/go1.17.1.darwin-amd64.tar.gz -O
       - run:
           name: Extract golang
-          command: tar -C ~ -xzf go1.16.3.darwin-amd64.tar.gz
+          command: tar -C ~ -xzf go1.17.1.darwin-amd64.tar.gz
       - run:
           name: Add Golang to Path
           command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
@@ -253,7 +253,7 @@ jobs:
       - run:
           name: Upgrade Golang
           shell: powershell.exe
-          command: choco upgrade golang --version=1.16
+          command: choco upgrade golang --version=1.17
       - run:
           name: Install GCC
           shell: powershell.exe
@@ -295,7 +295,7 @@ jobs:
         default: 128GB
 
     docker:
-      - image: circleci/golang:1.16
+      - image: circleci/golang:1.17
     resource_class: small
 
     steps:
@@ -404,7 +404,7 @@ jobs:
 
   report-benchmark:
     docker:
-      - image: circleci/golang:1.16
+      - image: circleci/golang:1.17
     resource_class: small
     steps:
       - checkout
