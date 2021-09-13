@@ -143,12 +143,16 @@ type CloudwatchInput struct {
 	startTime           int64
 	persist             Persister
 	wg                  sync.WaitGroup
+
+	session *cloudwatchlogs.CloudWatchLogs
 }
 
 // Start will start generating log entries.
 func (c *CloudwatchInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
+
+	c.configureSession()
 
 	if err := c.persist.DB.Load(); err != nil {
 		return err
@@ -178,14 +182,8 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context, logGroupName string) {
 	c.Infof("Started polling AWS Cloudwatch Logs group '%s' using poll interval of '%s'", logGroupName, c.pollInterval)
 	defer c.wg.Done()
 
-	// Create session to use when connecting to AWS Cloudwatch Logs
-	svc, sessionErr := c.sessionBuilder()
-	if sessionErr != nil {
-		c.Errorf("failed to create new session: %s", sessionErr)
-	}
-
 	// Get events immediately when operator starts then use poll_interval duration.
-	err := c.getEvents(ctx, svc, logGroupName)
+	err := c.getEvents(ctx, logGroupName)
 	if err != nil {
 		c.Errorf("failed to get events: %s", err)
 	}
@@ -196,12 +194,33 @@ func (c *CloudwatchInput) pollEvents(ctx context.Context, logGroupName string) {
 		case <-ctx.Done():
 			return
 		case <-time.After(c.pollInterval.Duration):
-			err := c.getEvents(ctx, svc, logGroupName)
+			err := c.getEvents(ctx, logGroupName)
 			if err != nil {
 				c.Errorf("failed to get events: %s", err)
 			}
 		}
 	}
+}
+
+// configureSession configures access to AWS
+func (c *CloudwatchInput) configureSession() error {
+	var lastError error
+
+	sum := 0
+	for i := 1; i < 5; i++ {
+		s, err := c.sessionBuilder()
+		if err != nil {
+			c.Errorf("failed to configure AWS session: %s", err)
+			lastError = err
+			sum += i
+			continue
+		}
+
+		c.session = s
+		return nil
+	}
+
+	return lastError
 }
 
 // sessionBuilder builds a session for AWS Cloudwatch Logs
@@ -224,7 +243,7 @@ func (c *CloudwatchInput) sessionBuilder() (*cloudwatchlogs.CloudWatchLogs, erro
 }
 
 // getEvents uses a session to get events from AWS Cloudwatch Logs
-func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.CloudWatchLogs, logGroupName string) error {
+func (c *CloudwatchInput) getEvents(ctx context.Context, logGroupName string) error {
 	nextToken := ""
 	st, err := c.persist.Read(logGroupName)
 	if err != nil {
@@ -244,7 +263,7 @@ func (c *CloudwatchInput) getEvents(ctx context.Context, svc *cloudwatchlogs.Clo
 		default:
 			input := c.filterLogEventsInputBuilder(nextToken, logGroupName)
 
-			resp, err := svc.FilterLogEvents(&input)
+			resp, err := c.session.FilterLogEvents(&input)
 			if err != nil {
 				return err
 			}
@@ -370,21 +389,13 @@ func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatch
 
 // detectLogGroups detects log groups from a prefix
 func (c *CloudwatchInput) detectLogGroups() {
-	var session *cloudwatchlogs.CloudWatchLogs
-	s, err := c.sessionBuilder()
-	if err != nil {
-		c.Errorf("failed to configure aws session: %s", err)
-		return
-	}
-	session = s
-
 	limit := int64(50) // Max allowed by aws
 	req := &cloudwatchlogs.DescribeLogGroupsInput{
 		Limit:              &limit,
 		LogGroupNamePrefix: &c.logGroupPrefix,
 	}
 
-	resp, err := session.DescribeLogGroups(req)
+	resp, err := c.session.DescribeLogGroups(req)
 	if err != nil {
 		c.Errorf("failed to detect log group names: %s", err)
 		return
