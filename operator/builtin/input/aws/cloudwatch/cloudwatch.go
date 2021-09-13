@@ -141,7 +141,9 @@ func (c *CloudwatchInput) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
 
-	c.configureSession()
+	if err := c.configureSession(); err != nil {
+		return fmt.Errorf("failed to configure AWS SDK: %s", err)
+	}
 
 	c.buildLogGroupList()
 
