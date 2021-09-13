@@ -550,7 +550,32 @@ func TestBuild(t *testing.T) {
 				require.Equal(t, f.FilePathField, entry.NewNilField())
 				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
+				require.Equal(t, f.MaxConcurrentFiles, defaultMaxConcurrentFiles)
 			},
+		},
+		{
+			"MaxConcurrentFilesCustom",
+			func(f *InputConfig) {
+				f.MaxConcurrentFiles = 100
+				return
+			},
+			require.NoError,
+			func(t *testing.T, f *InputOperator) {
+				require.Equal(t, f.OutputOperators[0], fakeOutput)
+				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
+				require.Equal(t, f.FilePathField, entry.NewNilField())
+				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
+				require.Equal(t, f.PollInterval, 10*time.Millisecond)
+				require.Equal(t, f.MaxConcurrentFiles, 100)
+			},
+		},
+		{
+			"MaxConcurrentFilesInvalid",
+			func(f *InputConfig) {
+				f.MaxConcurrentFiles = 1 // must be at least 2
+			},
+			require.Error,
+			nil,
 		},
 		{
 			"BadIncludeGlob",
