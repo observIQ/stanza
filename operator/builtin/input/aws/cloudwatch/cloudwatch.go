@@ -69,14 +69,6 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("missing required %s parameter 'log_groups', or log_group_prefix", operatorName)
 	}
 
-	if c.LogGroupName != "" && len(c.LogGroups) > 0 {
-		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_group_name' and 'log_groups' %s parameters", operatorName)
-	}
-
-	if c.LogGroupName != "" && c.LogGroupPrefix != "" {
-		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_group_name' and 'log_group_prefix' %s parameters", operatorName)
-	}
-
 	if len(c.LogStreamNames) > 0 && c.LogStreamNamePrefix != "" {
 		return nil, fmt.Errorf("invalid configuration, cannot use both 'log_stream_names' and 'log_stream_name_prefix' %s parameters", operatorName)
 	}
@@ -93,9 +85,18 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("invalid value '%s' for %s parameter 'poll_interval'. Parameter 'poll_interval' has minimum of 1 second", c.PollInterval.String(), operatorName)
 	}
 
-	// LogGroupName is depricated
+	// LogGroupName is depricated, add it to list of groups if set
 	if c.LogGroupName != "" {
-		c.LogGroups = []string{c.LogGroupName}
+		found := false
+		for _, group := range c.LogGroups {
+			if c.LogGroupName == group {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.LogGroups = append(c.LogGroups, c.LogGroupName)
+		}
 	}
 
 	var startAtEnd bool
