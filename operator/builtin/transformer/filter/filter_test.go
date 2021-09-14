@@ -50,11 +50,11 @@ func TestFilterOperator(t *testing.T) {
 				Record: map[string]interface{}{
 					"message": "test_message",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"key": "value",
 				},
 			},
-			`$labels.key == "value"`,
+			`$attributes.key == "value"`,
 			true,
 		},
 		{
@@ -64,7 +64,7 @@ func TestFilterOperator(t *testing.T) {
 					"message": "test_message",
 				},
 			},
-			`$labels.key == "value"`,
+			`$attributes.key == "value"`,
 			false,
 		},
 		{

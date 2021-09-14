@@ -230,7 +230,7 @@ Entry (from file_input):
 ```json
 {
   "timestamp": "",
-  "labels": {
+  "attributes": {
     "fields": "id,severity,message"
   },
   "record": {
@@ -245,7 +245,7 @@ Entry (from file_input):
 ```json
 {
   "timestamp": "",
-  "labels": {
+  "attributes": {
     "fields": "id,severity,message"
   },
   "record": {

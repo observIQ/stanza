@@ -97,21 +97,21 @@ func udpInputLabelsTest(input []byte, expected []string) func(t *testing.T) {
 		for _, expectedRecord := range expected {
 			select {
 			case entry := <-entryChan:
-				expectedLabels := map[string]string{
+				expectedAttributes := map[string]string{
 					"net.transport": "IP.UDP",
 				}
 				// LocalAddr for udpInput.connection is a server address
 				if addr, ok := udpInput.connection.LocalAddr().(*net.UDPAddr); ok {
-					expectedLabels["net.host.ip"] = addr.IP.String()
-					expectedLabels["net.host.port"] = strconv.FormatInt(int64(addr.Port), 10)
+					expectedAttributes["net.host.ip"] = addr.IP.String()
+					expectedAttributes["net.host.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
 				// LocalAddr for conn is a client (peer) address
 				if addr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-					expectedLabels["net.peer.ip"] = addr.IP.String()
-					expectedLabels["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
+					expectedAttributes["net.peer.ip"] = addr.IP.String()
+					expectedAttributes["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
 				require.Equal(t, expectedRecord, entry.Record)
-				require.Equal(t, expectedLabels, entry.Labels)
+				require.Equal(t, expectedAttributes, entry.Attributes)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
 			}

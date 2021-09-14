@@ -98,7 +98,7 @@ func (l *LogAnalyticsInput) parse(event azhub.Event, records map[string]interfac
 	}
 
 	// Add remaining records to record.<azure_log_analytics_table> map
-	return l.setField(e, e.Labels["azure_log_analytics_table"], records)
+	return l.setField(e, e.Attributes["azure_log_analytics_table"], records)
 }
 
 // setType sets the label 'azure_log_analytics_table'

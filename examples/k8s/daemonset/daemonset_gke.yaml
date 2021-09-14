@@ -59,11 +59,11 @@ metadata:
   namespace: default
 spec:
   selector:
-    matchLabels:
+    matchAttributes:
       name: stanza
   template:
     metadata:
-      labels:
+      attributes:
         name: stanza
     spec:
       serviceAccountName: stanza-metadata

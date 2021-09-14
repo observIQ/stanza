@@ -22,7 +22,7 @@ func TestLabeler(t *testing.T) {
 			"AddLabelLiteral",
 			func() LabelerConfig {
 				cfg := NewLabelerConfig()
-				cfg.Labels = map[string]ExprStringConfig{
+				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": "value1",
 				}
 				return cfg
@@ -30,7 +30,7 @@ func TestLabeler(t *testing.T) {
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"label1": "value1",
 				}
 				return e
@@ -40,7 +40,7 @@ func TestLabeler(t *testing.T) {
 			"AddLabelExpr",
 			func() LabelerConfig {
 				cfg := NewLabelerConfig()
-				cfg.Labels = map[string]ExprStringConfig{
+				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": `EXPR("start" + "end")`,
 				}
 				return cfg
@@ -48,7 +48,7 @@ func TestLabeler(t *testing.T) {
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"label1": "startend",
 				}
 				return e
@@ -58,7 +58,7 @@ func TestLabeler(t *testing.T) {
 			"AddLabelEnv",
 			func() LabelerConfig {
 				cfg := NewLabelerConfig()
-				cfg.Labels = map[string]ExprStringConfig{
+				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
 				return cfg
@@ -66,7 +66,7 @@ func TestLabeler(t *testing.T) {
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"label1": "foo",
 				}
 				return e
@@ -81,7 +81,7 @@ func TestLabeler(t *testing.T) {
 
 			err = labeler.Label(tc.input)
 			require.NoError(t, err)
-			require.Equal(t, tc.expected.Labels, tc.input.Labels)
+			require.Equal(t, tc.expected.Attributes, tc.input.Attributes)
 		})
 	}
 }

@@ -147,19 +147,19 @@ func tcpInputLabelsTest(input []byte, expected []string) func(t *testing.T) {
 		for _, expectedMessage := range expected {
 			select {
 			case entry := <-entryChan:
-				expectedLabels := map[string]string{
+				expectedAttributes := map[string]string{
 					"net.transport": "IP.TCP",
 				}
 				if addr, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
-					expectedLabels["net.host.ip"] = addr.IP.String()
-					expectedLabels["net.host.port"] = strconv.FormatInt(int64(addr.Port), 10)
+					expectedAttributes["net.host.ip"] = addr.IP.String()
+					expectedAttributes["net.host.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
 				if addr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
-					expectedLabels["net.peer.ip"] = addr.IP.String()
-					expectedLabels["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
+					expectedAttributes["net.peer.ip"] = addr.IP.String()
+					expectedAttributes["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
 				require.Equal(t, expectedMessage, entry.Record)
-				require.Equal(t, expectedLabels, entry.Labels)
+				require.Equal(t, expectedAttributes, entry.Attributes)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
 			}

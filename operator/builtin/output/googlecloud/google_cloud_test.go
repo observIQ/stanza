@@ -122,7 +122,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"label1": "value1",
 				},
 				Record: map[string]interface{}{
@@ -472,7 +472,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			&entry.Entry{
 				Timestamp: t,
 				Record:    "test",
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"test": "val",
 				},
 			},

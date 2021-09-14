@@ -102,7 +102,7 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 	})
 
 	expected := entry.Entry{
-		Labels: map[string]string{
+		Attributes: map[string]string{
 			"k8s-pod/podlabel1":                 "podlab1",
 			"k8s-ns/label1":                     "lab1",
 			"k8s-pod-annotation/podannotation1": "podann1",
@@ -118,7 +118,7 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 
 	mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		entry := args.Get(1).(*entry.Entry)
-		require.Equal(t, expected.Labels, entry.Labels)
+		require.Equal(t, expected.Attributes, entry.Attributes)
 		require.Equal(t, expected.Resource, entry.Resource)
 	}).Return(nil)
 

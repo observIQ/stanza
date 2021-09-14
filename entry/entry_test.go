@@ -125,7 +125,7 @@ func TestCopy(t *testing.T) {
 	entry.SeverityText = "ok"
 	entry.Timestamp = time.Time{}
 	entry.Record = "test"
-	entry.Labels = map[string]string{"label": "value"}
+	entry.Attributes = map[string]string{"label": "value"}
 	entry.Resource = map[string]string{"resource": "value"}
 	copy := entry.Copy()
 
@@ -133,13 +133,13 @@ func TestCopy(t *testing.T) {
 	entry.SeverityText = "1"
 	entry.Timestamp = time.Now()
 	entry.Record = "new"
-	entry.Labels = map[string]string{"label": "new value"}
+	entry.Attributes = map[string]string{"label": "new value"}
 	entry.Resource = map[string]string{"resource": "new value"}
 
 	require.Equal(t, time.Time{}, copy.Timestamp)
 	require.Equal(t, Severity(0), copy.Severity)
 	require.Equal(t, "ok", copy.SeverityText)
-	require.Equal(t, map[string]string{"label": "value"}, copy.Labels)
+	require.Equal(t, map[string]string{"label": "value"}, copy.Attributes)
 	require.Equal(t, map[string]string{"resource": "value"}, copy.Resource)
 	require.Equal(t, "test", copy.Record)
 }
@@ -171,13 +171,13 @@ func TestFieldFromString(t *testing.T) {
 		},
 		{
 			"SimpleLabel",
-			"$labels.test",
+			"$attributes.test",
 			Field{LabelField{"test"}},
 			false,
 		},
 		{
-			"LabelsTooManyFields",
-			"$labels.test.bar",
+			"AttributesTooManyFields",
+			"$attributes.test.bar",
 			Field{},
 			true,
 		},
@@ -200,7 +200,7 @@ func TestAddLabel(t *testing.T) {
 	entry := Entry{}
 	entry.AddLabel("label", "value")
 	expected := map[string]string{"label": "value"}
-	require.Equal(t, expected, entry.Labels)
+	require.Equal(t, expected, entry.Attributes)
 }
 
 func TestAddResourceKey(t *testing.T) {

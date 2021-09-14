@@ -72,7 +72,7 @@ func TestMoveProcess(t *testing.T) {
 						"nestedkey": "nestedval",
 					},
 				}
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 		},
@@ -87,7 +87,7 @@ func TestMoveProcess(t *testing.T) {
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 			func() *entry.Entry {
@@ -99,7 +99,7 @@ func TestMoveProcess(t *testing.T) {
 						"nestedkey": "nestedval",
 					},
 				}
-				e.Labels = map[string]string{}
+				e.Attributes = map[string]string{}
 				return e
 			},
 		},
@@ -114,13 +114,13 @@ func TestMoveProcess(t *testing.T) {
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
 				e.Resource = map[string]string{"new": "val"}
-				e.Labels = map[string]string{}
+				e.Attributes = map[string]string{}
 				return e
 			},
 		},
@@ -141,7 +141,7 @@ func TestMoveProcess(t *testing.T) {
 			func() *entry.Entry {
 				e := newTestEntry()
 				e.Resource = map[string]string{}
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 		},

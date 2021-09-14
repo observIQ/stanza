@@ -9,7 +9,7 @@ import (
 func TestLabelFieldGet(t *testing.T) {
 	cases := []struct {
 		name       string
-		labels     map[string]string
+		attributes map[string]string
 		field      Field
 		expected   interface{}
 		expectedOK bool
@@ -44,7 +44,7 @@ func TestLabelFieldGet(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			entry := New()
-			entry.Labels = tc.labels
+			entry.Attributes = tc.attributes
 			val, ok := entry.Get(tc.field)
 			require.Equal(t, tc.expectedOK, ok)
 			require.Equal(t, tc.expected, val)
@@ -54,12 +54,12 @@ func TestLabelFieldGet(t *testing.T) {
 
 func TestLabelFieldDelete(t *testing.T) {
 	cases := []struct {
-		name           string
-		labels         map[string]string
-		field          Field
-		expected       interface{}
-		expectedOK     bool
-		expectedLabels map[string]string
+		name               string
+		attributes         map[string]string
+		field              Field
+		expected           interface{}
+		expectedOK         bool
+		expectedAttributes map[string]string
 	}{
 		{
 			"Simple",
@@ -96,7 +96,7 @@ func TestLabelFieldDelete(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			entry := New()
-			entry.Labels = tc.labels
+			entry.Attributes = tc.attributes
 			val, ok := entry.Delete(tc.field)
 			require.Equal(t, tc.expectedOK, ok)
 			require.Equal(t, tc.expected, val)
@@ -107,7 +107,7 @@ func TestLabelFieldDelete(t *testing.T) {
 func TestLabelFieldSet(t *testing.T) {
 	cases := []struct {
 		name        string
-		labels      map[string]string
+		attributes  map[string]string
 		field       Field
 		val         interface{}
 		expected    map[string]string
@@ -160,14 +160,14 @@ func TestLabelFieldSet(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			entry := New()
-			entry.Labels = tc.labels
+			entry.Attributes = tc.attributes
 			err := entry.Set(tc.field, tc.val)
 			if tc.expectedErr {
 				require.Error(t, err)
 				return
 			}
 
-			require.Equal(t, tc.expected, entry.Labels)
+			require.Equal(t, tc.expected, entry.Attributes)
 		})
 	}
 }
@@ -181,12 +181,12 @@ func TestLabelFieldString(t *testing.T) {
 		{
 			"Simple",
 			LabelField{"foo"},
-			"$labels.foo",
+			"$attributes.foo",
 		},
 		{
 			"Empty",
 			LabelField{""},
-			"$labels.",
+			"$attributes.",
 		},
 	}
 

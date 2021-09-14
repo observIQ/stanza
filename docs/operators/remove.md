@@ -30,7 +30,7 @@ Remove a value from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": {
     "key1": "val1",
   }
@@ -43,7 +43,7 @@ Remove a value from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": { }
 }
 ```
@@ -68,7 +68,7 @@ Remove an object from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": {
     "object": {
       "nestedkey": "nestedval"
@@ -84,7 +84,7 @@ Remove an object from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": { 
      "key": "val"
   }
@@ -97,10 +97,10 @@ Remove an object from the record
 
 <hr>
 
-Remove a value from labels
+Remove a value from attributes
 ```yaml
 - type: remove 
-  field: $labels.otherkey
+  field: $attributes.otherkey
 ```
 
 <table>
@@ -111,7 +111,7 @@ Remove a value from labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
     "otherkey": "val"
   },  
   "record": {
@@ -126,7 +126,7 @@ Remove a value from labels
 ```json
 {
   "resource": { },
-  "labels": {  },  
+  "attributes": {  },  
   "record": { 
     "key": "val"
   }
@@ -156,7 +156,7 @@ Remove a value from resource
   "resource": { 
     "otherkey": "val"
   },
-  "labels": {  },  
+  "attributes": {  },  
   "record": {
     "key": "val"
   },
@@ -169,7 +169,7 @@ Remove a value from resource
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": { 
     "key": "val"
   }

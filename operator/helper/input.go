@@ -62,7 +62,7 @@ type InputOperator struct {
 	WriteTo entry.Field
 }
 
-// NewEntry will create a new entry using the `write_to`, `labels`, and `resource` configuration.
+// NewEntry will create a new entry using the `write_to`, `attributes`, and `resource` configuration.
 func (i *InputOperator) NewEntry(value interface{}) (*entry.Entry, error) {
 	entry := entry.New()
 	if err := entry.Set(i.WriteTo, value); err != nil {
@@ -70,7 +70,7 @@ func (i *InputOperator) NewEntry(value interface{}) (*entry.Entry, error) {
 	}
 
 	if err := i.Label(entry); err != nil {
-		return nil, errors.Wrap(err, "add labels to entry")
+		return nil, errors.Wrap(err, "add attributes to entry")
 	}
 
 	if err := i.Identify(entry); err != nil {

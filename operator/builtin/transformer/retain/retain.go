@@ -62,7 +62,7 @@ func (c RetainOperatorConfig) Build(context operator.BuildContext) ([]operator.O
 			retainOp.AllResourceFields = true
 			continue
 		}
-		if strings.HasPrefix(typeCheck, "$labels") {
+		if strings.HasPrefix(typeCheck, "$attributes") {
 			retainOp.AllAttributeFields = true
 			continue
 		}
@@ -94,7 +94,7 @@ func (p *RetainOperator) Transform(e *entry.Entry) error {
 		newEntry.Resource = e.Resource
 	}
 	if !p.AllAttributeFields {
-		newEntry.Labels = e.Labels
+		newEntry.Attributes = e.Attributes
 	}
 	if !p.AllBodyFields {
 		newEntry.Record = e.Record

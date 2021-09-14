@@ -169,12 +169,12 @@ func TestFieldMarshalYAML(t *testing.T) {
 		{
 			"LabelField",
 			NewLabelField("test1"),
-			"$labels.test1\n",
+			"$attributes.test1\n",
 		},
 		{
 			"LabelFieldWithDots",
 			NewLabelField("test.1"),
-			"$labels['test.1']\n",
+			"$attributes['test.1']\n",
 		},
 		{
 			"ResourceField",
