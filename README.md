@@ -10,8 +10,7 @@
 # Stanza is moving to OpenTelemetry
 
 Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) project and will be intergrated into the [OpenTelemetry collector](https://github.com/open-telemetry/opentelemetry-collector). 
-
-This repository is in the process of being deprecated. Development will proceed as part of the [OpenTelemetry Log Collection](https://github.com/open-telemetry/opentelemetry-log-collection) repository.
+  
 
 # About Stanza
 
