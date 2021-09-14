@@ -1,4 +1,4 @@
-FROM golang:1.16 as stage
+FROM golang:1.17 as stage
 
 ARG plugins_url="https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.zip"
 # arm cross builds do not have these symlinks in palce

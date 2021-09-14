@@ -23,6 +23,8 @@ package tools
 
 import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench"
 	_ "github.com/uw-labs/lichen"
 	_ "github.com/vektra/mockery"
+	_ "golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment"
 )
