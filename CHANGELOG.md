@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Upgrade from Go 1.16 to 1.17
+- AWS Cloudwatch Input: Added abilty to monitor more than one log group [PR 420](https://github.com/observIQ/stanza/pull/420)
 
 ## 1.2.5 - 2021-09-13
 
