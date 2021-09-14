@@ -308,8 +308,10 @@ jobs:
           command: (cd ./cmd/stanza && go build -v -o ../../bin/stanza ./)
       - run:
           name: Build Log Bench
-          command: GOPROXY=direct go get github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/ &&
-            go build -o ./bin/logbench github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench/
+          command: |
+            make install-tools
+            mkdir -p ./bin
+            cp $(which logbench) ./bin/logbench
 
       - gcp-cli/install:
           version: "354.0.0"
