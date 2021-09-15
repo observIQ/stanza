@@ -9,12 +9,7 @@ import (
 // https://cloud.google.com/logging/docs/api/v2/resource-list#resource-types
 
 func getResource(e *entry.Entry) *mrpb.MonitoredResource {
-	rt := detectResourceType(e)
-	if rt == "" {
-		return nil
-	}
-
-	switch rt {
+	switch detectResourceType(e) {
 	case "k8s_pod":
 		return k8sPodResource(e)
 	case "k8s_container":
@@ -23,11 +18,9 @@ func getResource(e *entry.Entry) *mrpb.MonitoredResource {
 		return k8sNodeResource(e)
 	case "k8s_cluster":
 		return k8sClusterResource(e)
-	case "generic_node":
+	default:
 		return genericNodeResource(e)
 	}
-
-	return nil
 }
 
 func detectResourceType(e *entry.Entry) string {
