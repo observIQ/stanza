@@ -11,7 +11,7 @@ The `tcp_input` operator listens for logs on one or more TCP connections. The op
 | `max_buffer_size` | `1024kib`        | Maximum size of buffer that may be allocated while reading TCP input              |
 | `listen_address`  | required         | A listen address of the form `<ip>:<port>`                                        |
 | `tls`             |                  | An optional `TLS` configuration (see the TLS configuration section)               |
-| `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry |
+| `write_to`        | $                | The body [field](/docs/types/field.md) written to when creating a new log entry |
 | `labels`          | {}               | A map of `key: value` labels to add to the entry's labels                         |
 | `resource`        | {}               | A map of `key: value` labels to add to the entry's resource                       |
 | `add_labels`      | false            | Adds `net.transport`, `net.peer.ip`, `net.peer.port`, `net.host.ip` and `net.host.port` labels |
@@ -50,11 +50,11 @@ Generated entries:
 ```json
 {
   "timestamp": "2020-04-30T12:10:17.656726-04:00",
-  "record": "message1"
+  "body": "message1"
 },
 {
   "timestamp": "2020-04-30T12:10:17.657143-04:00",
-  "record": "message2"
+  "body": "message2"
 }
 ```
 
@@ -84,7 +84,7 @@ Generated entry:
 {
   "timestamp": "2021-08-20T19:53:56.905051345-04:00",
   "severity": 0,
-  "record": "sample message"
+  "body": "sample message"
 }
 ```
 
@@ -113,7 +113,7 @@ Generated entry:
 {
   "timestamp": "2021-08-20T19:53:56.905051345-04:00",
   "severity": 0,
-  "record": "sample message"
+  "body": "sample message"
 }
 ```
 

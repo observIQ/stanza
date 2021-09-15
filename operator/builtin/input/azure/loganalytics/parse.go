@@ -153,7 +153,7 @@ func (l *LogAnalyticsInput) setLabel(e *entry.Entry, key string, value interface
 }
 
 func (l *LogAnalyticsInput) setField(e *entry.Entry, key string, value interface{}) error {
-	r := entry.RecordField{
+	r := entry.BodyField{
 		Keys: []string{key},
 	}
 	return r.Set(e, value)

@@ -54,7 +54,7 @@ func Convert(entries []*entry.Entry) pdata.Logs {
 			}
 
 			lr.Body().InitEmpty()
-			insertToAttributeVal(entry.Record, lr.Body())
+			insertToAttributeVal(entry.Body, lr.Body())
 
 			ills.Logs().Append(lr)
 		}

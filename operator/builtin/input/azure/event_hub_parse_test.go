@@ -20,9 +20,9 @@ func TestParseEvent(t *testing.T) {
 	)
 
 	cases := []struct {
-		name           string
-		inputRecord    azhub.Event
-		expectedRecord *entry.Entry
+		name         string
+		inputBody    azhub.Event
+		expectedBody *entry.Entry
 	}{
 		{
 			"timestamp-promotion",
@@ -37,7 +37,7 @@ func TestParseEvent(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-sequence-number": &testSequenceNum,
@@ -76,8 +76,8 @@ func TestParseEvent(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTime,
-				Record: map[string]interface{}{
-					"message":    "hello world",
+				Body: map[string]interface{}{
+					"message":       "hello world",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",
@@ -107,9 +107,9 @@ func TestParseEvent(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := entry.New()
-			err := ParseEvent(tc.inputRecord, e)
+			err := ParseEvent(tc.inputBody, e)
 			require.NoError(t, err)
-			require.Equal(t, tc.expectedRecord, e)
+			require.Equal(t, tc.expectedBody, e)
 		})
 	}
 }
@@ -119,9 +119,9 @@ func TestPromoteTime(t *testing.T) {
 	ioTHubEnqueuedTime := time.Now().Add(time.Hour * 10)
 
 	cases := []struct {
-		name           string
-		inputRecord    azhub.Event
-		expectedRecord *entry.Entry
+		name         string
+		inputBody    azhub.Event
+		expectedBody *entry.Entry
 	}{
 		{
 			"enqueuedTime",
@@ -134,7 +134,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: enqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
@@ -156,7 +156,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
@@ -179,7 +179,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: enqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
@@ -203,7 +203,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &time.Time{},
@@ -220,9 +220,9 @@ func TestPromoteTime(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := entry.New()
-			err := ParseEvent(tc.inputRecord, e)
+			err := ParseEvent(tc.inputBody, e)
 			require.NoError(t, err)
-			require.Equal(t, tc.expectedRecord, e)
+			require.Equal(t, tc.expectedBody, e)
 		})
 	}
 }

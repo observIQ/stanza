@@ -16,7 +16,7 @@ The operator only flattens a single level deep.
 Example usage:
 
 <hr>
-Flatten an object to the base of the record
+Flatten an object to the base of the body
 <br>
 <br>
 
@@ -34,7 +34,7 @@ Flatten an object to the base of the record
 {
   "resource": { },
   "labels": { },  
-  "record": {
+  "body": {
     "key1": {
       "nested1": "nestedval1",
       "nested2": "nestedval2"
@@ -51,7 +51,7 @@ Flatten an object to the base of the record
   {
     "resource": { },
     "labels": { },  
-    "record": {
+    "body": {
       "nested1": "nestedval1",
       "nested2": "nestedval2",
       "key2": "val2"
@@ -82,7 +82,7 @@ Flatten an object within another object
 {
   "resource": { },
   "labels": { },  
-  "record": {
+  "body": {
     "wrapper": {
       "key1": {
         "nested1": "nestedval1",
@@ -101,7 +101,7 @@ Flatten an object within another object
 {
   "resource": { },
   "labels": { },  
-  "record": {
+  "body": {
     "wrapper": {
       "nested1": "nestedval1",
       "nested2": "nestedval2",

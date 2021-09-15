@@ -33,7 +33,7 @@ func NewNewRelicOutputConfig(operatorID string) *NewRelicOutputConfig {
 		FlusherConfig: flusher.NewConfig(),
 		BaseURI:       "https://log-api.newrelic.com/log/v1",
 		Timeout:       helper.NewDuration(10 * time.Second),
-		MessageField:  entry.NewRecordField(),
+		MessageField:  entry.NewBodyField(),
 	}
 }
 

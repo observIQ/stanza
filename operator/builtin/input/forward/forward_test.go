@@ -36,7 +36,7 @@ func TestForwardInput(t *testing.T) {
 	defer forwardInput.Stop()
 
 	newEntry := entry.New()
-	newEntry.Record = "test"
+	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -53,7 +53,7 @@ func TestForwardInput(t *testing.T) {
 		require.FailNow(t, "Timed out waiting for entry to be received")
 	case e := <-fake.Received:
 		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
-		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
 		require.Equal(t, newEntry.Labels, e.Labels)
@@ -84,7 +84,7 @@ func TestForwardInputTLS(t *testing.T) {
 	defer forwardInput.Stop()
 
 	newEntry := entry.New()
-	newEntry.Record = "test"
+	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -112,7 +112,7 @@ func TestForwardInputTLS(t *testing.T) {
 		require.FailNow(t, "Timed out waiting for entry to be received")
 	case e := <-fake.Received:
 		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
-		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
 		require.Equal(t, newEntry.Labels, e.Labels)

@@ -32,7 +32,7 @@ pipeline:
 {
   "timestamp": "2021-06-15T11:59:26-04:00",
   "severity": 0,
-  "record": {
+  "body": {
     "bytes": 936,
     "dstaddr": "173.195.121.172",
     "dstas": 14164,

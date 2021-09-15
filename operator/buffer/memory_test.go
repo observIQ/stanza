@@ -244,7 +244,7 @@ func BenchmarkMemoryBuffer(b *testing.B) {
 	go func() {
 		defer wg.Done()
 		e := entry.New()
-		e.Record = "test log"
+		e.Body = "test log"
 		ctx := context.Background()
 		for i := 0; i < b.N; i++ {
 			panicOnErr(buffer.Add(ctx, e))

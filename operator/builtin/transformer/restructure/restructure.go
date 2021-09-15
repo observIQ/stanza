@@ -399,7 +399,7 @@ type OpMove struct {
 func (op *OpMove) Apply(e *entry.Entry) error {
 	val, ok := e.Delete(op.From)
 	if !ok {
-		return fmt.Errorf("apply move: field %s does not exist on record", op.From)
+		return fmt.Errorf("apply move: field %s does not exist on body", op.From)
 	}
 
 	return e.Set(op.To, val)
@@ -416,7 +416,7 @@ func (op *OpMove) Type() string {
 
 // OpFlatten is an operation for flattening fields
 type OpFlatten struct {
-	Field entry.RecordField
+	Field entry.BodyField
 }
 
 // Apply will perform the flatten operation on an entry
@@ -425,7 +425,7 @@ func (op *OpFlatten) Apply(e *entry.Entry) error {
 	val, ok := e.Delete(op.Field)
 	if !ok {
 		// The field doesn't exist, so ignore it
-		return fmt.Errorf("apply flatten: field %s does not exist on record", op.Field)
+		return fmt.Errorf("apply flatten: field %s does not exist on body", op.Field)
 	}
 
 	valMap, ok := val.(map[string]interface{})

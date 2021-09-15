@@ -50,7 +50,7 @@ type Reader struct {
 	Offset      int64
 
 	// HeaderLabels is an optional map that contains entry labels
-	// derived from a log files' headers, added to every record
+	// derived from a log files' headers, added to every body
 	HeaderLabels map[string]string
 
 	generation int
