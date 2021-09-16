@@ -227,35 +227,31 @@ func toAttributeArray(obsArr []interface{}) pdata.AnyValueArray {
 }
 
 var namedLevels = map[entry.Severity]pdata.SeverityNumber{
-	entry.Default:     pdata.SeverityNumberUNDEFINED,
-	entry.Trace:       pdata.SeverityNumberTRACE,
-	entry.Trace2:      pdata.SeverityNumberTRACE2,
-	entry.Trace3:      pdata.SeverityNumberTRACE3,
-	entry.Trace4:      pdata.SeverityNumberTRACE4,
-	entry.Debug:       pdata.SeverityNumberDEBUG,
-	entry.Debug2:      pdata.SeverityNumberDEBUG2,
-	entry.Debug3:      pdata.SeverityNumberDEBUG3,
-	entry.Debug4:      pdata.SeverityNumberDEBUG4,
-	entry.Info:        pdata.SeverityNumberINFO,
-	entry.Info2:       pdata.SeverityNumberINFO2,
-	entry.Info3:       pdata.SeverityNumberINFO3,
-	entry.Info4:       pdata.SeverityNumberINFO4,
-	entry.Notice:      pdata.SeverityNumberINFO4,
-	entry.Warning:     pdata.SeverityNumberWARN,
-	entry.Warning2:    pdata.SeverityNumberWARN2,
-	entry.Warning3:    pdata.SeverityNumberWARN3,
-	entry.Warning4:    pdata.SeverityNumberWARN4,
-	entry.Error:       pdata.SeverityNumberERROR,
-	entry.Error2:      pdata.SeverityNumberERROR2,
-	entry.Error3:      pdata.SeverityNumberERROR3,
-	entry.Error4:      pdata.SeverityNumberERROR4,
-	entry.Critical:    pdata.SeverityNumberERROR4,
-	entry.Alert:       pdata.SeverityNumberERROR4,
-	entry.Emergency:   pdata.SeverityNumberFATAL,
-	entry.Emergency2:  pdata.SeverityNumberFATAL2,
-	entry.Emergency3:  pdata.SeverityNumberFATAL3,
-	entry.Emergency4:  pdata.SeverityNumberFATAL4,
-	entry.Catastrophe: pdata.SeverityNumberFATAL4,
+	entry.Default: pdata.SeverityNumberUNDEFINED,
+	entry.Trace:   pdata.SeverityNumberTRACE,
+	entry.Trace2:  pdata.SeverityNumberTRACE2,
+	entry.Trace3:  pdata.SeverityNumberTRACE3,
+	entry.Trace4:  pdata.SeverityNumberTRACE4,
+	entry.Debug:   pdata.SeverityNumberDEBUG,
+	entry.Debug2:  pdata.SeverityNumberDEBUG2,
+	entry.Debug3:  pdata.SeverityNumberDEBUG3,
+	entry.Debug4:  pdata.SeverityNumberDEBUG4,
+	entry.Info:    pdata.SeverityNumberINFO,
+	entry.Info2:   pdata.SeverityNumberINFO2,
+	entry.Info3:   pdata.SeverityNumberINFO3,
+	entry.Info4:   pdata.SeverityNumberINFO4,
+	entry.Warn:    pdata.SeverityNumberWARN,
+	entry.Warn2:   pdata.SeverityNumberWARN2,
+	entry.Warn3:   pdata.SeverityNumberWARN3,
+	entry.Warn4:   pdata.SeverityNumberWARN4,
+	entry.Error:   pdata.SeverityNumberERROR,
+	entry.Error2:  pdata.SeverityNumberERROR2,
+	entry.Error3:  pdata.SeverityNumberERROR3,
+	entry.Error4:  pdata.SeverityNumberERROR4,
+	entry.Fatal:   pdata.SeverityNumberFATAL,
+	entry.Fatal2:  pdata.SeverityNumberFATAL2,
+	entry.Fatal3:  pdata.SeverityNumberFATAL3,
+	entry.Fatal4:  pdata.SeverityNumberFATAL4,
 }
 
 func convertSeverity(s entry.Severity) pdata.SeverityNumber {
@@ -266,17 +262,17 @@ func convertSeverity(s entry.Severity) pdata.SeverityNumber {
 
 	// Handle custom severity levels
 	switch {
-	case s > entry.Emergency4:
+	case s > entry.Fatal4:
 		return pdata.SeverityNumberFATAL4
-	case s > entry.Emergency:
+	case s > entry.Fatal:
 		return pdata.SeverityNumberFATAL
 	case s > entry.Error4:
 		return pdata.SeverityNumberERROR4
 	case s > entry.Error:
 		return pdata.SeverityNumberERROR
-	case s > entry.Warning4:
+	case s > entry.Warn4:
 		return pdata.SeverityNumberWARN4
-	case s > entry.Warning:
+	case s > entry.Warn:
 		return pdata.SeverityNumberWARN
 	case s > entry.Info4:
 		return pdata.SeverityNumberINFO4

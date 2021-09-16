@@ -22,7 +22,6 @@ type severityTestCase struct {
 }
 
 func TestSeverityParser(t *testing.T) {
-
 	testCases := []severityTestCase{
 		{
 			name:     "unknown",
@@ -81,14 +80,14 @@ func TestSeverityParser(t *testing.T) {
 		{
 			name:     "overload-int-key",
 			sample:   "E",
-			mapping:  map[interface{}]interface{}{60: "E"},
-			expected: entry.Error, // 60
+			mapping:  map[interface{}]interface{}{int(entry.Error): "E"},
+			expected: entry.Error,
 		},
 		{
 			name:     "overload-native",
 			sample:   "E",
 			mapping:  map[interface{}]interface{}{int(entry.Error): "E"},
-			expected: entry.Error, // 60
+			expected: entry.Error,
 		},
 		{
 			name:     "custom-level",
@@ -198,7 +197,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -214,7 +213,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -230,7 +229,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -246,7 +245,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -262,7 +261,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},

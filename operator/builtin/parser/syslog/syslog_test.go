@@ -64,7 +64,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error4,
 			"crit",
 		},
 		{
@@ -84,7 +84,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error4,
 			"crit",
 		},
 		{
@@ -104,7 +104,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error4,
 			"crit",
 		},
 		{
@@ -123,7 +123,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error4,
 			"crit",
 		},
 		{

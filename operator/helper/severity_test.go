@@ -34,18 +34,18 @@ func otlpSevCases() []severityTestCase {
 		"iNFo2":  entry.Info2,
 		"iNFo3":  entry.Info3,
 		"iNFo4":  entry.Info4,
-		"wARn":   entry.Warning,
-		"wARn2":  entry.Warning2,
-		"wARn3":  entry.Warning3,
-		"wARn4":  entry.Warning4,
+		"wARn":   entry.Warn,
+		"wARn2":  entry.Warn2,
+		"wARn3":  entry.Warn3,
+		"wARn4":  entry.Warn4,
 		"eRrOr":  entry.Error,
 		"eRrOr2": entry.Error2,
 		"eRrOr3": entry.Error3,
 		"eRrOr4": entry.Error4,
-		"fAtAl":  entry.Emergency,
-		"fAtAl2": entry.Emergency2,
-		"fAtAl3": entry.Emergency3,
-		"fAtAl4": entry.Emergency4,
+		"fAtAl":  entry.Fatal,
+		"fAtAl2": entry.Fatal2,
+		"fAtAl3": entry.Fatal3,
+		"fAtAl4": entry.Fatal4,
 	}
 
 	cases := []severityTestCase{}
@@ -76,7 +76,6 @@ func otlpSevCases() []severityTestCase {
 }
 
 func TestSeverityParser(t *testing.T) {
-
 	testCases := []severityTestCase{
 		{
 			name:     "unknown",
@@ -121,12 +120,6 @@ func TestSeverityParser(t *testing.T) {
 			expected: entry.Error,
 		},
 		{
-			name:     "custom-float64",
-			sample:   float64(6),
-			mapping:  map[interface{}]interface{}{"error": 6},
-			expected: entry.Error,
-		},
-		{
 			name:     "mixed-list-string",
 			sample:   "ThiS Is BaD",
 			mapping:  map[interface{}]interface{}{"error": []interface{}{"NOOOOOOO", "this is bad", 1234}},
@@ -141,14 +134,14 @@ func TestSeverityParser(t *testing.T) {
 		{
 			name:     "overload-int-key",
 			sample:   "E",
-			mapping:  map[interface{}]interface{}{60: "E"},
-			expected: entry.Error, // 60
+			mapping:  map[interface{}]interface{}{int(entry.Error): "E"},
+			expected: entry.Error,
 		},
 		{
 			name:     "overload-native",
 			sample:   "E",
 			mapping:  map[interface{}]interface{}{int(entry.Error): "E"},
-			expected: entry.Error, // 60
+			expected: entry.Error,
 		},
 		{
 			name:     "custom-level",
@@ -258,7 +251,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -274,7 +267,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -290,7 +283,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -306,7 +299,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},
@@ -322,7 +315,7 @@ func TestSeverityParser(t *testing.T) {
 			mapping: map[interface{}]interface{}{
 				"30":             "3xx",
 				int(entry.Error): "4xx",
-				"critical":       "5xx",
+				"fatal":          "5xx",
 				int(entry.Trace): []interface{}{
 					"ttttttracer",
 					[]byte{100, 100, 100},

@@ -214,12 +214,12 @@ func handleSymbols(b []byte) []byte {
 }
 
 var severityMapping = [...]entry.Severity{
-	0: entry.Emergency,
-	1: entry.Alert,
-	2: entry.Critical,
+	0: entry.Fatal,
+	1: entry.Error4,
+	2: entry.Error4,
 	3: entry.Error,
-	4: entry.Warning,
-	5: entry.Notice,
+	4: entry.Warn,
+	5: entry.Info4,
 	6: entry.Info,
 	7: entry.Debug,
 }
