@@ -6,19 +6,15 @@ This severity system allows each output operator to interpret the values 0 to 10
 
 The following named severity levels are supported.
 
-| Severity    | Numeric Value | Alias         |
-| ---         | ---           | ---           |
-| Default     |        0      | `default`     |
-| Trace       |       10      | `trace`       |
-| Debug       |       20      | `debug`       |
-| Info        |       30      | `info`        |
-| Notice      |       40      | `notice`      |
-| Warning     |       50      | `warning`     |
-| Error       |       60      | `error`       |
-| Critical    |       70      | `critical`    |
-| Alert       |       80      | `alert`       |
-| Emergency   |       90      | `emergency`   |
-| Catastrophe |      100      | `catastrophe` |
+| Severity    | Numeric Value | Alias     |
+| ---         | ---           | ---       |
+|	Default     | 0             | default   |
+|	Trace       | 1             | trace     |
+|	Debug       | 5             | debug     |
+|	Info        | 9             | info      |
+|	Warn        | 13            | warn      |
+|	Error       | 17            | error     |
+|	Fatal       | 21            | fatal     |
 
 
 ### `severity` parsing parameters
