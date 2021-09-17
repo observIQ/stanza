@@ -42,7 +42,7 @@ func TestCSVParserStringFailure(t *testing.T) {
 	parser := newTestParser(t)
 	_, err := parser.parse("invalid")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "body on line 1: wrong number of fields")
+	require.Contains(t, err.Error(), "record on line 1: wrong number of fields")
 }
 
 func TestCSVParserByteFailure(t *testing.T) {
