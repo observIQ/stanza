@@ -17,7 +17,7 @@ func init() {
 
 const (
 	defaultMaxLogSize         = 1024 * 1024
-	defaultMaxConcurrentFiles = 1024
+	defaultMaxConcurrentFiles = 512
 )
 
 // NewInputConfig creates a new input config with default values

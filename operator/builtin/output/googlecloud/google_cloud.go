@@ -369,5 +369,18 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry.Resource = getResource(e)
 
+	// Google monitored resources wipe out Stanza's entry.Resources with
+	// a static set of resources, therefore we need to move the entry's resources
+	// to entry.Labels
+	for k, v := range e.Resource {
+		if val, ok := newEntry.Labels[k]; ok {
+			if val != v {
+				g.Warnf("resource to labels merge failed, entry has label %s=%s, tried to add %s=%s", k, val, k, v)
+			}
+			continue
+		}
+		newEntry.Labels[k] = v
+	}
+
 	return newEntry, nil
 }

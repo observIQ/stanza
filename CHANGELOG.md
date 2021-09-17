@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.2.6 - Unreleased
+## 1.2.6 - 2021-09-14
 
 ### Changed
 
 - Upgrade from Go 1.16 to 1.17
+- AWS Cloudwatch Input: Added abilty to monitor more than one log group [PR 420](https://github.com/observIQ/stanza/pull/420)
+- File Input: Changed default max files from 1024 to 512 [PR 423](https://github.com/observIQ/stanza/pull/423)
 
 ## 1.2.5 - 2021-09-13
 
