@@ -174,7 +174,7 @@ func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
 func (f *Reader) Close() {
 	if f.file != nil {
 		if err := f.file.Close(); err != nil {
-			f.Debugf("Problem closing reader", "Error", err.Error())
+			f.Warnf("Problem closing reader", "Error", err.Error())
 		}
 	}
 }
