@@ -162,12 +162,6 @@ OUTER:
 		go func(r *Reader) {
 			defer wg.Done()
 			r.ReadToEnd(ctx)
-			if f.deleteAfterRead {
-				r.Close()
-				if err := os.Remove(r.file.Name()); err != nil {
-					f.Errorf("could not delete %s", r.file.Name())
-				}
-			}
 		}(reader)
 	}
 
@@ -175,15 +169,19 @@ OUTER:
 	wg.Wait()
 
 	if f.deleteAfterRead {
-		// No need to track files, since we only consume them once
-		return
+		f.Debug("cleaning up log files that have been consumed")
+		for _, reader := range readers {
+			reader.Close()
+			if err := os.Remove(reader.file.Name()); err != nil {
+				f.Errorf("could not delete %s", reader.file.Name())
+			}
+		}
+	} else {
+		for _, reader := range f.lastPollReaders {
+			reader.Close()
+		}
+		f.lastPollReaders = readers
 	}
-
-	for _, reader := range f.lastPollReaders {
-		reader.Close()
-	}
-
-	f.lastPollReaders = readers
 
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
