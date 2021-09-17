@@ -40,6 +40,58 @@ func TestKVParserConfigBuildFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid `on_error` field")
 }
 
+func TestBuild(t *testing.T) {
+	basicConfig := func() *KVParserConfig {
+		cfg := NewKVParserConfig("test_operator_id")
+		return cfg
+	}
+
+	cases := []struct {
+		name      string
+		input     *KVParserConfig
+		expectErr bool
+	}{
+		{
+			"default",
+			func() *KVParserConfig {
+				cfg := basicConfig()
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"delimiter",
+			func() *KVParserConfig {
+				cfg := basicConfig()
+				cfg.Delimiter = "/"
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"missing-delimiter",
+			func() *KVParserConfig {
+				cfg := basicConfig()
+				cfg.Delimiter = ""
+				return cfg
+			}(),
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := tc.input
+			_, err := cfg.Build(testutil.NewBuildContext(t))
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestKVParserStringFailure(t *testing.T) {
 	parser := newTestParser(t)
 	_, err := parser.parse("invalid")
