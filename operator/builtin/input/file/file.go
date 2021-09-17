@@ -191,7 +191,7 @@ OUTER:
 
 // getMatches gets a list of paths given an array of glob patterns to include and exclude
 func getMatches(includes, excludes []string) []string {
-	all := make([]string, 0, len(includes))
+	all := make(map[string]bool, len(includes))
 	for _, include := range includes {
 		matches, _ := filepath.Glob(include) // compile error checked in build
 	INCLUDE:
@@ -201,18 +201,15 @@ func getMatches(includes, excludes []string) []string {
 					continue INCLUDE
 				}
 			}
-
-			for _, existing := range all {
-				if existing == match {
-					continue INCLUDE
-				}
-			}
-
-			all = append(all, match)
+			all[match] = true
 		}
 	}
 
-	return all
+	result := make([]string, 0, len(all))
+	for path, _ := range all {
+		result = append(result, path)
+	}
+	return result
 }
 
 // makeReaders takes a list of paths, then creates readers from each of those paths,
