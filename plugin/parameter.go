@@ -31,7 +31,7 @@ type Parameter struct {
 	Default        interface{}                       `json:"default" yaml:"default"`
 	RelevantIf     map[string]map[string]interface{} `json:"relevantIf" yaml:"relevant_if"`
 	Hidden         bool                              `json:"hidden" yaml:"hidden"`
-	AdvancedConfig bool                              `json:"advanced_config" yaml:"advanced_config"`
+	AdvancedConfig bool                              `json:"advancedConfig" yaml:"advanced_config"`
 }
 
 func (p Parameter) validateValue(value interface{}) error {
