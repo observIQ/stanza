@@ -42,7 +42,7 @@ func TestCSVParserStringFailure(t *testing.T) {
 	parser := newTestParser(t)
 	_, err := parser.parse("invalid")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "record on line 1: wrong number of fields")
+	require.Contains(t, err.Error(), "body on line 1: wrong number of fields")
 }
 
 func TestCSVParserByteFailure(t *testing.T) {
@@ -89,7 +89,7 @@ func TestParserCSV(t *testing.T) {
 			false,
 		},
 		{
-			"basic-multiple-static-records",
+			"basic-multiple-static-bodys",
 			func(p *CSVParserConfig) {
 				p.Header = testHeader
 			},
@@ -610,8 +610,8 @@ func TestParserCSVMultipleBodys(t *testing.T) {
 		entry := entry.New()
 		entry.Body = "stanza,INFO,started agent\nstanza,DEBUG,started agent"
 		err = op.Process(context.Background(), entry)
-		// require.Nil(t, err, "Expected to parse a single csv record, got '2'")
-		// require.Contains(t, err.Error(), "Expected to parse a single csv record, got '2'")
+		// require.Nil(t, err, "Expected to parse a single csv body, got '2'")
+		// require.Contains(t, err.Error(), "Expected to parse a single csv body, got '2'")
 		require.NoError(t, err)
 
 		fake.ExpectBody(t, map[string]interface{}{
