@@ -11,6 +11,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.13.0
 	github.com/golang/protobuf v1.5.2
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/jpillora/backoff v1.0.0
 	github.com/json-iterator/go v1.1.11
@@ -124,6 +125,7 @@ require (
 	github.com/gookit/color v1.2.5 // indirect
 	github.com/gostaticanalysis/analysisutil v0.0.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
