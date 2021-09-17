@@ -134,7 +134,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				req.Entries = []*logpb.LogEntry{
 					{
 						Labels: map[string]string{
-							"label1": "value1",
+							"attribute1": "value1",
 						},
 						Timestamp: protoTs,
 						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
