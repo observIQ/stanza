@@ -24,49 +24,49 @@ func TestMetadata(t *testing.T) {
 		expected  *entry.Entry
 	}{
 		{
-			"AddLabelLiteral",
+			"AddAttributeLiteral",
 			func(cfg *MetadataOperatorConfig) {
 				cfg.Attributes = map[string]helper.ExprStringConfig{
-					"label1": "value1",
+					"attribute1": "value1",
 				}
 			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
 				e.Attributes = map[string]string{
-					"label1": "value1",
+					"attribute1": "value1",
 				}
 				return e
 			}(),
 		},
 		{
-			"AddLabelExpr",
+			"AddAttributeExpr",
 			func(cfg *MetadataOperatorConfig) {
 				cfg.Attributes = map[string]helper.ExprStringConfig{
-					"label1": `EXPR("start" + "end")`,
+					"attribute1": `EXPR("start" + "end")`,
 				}
 			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
 				e.Attributes = map[string]string{
-					"label1": "startend",
+					"attribute1": "startend",
 				}
 				return e
 			}(),
 		},
 		{
-			"AddLabelEnv",
+			"AddAttributeEnv",
 			func(cfg *MetadataOperatorConfig) {
 				cfg.Attributes = map[string]helper.ExprStringConfig{
-					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
+					"attribute1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
 			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
 				e.Attributes = map[string]string{
-					"label1": "foo",
+					"attribute1": "foo",
 				}
 				return e
 			}(),

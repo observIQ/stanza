@@ -29,8 +29,8 @@ func complexEntry() *entry.Entry {
 	e := entry.New()
 	e.Severity = entry.Error
 	e.AddResourceKey("type", "global")
-	e.AddLabel("one", "two")
-	e.AddLabel("two", "three")
+	e.AddAttribute("one", "two")
+	e.AddAttribute("two", "three")
 	e.Record = map[string]interface{}{
 		"bool":   true,
 		"int":    123,
@@ -63,7 +63,7 @@ func TestConvertMetadata(t *testing.T) {
 	e.Timestamp = now
 	e.Severity = entry.Error
 	e.AddResourceKey("type", "global")
-	e.AddLabel("one", "two")
+	e.AddAttribute("one", "two")
 	e.Record = true
 
 	result := Convert([]*entry.Entry{e})
@@ -86,8 +86,8 @@ func TestConvertMetadata(t *testing.T) {
 	atts := log.Attributes()
 	require.Equal(t, 1, atts.Len(), "expected 1 attribute")
 	attVal, ok := atts.Get("one")
-	require.True(t, ok, "expected label with key 'one'")
-	require.Equal(t, "two", attVal.StringVal(), "expected label to have value 'two'")
+	require.True(t, ok, "expected attribute with key 'one'")
+	require.Equal(t, "two", attVal.StringVal(), "expected attribute to have value 'two'")
 
 	bod := log.Body()
 	require.Equal(t, pdata.AttributeValueBOOL, bod.Type())

@@ -45,7 +45,7 @@ func TestFilterOperator(t *testing.T) {
 			false,
 		},
 		{
-			"MatchLabel",
+			"MatchAttribute",
 			&entry.Entry{
 				Record: map[string]interface{}{
 					"message": "test_message",
@@ -58,7 +58,7 @@ func TestFilterOperator(t *testing.T) {
 			true,
 		},
 		{
-			"NoMatchLabel",
+			"NoMatchAttribute",
 			&entry.Entry{
 				Record: map[string]interface{}{
 					"message": "test_message",

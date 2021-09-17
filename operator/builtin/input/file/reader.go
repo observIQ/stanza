@@ -15,17 +15,17 @@ import (
 	"golang.org/x/text/transform"
 )
 
-// File labels contains information about file paths
-type fileLabels struct {
+// File attributes contains information about file paths
+type fileAttributes struct {
 	Name         string
 	Path         string
 	ResolvedName string
 	ResolvedPath string
 }
 
-// resolveFileLabels resolves file labels
+// resolveFileAttributes resolves file attributes
 // and sets it to empty string in case of error
-func (f *InputOperator) resolveFileLabels(path string) *fileLabels {
+func (f *InputOperator) resolveFileAttributes(path string) *fileAttributes {
 	resolved, err := filepath.EvalSymlinks(path)
 	if err != nil {
 		f.Error(err)
@@ -36,7 +36,7 @@ func (f *InputOperator) resolveFileLabels(path string) *fileLabels {
 		f.Error(err)
 	}
 
-	return &fileLabels{
+	return &fileAttributes{
 		Path:         path,
 		Name:         filepath.Base(path),
 		ResolvedPath: abs,
@@ -49,14 +49,14 @@ type Reader struct {
 	Fingerprint *Fingerprint
 	Offset      int64
 
-	// HeaderLabels is an optional map that contains entry labels
+	// HeaderAttributes is an optional map that contains entry attributes
 	// derived from a log files' headers, added to every record
-	HeaderLabels map[string]string
+	HeaderAttributes map[string]string
 
-	generation int
-	fileInput  *InputOperator
-	file       *os.File
-	fileLabels *fileLabels
+	generation     int
+	fileInput      *InputOperator
+	file           *os.File
+	fileAttributes *fileAttributes
 
 	decoder      *encoding.Decoder
 	decodeBuffer []byte
@@ -67,27 +67,27 @@ type Reader struct {
 // NewReader creates a new file reader
 func (f *InputOperator) NewReader(path string, file *os.File, fp *Fingerprint) (*Reader, error) {
 	r := &Reader{
-		Fingerprint:   fp,
-		HeaderLabels:  make(map[string]string),
-		file:          file,
-		fileInput:     f,
-		SugaredLogger: f.SugaredLogger.With("path", path),
-		decoder:       f.encoding.Encoding.NewDecoder(),
-		decodeBuffer:  make([]byte, 1<<12),
-		fileLabels:    f.resolveFileLabels(path),
+		Fingerprint:      fp,
+		HeaderAttributes: make(map[string]string),
+		file:             file,
+		fileInput:        f,
+		SugaredLogger:    f.SugaredLogger.With("path", path),
+		decoder:          f.encoding.Encoding.NewDecoder(),
+		decodeBuffer:     make([]byte, 1<<12),
+		fileAttributes:   f.resolveFileAttributes(path),
 	}
 	return r, nil
 }
 
 // Copy creates a deep copy of a Reader
 func (f *Reader) Copy(file *os.File) (*Reader, error) {
-	reader, err := f.fileInput.NewReader(f.fileLabels.Path, file, f.Fingerprint.Copy())
+	reader, err := f.fileInput.NewReader(f.fileAttributes.Path, file, f.Fingerprint.Copy())
 	if err != nil {
 		return nil, err
 	}
 	reader.Offset = f.Offset
-	for k, v := range f.HeaderLabels {
-		reader.HeaderLabels[k] = v
+	for k, v := range f.HeaderAttributes {
+		reader.HeaderAttributes[k] = v
 	}
 	return reader, nil
 }
@@ -153,7 +153,7 @@ func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 var errEndOfHeaders = fmt.Errorf("finished header parsing, no header found")
 
 func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
-	byteMatches := f.fileInput.labelRegex.FindSubmatch(msgBuf)
+	byteMatches := f.fileInput.attributeRegex.FindSubmatch(msgBuf)
 	if len(byteMatches) != 3 {
 		// return early, assume this failure means the file does not
 		// contain anymore headers
@@ -163,10 +163,10 @@ func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
 	for i, byteSlice := range byteMatches {
 		matches[i] = string(byteSlice)
 	}
-	if f.HeaderLabels == nil {
-		f.HeaderLabels = make(map[string]string)
+	if f.HeaderAttributes == nil {
+		f.HeaderAttributes = make(map[string]string)
 	}
-	f.HeaderLabels[matches[1]] = matches[2]
+	f.HeaderAttributes[matches[1]] = matches[2]
 	return nil
 }
 
@@ -197,23 +197,23 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 		return fmt.Errorf("create entry: %s", err)
 	}
 
-	if err := e.Set(f.fileInput.FilePathField, f.fileLabels.Path); err != nil {
+	if err := e.Set(f.fileInput.FilePathField, f.fileAttributes.Path); err != nil {
 		return err
 	}
-	if err := e.Set(f.fileInput.FileNameField, filepath.Base(f.fileLabels.Path)); err != nil {
-		return err
-	}
-
-	if err := e.Set(f.fileInput.FilePathResolvedField, f.fileLabels.ResolvedPath); err != nil {
-		return err
-	}
-	if err := e.Set(f.fileInput.FileNameResolvedField, f.fileLabels.ResolvedName); err != nil {
+	if err := e.Set(f.fileInput.FileNameField, filepath.Base(f.fileAttributes.Path)); err != nil {
 		return err
 	}
 
-	// Set W3C headers as labels
-	for k, v := range f.HeaderLabels {
-		field := entry.NewLabelField(k)
+	if err := e.Set(f.fileInput.FilePathResolvedField, f.fileAttributes.ResolvedPath); err != nil {
+		return err
+	}
+	if err := e.Set(f.fileInput.FileNameResolvedField, f.fileAttributes.ResolvedName); err != nil {
+		return err
+	}
+
+	// Set W3C headers as attributes
+	for k, v := range f.HeaderAttributes {
+		field := entry.NewAttributeField(k)
 		if err := e.Set(field, v); err != nil {
 			return err
 		}

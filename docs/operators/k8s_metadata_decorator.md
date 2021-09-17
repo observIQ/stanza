@@ -50,13 +50,13 @@ Configuration:
     "k8s_ns_annotation/addonmanager.kubernetes.io/mode": "Reconcile",
     "k8s_ns_annotation/control-plane": "true",
     "k8s_ns_annotation/kubernetes.io/cluster-service": "true",
-    "k8s_ns_label/addonmanager.kubernetes.io/mode": "Reconcile",
-    "k8s_ns_label/control-plane": "true",
-    "k8s_ns_label/kubernetes.io/cluster-service": "true",
+    "k8s_ns_attribute/addonmanager.kubernetes.io/mode": "Reconcile",
+    "k8s_ns_attribute/control-plane": "true",
+    "k8s_ns_attribute/kubernetes.io/cluster-service": "true",
     "k8s_pod_annotation/k8s-app": "dashboard-metrics-scraper",
     "k8s_pod_annotation/pod-template-hash": "5f44bbb8b5",
-    "k8s_pod_label/k8s-app": "dashboard-metrics-scraper",
-    "k8s_pod_label/pod-template-hash": "5f44bbb8b5"
+    "k8s_pod_attribute/k8s-app": "dashboard-metrics-scraper",
+    "k8s_pod_attribute/pod-template-hash": "5f44bbb8b5"
   },
   "record": {
     "namespace": "my-namespace",

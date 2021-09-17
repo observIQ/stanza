@@ -67,7 +67,7 @@ Configuration:
 </tr>
 </table>
 
-#### Add dynamic tags and attributes
+#### Add dynamic attributes
 
 Configuration:
 ```yaml

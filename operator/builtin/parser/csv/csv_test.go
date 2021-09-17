@@ -150,7 +150,7 @@ func TestParserCSV(t *testing.T) {
 		{
 			"dynamic-fields",
 			func(p *CSVParserConfig) {
-				p.HeaderLabel = "Fields"
+				p.HeaderAttribute = "Fields"
 				p.FieldDelimiter = ","
 			},
 			[]entry.Entry{
@@ -175,7 +175,7 @@ func TestParserCSV(t *testing.T) {
 		{
 			"dynamic-fields-multiple-entries",
 			func(p *CSVParserConfig) {
-				p.HeaderLabel = "Fields"
+				p.HeaderAttribute = "Fields"
 				p.FieldDelimiter = ","
 			},
 			[]entry.Entry{
@@ -224,7 +224,7 @@ func TestParserCSV(t *testing.T) {
 		{
 			"dynamic-fields-tab",
 			func(p *CSVParserConfig) {
-				p.HeaderLabel = "columns"
+				p.HeaderAttribute = "columns"
 				p.FieldDelimiter = ","
 				p.HeaderDelimiter = "\t"
 			},
@@ -250,7 +250,7 @@ func TestParserCSV(t *testing.T) {
 		{
 			"dynamic-fields-label-missing",
 			func(p *CSVParserConfig) {
-				p.HeaderLabel = "Fields"
+				p.HeaderAttribute = "Fields"
 				p.FieldDelimiter = ","
 			},
 			[]entry.Entry{

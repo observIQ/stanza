@@ -28,7 +28,7 @@ type CSVParserConfig struct {
 	helper.ParserConfig `yaml:",inline"`
 
 	Header          string `json:"header" yaml:"header"`
-	HeaderLabel     string `json:"header_label" yaml:"header_label"`
+	HeaderAttribute string `json:"header_attribute" yaml:"header_attribute"`
 	HeaderDelimiter string `json:"header_delimiter,omitempty" yaml:"header_delimiter,omitempty"`
 	FieldDelimiter  string `json:"delimiter,omitempty" yaml:"delimiter,omitempty"`
 }
@@ -40,17 +40,17 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 		return nil, err
 	}
 
-	if c.Header == "" && c.HeaderLabel == "" {
-		return nil, fmt.Errorf("missing required field 'header' or 'header_label'")
+	if c.Header == "" && c.HeaderAttribute == "" {
+		return nil, fmt.Errorf("missing required field 'header' or 'header_attribute'")
 	}
 
-	if c.Header != "" && c.HeaderLabel != "" {
-		return nil, fmt.Errorf("only one header parameter can be set: 'header' or 'header_label'")
+	if c.Header != "" && c.HeaderAttribute != "" {
+		return nil, fmt.Errorf("only one header parameter can be set: 'header' or 'header_attribute'")
 	}
 
 	// configure dynamic header
 	dynamic := false
-	if c.HeaderLabel != "" {
+	if c.HeaderAttribute != "" {
 		dynamic = true
 	}
 
@@ -77,7 +77,7 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 	csvParser := &CSVParser{
 		ParserOperator:  parserOperator,
 		header:          c.Header,
-		headerLabel:     c.HeaderLabel,
+		headerAttribute: c.HeaderAttribute,
 		headerDelimiter: headerDelimiter,
 		fieldDelimiter:  fieldDelimiter,
 
@@ -92,7 +92,7 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 type CSVParser struct {
 	helper.ParserOperator
 	header          string
-	headerLabel     string
+	headerAttribute string
 	headerDelimiter rune
 	fieldDelimiter  rune
 	parse           ParseFunc
@@ -100,11 +100,11 @@ type CSVParser struct {
 
 // Process will parse an entry for csv.
 func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
-	if r.headerLabel != "" {
-		h, ok := e.Attributes[r.headerLabel]
+	if r.headerAttribute != "" {
+		h, ok := e.Attributes[r.headerAttribute]
 		if !ok {
 			// TODO: returned error is not logged, so log it here
-			err := fmt.Errorf("failed to read dynamic header label %s", r.headerLabel)
+			err := fmt.Errorf("failed to read dynamic header attribute %s", r.headerAttribute)
 			r.Error(err)
 			return err
 		}
@@ -117,7 +117,7 @@ type ParseFunc func(interface{}) (interface{}, error)
 
 // generateParseFunc returns a parse function for a given header, allowing
 // each entry to have a potentially unique set of fields when using dynamic
-// field names retrieved from an entry's label
+// field names retrieved from an entry's attribute
 func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, isDynamic bool) ParseFunc {
 	headerFields := strings.Split(header, string([]rune{headerDelimiter}))
 

@@ -43,8 +43,8 @@ func New() *Entry {
 	}
 }
 
-// AddLabel will add a key/value pair to the entry's attributes.
-func (entry *Entry) AddLabel(key, value string) {
+// AddAttribute will add a key/value pair to the entry's attributes.
+func (entry *Entry) AddAttribute(key, value string) {
 	if entry.Attributes == nil {
 		entry.Attributes = make(map[string]string)
 	}

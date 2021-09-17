@@ -14,14 +14,14 @@ func TestLabeler(t *testing.T) {
 
 	cases := []struct {
 		name     string
-		config   LabelerConfig
+		config   AttributerConfig
 		input    *entry.Entry
 		expected *entry.Entry
 	}{
 		{
 			"AddLabelLiteral",
-			func() LabelerConfig {
-				cfg := NewLabelerConfig()
+			func() AttributerConfig {
+				cfg := NewAttributerConfig()
 				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": "value1",
 				}
@@ -38,8 +38,8 @@ func TestLabeler(t *testing.T) {
 		},
 		{
 			"AddLabelExpr",
-			func() LabelerConfig {
-				cfg := NewLabelerConfig()
+			func() AttributerConfig {
+				cfg := NewAttributerConfig()
 				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": `EXPR("start" + "end")`,
 				}
@@ -56,8 +56,8 @@ func TestLabeler(t *testing.T) {
 		},
 		{
 			"AddLabelEnv",
-			func() LabelerConfig {
-				cfg := NewLabelerConfig()
+			func() AttributerConfig {
+				cfg := NewAttributerConfig()
 				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
@@ -76,10 +76,10 @@ func TestLabeler(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			labeler, err := tc.config.Build()
+			attributer, err := tc.config.Build()
 			require.NoError(t, err)
 
-			err = labeler.Label(tc.input)
+			err = attributer.Attribute(tc.input)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected.Attributes, tc.input.Attributes)
 		})

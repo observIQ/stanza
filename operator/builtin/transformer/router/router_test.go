@@ -39,7 +39,7 @@ func TestRouterOperator(t *testing.T) {
 			entry.New(),
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					"true",
 					[]string{"output1"},
 				},
@@ -53,7 +53,7 @@ func TestRouterOperator(t *testing.T) {
 			entry.New(),
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`false`,
 					[]string{"output1"},
 				},
@@ -71,12 +71,12 @@ func TestRouterOperator(t *testing.T) {
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`$.message == "non_match"`,
 					[]string{"output1"},
 				},
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`$.message == "test_message"`,
 					[]string{"output2"},
 				},
@@ -86,7 +86,7 @@ func TestRouterOperator(t *testing.T) {
 			nil,
 		},
 		{
-			"MatchWithLabel",
+			"MatchWithAttribute",
 			&entry.Entry{
 				Record: map[string]interface{}{
 					"message": "test_message",
@@ -94,14 +94,14 @@ func TestRouterOperator(t *testing.T) {
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`$.message == "non_match"`,
 					[]string{"output1"},
 				},
 				{
-					helper.LabelerConfig{
+					helper.AttributerConfig{
 						Attributes: map[string]helper.ExprStringConfig{
-							"label-key": "label-value",
+							"attribute-key": "attribute-value",
 						},
 					},
 					`$.message == "test_message"`,
@@ -111,7 +111,7 @@ func TestRouterOperator(t *testing.T) {
 			nil,
 			map[string]int{"output2": 1},
 			map[string]string{
-				"label-key": "label-value",
+				"attribute-key": "attribute-value",
 			},
 		},
 		{
@@ -123,12 +123,12 @@ func TestRouterOperator(t *testing.T) {
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`env("TEST_ROUTER_PLUGIN_ENV") == "foo"`,
 					[]string{"output1"},
 				},
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`true`,
 					[]string{"output2"},
 				},
@@ -146,7 +146,7 @@ func TestRouterOperator(t *testing.T) {
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`false`,
 					[]string{"output1"},
 				},
@@ -164,7 +164,7 @@ func TestRouterOperator(t *testing.T) {
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`true`,
 					[]string{"output1"},
 				},

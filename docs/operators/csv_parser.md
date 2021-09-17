@@ -8,8 +8,8 @@ The `csv_parser` operator parses the string-type field selected by `parse_from` 
 | ---            | ---              | ---                                                                                                                                                                                                                                      |
 | `id`           | `csv_parser`     | A unique identifier for the operator                                                                                                                                                                                                     |
 | `output`       | Next in pipeline | The connected operator(s) that will receive all outbound entries                                                                                                                                                                         |
-| `header`       | required when `header_label` not set  | A string of delimited field names                                                                                                                            |
-| `header_label` | required when `header` not set        | A label name to read the header field from, to support dynamic field names                                                                                                                                          |
+| `header`       | required when `header_attribute` not set  | A string of delimited field names                                                                                                                            |
+| `header_attribute` | required when `header` not set        | A attribute name to read the header field from, to support dynamic field names                                                                                                                                          |
 | `header_delimiter`   | value of delimiter              | A character that will be used as a delimiter for the header. Values `\r` and `\n` cannot be used as a delimiter                                                                                                     |
 | `delimiter`    | `,`              | A character that will be used as a delimiter. Values `\r` and `\n` cannot be used as a delimiter                                                                                                                                         |
 | `parse_from`   | $                | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                                                                                                                    |
@@ -197,7 +197,7 @@ Configuration:
 
 #### Parse the field `message` using dynamic field names
 
-Dynamic field names can be had when leveraging file_input's `label_regex`.
+Dynamic field names can be had when leveraging file_input's `attribute_regex`.
 
 Configuration:
 
@@ -206,11 +206,11 @@ Configuration:
   include:
   - ./dynamic.log
   start_at: beginning
-  label_regex: '^#(?P<key>.*?): (?P<value>.*)'
+  attribute_regex: '^#(?P<key>.*?): (?P<value>.*)'
 
 - type: csv_parser
   delimiter: ","
-  header_label: Fields
+  header_attribute: Fields
 ```
 
 Input File:

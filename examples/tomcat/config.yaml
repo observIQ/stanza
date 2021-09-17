@@ -11,7 +11,7 @@ pipeline:
     attributes:
       log_type: tomcat
 
-  # Parse the logs into labeled fields
+  # Parse the logs into attribute fields
   # Example input:
   # {
   #   "timestamp": "2020-06-13T11:00:53-04:00",

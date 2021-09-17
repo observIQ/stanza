@@ -52,11 +52,11 @@ metadata:
   namespace: default
 spec:
   selector:
-    matchAttributes:
+    matchLabels:
       name: stanza
   template:
     metadata:
-      attributes:
+      labels:
         name: stanza
     spec:
       serviceAccountName: stanza-metadata

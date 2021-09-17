@@ -15,7 +15,7 @@ Available to the expressions are a few special variables:
 
 ## Examples
 
-### Add a label from an environment variable
+### Add a attribute from an environment variable
 
 ```yaml
 - type: metadata

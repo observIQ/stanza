@@ -59,7 +59,7 @@ func fieldFromString(s string) (Field, error) {
 		if len(split) != 2 {
 			return Field{}, fmt.Errorf("attributes cannot be nested")
 		}
-		return Field{LabelField{split[1]}}, nil
+		return Field{AttributeField{split[1]}}, nil
 	case resourcePrefix:
 		if len(split) != 2 {
 			return Field{}, fmt.Errorf("resource fields cannot be nested")

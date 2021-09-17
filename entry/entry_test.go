@@ -125,7 +125,7 @@ func TestCopy(t *testing.T) {
 	entry.SeverityText = "ok"
 	entry.Timestamp = time.Time{}
 	entry.Record = "test"
-	entry.Attributes = map[string]string{"label": "value"}
+	entry.Attributes = map[string]string{"attribute": "value"}
 	entry.Resource = map[string]string{"resource": "value"}
 	copy := entry.Copy()
 
@@ -133,13 +133,13 @@ func TestCopy(t *testing.T) {
 	entry.SeverityText = "1"
 	entry.Timestamp = time.Now()
 	entry.Record = "new"
-	entry.Attributes = map[string]string{"label": "new value"}
+	entry.Attributes = map[string]string{"attribute": "new value"}
 	entry.Resource = map[string]string{"resource": "new value"}
 
 	require.Equal(t, time.Time{}, copy.Timestamp)
 	require.Equal(t, Severity(0), copy.Severity)
 	require.Equal(t, "ok", copy.SeverityText)
-	require.Equal(t, map[string]string{"label": "value"}, copy.Attributes)
+	require.Equal(t, map[string]string{"attribute": "value"}, copy.Attributes)
 	require.Equal(t, map[string]string{"resource": "value"}, copy.Resource)
 	require.Equal(t, "test", copy.Record)
 }
@@ -170,9 +170,9 @@ func TestFieldFromString(t *testing.T) {
 			false,
 		},
 		{
-			"SimpleLabel",
+			"SimpleAttribute",
 			"$attributes.test",
-			Field{LabelField{"test"}},
+			Field{AttributeField{"test"}},
 			false,
 		},
 		{
@@ -196,10 +196,10 @@ func TestFieldFromString(t *testing.T) {
 	}
 }
 
-func TestAddLabel(t *testing.T) {
+func TestAddAttribute(t *testing.T) {
 	entry := Entry{}
-	entry.AddLabel("label", "value")
-	expected := map[string]string{"label": "value"}
+	entry.AddAttribute("attribute", "value")
+	expected := map[string]string{"attribute": "value"}
 	require.Equal(t, expected, entry.Attributes)
 }
 
@@ -212,7 +212,7 @@ func TestAddResourceKey(t *testing.T) {
 
 func TestReadToInterfaceMapWithMissingField(t *testing.T) {
 	entry := Entry{}
-	field := NewLabelField("label")
+	field := NewAttributeField("attribute")
 	dest := map[string]interface{}{}
 	err := entry.readToInterfaceMap(field, &dest)
 	require.Error(t, err)
@@ -221,7 +221,7 @@ func TestReadToInterfaceMapWithMissingField(t *testing.T) {
 
 func TestReadToStringMapWithMissingField(t *testing.T) {
 	entry := Entry{}
-	field := NewLabelField("label")
+	field := NewAttributeField("attribute")
 	dest := map[string]string{}
 	err := entry.readToStringMap(field, &dest)
 	require.Error(t, err)
@@ -230,7 +230,7 @@ func TestReadToStringMapWithMissingField(t *testing.T) {
 
 func TestReadToInterfaceMissingField(t *testing.T) {
 	entry := Entry{}
-	field := NewLabelField("label")
+	field := NewAttributeField("attribute")
 	var dest interface{}
 	err := entry.readToInterface(field, &dest)
 	require.Error(t, err)

@@ -116,14 +116,14 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 		},
 		{
-			"Labels",
+			"Attributes",
 			func() *GoogleCloudOutputConfig {
 				return googleCloudBasicConfig()
 			}(),
 			&entry.Entry{
 				Timestamp: now,
 				Attributes: map[string]string{
-					"label1": "value1",
+					"attribute1": "value1",
 				},
 				Record: map[string]interface{}{
 					"message": "test message",

@@ -19,11 +19,11 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchAttributes:
+    matchLabels:
       name: stanza-agent-cluster-events
   template:
     metadata:
-      attributes:
+      labels:
         name: stanza-agent-cluster-events
     spec:
       serviceAccountName: stanza-agent

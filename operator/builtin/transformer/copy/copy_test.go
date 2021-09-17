@@ -120,7 +120,7 @@ func TestBuildAndProcess(t *testing.T) {
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewLabelField("key2")
+				cfg.To = entry.NewAttributeField("key2")
 				return cfg
 			}(),
 			newTestEntry,
@@ -141,7 +141,7 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("key")
+				cfg.From = entry.NewAttributeField("key")
 				cfg.To = entry.NewRecordField("key2")
 				return cfg
 			}(),
@@ -168,7 +168,7 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("key")
+				cfg.From = entry.NewAttributeField("key")
 				cfg.To = entry.NewResourceField("key2")
 				return cfg
 			}(),
@@ -221,7 +221,7 @@ func TestBuildAndProcess(t *testing.T) {
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewRecordField("nested")
-				cfg.To = entry.NewLabelField("invalid")
+				cfg.To = entry.NewAttributeField("invalid")
 				return cfg
 			}(),
 			newTestEntry,
@@ -232,7 +232,7 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("nonexistentkey")
+				cfg.From = entry.NewAttributeField("nonexistentkey")
 				cfg.To = entry.NewResourceField("key2")
 				return cfg
 			}(),

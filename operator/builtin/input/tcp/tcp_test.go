@@ -114,11 +114,11 @@ func tcpInputTest(input []byte, expected []string) func(t *testing.T) {
 	}
 }
 
-func tcpInputLabelsTest(input []byte, expected []string) func(t *testing.T) {
+func tcpInputAttributesTest(input []byte, expected []string) func(t *testing.T) {
 	return func(t *testing.T) {
 		cfg := NewTCPInputConfig("test_id")
 		cfg.ListenAddress = ":0"
-		cfg.AddLabels = true
+		cfg.AddAttributes = true
 
 		ops, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
@@ -426,8 +426,8 @@ func TestTcpInput(t *testing.T) {
 }
 
 func TestTcpInputAattributes(t *testing.T) {
-	t.Run("Simple", tcpInputLabelsTest([]byte("message\n"), []string{"message"}))
-	t.Run("CarriageReturn", tcpInputLabelsTest([]byte("message\r\n"), []string{"message"}))
+	t.Run("Simple", tcpInputAttributesTest([]byte("message\n"), []string{"message"}))
+	t.Run("CarriageReturn", tcpInputAttributesTest([]byte("message\r\n"), []string{"message"}))
 }
 
 func TestTLSTcpInput(t *testing.T) {

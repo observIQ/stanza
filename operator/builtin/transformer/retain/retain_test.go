@@ -166,7 +166,7 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key"))
 				return cfg
 			}(),
 			func() *entry.Entry {
@@ -189,8 +189,8 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key1"))
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key2"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key1"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key2"))
 				return cfg
 			}(),
 			func() *entry.Entry {
@@ -267,7 +267,7 @@ func TestBuildAndProcess(t *testing.T) {
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
 				cfg.Fields = append(cfg.Fields, entry.NewResourceField("key1"))
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key3"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key3"))
 				cfg.Fields = append(cfg.Fields, entry.NewRecordField("key"))
 				return cfg
 			}(),

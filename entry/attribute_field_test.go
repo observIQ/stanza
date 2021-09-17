@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLabelFieldGet(t *testing.T) {
+func TestAttributeFieldGet(t *testing.T) {
 	cases := []struct {
 		name       string
 		attributes map[string]string
@@ -19,7 +19,7 @@ func TestLabelFieldGet(t *testing.T) {
 			map[string]string{
 				"test": "val",
 			},
-			NewLabelField("test"),
+			NewAttributeField("test"),
 			"val",
 			true,
 		},
@@ -28,14 +28,14 @@ func TestLabelFieldGet(t *testing.T) {
 			map[string]string{
 				"test": "val",
 			},
-			NewLabelField("nonexistent"),
+			NewAttributeField("nonexistent"),
 			"",
 			false,
 		},
 		{
 			"NilMap",
 			nil,
-			NewLabelField("nonexistent"),
+			NewAttributeField("nonexistent"),
 			"",
 			false,
 		},
@@ -52,7 +52,7 @@ func TestLabelFieldGet(t *testing.T) {
 	}
 }
 
-func TestLabelFieldDelete(t *testing.T) {
+func TestAttributeFieldDelete(t *testing.T) {
 	cases := []struct {
 		name               string
 		attributes         map[string]string
@@ -66,7 +66,7 @@ func TestLabelFieldDelete(t *testing.T) {
 			map[string]string{
 				"test": "val",
 			},
-			NewLabelField("test"),
+			NewAttributeField("test"),
 			"val",
 			true,
 			map[string]string{},
@@ -76,7 +76,7 @@ func TestLabelFieldDelete(t *testing.T) {
 			map[string]string{
 				"test": "val",
 			},
-			NewLabelField("nonexistent"),
+			NewAttributeField("nonexistent"),
 			"",
 			false,
 			map[string]string{
@@ -86,7 +86,7 @@ func TestLabelFieldDelete(t *testing.T) {
 		{
 			"NilMap",
 			nil,
-			NewLabelField("nonexistent"),
+			NewAttributeField("nonexistent"),
 			"",
 			false,
 			nil,
@@ -104,7 +104,7 @@ func TestLabelFieldDelete(t *testing.T) {
 	}
 }
 
-func TestLabelFieldSet(t *testing.T) {
+func TestAttributeFieldSet(t *testing.T) {
 	cases := []struct {
 		name        string
 		attributes  map[string]string
@@ -116,7 +116,7 @@ func TestLabelFieldSet(t *testing.T) {
 		{
 			"Simple",
 			map[string]string{},
-			NewLabelField("test"),
+			NewAttributeField("test"),
 			"val",
 			map[string]string{
 				"test": "val",
@@ -128,7 +128,7 @@ func TestLabelFieldSet(t *testing.T) {
 			map[string]string{
 				"test": "original",
 			},
-			NewLabelField("test"),
+			NewAttributeField("test"),
 			"val",
 			map[string]string{
 				"test": "val",
@@ -138,7 +138,7 @@ func TestLabelFieldSet(t *testing.T) {
 		{
 			"NilMap",
 			nil,
-			NewLabelField("test"),
+			NewAttributeField("test"),
 			"val",
 			map[string]string{
 				"test": "val",
@@ -148,7 +148,7 @@ func TestLabelFieldSet(t *testing.T) {
 		{
 			"NonString",
 			map[string]string{},
-			NewLabelField("test"),
+			NewAttributeField("test"),
 			123,
 			map[string]string{
 				"test": "val",
@@ -172,20 +172,20 @@ func TestLabelFieldSet(t *testing.T) {
 	}
 }
 
-func TestLabelFieldString(t *testing.T) {
+func TestAttributeFieldString(t *testing.T) {
 	cases := []struct {
 		name     string
-		field    LabelField
+		field    AttributeField
 		expected string
 	}{
 		{
 			"Simple",
-			LabelField{"foo"},
+			AttributeField{"foo"},
 			"$attributes.foo",
 		},
 		{
 			"Empty",
-			LabelField{""},
+			AttributeField{""},
 			"$attributes.",
 		},
 	}

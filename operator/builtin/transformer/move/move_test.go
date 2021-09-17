@@ -56,12 +56,12 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveRecordToLabel",
+			"MoveRecordToAttribute",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewLabelField("new")
+				cfg.To = entry.NewAttributeField("new")
 				return cfg
 			}(),
 			newTestEntry,
@@ -77,11 +77,11 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveLabelToRecord",
+			"MoveAttributeToRecord",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("new")
+				cfg.From = entry.NewAttributeField("new")
 				cfg.To = entry.NewRecordField("new")
 				return cfg
 			}(),
@@ -104,11 +104,11 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveLabelToResource",
+			"MoveAttributeToResource",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("new")
+				cfg.From = entry.NewAttributeField("new")
 				cfg.To = entry.NewResourceField("new")
 				return cfg
 			}(),
@@ -125,12 +125,12 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveResourceToLabel",
+			"MoveResourceToAttribute",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewResourceField("new")
-				cfg.To = entry.NewLabelField("new")
+				cfg.To = entry.NewAttributeField("new")
 				return cfg
 			}(),
 			func() *entry.Entry {
@@ -268,12 +268,12 @@ func TestMoveProcess(t *testing.T) {
 			nil,
 		},
 		{
-			"MoveNestToLabel",
+			"MoveNestToAttribute",
 			true,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewRecordField("nested")
-				cfg.To = entry.NewLabelField("NewNested")
+				cfg.To = entry.NewAttributeField("NewNested")
 
 				return cfg
 			}(),

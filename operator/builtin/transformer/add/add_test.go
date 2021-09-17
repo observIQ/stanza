@@ -113,7 +113,7 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_attribute",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewLabelField("new")
+				cfg.Field = entry.NewAttributeField("new")
 				cfg.Value = "newVal"
 				return cfg
 			}(),

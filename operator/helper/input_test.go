@@ -96,7 +96,7 @@ func TestInputOperatorNewEntry(t *testing.T) {
 	require.NoError(t, err)
 
 	input := InputOperator{
-		Labeler: Labeler{
+		Attributer: Attributer{
 			attributes: map[string]*ExprString{
 				"test-label": labelExpr,
 			},

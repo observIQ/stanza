@@ -167,13 +167,13 @@ func TestFieldMarshalYAML(t *testing.T) {
 			"$record['test1']['test.2']\n",
 		},
 		{
-			"LabelField",
-			NewLabelField("test1"),
+			"AttributeField",
+			NewAttributeField("test1"),
 			"$attributes.test1\n",
 		},
 		{
-			"LabelFieldWithDots",
-			NewLabelField("test.1"),
+			"AttributeFieldWithDots",
+			NewAttributeField("test.1"),
 			"$attributes['test.1']\n",
 		},
 		{
