@@ -51,7 +51,6 @@ type InputOperator struct {
 	encoding helper.Encoding
 
 	wg         sync.WaitGroup
-	readerWg   sync.WaitGroup
 	firstCheck bool
 	cancel     context.CancelFunc
 }
@@ -168,6 +167,9 @@ OUTER:
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
+	f.saveCurrent(readers)
+	f.syncLastPollFiles()
+
 	if f.deleteAfterRead {
 		f.Debug("cleaning up log files that have been consumed")
 		for _, reader := range readers {
@@ -182,9 +184,6 @@ OUTER:
 		}
 		f.lastPollReaders = readers
 	}
-
-	f.saveCurrent(readers)
-	f.syncLastPollFiles()
 }
 
 // getMatches gets a list of paths given an array of glob patterns to include and exclude
