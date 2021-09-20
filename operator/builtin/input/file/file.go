@@ -7,12 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
 
-	"github.com/bmatcuk/doublestar/v2"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -22,8 +20,7 @@ import (
 type InputOperator struct {
 	helper.InputOperator
 
-	Include               []string
-	Exclude               []string
+	finder                Finder
 	FilePathField         entry.Field
 	FileNameField         entry.Field
 	FilePathResolvedField entry.Field
@@ -51,7 +48,6 @@ type InputOperator struct {
 	encoding helper.Encoding
 
 	wg         sync.WaitGroup
-	readerWg   sync.WaitGroup
 	firstCheck bool
 	cancel     context.CancelFunc
 }
@@ -125,9 +121,11 @@ func (f *InputOperator) poll(ctx context.Context) {
 		}
 
 		// Get the list of paths on disk
-		matches = getMatches(f.Include, f.Exclude)
+		matches = f.finder.FindFiles()
 		if f.firstCheck && len(matches) == 0 {
-			f.Warnw("no files match the configured include patterns", "include", f.Include)
+			f.Warnw("no files match the configured include patterns",
+				"include", f.finder.Include,
+				"exclude", f.finder.Exclude)
 		} else if len(matches) > f.maxBatchFiles {
 			matches, f.queuedMatches = matches[:f.maxBatchFiles], matches[f.maxBatchFiles:]
 		}
@@ -162,57 +160,29 @@ OUTER:
 		go func(r *Reader) {
 			defer wg.Done()
 			r.ReadToEnd(ctx)
-			if f.deleteAfterRead {
-				r.Close()
-				if err := os.Remove(r.file.Name()); err != nil {
-					f.Errorf("could not delete %s", r.file.Name())
-				}
-			}
 		}(reader)
 	}
 
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	if f.deleteAfterRead {
-		// No need to track files, since we only consume them once
-		return
-	}
-
-	for _, reader := range f.lastPollReaders {
-		reader.Close()
-	}
-
-	f.lastPollReaders = readers
-
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
-}
 
-// getMatches gets a list of paths given an array of glob patterns to include and exclude
-func getMatches(includes, excludes []string) []string {
-	all := make([]string, 0, len(includes))
-	for _, include := range includes {
-		matches, _ := filepath.Glob(include) // compile error checked in build
-	INCLUDE:
-		for _, match := range matches {
-			for _, exclude := range excludes {
-				if itMatches, _ := doublestar.PathMatch(exclude, match); itMatches {
-					continue INCLUDE
-				}
+	if f.deleteAfterRead {
+		f.Debug("cleaning up log files that have been consumed")
+		for _, reader := range readers {
+			reader.Close()
+			if err := os.Remove(reader.file.Name()); err != nil {
+				f.Errorf("could not delete %s", reader.file.Name())
 			}
-
-			for _, existing := range all {
-				if existing == match {
-					continue INCLUDE
-				}
-			}
-
-			all = append(all, match)
 		}
+	} else {
+		for _, reader := range f.lastPollReaders {
+			reader.Close()
+		}
+		f.lastPollReaders = readers
 	}
-
-	return all
 }
 
 // makeReaders takes a list of paths, then creates readers from each of those paths,
