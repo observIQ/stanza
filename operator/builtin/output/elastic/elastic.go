@@ -233,7 +233,7 @@ func (e *ElasticOutput) FindIndex(entry *entry.Entry) (string, error) {
 	var value string
 	err := entry.Read(*e.indexField, &value)
 	if err != nil {
-		return "", errors.Wrap(err, "extract index from record")
+		return "", errors.Wrap(err, "extract index from body")
 	}
 
 	return value, nil
@@ -248,7 +248,7 @@ func (e *ElasticOutput) FindID(entry *entry.Entry) (string, error) {
 	var value string
 	err := entry.Read(*e.idField, &value)
 	if err != nil {
-		return "", errors.Wrap(err, "extract id from record")
+		return "", errors.Wrap(err, "extract id from body")
 	}
 
 	return value, nil

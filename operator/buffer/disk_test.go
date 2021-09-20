@@ -285,7 +285,7 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			defer wg.Done()
 			fmt.Printf("Benchmark: %d\n", b.N)
 			e := entry.New()
-			e.Record = "test log"
+			e.Body = "test log"
 			ctx := context.Background()
 			for i := 0; i < b.N; i++ {
 				panicOnErr(buffer.Add(ctx, e))
@@ -323,7 +323,7 @@ func BenchmarkDiskBuffer(b *testing.B) {
 			defer wg.Done()
 			fmt.Printf("Benchmark: %d\n", b.N)
 			e := entry.New()
-			e.Record = "test log"
+			e.Body = "test log"
 			ctx := context.Background()
 			for i := 0; i < b.N; i++ {
 				panicOnErr(buffer.Add(ctx, e))

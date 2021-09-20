@@ -12,11 +12,11 @@ The `retain` operator keeps the specified list of fields, and removes the rest.
 | `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                                                                                          |
 | `if`       |                  | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 <hr>
-<b>NOTE:</b> If no fields in a group (attributes, resource, or record) are specified, that entire group will be retained.
+<b>NOTE:</b> If no fields in a group (attributes, resource, or body) are specified, that entire group will be retained.
 <hr>
 Example usage:
 <hr>
-Retain fields in the record
+Retain fields in the body
 
 ```yaml
 - type: retain
@@ -34,7 +34,7 @@ Retain fields in the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2",
     "key3": "val3",
@@ -50,7 +50,7 @@ Retain fields in the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -62,7 +62,7 @@ Retain fields in the record
 </table>
 
 <hr>
-Retain an object in the record
+Retain an object in the body
 
 ```yaml
 - type: retain
@@ -79,7 +79,7 @@ Retain an object in the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "object": {
       "nestedkey": "val2",
@@ -95,7 +95,7 @@ Retain an object in the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "object": {
       "nestedkey": "val2",
     }
@@ -130,7 +130,7 @@ Retain fields from resource
      "key3": "val3"
   },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     }
   }
@@ -147,7 +147,7 @@ Retain fields from resource
      "key2": "val2",
   },
   "attributes": { },  
-  "record": { 
+  "body": { 
     "key1": "val1",
   }
 }
@@ -180,7 +180,7 @@ Retain fields from attributes
      "key2": "val2",
      "key3": "val3"
   },  
-  "record": { 
+  "body": { 
     "key1": "val1",
   }
 }
@@ -196,7 +196,7 @@ Retain fields from attributes
      "key1": "val1",
      "key2": "val2",
   },  
-  "record": { 
+  "body": { 
     "key1": "val1",
   }
 }
@@ -232,7 +232,7 @@ Retain fields from all sources
      "key3": "val3",
      "key4": "val4"
   },  
-  "record": { 
+  "body": { 
     "key5": "val5",
     "key6": "val6",
   }
@@ -250,7 +250,7 @@ Retain fields from all sources
   "attributes": { 
      "key3": "val3",
   },  
-  "record": { 
+  "body": { 
     "key5": "val5",
   }
 }

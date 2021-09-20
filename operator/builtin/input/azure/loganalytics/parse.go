@@ -126,8 +126,8 @@ func (l *LogAnalyticsInput) setType(e *entry.Entry, records map[string]interface
 }
 
 // setTimestamp set the entry's timestamp using the timegenerated log analytics field
-func (l *LogAnalyticsInput) setTimestamp(e *entry.Entry, records map[string]interface{}) error {
-	for key, value := range records {
+func (l *LogAnalyticsInput) setTimestamp(e *entry.Entry, bodys map[string]interface{}) error {
+	for key, value := range bodys {
 		switch key {
 		case "timegenerated":
 			if v, ok := value.(string); ok {
@@ -153,7 +153,7 @@ func (l *LogAnalyticsInput) setAttribute(e *entry.Entry, key string, value inter
 }
 
 func (l *LogAnalyticsInput) setField(e *entry.Entry, key string, value interface{}) error {
-	r := entry.RecordField{
+	r := entry.BodyField{
 		Keys: []string{key},
 	}
 	return r.Set(e, value)

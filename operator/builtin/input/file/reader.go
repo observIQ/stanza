@@ -49,7 +49,7 @@ type Reader struct {
 	Offset      int64
 
 	// HeaderAttributes is an optional map that contains entry attributes
-	// derived from a log files' headers, added to every record
+	// derived from a log files' headers, added to every body
 	HeaderAttributes map[string]string
 
 	generation     int

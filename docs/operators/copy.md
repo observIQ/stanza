@@ -16,7 +16,7 @@ The `copy` operator copies a value from one [field](/docs/types/field.md) to ano
 Example usage:
 
 <hr>
-Copy a value from the record to resource
+Copy a value from the body to resource
 
 ```yaml
 - type: copy
@@ -33,7 +33,7 @@ Copy a value from the record to resource
 {
   "resource": { },
   "attributes": { },  
-  "record": { 
+  "body": { 
     "key":"value"
   }
 }
@@ -48,7 +48,7 @@ Copy a value from the record to resource
        "newkey":"value"
   },
   "attributes": { },  
-  "record": {
+  "body": {
     "key":"value"
   }
 }
@@ -60,7 +60,7 @@ Copy a value from the record to resource
 
 <hr>
 
-Copy a value from the record to attributes
+Copy a value from the body to attributes
 ```yaml
 - type: copy
   from: key2
@@ -76,7 +76,7 @@ Copy a value from the record to attributes
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -92,7 +92,7 @@ Copy a value from the record to attributes
   "attributes": { 
       "newkey": "val2"
   },  
-  "record": {
+  "body": {
     "key3": "val1",
     "key2": "val2"
   }
@@ -105,7 +105,7 @@ Copy a value from the record to attributes
 
 <hr>
 
-Copy a value from attributes to the record
+Copy a value from attributes to the body
 ```yaml
 - type: copy
   from: $attributes.key
@@ -123,7 +123,7 @@ Copy a value from attributes to the record
   "attributes": { 
       "key": "newval"
   },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -139,7 +139,7 @@ Copy a value from attributes to the record
   "attributes": { 
       "key": "newval"
   },  
-  "record": {
+  "body": {
     "key3": "val1",
     "key2": "val2",
     "newkey": "newval"
@@ -153,7 +153,7 @@ Copy a value from attributes to the record
 
 <hr>
 
-Copy a value within the record
+Copy a value within the body
 ```yaml
 - type: copy
   from: obj.nested
@@ -169,7 +169,7 @@ Copy a value within the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
       "obj": {
         "nested":"nestedvalue"
     }
@@ -184,7 +184,7 @@ Copy a value within the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "obj": {
         "nested":"nestedvalue"
     },

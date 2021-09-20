@@ -13,7 +13,7 @@ type Persister struct {
 	DB helper.Persister
 }
 
-// Write records an Azure Event Hub Checkpoint to the Stanza persistence backend
+// Write bodys an Azure Event Hub Checkpoint to the Stanza persistence backend
 func (p *Persister) Write(namespace, name, consumerGroup, partitionID string, checkpoint persist.Checkpoint) error {
 	key := p.persistenceKey(namespace, name, consumerGroup, partitionID)
 	value, err := json.Marshal(checkpoint)

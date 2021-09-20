@@ -39,7 +39,7 @@ func TestBuildAndProcess(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"key": "val",
 			"nested": map[string]interface{}{
 				"nestedkey": "nestedval",
@@ -54,13 +54,13 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("key"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("key"))
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 				}
 				return e
@@ -71,13 +71,13 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("key"))
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("nested2"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("key"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("nested2"))
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -90,7 +90,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested2": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -104,12 +104,12 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("nested2"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("nested2"))
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -122,7 +122,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"nested2": map[string]interface{}{
 						"nestedkey": "nestedval",
 					},
@@ -135,12 +135,12 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("nested2", "nestedkey2"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("nested2", "nestedkey2"))
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -153,7 +153,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"nested2": map[string]interface{}{
 						"nestedkey2": "nestedval",
 					},
@@ -268,7 +268,7 @@ func TestBuildAndProcess(t *testing.T) {
 				cfg := defaultCfg()
 				cfg.Fields = append(cfg.Fields, entry.NewResourceField("key1"))
 				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key3"))
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("key"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("key"))
 				return cfg
 			}(),
 			func() *entry.Entry {
@@ -291,7 +291,7 @@ func TestBuildAndProcess(t *testing.T) {
 				e.Attributes = map[string]string{
 					"key3": "val",
 				}
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 				}
 				return e
@@ -302,13 +302,13 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewRecordField("aNonExsistentKey"))
+				cfg.Fields = append(cfg.Fields, entry.NewBodyField("aNonExsistentKey"))
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = nil
+				e.Body = nil
 				return e
 			},
 		},

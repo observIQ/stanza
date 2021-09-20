@@ -97,7 +97,7 @@ func (p *RetainOperator) Transform(e *entry.Entry) error {
 		newEntry.Attributes = e.Attributes
 	}
 	if !p.AllBodyFields {
-		newEntry.Record = e.Record
+		newEntry.Body = e.Body
 	}
 
 	for _, field := range p.Fields {

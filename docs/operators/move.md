@@ -33,7 +33,7 @@ Rename value
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -47,7 +47,7 @@ Rename value
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key3": "val1",
     "key2": "val2"
   }
@@ -59,7 +59,7 @@ Rename value
 </table>
 <hr>
 
-Move a value from the record to resource
+Move a value from the body to resource
 
 ```yaml
 - type: move
@@ -76,7 +76,7 @@ Move a value from the record to resource
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "uuid": "091edc50-d91a-460d-83cd-089a62937738"
   }
 }
@@ -91,7 +91,7 @@ Move a value from the record to resource
     "uuid": "091edc50-d91a-460d-83cd-089a62937738"
   },
   "attributes": { },  
-  "record": { }
+  "body": { }
 }
 ```
 
@@ -101,7 +101,7 @@ Move a value from the record to resource
 
 <hr>
 
-Move a value from the record to attributes
+Move a value from the body to attributes
 
 ```yaml
 - type: move
@@ -118,7 +118,7 @@ Move a value from the record to attributes
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "ip": "8.8.8.8"
   }
 }
@@ -133,7 +133,7 @@ Move a value from the record to attributes
   "attributes": { 
     "ip": "8.8.8.8"
   },  
-  "record": { }
+  "body": { }
 }
 ```
 
@@ -143,11 +143,11 @@ Move a value from the record to attributes
 
 <hr>
 
-Replace the record with an individual value nested within the record
+Replace the body with an individual value nested within the body
 ```yaml
 - type: move
   from: log
-  to: $record
+  to: $body
 ```
 
 <table>
@@ -159,7 +159,7 @@ Replace the record with an individual value nested within the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "log": "The log line"
   }
 }
@@ -172,7 +172,7 @@ Replace the record with an individual value nested within the record
 {
   "resource": { },
   "attributes": { },  
-  "record": "The log line"
+  "body": "The log line"
 }
 ```
 
@@ -182,11 +182,11 @@ Replace the record with an individual value nested within the record
 
 <hr>
 
-Remove a layer from the record
+Remove a layer from the body
 ```yaml
 - type: move
   from: wrapper
-  to: $record
+  to: $body
 ```
 
 <table>
@@ -198,7 +198,7 @@ Remove a layer from the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "wrapper": {
       "key1": "val1",
       "key2": "val2",
@@ -216,7 +216,7 @@ Remove a layer from the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2",
     "key3": "val3"
@@ -230,11 +230,11 @@ Remove a layer from the record
 
 <hr>
 
-Merge a layer to the record
+Merge a layer to the body
 ```yaml
 - type: move
   from: wrapper
-  to: $record
+  to: $body
 ```
 
 <table>
@@ -246,7 +246,7 @@ Merge a layer to the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "wrapper": {
       "key1": "val1",
       "key2": "val2",
@@ -266,7 +266,7 @@ Merge a layer to the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2",
     "key3": "val3",

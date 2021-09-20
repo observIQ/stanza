@@ -793,7 +793,7 @@ func TestEncodings(t *testing.T) {
 			for _, expected := range tc.expected {
 				select {
 				case entry := <-receivedEntries:
-					require.Equal(t, expected, []byte(entry.Record.(string)))
+					require.Equal(t, expected, []byte(entry.Body.(string)))
 				case <-time.After(500 * time.Millisecond):
 					require.FailNow(t, "Timed out waiting for entry to be read")
 				}

@@ -128,8 +128,8 @@ func NewFakeKVOperator() (*KVParser, *testutil.Operator) {
 					OutputOperators: []operator.Operator{&mock},
 				},
 			},
-			ParseFrom: entry.NewRecordField("testfield"),
-			ParseTo:   entry.NewRecordField("testparsed"),
+			ParseFrom: entry.NewBodyField("testfield"),
+			ParseTo:   entry.NewBodyField("testparsed"),
 		},
 	}, &mock
 }
@@ -140,11 +140,11 @@ func TestKVImplementations(t *testing.T) {
 
 func TestKVParser(t *testing.T) {
 	cases := []struct {
-		name           string
-		inputRecord    map[string]interface{}
-		expectedRecord map[string]interface{}
-		delimiter      string
-		errorExpected  bool
+		name          string
+		inputBody     map[string]interface{}
+		expectedBody  map[string]interface{}
+		delimiter     string
+		errorExpected bool
 	}{
 		{
 			"simple",
@@ -302,16 +302,16 @@ func TestKVParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			input := entry.New()
-			input.Record = tc.inputRecord
+			input.Body = tc.inputBody
 
 			output := entry.New()
-			output.Record = tc.expectedRecord
+			output.Body = tc.expectedBody
 
 			parser, mockOutput := NewFakeKVOperator()
 			parser.delimiter = tc.delimiter
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)
-				require.Equal(t, tc.expectedRecord, e.Record)
+				require.Equal(t, tc.expectedBody, e.Body)
 			}).Return(nil)
 
 			err := parser.Process(context.Background(), input)
@@ -329,11 +329,11 @@ func TestKVParserWithEmbeddedTimeParser(t *testing.T) {
 	testTime := time.Unix(1136214245, 0)
 
 	cases := []struct {
-		name           string
-		inputRecord    map[string]interface{}
-		expectedRecord map[string]interface{}
-		errorExpected  bool
-		preserveTo     *entry.Field
+		name          string
+		inputBody     map[string]interface{}
+		expectedBody  map[string]interface{}
+		errorExpected bool
+		preserveTo    *entry.Field
 	}{
 		{
 			"simple",
@@ -357,7 +357,7 @@ func TestKVParserWithEmbeddedTimeParser(t *testing.T) {
 			},
 			false,
 			func() *entry.Field {
-				f := entry.NewRecordField("original_timestamp")
+				f := entry.NewBodyField("original_timestamp")
 				return &f
 			}(),
 		},
@@ -379,14 +379,14 @@ func TestKVParserWithEmbeddedTimeParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			input := entry.New()
-			input.Record = tc.inputRecord
+			input.Body = tc.inputBody
 
 			output := entry.New()
-			output.Record = tc.expectedRecord
+			output.Body = tc.expectedBody
 
 			parser, mockOutput := NewFakeKVOperator()
 			parser.delimiter = "="
-			parseFrom := entry.NewRecordField("testparsed", "timestamp")
+			parseFrom := entry.NewBodyField("testparsed", "timestamp")
 			parser.ParserOperator.TimeParser = &helper.TimeParser{
 				ParseFrom:  &parseFrom,
 				LayoutType: "epoch",
@@ -395,7 +395,7 @@ func TestKVParserWithEmbeddedTimeParser(t *testing.T) {
 			}
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)
-				require.Equal(t, tc.expectedRecord, e.Record)
+				require.Equal(t, tc.expectedBody, e.Body)
 				require.Equal(t, testTime, e.Timestamp)
 			}).Return(nil)
 
@@ -437,7 +437,7 @@ func BenchmarkParse(b *testing.B) {
 		delimiter: "=",
 	}
 
-	timeParseFrom := entry.NewRecordField("timestamp")
+	timeParseFrom := entry.NewBodyField("timestamp")
 	kv.ParserOperator.TimeParser = &helper.TimeParser{
 		ParseFrom:  &timeParseFrom,
 		LayoutType: "epoch",

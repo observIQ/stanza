@@ -32,14 +32,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "message": "1,debug,\"\"Debug Message\"\""
   }
 }
@@ -51,7 +51,7 @@ Configuration:
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "id": "1",
     "severity": "debug",
     "message": "\"Debug Message\""
@@ -76,14 +76,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "message": "1 debug \"Debug Message\""
   }
 }
@@ -95,7 +95,7 @@ Configuration:
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "id": "1",
     "severity": "debug",
     "message": "\"Debug Message\""
@@ -121,14 +121,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "message": "2021-03-17,debug,Debug Message"
   }
 }
@@ -140,7 +140,7 @@ Configuration:
 ```json
 {
   "timestamp": "2021-03-17T00:00:00-00:00",
-  "record": {
+  "body": {
     "severity": "debug",
     "message": "Debug Message"
   }
@@ -164,14 +164,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "message": "1+debug+\"\"Debug Message\"\""
   }
 }
@@ -183,7 +183,7 @@ Configuration:
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "id": "1",
     "severity": "debug",
     "message": "\"Debug Message\""
@@ -221,7 +221,7 @@ Input File:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
@@ -233,7 +233,7 @@ Entry (from file_input):
   "attributes": {
     "fields": "id,severity,message"
   },
-  "record": {
+  "body": {
     "message": "1,debug,Hello"
   }
 }
@@ -248,7 +248,7 @@ Entry (from file_input):
   "attributes": {
     "fields": "id,severity,message"
   },
-  "record": {
+  "body": {
     "id": "1",
     "severity": "debug",
     "message": "Hello"

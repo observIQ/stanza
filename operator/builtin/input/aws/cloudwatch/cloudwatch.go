@@ -347,7 +347,7 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	}
 	entry, err := c.NewEntry(e)
 	if err != nil {
-		c.Errorf("Failed to create new entry from record: %s", err)
+		c.Errorf("Failed to create new entry from Body: %s", err)
 	}
 
 	entry.AddResourceKey("log_group", logGroupName)

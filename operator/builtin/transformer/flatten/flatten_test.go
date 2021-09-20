@@ -38,7 +38,7 @@ func TestBuildAndProcess(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"key": "val",
 			"nested": map[string]interface{}{
 				"nestedkey": "nestedval",
@@ -52,7 +52,7 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"nested"},
 				}
 				return cfg
@@ -60,7 +60,7 @@ func TestBuildAndProcess(t *testing.T) {
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key":       "val",
 					"nestedkey": "nestedval",
 				}
@@ -72,14 +72,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"nested"},
 				}
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey1": "nestedval",
@@ -92,7 +92,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key":        "val",
 					"nestedkey1": "nestedval",
 					"nestedkey2": "nestedval",
@@ -107,14 +107,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"nested", "secondlevel"},
 				}
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"secondlevel": map[string]interface{}{
@@ -126,7 +126,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -140,14 +140,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"nested", "secondlevel"},
 				}
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"secondlevel": map[string]interface{}{
@@ -162,7 +162,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey1": "nestedval",
@@ -179,14 +179,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"nested"},
 				}
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"secondlevel": map[string]interface{}{
@@ -198,7 +198,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"secondlevel": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -212,14 +212,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"nested"},
 				}
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"key": "nestedval",
@@ -229,7 +229,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "nestedval",
 				}
 				return e
@@ -240,7 +240,7 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"invalid"},
 				}
 				return cfg
@@ -253,7 +253,7 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *FlattenOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.RecordField{
+				cfg.Field = entry.BodyField{
 					Keys: []string{"$resource", "invalid"},
 				}
 				return cfg

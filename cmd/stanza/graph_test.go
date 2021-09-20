@@ -44,7 +44,7 @@ pipeline:
     type: generate_input
     output: json_parser
     entry:
-      record:
+      body:
         test: value
 
   - id: json_parser
@@ -77,7 +77,7 @@ pipeline:
   - type: generate_input
     output: json_parser
     entry:
-      record:
+      body:
         test: value
 
   - type: json_parser
@@ -108,7 +108,7 @@ pipeline:
   - id: generate
     type: generate_input
     entry:
-      record:
+      body:
         test: value
 
   - id: json_parser
@@ -139,7 +139,7 @@ func TestGraphNoOutputsNoIDs(t *testing.T) {
 pipeline:
   - type: generate_input
     entry:
-      record:
+      body:
         test: value
 
   - type: json_parser
@@ -168,7 +168,7 @@ func TestGraphMixed(t *testing.T) {
 pipeline:
   - type: generate_input
     entry:
-      record:
+      body:
         test: value
 
   - type: json_parser

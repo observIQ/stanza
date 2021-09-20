@@ -24,7 +24,7 @@ func TestProcessAndBuild(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"key": "val",
 			"nested": map[string]interface{}{
 				"nestedkey": "nestedval",
@@ -38,13 +38,13 @@ func TestProcessAndBuild(t *testing.T) {
 			"remove_one",
 			func() *RemoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("key")
+				cfg.Field = entry.NewBodyField("key")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
 					},
@@ -57,13 +57,13 @@ func TestProcessAndBuild(t *testing.T) {
 			"remove_nestedkey",
 			func() *RemoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("nested", "nestedkey")
+				cfg.Field = entry.NewBodyField("nested", "nestedkey")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key":    "val",
 					"nested": map[string]interface{}{},
 				}
@@ -75,13 +75,13 @@ func TestProcessAndBuild(t *testing.T) {
 			"remove_obj",
 			func() *RemoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("nested")
+				cfg.Field = entry.NewBodyField("nested")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 				}
 				return e

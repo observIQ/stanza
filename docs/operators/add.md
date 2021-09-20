@@ -1,6 +1,6 @@
 ## `add` operator
 
-The `add` operator adds a value to an `entry`'s `record`, `attributes`, or `resource`.
+The `add` operator adds a value to an `entry`'s `body`, `attributes`, or `resource`.
 
 ### Configuration Fields
 
@@ -17,7 +17,7 @@ The `add` operator adds a value to an `entry`'s `record`, `attributes`, or `reso
 Example usage:
  
 <hr>
-Add a string to the record
+Add a string to the body
 
 ```yaml
 - type: add
@@ -34,7 +34,7 @@ Add a string to the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }
@@ -47,7 +47,7 @@ Add a string to the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -59,7 +59,7 @@ Add a string to the record
 </table>
 
 <hr>
-Add a value to the record using an expression
+Add a value to the body using an expression
 
 ```yaml
 - type: add
@@ -76,7 +76,7 @@ Add a value to the record using an expression
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }
@@ -89,7 +89,7 @@ Add a value to the record using an expression
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val1_suffix"
   }
@@ -101,7 +101,7 @@ Add a value to the record using an expression
 </table>
 
 <hr>
-Add an object to the record
+Add an object to the body
 
 ```yaml
 - type: add
@@ -119,7 +119,7 @@ Add an object to the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }
@@ -132,7 +132,7 @@ Add an object to the record
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": {
       "nestedkey":"nested value"
@@ -163,7 +163,7 @@ Add a value to attributes
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }
@@ -178,7 +178,7 @@ Add a value to attributes
   "attributes": {
      "key2": "val2"
   },  
-  "record": {
+  "body": {
     "key1": "val1"
   }
 }
@@ -206,7 +206,7 @@ Add a value to resource
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }
@@ -221,7 +221,7 @@ Add a value to resource
     "key2": "val2"
   },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1"
   }
 }
@@ -248,7 +248,7 @@ Add a value to resource using an expression
 {
   "resource": { },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }
@@ -263,7 +263,7 @@ Add a value to resource using an expression
     "key2": "val_suffix"
   },
   "attributes": { },  
-  "record": {
+  "body": {
     "key1": "val1",
   }
 }

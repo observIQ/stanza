@@ -3,13 +3,15 @@ package stdin
 import (
 	"context"
 	"fmt"
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
 	"os"
 	"sync"
 
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/helper"
+
 	"bufio"
+
 	"go.uber.org/zap"
 )
 
@@ -87,7 +89,7 @@ func (g *StdinInput) Start() error {
 			}
 
 			e := entry.New()
-			e.Record = scanner.Text()
+			e.Body = scanner.Text()
 			g.Write(ctx, e)
 		}
 	}()

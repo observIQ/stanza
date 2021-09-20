@@ -44,10 +44,10 @@ func udpInputTest(input []byte, expected []string) func(t *testing.T) {
 		_, err = conn.Write(input)
 		require.NoError(t, err)
 
-		for _, expectedRecord := range expected {
+		for _, expectedBody := range expected {
 			select {
 			case entry := <-entryChan:
-				require.Equal(t, expectedRecord, entry.Record)
+				require.Equal(t, expectedBody, entry.Body)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
 			}
@@ -94,7 +94,7 @@ func udpInputAttributesTest(input []byte, expected []string) func(t *testing.T) 
 		_, err = conn.Write(input)
 		require.NoError(t, err)
 
-		for _, expectedRecord := range expected {
+		for _, expectedBody := range expected {
 			select {
 			case entry := <-entryChan:
 				expectedAttributes := map[string]string{
@@ -110,7 +110,7 @@ func udpInputAttributesTest(input []byte, expected []string) func(t *testing.T) 
 					expectedAttributes["net.peer.ip"] = addr.IP.String()
 					expectedAttributes["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
-				require.Equal(t, expectedRecord, entry.Record)
+				require.Equal(t, expectedBody, entry.Body)
 				require.Equal(t, expectedAttributes, entry.Attributes)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
