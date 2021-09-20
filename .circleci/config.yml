@@ -535,6 +535,8 @@ workflows:
               only: /^v\d+\.\d+\.\d+.*/
       - build-docker:
           filters:
+            branches:
+              only: master
             tags:
               only: /^v\d+\.\d+\.\d+.*/
           requires:
@@ -569,6 +571,7 @@ workflows:
       - publish-docker-release:
           requires:
             - wait-for-validation
+            - build-docker
           filters:
             branches:
               ignore: /.*/
