@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
