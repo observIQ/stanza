@@ -29,14 +29,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "message": "name=stanza"
   }
 }
@@ -48,7 +48,7 @@ Configuration:
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "name": "stanza"
   }
 }
@@ -71,14 +71,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "message": "name=stanza seconds_since_epoch=1136214245"
   }
 }
@@ -90,7 +90,7 @@ Configuration:
 ```json
 {
   "timestamp": "2006-01-02T15:04:05-07:00",
-  "record": {
+  "body": {
     "name": "stanza"
   }
 }

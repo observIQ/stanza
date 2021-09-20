@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	attributesPrefix = "$attribute"
+	attributesPrefix = "$attributes"
 	resourcePrefix   = "$resource"
 	bodyPrefix       = "$body"
 )

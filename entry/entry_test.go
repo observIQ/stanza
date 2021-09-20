@@ -125,7 +125,7 @@ func TestCopy(t *testing.T) {
 	entry.SeverityText = "ok"
 	entry.Timestamp = time.Time{}
 	entry.Body = "test"
-	entry.Attributes = map[string]string{"label": "value"}
+	entry.Attributes = map[string]string{"attribute": "value"}
 	entry.Resource = map[string]string{"resource": "value"}
 	copy := entry.Copy()
 
@@ -133,7 +133,7 @@ func TestCopy(t *testing.T) {
 	entry.SeverityText = "1"
 	entry.Timestamp = time.Now()
 	entry.Body = "new"
-	entry.Attributes = map[string]string{"label": "new value"}
+	entry.Attributes = map[string]string{"attribute": "new value"}
 	entry.Resource = map[string]string{"resource": "new value"}
 
 	require.Equal(t, time.Time{}, copy.Timestamp)
@@ -190,7 +190,6 @@ func TestFieldFromString(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
-
 			require.Equal(t, tc.output, f)
 		})
 	}

@@ -41,9 +41,9 @@ func TestSyslogParser(t *testing.T) {
 	cases := []struct {
 		name                 string
 		config               *SyslogParserConfig
-		inputRecord          interface{}
+		inputBody            interface{}
 		expectedTimestamp    time.Time
-		expectedRecord       interface{}
+		expectedBody         interface{}
 		expectedSeverity     entry.Severity
 		expectedSeverityText string
 	}{
@@ -305,13 +305,13 @@ func TestSyslogParser(t *testing.T) {
 			require.NoError(t, err)
 
 			newEntry := entry.New()
-			newEntry.Body = tc.inputRecord
+			newEntry.Body = tc.inputBody
 			err = op.Process(context.Background(), newEntry)
 			require.NoError(t, err)
 
 			select {
 			case e := <-fake.Received:
-				require.Equal(t, tc.expectedRecord, e.Body)
+				require.Equal(t, tc.expectedBody, e.Body)
 				require.Equal(t, tc.expectedTimestamp, e.Timestamp)
 				require.Equal(t, tc.expectedSeverity, e.Severity)
 				require.Equal(t, tc.expectedSeverityText, e.SeverityText)
@@ -324,9 +324,9 @@ func TestSyslogParser(t *testing.T) {
 
 func TestHandleSymbols(t *testing.T) {
 	cases := []struct {
-		name           string
-		inputRecord    []byte
-		expectedRecord []byte
+		name         string
+		inputBody    []byte
+		expectedBody []byte
 	}{
 		{
 			"no-symbols-basic",
@@ -372,8 +372,8 @@ func TestHandleSymbols(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			output := handleSymbols(tc.inputRecord)
-			require.Equal(t, tc.expectedRecord, output)
+			output := handleSymbols(tc.inputBody)
+			require.Equal(t, tc.expectedBody, output)
 		})
 	}
 }

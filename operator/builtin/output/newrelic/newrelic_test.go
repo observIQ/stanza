@@ -69,7 +69,7 @@ func TestNewRelicOutput(t *testing.T) {
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
 				Body:      "test2",
 			}},
-			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"attributes":null,"body":"test1","resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"attributes":null,"record":"test2","resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
+			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"attributes":null,"body":"test1","resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"attributes":null,"body":"test2","resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
 		},
 		{
 			"CustomMessage",
