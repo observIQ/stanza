@@ -166,9 +166,6 @@ OUTER:
 	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
-	f.saveCurrent(readers)
-	f.syncLastPollFiles()
-
 	if f.deleteAfterRead {
 		f.Debug("cleaning up log files that have been consumed")
 		for _, reader := range readers {
@@ -177,12 +174,16 @@ OUTER:
 				f.Errorf("could not delete %s", reader.file.Name())
 			}
 		}
-	} else {
-		for _, reader := range f.lastPollReaders {
-			reader.Close()
-		}
-		f.lastPollReaders = readers
+		return
 	}
+
+	for _, reader := range f.lastPollReaders {
+		reader.Close()
+	}
+	f.lastPollReaders = readers
+
+	f.saveCurrent(readers)
+	f.syncLastPollFiles()
 }
 
 // makeReaders takes a list of paths, then creates readers from each of those paths,
