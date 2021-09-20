@@ -329,7 +329,7 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry = &logpb.LogEntry{
 		Timestamp: ts,
-		Labels:    e.Labels,
+		Labels:    e.Attributes,
 	}
 
 	if g.logNameField != nil {

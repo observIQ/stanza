@@ -8,17 +8,17 @@ For reference documentation of the expression language, see [here](https://githu
 
 Available to the expressions are a few special variables:
 - `$record` contains the entry's record
-- `$labels` contains the entry's labels
+- `$attributes` contains the entry's attributes
 - `$resource` contains the entry's resource
 - `$timestamp` contains the entry's timestamp
 - `env()` is a function that allows you to read environment variables
 
 ## Examples
 
-### Add a label from an environment variable
+### Add a attribute from an environment variable
 
 ```yaml
 - type: metadata
-  labels:
+  attributes:
     stack: 'EXPR(env("STACK"))'
 ```

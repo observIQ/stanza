@@ -33,7 +33,7 @@ Flatten an object to the base of the record
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": {
     "key1": {
       "nested1": "nestedval1",
@@ -50,7 +50,7 @@ Flatten an object to the base of the record
 ```json
   {
     "resource": { },
-    "labels": { },  
+    "attributes": { },  
     "record": {
       "nested1": "nestedval1",
       "nested2": "nestedval2",
@@ -81,7 +81,7 @@ Flatten an object within another object
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": {
     "wrapper": {
       "key1": {
@@ -100,7 +100,7 @@ Flatten an object within another object
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "record": {
     "wrapper": {
       "nested1": "nestedval1",

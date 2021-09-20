@@ -56,12 +56,12 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveRecordToLabel",
+			"MoveRecordToAttribute",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewLabelField("new")
+				cfg.To = entry.NewAttributeField("new")
 				return cfg
 			}(),
 			newTestEntry,
@@ -72,22 +72,22 @@ func TestMoveProcess(t *testing.T) {
 						"nestedkey": "nestedval",
 					},
 				}
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 		},
 		{
-			"MoveLabelToRecord",
+			"MoveAttributeToRecord",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("new")
+				cfg.From = entry.NewAttributeField("new")
 				cfg.To = entry.NewRecordField("new")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 			func() *entry.Entry {
@@ -99,38 +99,38 @@ func TestMoveProcess(t *testing.T) {
 						"nestedkey": "nestedval",
 					},
 				}
-				e.Labels = map[string]string{}
+				e.Attributes = map[string]string{}
 				return e
 			},
 		},
 		{
-			"MoveLabelToResource",
+			"MoveAttributeToResource",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("new")
+				cfg.From = entry.NewAttributeField("new")
 				cfg.To = entry.NewResourceField("new")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
 				e.Resource = map[string]string{"new": "val"}
-				e.Labels = map[string]string{}
+				e.Attributes = map[string]string{}
 				return e
 			},
 		},
 		{
-			"MoveResourceToLabel",
+			"MoveResourceToAttribute",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewResourceField("new")
-				cfg.To = entry.NewLabelField("new")
+				cfg.To = entry.NewAttributeField("new")
 				return cfg
 			}(),
 			func() *entry.Entry {
@@ -141,7 +141,7 @@ func TestMoveProcess(t *testing.T) {
 			func() *entry.Entry {
 				e := newTestEntry()
 				e.Resource = map[string]string{}
-				e.Labels = map[string]string{"new": "val"}
+				e.Attributes = map[string]string{"new": "val"}
 				return e
 			},
 		},
@@ -268,12 +268,12 @@ func TestMoveProcess(t *testing.T) {
 			nil,
 		},
 		{
-			"MoveNestToLabel",
+			"MoveNestToAttribute",
 			true,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewRecordField("nested")
-				cfg.To = entry.NewLabelField("NewNested")
+				cfg.To = entry.NewAttributeField("NewNested")
 
 				return cfg
 			}(),

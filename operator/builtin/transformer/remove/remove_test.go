@@ -92,19 +92,19 @@ func TestProcessAndBuild(t *testing.T) {
 			"remove_single_attribute",
 			func() *RemoveOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewLabelField("key")
+				cfg.Field = entry.NewAttributeField("key")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key": "val",
 				}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{}
+				e.Attributes = map[string]string{}
 				return e
 			},
 			false,

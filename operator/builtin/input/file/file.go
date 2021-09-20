@@ -46,7 +46,7 @@ type InputOperator struct {
 
 	fingerprintSize int
 
-	labelRegex *regexp.Regexp
+	attributeRegex *regexp.Regexp
 
 	encoding helper.Encoding
 
@@ -315,7 +315,7 @@ func (f *InputOperator) newReader(ctx context.Context, file *os.File, fp *Finger
 		if err != nil {
 			return nil, err
 		}
-		newReader.fileLabels = f.resolveFileLabels(file.Name())
+		newReader.fileAttributes = f.resolveFileAttributes(file.Name())
 		return newReader, nil
 	}
 
@@ -324,7 +324,7 @@ func (f *InputOperator) newReader(ctx context.Context, file *os.File, fp *Finger
 	if err != nil {
 		return nil, err
 	}
-	if f.labelRegex != nil {
+	if f.attributeRegex != nil {
 		/*if err := newReader.readHeaders(ctx); err != nil {
 			f.Errorf("error while reading file headers: %s", err)
 		}*/

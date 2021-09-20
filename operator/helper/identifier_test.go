@@ -19,7 +19,7 @@ func TestIdentifier(t *testing.T) {
 		expected *entry.Entry
 	}{
 		{
-			"AddLabelLiteral",
+			"AddResourceLiteral",
 			func() IdentifierConfig {
 				cfg := NewIdentifierConfig()
 				cfg.Resource = map[string]ExprStringConfig{
@@ -37,7 +37,7 @@ func TestIdentifier(t *testing.T) {
 			}(),
 		},
 		{
-			"AddLabelExpr",
+			"AddResourceExpr",
 			func() IdentifierConfig {
 				cfg := NewIdentifierConfig()
 				cfg.Resource = map[string]ExprStringConfig{
@@ -55,7 +55,7 @@ func TestIdentifier(t *testing.T) {
 			}(),
 		},
 		{
-			"AddLabelEnv",
+			"AddResourceEnv",
 			func() IdentifierConfig {
 				cfg := NewIdentifierConfig()
 				cfg.Resource = map[string]ExprStringConfig{

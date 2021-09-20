@@ -21,11 +21,11 @@ The `filter` operator filters incoming entries that match an expression.
   output: my_output
 ```
 
-#### Filter entries based on a label value
+#### Filter entries based on a attribute value
 
 ```yaml
 - type: filter
-  expr: '$labels.env == "production"'
+  expr: '$attributes.env == "production"'
   output: my_output
 ```
 
