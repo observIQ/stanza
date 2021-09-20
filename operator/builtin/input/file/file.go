@@ -29,7 +29,8 @@ type InputOperator struct {
 	SplitFunc             bufio.SplitFunc
 	MaxLogSize            int
 	MaxConcurrentFiles    int
-	SeenPaths             map[string]struct{}
+	SeenPaths             map[string]time.Time
+	filenameRecallPeriod  time.Duration
 
 	persist helper.Persister
 
@@ -190,15 +191,23 @@ OUTER:
 // been read this polling interval
 func (f *InputOperator) makeReaders(ctx context.Context, filePaths []string) []*Reader {
 	// Open the files first to minimize the time between listing and opening
+	now := time.Now()
+	cutoff := now.Add(f.filenameRecallPeriod * -1)
+	for filename, lastSeenTime := range f.SeenPaths {
+		if lastSeenTime.Before(cutoff) {
+			delete(f.SeenPaths, filename)
+		}
+	}
+
 	files := make([]*os.File, 0, len(filePaths))
 	for _, path := range filePaths {
 		if _, ok := f.SeenPaths[path]; !ok {
+			f.SeenPaths[path] = now
 			if f.startAtBeginning {
 				f.Infow("Started watching file", "path", path)
 			} else {
 				f.Infow("Started watching file from end. To read preexisting logs, configure the argument 'start_at' to 'beginning'", "path", path)
 			}
-			f.SeenPaths[path] = struct{}{}
 		}
 		file, err := os.Open(path) // #nosec - operator must read in files defined by user
 		if err != nil {
