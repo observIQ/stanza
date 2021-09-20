@@ -10,7 +10,7 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/cenkalti/backoff/v4 v4.1.1
-	github.com/elastic/go-elasticsearch/v7 v7.13.0
+	github.com/elastic/go-elasticsearch/v7 v7.14.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-uuid v1.0.2
