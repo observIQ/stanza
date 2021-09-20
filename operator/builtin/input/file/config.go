@@ -40,9 +40,7 @@ func NewInputConfig(operatorID string) *InputConfig {
 // InputConfig is the configuration of a file input operator
 type InputConfig struct {
 	helper.InputConfig `yaml:",inline"`
-
-	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
-	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
+	Finder             `mapstructure:",squash" yaml:",inline"`
 
 	PollInterval            helper.Duration        `json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
 	Multiline               helper.MultilineConfig `json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
@@ -167,8 +165,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 
 	op := &InputOperator{
 		InputOperator:         inputOperator,
-		Include:               c.Include,
-		Exclude:               c.Exclude,
+		finder:                c.Finder,
 		SplitFunc:             splitFunc,
 		PollInterval:          c.PollInterval.Raw(),
 		persist:               helper.NewScopedDBPersister(context.Database, c.ID()),
