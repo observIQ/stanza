@@ -290,8 +290,10 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 func (t *TCPInput) Stop() error {
 	t.cancel()
 
-	if err := t.listener.Close(); err != nil {
-		return err
+	if t.listener != nil {
+		if err := t.listener.Close(); err != nil {
+			return err
+		}
 	}
 
 	t.wg.Wait()
