@@ -114,12 +114,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 	} else if len(f.queuedMatches) > 0 {
 		matches, f.queuedMatches = f.queuedMatches, make([]string, 0)
 	} else {
-		// Increment the generation on all known readers
-		// This is done here because the next generation is about to start
-		for i := 0; i < len(f.knownFiles); i++ {
-			f.knownFiles[i].generation++
-		}
-
 		// Get the list of paths on disk
 		matches = f.finder.FindFiles()
 		if f.firstCheck && len(matches) == 0 {
@@ -261,6 +255,12 @@ OUTER:
 // known files, then increments the generation of all tracked old readers
 // before clearing out readers that have existed for 3 generations.
 func (f *InputOperator) saveCurrent(readers []*Reader) {
+	// Increment the generation on all known readers
+	// This is done here because the next generation is about to start
+	for i := 0; i < len(f.knownFiles); i++ {
+		f.knownFiles[i].generation++
+	}
+
 	// Add readers from the current, completed poll interval to the list of known files
 	for _, reader := range readers {
 		f.knownFiles = append(f.knownFiles, reader)
