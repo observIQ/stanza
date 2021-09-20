@@ -120,7 +120,7 @@ func TestBuildAndProcess(t *testing.T) {
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewBodyField("key")
-				cfg.To = entry.NewLabelField("key2")
+				cfg.To = entry.NewAttributeField("key2")
 				return cfg
 			}(),
 			newTestEntry,
@@ -132,7 +132,7 @@ func TestBuildAndProcess(t *testing.T) {
 						"nestedkey": "nestedval",
 					},
 				}
-				e.Labels = map[string]string{"key2": "val"}
+				e.Attributes = map[string]string{"key2": "val"}
 				return e
 			},
 		},
@@ -141,13 +141,13 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("key")
+				cfg.From = entry.NewAttributeField("key")
 				cfg.To = entry.NewBodyField("key2")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				return e
 			},
 			func() *entry.Entry {
@@ -159,7 +159,7 @@ func TestBuildAndProcess(t *testing.T) {
 					},
 					"key2": "val",
 				}
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				return e
 			},
 		},
@@ -168,18 +168,18 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("key")
+				cfg.From = entry.NewAttributeField("key")
 				cfg.To = entry.NewResourceField("key2")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				e.Resource = map[string]string{"key2": "val"}
 				return e
 			},
@@ -221,7 +221,7 @@ func TestBuildAndProcess(t *testing.T) {
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
 				cfg.From = entry.NewBodyField("nested")
-				cfg.To = entry.NewLabelField("invalid")
+				cfg.To = entry.NewAttributeField("invalid")
 				return cfg
 			}(),
 			newTestEntry,
@@ -232,7 +232,7 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("nonexistentkey")
+				cfg.From = entry.NewAttributeField("nonexistentkey")
 				cfg.To = entry.NewResourceField("key2")
 				return cfg
 			}(),

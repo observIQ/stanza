@@ -128,7 +128,7 @@ func GetExprEnv(e *entry.Entry) map[string]interface{} {
 	env := envPool.Get().(map[string]interface{})
 	env["$"] = e.Body
 	env["$body"] = e.Body
-	env["$labels"] = e.Labels
+	env["$attributes"] = e.Attributes
 	env["$resource"] = e.Resource
 	env["$timestamp"] = e.Timestamp
 

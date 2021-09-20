@@ -45,26 +45,26 @@ func TestFilterOperator(t *testing.T) {
 			false,
 		},
 		{
-			"MatchLabel",
+			"MatchAttribute",
 			&entry.Entry{
 				Body: map[string]interface{}{
 					"message": "test_message",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"key": "value",
 				},
 			},
-			`$labels.key == "value"`,
+			`$attributes.key == "value"`,
 			true,
 		},
 		{
-			"NoMatchLabel",
+			"NoMatchAttribute",
 			&entry.Entry{
 				Body: map[string]interface{}{
 					"message": "test_message",
 				},
 			},
-			`$labels.key == "value"`,
+			`$attributes.key == "value"`,
 			false,
 		},
 		{

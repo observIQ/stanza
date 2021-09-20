@@ -116,14 +116,14 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 		},
 		{
-			"Labels",
+			"Attributes",
 			func() *GoogleCloudOutputConfig {
 				return googleCloudBasicConfig()
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Labels: map[string]string{
-					"label1": "value1",
+				Attributes: map[string]string{
+					"attribute1": "value1",
 				},
 				Body: map[string]interface{}{
 					"message": "test message",
@@ -134,7 +134,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				req.Entries = []*logpb.LogEntry{
 					{
 						Labels: map[string]string{
-							"label1": "value1",
+							"attribute1": "value1",
 						},
 						Timestamp: protoTs,
 						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
@@ -472,7 +472,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			&entry.Entry{
 				Timestamp: t,
 				Body:      "test",
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"test": "val",
 				},
 			},

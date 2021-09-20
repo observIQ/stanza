@@ -13,7 +13,7 @@ Kubernetes API, and currently requires that Stanza is running inside a Kubernete
 | `discover_namespaces` | `true`            | If true, the operator will regularly poll for new namespaces to include                          |
 | `discovery_interval ` | `1m`              | The interval at which the operator searches for new namespaces to follow                         |
 | `write_to`            | $                 | The body [field](/docs/types/field.md) written to when creating a new log entry                |
-| `labels`              | {}                | A map of `key: value` labels to add to the entry's labels                                        |
+| `labels`              | {}                | A map of `key: value` attributes to add to the entry's attributes                                        |
 | `resource`            | {}                | A map of `key: value` labels to add to the entry's resource                                      |
  
 ### Example Configurations
@@ -30,7 +30,7 @@ Output events:
 {
   "timestamp": "2020-08-13T17:41:44.581552468Z",
   "severity": 0,
-  "labels": {
+  "attributes": {
     "event_type": "ADDED"
   },
   "body": {

@@ -14,16 +14,16 @@ The `file_input` operator reads logs from files. It will place the lines read in
 | `multiline`            |                  | A `multiline` configuration block. See below for details                                                           |
 | `write_to`             | $                | The body [field](/docs/types/field.md) written to when creating a new log entry                                  |
 | `encoding`             | `nop`            | The encoding of the file being read. See the list of supported encodings below for available options               |
-| `include_file_name`    | `true`           | Whether to add the file name as the label `file_name`                                                              |
-| `include_file_path`    | `false`          | Whether to add the file path as the label `file_path`                                                              |
-| `include_file_name_resolved`    | `false`          | Whether to add the file name after symlinks resolution as the label `file_name_resolved`                  |
-| `include_file_path_resolved`    | `false`          | Whether to add the file path after symlinks resolution as the label `file_path_resolved`                  |
+| `include_file_name`    | `true`           | Whether to add the file name as the attribute `file_name`                                                              |
+| `include_file_path`    | `false`          | Whether to add the file path as the attribute `file_path`                                                              |
+| `include_file_name_resolved`    | `false`          | Whether to add the file name after symlinks resolution as the attribute `file_name_resolved`                  |
+| `include_file_path_resolved`    | `false`          | Whether to add the file path after symlinks resolution as the attribute `file_path_resolved`                  |
 | `start_at`             | `end`            | At startup, where to start reading logs from the file. Options are `beginning` or `end`                            |
 | `delete_after_read`    | `false`          | After reading a to the end of a file, delete it. Cannot be `true` when `start_at` is `end`.                        |
 | `fingerprint_size`     | `1kb`            | The number of bytes with which to identify a file. The first bytes in the file are used as the fingerprint. Decreasing this value at any point will cause existing fingerprints to forgotten, meaning that all files will be read from the beginning (one time). |
 | `max_log_size`         | `1MiB`           | The maximum size of a log entry to read before failing. Protects against reading large amounts of data into memory |
-| `max_concurrent_files` | 1024             | The maximum number of log files from which logs will be read concurrently (minimum = 2). If the number of files matched in the `include` pattern exceeds half of this number, then files will be processed in batches. One batch will be processed per `poll_interval`. |
-| `labels`               | {}               | A map of `key: value` labels to add to the entry's labels                                                          |
+| `max_concurrent_files` | 512             | The maximum number of log files from which logs will be read concurrently (minimum = 2). If the number of files matched in the `include` pattern exceeds half of this number, then files will be processed in batches. One batch will be processed per `poll_interval`. |
+| `attributes`           | {}               | A map of `key: value` attributes to add to the entry's attributes                                                          |
 | `resource`             | {}               | A map of `key: value` labels to add to the entry's resource                                                        |
 
 Note that by default, no logs will be read unless the monitored file is actively being written to because `start_at` defaults to `end`.

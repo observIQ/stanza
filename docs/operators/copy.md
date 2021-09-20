@@ -32,7 +32,7 @@ Copy a value from the body to resource
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": { 
     "key":"value"
   }
@@ -47,7 +47,7 @@ Copy a value from the body to resource
   "resource": { 
        "newkey":"value"
   },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key":"value"
   }
@@ -60,11 +60,11 @@ Copy a value from the body to resource
 
 <hr>
 
-Copy a value from the body to labels
+Copy a value from the body to attributes
 ```yaml
 - type: copy
   from: key2
-  to: $labels.newkey
+  to: $attributes.newkey
 ```
 
 <table>
@@ -75,7 +75,7 @@ Copy a value from the body to labels
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": "val2"
@@ -89,7 +89,7 @@ Copy a value from the body to labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
       "newkey": "val2"
   },  
   "body": {
@@ -105,10 +105,10 @@ Copy a value from the body to labels
 
 <hr>
 
-Copy a value from labels to the body
+Copy a value from attributes to the body
 ```yaml
 - type: copy
-  from: $labels.key
+  from: $attributes.key
   to: newkey
 ```
 
@@ -120,7 +120,7 @@ Copy a value from labels to the body
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
       "key": "newval"
   },  
   "body": {
@@ -136,7 +136,7 @@ Copy a value from labels to the body
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
       "key": "newval"
   },  
   "body": {
@@ -168,7 +168,7 @@ Copy a value within the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
       "obj": {
         "nested":"nestedvalue"
@@ -183,7 +183,7 @@ Copy a value within the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "obj": {
         "nested":"nestedvalue"

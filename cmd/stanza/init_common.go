@@ -17,6 +17,7 @@ import (
 
 	_ "github.com/observiq/stanza/operator/builtin/parser/csv"
 	_ "github.com/observiq/stanza/operator/builtin/parser/json"
+	_ "github.com/observiq/stanza/operator/builtin/parser/keyvalue"
 	_ "github.com/observiq/stanza/operator/builtin/parser/regex"
 	_ "github.com/observiq/stanza/operator/builtin/parser/severity"
 	_ "github.com/observiq/stanza/operator/builtin/parser/syslog"

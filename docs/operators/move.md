@@ -32,7 +32,7 @@ Rename value
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": "val2"
@@ -46,7 +46,7 @@ Rename value
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key3": "val1",
     "key2": "val2"
@@ -75,7 +75,7 @@ Move a value from the body to resource
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "uuid": "091edc50-d91a-460d-83cd-089a62937738"
   }
@@ -90,7 +90,7 @@ Move a value from the body to resource
   "resource": { 
     "uuid": "091edc50-d91a-460d-83cd-089a62937738"
   },
-  "labels": { },  
+  "attributes": { },  
   "body": { }
 }
 ```
@@ -101,12 +101,12 @@ Move a value from the body to resource
 
 <hr>
 
-Move a value from the body to labels
+Move a value from the body to attributes
 
 ```yaml
 - type: move
   from: ip
-  to: $labels.ip
+  to: $attributes.ip
 ```
 
 <table>
@@ -117,7 +117,7 @@ Move a value from the body to labels
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "ip": "8.8.8.8"
   }
@@ -130,7 +130,7 @@ Move a value from the body to labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
     "ip": "8.8.8.8"
   },  
   "body": { }
@@ -158,7 +158,7 @@ Replace the body with an individual value nested within the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "log": "The log line"
   }
@@ -171,7 +171,7 @@ Replace the body with an individual value nested within the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": "The log line"
 }
 ```
@@ -197,7 +197,7 @@ Remove a layer from the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "wrapper": {
       "key1": "val1",
@@ -215,7 +215,7 @@ Remove a layer from the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": "val2",
@@ -245,7 +245,7 @@ Merge a layer to the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "wrapper": {
       "key1": "val1",
@@ -265,7 +265,7 @@ Merge a layer to the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": "val2",

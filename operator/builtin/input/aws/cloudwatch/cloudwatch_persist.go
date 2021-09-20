@@ -16,7 +16,10 @@ func (p *Persister) Read(key string) (int64, error) {
 	var startTime int64
 	buffer := bytes.NewBuffer(p.DB.Get(key))
 	err := binary.Read(buffer, binary.BigEndian, &startTime)
-	return startTime, err
+	if err != nil && err.Error() != "EOF" {
+		return 0, err
+	}
+	return startTime, nil
 }
 
 // Helper function to set persisted data

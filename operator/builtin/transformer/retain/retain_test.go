@@ -166,19 +166,19 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key"))
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key": "val",
 				}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key": "val",
 				}
 				return e
@@ -189,13 +189,13 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key1"))
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key2"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key1"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key2"))
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key1": "val",
 					"key2": "val",
 					"key3": "val",
@@ -204,7 +204,7 @@ func TestBuildAndProcess(t *testing.T) {
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key1": "val",
 					"key2": "val",
 				}
@@ -267,7 +267,7 @@ func TestBuildAndProcess(t *testing.T) {
 			func() *RetainOperatorConfig {
 				cfg := defaultCfg()
 				cfg.Fields = append(cfg.Fields, entry.NewResourceField("key1"))
-				cfg.Fields = append(cfg.Fields, entry.NewLabelField("key3"))
+				cfg.Fields = append(cfg.Fields, entry.NewAttributeField("key3"))
 				cfg.Fields = append(cfg.Fields, entry.NewBodyField("key"))
 				return cfg
 			}(),
@@ -277,7 +277,7 @@ func TestBuildAndProcess(t *testing.T) {
 					"key1": "val",
 					"key2": "val",
 				}
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key3": "val",
 					"key4": "val",
 				}
@@ -288,7 +288,7 @@ func TestBuildAndProcess(t *testing.T) {
 				e.Resource = map[string]string{
 					"key1": "val",
 				}
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"key3": "val",
 				}
 				e.Body = map[string]interface{}{

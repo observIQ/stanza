@@ -54,7 +54,7 @@ func TestForwardOutput(t *testing.T) {
 		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
-		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Attributes, e.Attributes)
 		require.Equal(t, newEntry.Resource, e.Resource)
 	}
 }

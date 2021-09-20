@@ -1,6 +1,6 @@
 ## `add` operator
 
-The `add` operator adds a value to an `entry`'s `body`, `labels`, or `resource`.
+The `add` operator adds a value to an `entry`'s `body`, `attributes`, or `resource`.
 
 ### Configuration Fields
 
@@ -33,7 +33,7 @@ Add a string to the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }
@@ -46,7 +46,7 @@ Add a string to the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": "val2"
@@ -75,7 +75,7 @@ Add a value to the body using an expression
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }
@@ -88,7 +88,7 @@ Add a value to the body using an expression
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": "val1_suffix"
@@ -118,7 +118,7 @@ Add an object to the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }
@@ -131,7 +131,7 @@ Add an object to the body
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
     "key2": {
@@ -146,11 +146,11 @@ Add an object to the body
 </table>
 
 <hr>
-Add a value to labels
+Add a value to attributes
 
 ```yaml
 - type: add
-  field: $labels.key2
+  field: $attributes.key2
   value: val2
 ```
 
@@ -162,7 +162,7 @@ Add a value to labels
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }
@@ -175,7 +175,7 @@ Add a value to labels
 ```json
 {
   "resource": { },
-  "labels": {
+  "attributes": {
      "key2": "val2"
   },  
   "body": {
@@ -205,7 +205,7 @@ Add a value to resource
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }
@@ -220,7 +220,7 @@ Add a value to resource
   "resource": { 
     "key2": "val2"
   },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1"
   }
@@ -247,7 +247,7 @@ Add a value to resource using an expression
 ```json
 {
   "resource": { },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }
@@ -262,7 +262,7 @@ Add a value to resource using an expression
   "resource": { 
     "key2": "val_suffix"
   },
-  "labels": { },  
+  "attributes": { },  
   "body": {
     "key1": "val1",
   }

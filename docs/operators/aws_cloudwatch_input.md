@@ -19,7 +19,9 @@ You can provide `profile` to specify which credential set to use from a Shared C
 | ---                       | ---                    | ---                                                                                                         |
 | `id`                      | `aws_cloudwatch_input` | A unique identifier for the operator.                                                                       |
 | `output`                  | Next in pipeline       | The connected operator(s) that will receive all outbound entries.                                           |
-| `log_group_name`          | required               | The Cloudwatch Logs Log Group Name.                                                                         |
+| `log_group_name`          |                        | The Cloudwatch Logs Log Group Name. Deprecated, use `log_groups` or `log_group_prefix`.                     |
+| `log_groups`              |                        | List of Cloudwatch Log groups.                                                                              |
+| `log_group_prefix`        |                        | Log group name prefix. This will detect any log group that starts with the prefix.                          |
 | `region`                  | required               | The AWS Region to be used.                                                                                  |
 | `log_stream_name_prefix`  |                        | The log stream name prefix to use. This will find any log stream name in the group with the starting prefix. Cannot be used with `log_stream_names` |
 | `log_stream_names`        |                        | An array of log stream names to get events from. Cannot be used with `log_stream_name_prefix`               |
@@ -138,4 +140,20 @@ pipeline:
     "message": "REPORT RequestId: 346b9fa2-9117-4d41-89f8-071f0100213b\tDuration: 1865.27 ms\tBilled Duration: 1866 ms\tMemory Size: 128 MB\tMax Memory Used: 68 MB\t\n"
   }
 }
+```
+
+#### Log Group Name, Log Groups, Log Group Prefix
+
+`log_group_prefix`, `log_groups`, and `log_group_name` can be combined.
+
+Configuration
+
+```yaml
+pipeline:
+- type: aws_cloudwatch_input
+  region: us-east-2
+  log_group_prefix: "/aws"
+  log_group_name: /aws/rds/instance/backend/postgresql
+  log_groups:
+  - /aws/eks/arm64/cluster
 ```

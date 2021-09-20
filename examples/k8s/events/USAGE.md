@@ -17,7 +17,7 @@ can be used for this example.
 2. Google service account with [roles/logging.logWriter](https://cloud.google.com/logging/docs/access-control)
 3. Kubernetes Cluster with a storageclass capable of providing persistent volumes
 4. Edit `config.yaml` to include:
-  - Your cluster name (this is added as a label)
+  - Your cluster name (this is added as a attribute)
   - Your project_id
 
 ## Deployment Steps

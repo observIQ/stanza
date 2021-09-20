@@ -54,7 +54,7 @@ func TestParse(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTimeGenerated,
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"azure_log_analytics_table": "unit_test",
 				},
 				Body: map[string]interface{}{

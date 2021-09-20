@@ -16,8 +16,8 @@ import (
 func TestMetadataCache(t *testing.T) {
 	m := MetadataCache{}
 	entry := MetadataCacheEntry{
-		Labels: map[string]string{
-			"label1": "value1",
+		Attributes: map[string]string{
+			"attribute1": "value1",
 		},
 		Annotations: map[string]string{
 			"annotation2": "value2",
@@ -79,8 +79,8 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 	k8s := op.(*K8sMetadataDecorator)
 	k8s.namespaceCache.Store("testnamespace", MetadataCacheEntry{
 		ExpirationTime: time.Now().Add(time.Hour),
-		Labels: map[string]string{
-			"label1": "lab1",
+		Attributes: map[string]string{
+			"attribute1": "lab1",
 		},
 		ClusterName: "testcluster",
 		Annotations: map[string]string{
@@ -90,8 +90,8 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 
 	k8s.podCache.Store("testnamespace:testpodname", MetadataCacheEntry{
 		ExpirationTime: time.Now().Add(time.Hour),
-		Labels: map[string]string{
-			"podlabel1": "podlab1",
+		Attributes: map[string]string{
+			"podattribute1": "podlab1",
 		},
 		Annotations: map[string]string{
 			"podannotation1": "podann1",
@@ -102,9 +102,9 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 	})
 
 	expected := entry.Entry{
-		Labels: map[string]string{
-			"k8s-pod/podlabel1":                 "podlab1",
-			"k8s-ns/label1":                     "lab1",
+		Attributes: map[string]string{
+			"k8s-pod/podattribute1":             "podlab1",
+			"k8s-ns/attribute1":                 "lab1",
 			"k8s-pod-annotation/podannotation1": "podann1",
 			"k8s-ns-annotation/annotation1":     "ann1",
 		},
@@ -118,7 +118,7 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 
 	mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		entry := args.Get(1).(*entry.Entry)
-		require.Equal(t, expected.Labels, entry.Labels)
+		require.Equal(t, expected.Attributes, entry.Attributes)
 		require.Equal(t, expected.Resource, entry.Resource)
 	}).Return(nil)
 

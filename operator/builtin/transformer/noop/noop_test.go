@@ -49,7 +49,7 @@ func TestProcess(t *testing.T) {
 	op.SetOutputs([]operator.Operator{fake})
 
 	entry := entry.New()
-	entry.AddLabel("label", "value")
+	entry.AddAttribute("attribute", "value")
 	entry.AddResourceKey("resource", "value")
 
 	expected := entry.Copy()
