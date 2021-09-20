@@ -18,7 +18,7 @@ func init() {
 const (
 	defaultMaxLogSize           = 1024 * 1024
 	defaultMaxConcurrentFiles   = 512
-	defaultFilenameRecallPeriod = time.Hour
+	defaultFilenameRecallPeriod = time.Minute
 	defaultPollInterval         = 200 * time.Millisecond
 )
 
