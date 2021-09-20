@@ -248,7 +248,7 @@ func TestParserCSV(t *testing.T) {
 			false,
 		},
 		{
-			"dynamic-fields-label-missing",
+			"dynamic-fields-attribute-missing",
 			func(p *CSVParserConfig) {
 				p.HeaderAttribute = "Fields"
 				p.FieldDelimiter = ","

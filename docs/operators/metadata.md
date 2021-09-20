@@ -12,7 +12,7 @@ The `metadata` operator adds attributes to incoming entries.
 | `resource` | {}               | A map of `key: value` attributes to add to the entry's resource                                     |
 | `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
-Inside the label values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
+Inside the attribute values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
 will be replaced with the evaluated form of the expression. The entry's record can be accessed
 with the `$` variable in the expression so attributes can be added dynamically from fields.
 
