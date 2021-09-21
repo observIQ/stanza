@@ -100,20 +100,14 @@ The following configurations are equivalent:
     trace: trace
     debug: debug
     info: info
-    notice: notice
     warning:
       - warning
       - warn
-    error:
-      - error
-      - err
-      - 404
-    critical:
+    fatal:
       - critical
       - crit
-    alert: alert
-    emergency: emergency
-    catastrophe: catastrophe
+      - fatal
+    error: err
 ```
 
 <sub>Additional built-in presets coming soon</sub>
@@ -181,7 +175,7 @@ Note that the default `preset` is in place, and no additional values have been s
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -221,7 +215,7 @@ Note that the default `preset` is in place, and one additional values has been s
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -245,7 +239,7 @@ Note that the default `preset` is in place, and one additional values has been s
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -287,7 +281,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -311,7 +305,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -335,7 +329,7 @@ Configuration:
 
 ```json
 {
-  "severity": 30,
+  "severity": 9,
   "body": {}
 }
 ```
@@ -359,7 +353,7 @@ Configuration:
 
 ```json
 {
-  "severity": 20,
+  "severity": 5,
   "body": {}
 }
 ```
@@ -426,7 +420,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -450,7 +444,7 @@ Configuration:
 
 ```json
 {
-  "severity": 80,
+  "severity": 21,
   "body": {}
 }
 ```
@@ -545,7 +539,7 @@ Equivalent Configuration:
 
 ```json
 {
-  "severity": 30,
+  "severity": 9,
   "body": {}
 }
 ```
@@ -569,7 +563,7 @@ Equivalent Configuration:
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
@@ -593,7 +587,7 @@ Equivalent Configuration:
 
 ```json
 {
-  "severity": 20,
+  "severity": 5,
   "body": {}
 }
 ```
@@ -632,7 +626,7 @@ Configuration:
 
 ```json
 {
-  "severity": 60,
+  "severity": 17,
   "body": {}
 }
 ```
