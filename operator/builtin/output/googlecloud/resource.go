@@ -63,7 +63,7 @@ func hasResource(key string, e *entry.Entry) bool {
 }
 
 func k8sPodResource(e *entry.Entry) *mrpb.MonitoredResource {
-	return &mrpb.MonitoredResource{
+	m := &mrpb.MonitoredResource{
 		Type: "k8s_pod",
 		Labels: map[string]string{
 			"pod_name":       e.Resource["k8s.pod.name"],
@@ -72,10 +72,16 @@ func k8sPodResource(e *entry.Entry) *mrpb.MonitoredResource {
 			// TODO project id
 		},
 	}
+
+	delete(e.Resource, "k8s.pod.name")
+	delete(e.Resource, "k8s.namespace.name")
+	delete(e.Resource, "k8s.cluster.name")
+
+	return m
 }
 
 func k8sContainerResource(e *entry.Entry) *mrpb.MonitoredResource {
-	return &mrpb.MonitoredResource{
+	m := &mrpb.MonitoredResource{
 		Type: "k8s_container",
 		Labels: map[string]string{
 			"container_name": e.Resource["container.name"],
@@ -85,10 +91,17 @@ func k8sContainerResource(e *entry.Entry) *mrpb.MonitoredResource {
 			// TODO project id
 		},
 	}
+
+	delete(e.Resource, "container.name")
+	delete(e.Resource, "k8s.pod.name")
+	delete(e.Resource, "k8s.namespace.name")
+	delete(e.Resource, "k8s.cluster.name")
+
+	return m
 }
 
 func k8sNodeResource(e *entry.Entry) *mrpb.MonitoredResource {
-	return &mrpb.MonitoredResource{
+	m := &mrpb.MonitoredResource{
 		Type: "k8s_node",
 		Labels: map[string]string{
 			"cluster_name": e.Resource["k8s.cluster.name"],
@@ -96,24 +109,37 @@ func k8sNodeResource(e *entry.Entry) *mrpb.MonitoredResource {
 			// TODO project id
 		},
 	}
+
+	delete(e.Resource, "k8s.cluster.name")
+	delete(e.Resource, "host.name")
+
+	return m
 }
 
 func k8sClusterResource(e *entry.Entry) *mrpb.MonitoredResource {
-	return &mrpb.MonitoredResource{
+	m := &mrpb.MonitoredResource{
 		Type: "k8s_cluster",
 		Labels: map[string]string{
 			"cluster_name": e.Resource["k8s.cluster.name"],
 			// TODO project id
 		},
 	}
+
+	delete(e.Resource, "k8s.cluster.name")
+
+	return m
 }
 
 func genericNodeResource(e *entry.Entry) *mrpb.MonitoredResource {
-	return &mrpb.MonitoredResource{
+	m := &mrpb.MonitoredResource{
 		Type: "generic_node",
 		Labels: map[string]string{
 			"node_id": e.Resource["host.name"],
 			// TODO project id
 		},
 	}
+
+	delete(e.Resource, "host.name")
+
+	return m
 }
