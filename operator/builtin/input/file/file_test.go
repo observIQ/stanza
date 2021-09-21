@@ -638,6 +638,53 @@ func TestDeleteAfterRead(t *testing.T) {
 	}
 }
 
+func TestFilenameRecallPeriod(t *testing.T) {
+	t.Parallel()
+
+	operator, _, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+		cfg.FilenameRecallPeriod = helper.Duration{
+			// start large, but this will be modified
+			Duration: time.Minute,
+		}
+		// so file only exist for first poll
+		cfg.DeleteAfterRead = true
+	}, nil)
+
+	// Create some new files
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, stringWithLength(10))
+	temp1.Close()
+
+	temp2 := openTemp(t, tempDir)
+	writeString(t, temp2, stringWithLength(20))
+	temp2.Close()
+
+	require.Equal(t, 0, len(operator.SeenPaths))
+
+	// Poll once and validate that the files are remembered
+	operator.poll(context.Background())
+	defer operator.Stop()
+	require.Equal(t, 2, len(operator.SeenPaths))
+	require.Contains(t, operator.SeenPaths, temp1.Name())
+	require.Contains(t, operator.SeenPaths, temp2.Name())
+
+	// Poll again to validate the files are still remembered
+	operator.poll(context.Background())
+	require.Equal(t, 2, len(operator.SeenPaths))
+	require.Contains(t, operator.SeenPaths, temp1.Name())
+	require.Contains(t, operator.SeenPaths, temp2.Name())
+
+	time.Sleep(100 * time.Millisecond)
+	// Hijack the recall period to trigger a purge
+	operator.filenameRecallPeriod = time.Millisecond
+
+	// Poll a final time
+	operator.poll(context.Background())
+
+	// SeenPaths has been purged of ancient files
+	require.Equal(t, 0, len(operator.SeenPaths))
+}
+
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
 
