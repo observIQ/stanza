@@ -1,17 +1,11 @@
 package cloudwatch
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	cwLogs "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -412,103 +406,6 @@ func TestTimeLayoutParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.expected, timeLayoutParser(tc.input, time.Unix(tc.timeToUse, 0)))
-		})
-	}
-}
-
-func TestHandleEvent(t *testing.T) {
-	cfg := NewCloudwatchConfig("")
-	cfg.LogGroupName = "logGroupName"
-	cfg.LogGroups = []string{}
-	cfg.Region = "us-west-2"
-	ops, err := cfg.Build(testutil.NewBuildContext(t))
-	require.NoError(t, err)
-
-	op := ops[0]
-
-	cwOperator, ok := op.(*CloudwatchInput)
-	require.True(t, ok)
-	logStreamName, eventID, ingestionTime := "logStream", "eventID", int64(10000)
-	ts := int64(1632240412056)
-	msg := "test-message"
-	logGroupName := "logGroupName"
-
-	cases := []struct {
-		name         string
-		event        *cwLogs.FilteredLogEvent
-		logGroupName string
-		expected     *entry.Entry
-	}{
-		{
-			name:         "no nil",
-			logGroupName: logGroupName,
-			event: &cwLogs.FilteredLogEvent{
-				EventId:       &eventID,
-				IngestionTime: &ingestionTime,
-				LogStreamName: &logStreamName,
-				Message:       &msg,
-				Timestamp:     &ts,
-			},
-			expected: &entry.Entry{
-				Timestamp: fromUnixMilli(ts),
-				Record: map[string]interface{}{
-					"ingestion_time": ingestionTime,
-					"message":        msg,
-				},
-				Resource: map[string]string{
-					"event_id":   eventID,
-					"log_group":  logGroupName,
-					"log_stream": logStreamName,
-					"region":     cwOperator.region,
-				},
-			},
-		},
-		{
-			name:         "no message",
-			logGroupName: logGroupName,
-			event: &cwLogs.FilteredLogEvent{
-				EventId:       &eventID,
-				IngestionTime: &ingestionTime,
-				LogStreamName: &logStreamName,
-				Timestamp:     &ts,
-			},
-			expected: &entry.Entry{
-				Timestamp: fromUnixMilli(ts),
-				Record: map[string]interface{}{
-					"ingestion_time": ingestionTime,
-				},
-				Resource: map[string]string{
-					"event_id":   eventID,
-					"log_group":  logGroupName,
-					"log_stream": logStreamName,
-					"region":     cwOperator.region,
-				},
-			},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.TODO()
-			var outputEntry *entry.Entry
-			if tc.expected != nil {
-				mockOut := testutil.NewMockOperator("output")
-				cwOperator.OutputOperators = []operator.Operator{mockOut}
-				defer func() {
-					cwOperator.OutputOperators = []operator.Operator{}
-				}()
-
-				mockOut.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-					e := args[1]
-					outputEntry, ok = e.(*entry.Entry)
-					require.True(t, ok)
-				})
-				require.NoError(t, err)
-			}
-			cwOperator.handleEvent(ctx, tc.event, tc.logGroupName)
-			if outputEntry != nil {
-				require.Equal(t, tc.expected, outputEntry)
-			}
 		})
 	}
 }

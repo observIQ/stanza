@@ -16,17 +16,15 @@ func init() {
 }
 
 const (
-	defaultMaxLogSize           = 1024 * 1024
-	defaultMaxConcurrentFiles   = 512
-	defaultFilenameRecallPeriod = time.Minute
-	defaultPollInterval         = 200 * time.Millisecond
+	defaultMaxLogSize         = 1024 * 1024
+	defaultMaxConcurrentFiles = 512
 )
 
 // NewInputConfig creates a new input config with default values
 func NewInputConfig(operatorID string) *InputConfig {
 	return &InputConfig{
 		InputConfig:             helper.NewInputConfig(operatorID, "file_input"),
-		PollInterval:            helper.Duration{Duration: defaultPollInterval},
+		PollInterval:            helper.Duration{Duration: 200 * time.Millisecond},
 		IncludeFileName:         true,
 		IncludeFilePath:         false,
 		IncludeFileNameResolved: false,
@@ -36,7 +34,6 @@ func NewInputConfig(operatorID string) *InputConfig {
 		MaxLogSize:              defaultMaxLogSize,
 		MaxConcurrentFiles:      defaultMaxConcurrentFiles,
 		Encoding:                helper.NewEncodingConfig(),
-		FilenameRecallPeriod:    helper.Duration{Duration: defaultFilenameRecallPeriod},
 	}
 }
 
@@ -58,7 +55,6 @@ type InputConfig struct {
 	DeleteAfterRead         bool                   `json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
 	LabelRegex              string                 `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
 	Encoding                helper.EncodingConfig  `json:",inline,omitempty"                     yaml:",inline,omitempty"`
-	FilenameRecallPeriod    helper.Duration        `json:"filename_recall_period,omitempty"      yaml:"filename_recall_period,omitempty"`
 }
 
 // Build will build a file input operator from the supplied configuration
@@ -188,8 +184,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		fingerprintSize:       int(c.FingerprintSize),
 		MaxLogSize:            int(c.MaxLogSize),
 		MaxConcurrentFiles:    c.MaxConcurrentFiles,
-		SeenPaths:             make(map[string]time.Time, 100),
-		filenameRecallPeriod:  c.FilenameRecallPeriod.Raw(),
+		SeenPaths:             make(map[string]struct{}, 100),
 	}
 
 	return []operator.Operator{op}, nil

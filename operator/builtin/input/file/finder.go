@@ -25,8 +25,7 @@ type Finder struct {
 
 // FindFiles gets a list of paths given an array of glob patterns to include and exclude
 func (f Finder) FindFiles() []string {
-	paths := make(map[string]bool, len(f.Include))
-	uniquePaths := make([]string, 0, len(f.Include))
+	all := make([]string, 0, len(f.Include))
 	for _, include := range f.Include {
 		matches, _ := doublestar.Glob(include) // compile error checked in build
 	INCLUDE:
@@ -37,12 +36,15 @@ func (f Finder) FindFiles() []string {
 				}
 			}
 
-			if ok := paths[match]; !ok {
-				paths[match] = true
-				uniquePaths = append(uniquePaths, match)
+			for _, existing := range all {
+				if existing == match {
+					continue INCLUDE
+				}
 			}
+
+			all = append(all, match)
 		}
 	}
 
-	return uniquePaths
+	return all
 }
