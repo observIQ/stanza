@@ -653,9 +653,11 @@ func TestFilenameRecallPeriod(t *testing.T) {
 	// Create some new files
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, stringWithLength(10))
+	temp1.Close()
 
 	temp2 := openTemp(t, tempDir)
 	writeString(t, temp2, stringWithLength(20))
+	temp2.Close()
 
 	require.Equal(t, 0, len(operator.SeenPaths))
 
