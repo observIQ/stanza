@@ -341,9 +341,12 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string, logGroup
 
 // handleEvent is the handler for a AWS Cloudwatch Logs Filtered Event.
 func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent, logGroupName string) {
-	e := map[string]interface{}{
-		"message":        event.Message,
-		"ingestion_time": event.IngestionTime,
+	e := map[string]interface{}{}
+	if event.Message != nil {
+		e["message"] = event.Message
+	}
+	if event.IngestionTime != nil {
+		e["ingestion_time"] = event.IngestionTime
 	}
 	entry, err := c.NewEntry(e)
 	if err != nil {
@@ -352,15 +355,23 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 
 	entry.AddResourceKey("log_group", logGroupName)
 	entry.AddResourceKey("region", c.region)
-	entry.AddResourceKey("log_stream", *event.LogStreamName)
-	entry.AddResourceKey("event_id", *event.EventId)
-	entry.Timestamp = fromUnixMilli(*event.Timestamp)
 
+	if event.LogStreamName != nil {
+		entry.AddResourceKey("log_stream", *event.LogStreamName)
+	}
+
+	if event.EventId != nil {
+		entry.AddResourceKey("event_id", *event.EventId)
+	}
+
+	if event.Timestamp != nil {
+		entry.Timestamp = fromUnixMilli(*event.Timestamp)
+	}
 	// Write Entry
 	c.Write(ctx, entry)
 
 	// Keep track of which events have been consumed, in case of restart
-	if *event.IngestionTime > c.startTime {
+	if event.IngestionTime != nil && *event.IngestionTime > c.startTime {
 		c.startTime = *event.IngestionTime
 		c.Debugf("Writing start time %d to database", *event.IngestionTime)
 		c.persist.Write(logGroupName, c.startTime)
