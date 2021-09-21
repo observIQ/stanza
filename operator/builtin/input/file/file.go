@@ -134,6 +134,29 @@ func (f *InputOperator) poll(ctx context.Context) {
 	readers := f.makeReaders(ctx, matches)
 	f.firstCheck = false
 
+	var wg sync.WaitGroup
+	for _, reader := range readers {
+		wg.Add(1)
+		go func(r *Reader) {
+			defer wg.Done()
+			r.ReadToEnd(ctx)
+		}(reader)
+	}
+	wg.Wait()
+
+	if f.deleteAfterRead {
+		f.Debug("cleaning up log files that have been consumed")
+		for _, reader := range readers {
+			reader.Close()
+			if err := os.Remove(reader.file.Name()); err != nil {
+				f.Errorf("could not delete %s", reader.file.Name())
+			}
+		}
+
+		// Since files are being deleted, skip further tracking
+		return
+	}
+
 	// Detect files that have been rotated out of matching pattern
 	lostReaders := make([]*Reader, 0, len(f.lastPollReaders))
 OUTER:
@@ -146,7 +169,6 @@ OUTER:
 		lostReaders = append(lostReaders, oldReader)
 	}
 
-	var wg sync.WaitGroup
 	for _, reader := range lostReaders {
 		wg.Add(1)
 		go func(r *Reader) {
@@ -154,28 +176,7 @@ OUTER:
 			r.ReadToEnd(ctx)
 		}(reader)
 	}
-
-	for _, reader := range readers {
-		wg.Add(1)
-		go func(r *Reader) {
-			defer wg.Done()
-			r.ReadToEnd(ctx)
-		}(reader)
-	}
-
-	// Wait until all the reader goroutines are finished
 	wg.Wait()
-
-	if f.deleteAfterRead {
-		f.Debug("cleaning up log files that have been consumed")
-		for _, reader := range readers {
-			reader.Close()
-			if err := os.Remove(reader.file.Name()); err != nil {
-				f.Errorf("could not delete %s", reader.file.Name())
-			}
-		}
-		return
-	}
 
 	for _, reader := range f.lastPollReaders {
 		reader.Close()
