@@ -52,6 +52,7 @@ type GoogleCloudOutputConfig struct {
 	CredentialsFile     string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
 	ProjectID           string          `json:"project_id"                 yaml:"project_id"`
 	LogNameField        *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
+	Location            *entry.Field    `json:"location,omitempty"   yaml:"location,omitempty"`
 	TraceField          *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
 	SpanIDField         *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 	Timeout             helper.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
@@ -81,6 +82,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 		buffer:          newBuffer,
 		flusher:         newFlusher,
 		logNameField:    c.LogNameField,
+		location:        c.Location,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         c.Timeout.Raw(),
@@ -103,6 +105,7 @@ type GoogleCloudOutput struct {
 	projectID       string
 
 	logNameField   *entry.Field
+	location       *entry.Field
 	traceField     *entry.Field
 	spanIDField    *entry.Field
 	useCompression bool
@@ -369,9 +372,23 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry.Resource = getResource(e)
 
+	if g.location != nil && newEntry.Resource != nil {
+		var rawLocation string
+		err := e.Read(*g.location, &rawLocation)
+		if err != nil {
+			g.Warnw("Failed to set location", zap.Error(err), "entry", e)
+		} else {
+			newEntry.Resource.Labels["location"] = rawLocation
+			e.Delete(*g.location)
+		}
+	}
+
 	// Google monitored resources wipe out Stanza's entry.Resources with
 	// a static set of resources, therefore we need to move the entry's resources
 	// to entry.Labels
+	if newEntry.Labels == nil {
+		newEntry.Labels = make(map[string]string)
+	}
 	for k, v := range e.Resource {
 		if val, ok := newEntry.Labels[k]; ok {
 			if val != v {
