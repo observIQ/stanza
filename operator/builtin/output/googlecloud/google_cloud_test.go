@@ -69,7 +69,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			googleCloudBasicConfig(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 				},
 			},
@@ -90,13 +90,13 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"LogNameField",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
+				f := entry.NewBodyField("log_name")
 				c.LogNameField = &f
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "mylogname",
 				},
@@ -116,16 +116,16 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 		},
 		{
-			"Labels",
+			"Attributes",
 			func() *GoogleCloudOutputConfig {
 				return googleCloudBasicConfig()
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Labels: map[string]string{
-					"label1": "value1",
+				Attributes: map[string]string{
+					"attribute1": "value1",
 				},
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 				},
 			},
@@ -134,7 +134,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				req.Entries = []*logpb.LogEntry{
 					{
 						Labels: map[string]string{
-							"label1": "value1",
+							"attribute1": "value1",
 						},
 						Timestamp: protoTs,
 						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
@@ -168,15 +168,15 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"TraceAndSpanFields",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				traceField := entry.NewRecordField("trace")
-				spanIDField := entry.NewRecordField("span_id")
+				traceField := entry.NewBodyField("trace")
+				spanIDField := entry.NewBodyField("span_id")
 				c.TraceField = &traceField
 				c.SpanIDField = &spanIDField
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 					"trace":   "projects/my-projectid/traces/06796866738c859f2f19b7cfb3214824",
 					"span_id": "000000000000004a",
@@ -248,7 +248,7 @@ func googleCloudSeverityTestCase(s entry.Severity, expected sev.LogSeverity) goo
 		&entry.Entry{
 			Timestamp: now,
 			Severity:  s,
-			Record: map[string]interface{}{
+			Body: map[string]interface{}{
 				"message": "test message",
 			},
 		},
@@ -437,31 +437,31 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"Simple",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "test",
+				Body:      "test",
 			},
 			nil,
 		},
 		{
-			"MapRecord",
+			"MapBody",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    mapOfSize(1, 0),
+				Body:      mapOfSize(1, 0),
 			},
 			nil,
 		},
 		{
-			"LargeMapRecord",
+			"LargeMapBody",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    mapOfSize(30, 0),
+				Body:      mapOfSize(30, 0),
 			},
 			nil,
 		},
 		{
-			"DeepMapRecord",
+			"DeepMapBody",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    mapOfSize(1, 10),
+				Body:      mapOfSize(1, 10),
 			},
 			nil,
 		},
@@ -469,8 +469,8 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"Labels",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "test",
-				Labels: map[string]string{
+				Body:      "test",
+				Attributes: map[string]string{
 					"test": "val",
 				},
 			},
@@ -480,7 +480,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"NoCompression",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "test",
+				Body:      "test",
 			},
 			func(cfg *GoogleCloudOutputConfig) {
 				cfg.UseCompression = false
@@ -598,8 +598,8 @@ func TestSplittingSenderRandomly(t *testing.T) {
 		numEntries := rand.Intn(50-1) + 10
 		entries := make([]*entry.Entry, 0, numEntries)
 		for i := 0; i < numEntries; i++ {
-			recordLength := rand.Intn(101-1) + 1
-			entries = append(entries, sized(recordLength))
+			bodyLength := rand.Intn(101-1) + 1
+			entries = append(entries, sized(bodyLength))
 		}
 		cases = append(cases, entries)
 	}
@@ -626,7 +626,7 @@ func sized(i int) *entry.Entry {
 	for i := range b {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
-	ent.Record = string(b)
+	ent.Body = string(b)
 	return ent
 }
 
@@ -646,7 +646,7 @@ func (s *mockSender) Debugw(template string, args ...interface{}) {
 func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
 	totalSize := 0
 	for _, ent := range entries {
-		s, ok := ent.Record.(string)
+		s, ok := ent.Body.(string)
 		if !ok {
 			panic("unexpected value in test")
 		}

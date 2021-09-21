@@ -143,44 +143,44 @@ func TestTransformerIf(t *testing.T) {
 	cases := []struct {
 		name        string
 		ifExpr      string
-		inputRecord string
+		inputBody   string
 		expected    string
 		errExpected bool
 	}{
 		{
-			name:        "NoIf",
-			ifExpr:      "",
-			inputRecord: "test",
-			expected:    "parsed",
+			name:      "NoIf",
+			ifExpr:    "",
+			inputBody: "test",
+			expected:  "parsed",
 		},
 		{
-			name:        "TrueIf",
-			ifExpr:      "true",
-			inputRecord: "test",
-			expected:    "parsed",
+			name:      "TrueIf",
+			ifExpr:    "true",
+			inputBody: "test",
+			expected:  "parsed",
 		},
 		{
-			name:        "FalseIf",
-			ifExpr:      "false",
-			inputRecord: "test",
-			expected:    "test",
+			name:      "FalseIf",
+			ifExpr:    "false",
+			inputBody: "test",
+			expected:  "test",
 		},
 		{
-			name:        "EvaluatedTrue",
-			ifExpr:      "$record == 'test'",
-			inputRecord: "test",
-			expected:    "parsed",
+			name:      "EvaluatedTrue",
+			ifExpr:    "$body == 'test'",
+			inputBody: "test",
+			expected:  "parsed",
 		},
 		{
-			name:        "EvaluatedFalse",
-			ifExpr:      "$record == 'notest'",
-			inputRecord: "test",
-			expected:    "test",
+			name:      "EvaluatedFalse",
+			ifExpr:    "$body == 'notest'",
+			inputBody: "test",
+			expected:  "test",
 		},
 		{
 			name:        "FailingExpressionEvaluation",
-			ifExpr:      "$record.test.noexist == 'notest'",
-			inputRecord: "test",
+			ifExpr:      "$body.test.noexist == 'notest'",
+			inputBody:   "test",
 			expected:    "test",
 			errExpected: true,
 		},
@@ -198,9 +198,9 @@ func TestTransformerIf(t *testing.T) {
 			transformer.OutputOperators = []operator.Operator{fake}
 
 			e := entry.New()
-			e.Record = tc.inputRecord
+			e.Body = tc.inputBody
 			err = transformer.ProcessWith(context.Background(), e, func(e *entry.Entry) error {
-				e.Record = "parsed"
+				e.Body = "parsed"
 				return nil
 			})
 			if tc.errExpected {
@@ -209,7 +209,7 @@ func TestTransformerIf(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			fake.ExpectRecord(t, tc.expected)
+			fake.ExpectBody(t, tc.expected)
 		})
 	}
 

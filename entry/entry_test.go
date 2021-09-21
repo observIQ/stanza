@@ -10,7 +10,7 @@ import (
 
 func TestRead(t *testing.T) {
 	testEntry := &Entry{
-		Record: map[string]interface{}{
+		Body: map[string]interface{}{
 			"string_field": "string_val",
 			"byte_field":   []byte(`test`),
 			"map_string_interface_field": map[string]interface{}{
@@ -36,84 +36,84 @@ func TestRead(t *testing.T) {
 
 	t.Run("field not exist error", func(t *testing.T) {
 		var s string
-		err := testEntry.Read(NewRecordField("nonexistant_field"), &s)
+		err := testEntry.Read(NewBodyField("nonexistant_field"), &s)
 		require.Error(t, err)
 	})
 
 	t.Run("unsupported type error", func(t *testing.T) {
 		var s **string
-		err := testEntry.Read(NewRecordField("string_field"), &s)
+		err := testEntry.Read(NewBodyField("string_field"), &s)
 		require.Error(t, err)
 	})
 
 	t.Run("string", func(t *testing.T) {
 		var s string
-		err := testEntry.Read(NewRecordField("string_field"), &s)
+		err := testEntry.Read(NewBodyField("string_field"), &s)
 		require.NoError(t, err)
 		require.Equal(t, "string_val", s)
 	})
 
 	t.Run("string error", func(t *testing.T) {
 		var s string
-		err := testEntry.Read(NewRecordField("map_string_interface_field"), &s)
+		err := testEntry.Read(NewBodyField("map_string_interface_field"), &s)
 		require.Error(t, err)
 	})
 
 	t.Run("map[string]interface{}", func(t *testing.T) {
 		var m map[string]interface{}
-		err := testEntry.Read(NewRecordField("map_string_interface_field"), &m)
+		err := testEntry.Read(NewBodyField("map_string_interface_field"), &m)
 		require.NoError(t, err)
 		require.Equal(t, map[string]interface{}{"nested": "interface_val"}, m)
 	})
 
 	t.Run("map[string]interface{} error", func(t *testing.T) {
 		var m map[string]interface{}
-		err := testEntry.Read(NewRecordField("string_field"), &m)
+		err := testEntry.Read(NewBodyField("string_field"), &m)
 		require.Error(t, err)
 	})
 
 	t.Run("map[string]string from map[string]interface{}", func(t *testing.T) {
 		var m map[string]string
-		err := testEntry.Read(NewRecordField("map_string_interface_field"), &m)
+		err := testEntry.Read(NewBodyField("map_string_interface_field"), &m)
 		require.NoError(t, err)
 		require.Equal(t, map[string]string{"nested": "interface_val"}, m)
 	})
 
 	t.Run("map[string]string from map[string]interface{} err", func(t *testing.T) {
 		var m map[string]string
-		err := testEntry.Read(NewRecordField("map_string_interface_nonstring_field"), &m)
+		err := testEntry.Read(NewBodyField("map_string_interface_nonstring_field"), &m)
 		require.Error(t, err)
 	})
 
 	t.Run("map[string]string from map[interface{}]interface{}", func(t *testing.T) {
 		var m map[string]string
-		err := testEntry.Read(NewRecordField("map_interface_interface_field"), &m)
+		err := testEntry.Read(NewBodyField("map_interface_interface_field"), &m)
 		require.NoError(t, err)
 		require.Equal(t, map[string]string{"nested": "interface_val"}, m)
 	})
 
 	t.Run("map[string]string from map[interface{}]interface{} nonstring key error", func(t *testing.T) {
 		var m map[string]string
-		err := testEntry.Read(NewRecordField("map_interface_interface_nonstring_key_field"), &m)
+		err := testEntry.Read(NewBodyField("map_interface_interface_nonstring_key_field"), &m)
 		require.Error(t, err)
 	})
 
 	t.Run("map[string]string from map[interface{}]interface{} nonstring value error", func(t *testing.T) {
 		var m map[string]string
-		err := testEntry.Read(NewRecordField("map_interface_interface_nonstring_value_field"), &m)
+		err := testEntry.Read(NewBodyField("map_interface_interface_nonstring_value_field"), &m)
 		require.Error(t, err)
 	})
 
 	t.Run("interface{} from any", func(t *testing.T) {
 		var i interface{}
-		err := testEntry.Read(NewRecordField("map_interface_interface_field"), &i)
+		err := testEntry.Read(NewBodyField("map_interface_interface_field"), &i)
 		require.NoError(t, err)
 		require.Equal(t, map[interface{}]interface{}{"nested": "interface_val"}, i)
 	})
 
 	t.Run("string from []byte", func(t *testing.T) {
 		var i string
-		err := testEntry.Read(NewRecordField("byte_field"), &i)
+		err := testEntry.Read(NewBodyField("byte_field"), &i)
 		require.NoError(t, err)
 		require.Equal(t, "test", i)
 	})
@@ -124,24 +124,24 @@ func TestCopy(t *testing.T) {
 	entry.Severity = Severity(0)
 	entry.SeverityText = "ok"
 	entry.Timestamp = time.Time{}
-	entry.Record = "test"
-	entry.Labels = map[string]string{"label": "value"}
+	entry.Body = "test"
+	entry.Attributes = map[string]string{"attribute": "value"}
 	entry.Resource = map[string]string{"resource": "value"}
 	copy := entry.Copy()
 
 	entry.Severity = Severity(1)
 	entry.SeverityText = "1"
 	entry.Timestamp = time.Now()
-	entry.Record = "new"
-	entry.Labels = map[string]string{"label": "new value"}
+	entry.Body = "new"
+	entry.Attributes = map[string]string{"attribute": "new value"}
 	entry.Resource = map[string]string{"resource": "new value"}
 
 	require.Equal(t, time.Time{}, copy.Timestamp)
 	require.Equal(t, Severity(0), copy.Severity)
 	require.Equal(t, "ok", copy.SeverityText)
-	require.Equal(t, map[string]string{"label": "value"}, copy.Labels)
+	require.Equal(t, map[string]string{"attribute": "value"}, copy.Attributes)
 	require.Equal(t, map[string]string{"resource": "value"}, copy.Resource)
-	require.Equal(t, "test", copy.Record)
+	require.Equal(t, "test", copy.Body)
 }
 
 func TestFieldFromString(t *testing.T) {
@@ -152,32 +152,32 @@ func TestFieldFromString(t *testing.T) {
 		expectedError bool
 	}{
 		{
-			"SimpleRecord",
+			"SimpleBody",
 			"test",
-			Field{RecordField{[]string{"test"}}},
+			Field{BodyField{[]string{"test"}}},
 			false,
 		},
 		{
-			"PrefixedRecord",
+			"PrefixedBody",
 			"$.test",
-			Field{RecordField{[]string{"test"}}},
+			Field{BodyField{[]string{"test"}}},
 			false,
 		},
 		{
-			"FullPrefixedRecord",
-			"$record.test",
-			Field{RecordField{[]string{"test"}}},
+			"FullPrefixedBody",
+			"$body.test",
+			Field{BodyField{[]string{"test"}}},
 			false,
 		},
 		{
-			"SimpleLabel",
-			"$labels.test",
-			Field{LabelField{"test"}},
+			"SimpleAttribute",
+			"$attributes.test",
+			Field{AttributeField{"test"}},
 			false,
 		},
 		{
-			"LabelsTooManyFields",
-			"$labels.test.bar",
+			"AttributesTooManyFields",
+			"$attributes.test.bar",
 			Field{},
 			true,
 		},
@@ -190,17 +190,16 @@ func TestFieldFromString(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
-
 			require.Equal(t, tc.output, f)
 		})
 	}
 }
 
-func TestAddLabel(t *testing.T) {
+func TestAddAttribute(t *testing.T) {
 	entry := Entry{}
-	entry.AddLabel("label", "value")
-	expected := map[string]string{"label": "value"}
-	require.Equal(t, expected, entry.Labels)
+	entry.AddAttribute("attribute", "value")
+	expected := map[string]string{"attribute": "value"}
+	require.Equal(t, expected, entry.Attributes)
 }
 
 func TestAddResourceKey(t *testing.T) {
@@ -212,7 +211,7 @@ func TestAddResourceKey(t *testing.T) {
 
 func TestReadToInterfaceMapWithMissingField(t *testing.T) {
 	entry := Entry{}
-	field := NewLabelField("label")
+	field := NewAttributeField("attribute")
 	dest := map[string]interface{}{}
 	err := entry.readToInterfaceMap(field, &dest)
 	require.Error(t, err)
@@ -221,7 +220,7 @@ func TestReadToInterfaceMapWithMissingField(t *testing.T) {
 
 func TestReadToStringMapWithMissingField(t *testing.T) {
 	entry := Entry{}
-	field := NewLabelField("label")
+	field := NewAttributeField("attribute")
 	dest := map[string]string{}
 	err := entry.readToStringMap(field, &dest)
 	require.Error(t, err)
@@ -230,7 +229,7 @@ func TestReadToStringMapWithMissingField(t *testing.T) {
 
 func TestReadToInterfaceMissingField(t *testing.T) {
 	entry := Entry{}
-	field := NewLabelField("label")
+	field := NewAttributeField("attribute")
 	var dest interface{}
 	err := entry.readToInterface(field, &dest)
 	require.Error(t, err)

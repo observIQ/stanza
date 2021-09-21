@@ -40,9 +40,7 @@ func NewInputConfig(operatorID string) *InputConfig {
 // InputConfig is the configuration of a file input operator
 type InputConfig struct {
 	helper.InputConfig `yaml:",inline"`
-
-	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
-	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
+	Finder             `mapstructure:",squash" yaml:",inline"`
 
 	PollInterval            helper.Duration        `json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
 	Multiline               helper.MultilineConfig `json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
@@ -55,7 +53,7 @@ type InputConfig struct {
 	MaxLogSize              helper.ByteSize        `json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
 	MaxConcurrentFiles      int                    `json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
 	DeleteAfterRead         bool                   `json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
-	LabelRegex              string                 `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
+	AttributeRegex          string                 `json:"attribute_regex,omitempty"                 yaml:"attribute_regex,omitempty"`
 	Encoding                helper.EncodingConfig  `json:",inline,omitempty"                     yaml:",inline,omitempty"`
 }
 
@@ -123,9 +121,9 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		return nil, fmt.Errorf("invalid start_at location '%s'", c.StartAt)
 	}
 
-	var labelRegex *regexp.Regexp
-	if c.LabelRegex != "" {
-		r, err := regexp.Compile(c.LabelRegex)
+	var attributeRegex *regexp.Regexp
+	if c.AttributeRegex != "" {
+		r, err := regexp.Compile(c.AttributeRegex)
 		if err != nil {
 			return nil, fmt.Errorf("compiling regex: %s", err)
 		}
@@ -133,42 +131,41 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		keys := r.SubexpNames()
 		// keys[0] is always the empty string
 		if x := len(keys); x != 3 {
-			return nil, fmt.Errorf("label_regex must contain two capture groups named 'key' and 'value', got %d capture groups", x)
+			return nil, fmt.Errorf("attribute_regex must contain two capture groups named 'key' and 'value', got %d capture groups", x)
 		}
 
 		hasKeys := make(map[string]bool)
 		hasKeys[keys[1]] = true
 		hasKeys[keys[2]] = true
 		if !hasKeys["key"] || !hasKeys["value"] {
-			return nil, fmt.Errorf("label_regex must contain two capture groups named 'key' and 'value'")
+			return nil, fmt.Errorf("attribute_regex must contain two capture groups named 'key' and 'value'")
 		}
-		labelRegex = r
+		attributeRegex = r
 	}
 
 	fileNameField := entry.NewNilField()
 	if c.IncludeFileName {
-		fileNameField = entry.NewLabelField("file_name")
+		fileNameField = entry.NewAttributeField("file_name")
 	}
 
 	filePathField := entry.NewNilField()
 	if c.IncludeFilePath {
-		filePathField = entry.NewLabelField("file_path")
+		filePathField = entry.NewAttributeField("file_path")
 	}
 
 	fileNameResolvedField := entry.NewNilField()
 	if c.IncludeFileNameResolved {
-		fileNameResolvedField = entry.NewLabelField("file_name_resolved")
+		fileNameResolvedField = entry.NewAttributeField("file_name_resolved")
 	}
 
 	filePathResolvedField := entry.NewNilField()
 	if c.IncludeFilePathResolved {
-		filePathResolvedField = entry.NewLabelField("file_path_resolved")
+		filePathResolvedField = entry.NewAttributeField("file_path_resolved")
 	}
 
 	op := &InputOperator{
 		InputOperator:         inputOperator,
-		Include:               c.Include,
-		Exclude:               c.Exclude,
+		finder:                c.Finder,
 		SplitFunc:             splitFunc,
 		PollInterval:          c.PollInterval.Raw(),
 		persist:               helper.NewScopedDBPersister(context.Database, c.ID()),
@@ -179,7 +176,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		startAtBeginning:      startAtBeginning,
 		deleteAfterRead:       c.DeleteAfterRead,
 		queuedMatches:         make([]string, 0),
-		labelRegex:            labelRegex,
+		attributeRegex:        attributeRegex,
 		encoding:              encoding,
 		firstCheck:            true,
 		cancel:                func() {},

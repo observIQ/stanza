@@ -3,14 +3,14 @@ title: Decorator
 description: A decorator plugin
 parameters:
   - name: value
-    label: Value
+    attribute: Value
     description: A value to decorate the entries
     type: string
     required: true
 
 # This plugin is registered as the type 'decorator'.
 # The type comes from the filename.
-# It take any entries sent to it, and add the label
+# It take any entries sent to it, and add the attribute
 # 'decorated' to those entries with a value specified
 # by the argument 'value' in the top-level pipeline
 pipeline:
@@ -19,7 +19,7 @@ pipeline:
   # graph can be connected properly.
   - id: {{ .input }}
     type: metadata
-    labels:
+    attributes:
       # The value parameter comes from the configuration
       # of the plugin in the top-level config
       decorated: {{ .value }}

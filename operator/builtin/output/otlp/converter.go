@@ -46,15 +46,15 @@ func Convert(entries []*entry.Entry) pdata.Logs {
 			lr.SetSeverityNumber(convertSeverity(entry.Severity))
 			lr.SetSeverityText(entry.SeverityText)
 
-			if len(entry.Labels) > 0 {
+			if len(entry.Attributes) > 0 {
 				attributes := lr.Attributes()
-				for k, v := range entry.Labels {
+				for k, v := range entry.Attributes {
 					attributes.InsertString(k, v)
 				}
 			}
 
 			lr.Body().InitEmpty()
-			insertToAttributeVal(entry.Record, lr.Body())
+			insertToAttributeVal(entry.Body, lr.Body())
 
 			ills.Logs().Append(lr)
 		}

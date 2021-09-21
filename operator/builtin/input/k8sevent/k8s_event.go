@@ -253,15 +253,15 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 			}
 
 			typedEvent := event.Object.(*apiv1.Event)
-			record, err := runtime.DefaultUnstructuredConverter.ToUnstructured(event.Object)
+			body, err := runtime.DefaultUnstructuredConverter.ToUnstructured(event.Object)
 			if err != nil {
 				k.Error("Failed to convert event to map", zap.Error(err))
 				continue
 			}
 
-			entry, err := k.NewEntry(record)
+			entry, err := k.NewEntry(body)
 			if err != nil {
-				k.Error("Failed to create new entry from record", zap.Error(err))
+				k.Error("Failed to create new entry from body", zap.Error(err))
 				continue
 			}
 
@@ -275,7 +275,7 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 				entry.Timestamp = typedEvent.FirstTimestamp.Time
 			}
 
-			entry.AddLabel("event_type", string(event.Type))
+			entry.AddAttribute("event_type", string(event.Type))
 			k.populateResource(typedEvent, entry)
 			k.Write(ctx, entry)
 		case <-ctx.Done():

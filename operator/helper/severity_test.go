@@ -336,8 +336,8 @@ func TestSeverityParser(t *testing.T) {
 
 	testCases = append(testCases, otlpSevCases()...)
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

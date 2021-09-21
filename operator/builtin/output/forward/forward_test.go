@@ -36,7 +36,7 @@ func TestForwardOutput(t *testing.T) {
 	forwardOutput := ops[0].(*ForwardOutput)
 
 	newEntry := entry.New()
-	newEntry.Record = "test"
+	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
 	require.NoError(t, forwardOutput.Start())
 	defer forwardOutput.Stop()
@@ -51,10 +51,10 @@ func TestForwardOutput(t *testing.T) {
 		require.Len(t, entries, 1)
 		e := entries[0]
 		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
-		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
-		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Attributes, e.Attributes)
 		require.Equal(t, newEntry.Resource, e.Resource)
 	}
 }

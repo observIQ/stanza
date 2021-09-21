@@ -87,7 +87,7 @@ func (l *LogAnalyticsInput) parse(event azhub.Event, records map[string]interfac
 		return err
 	}
 
-	// set label azure_log_analytics_table
+	// set attribute azure_log_analytics_table
 	records, err = l.setType(e, records)
 	if err != nil {
 		return err
@@ -98,10 +98,10 @@ func (l *LogAnalyticsInput) parse(event azhub.Event, records map[string]interfac
 	}
 
 	// Add remaining records to record.<azure_log_analytics_table> map
-	return l.setField(e, e.Labels["azure_log_analytics_table"], records)
+	return l.setField(e, e.Attributes["azure_log_analytics_table"], records)
 }
 
-// setType sets the label 'azure_log_analytics_table'
+// setType sets the attribute 'azure_log_analytics_table'
 func (l *LogAnalyticsInput) setType(e *entry.Entry, records map[string]interface{}) (map[string]interface{}, error) {
 	const typeField = "type"
 
@@ -111,8 +111,8 @@ func (l *LogAnalyticsInput) setType(e *entry.Entry, records map[string]interface
 			if v, ok := value.(string); ok {
 				v = strings.ToLower(v)
 
-				// Set the log table label
-				if err := l.setLabel(e, "azure_log_analytics_table", v); err != nil {
+				// Set the log table attribute
+				if err := l.setAttribute(e, "azure_log_analytics_table", v); err != nil {
 					return nil, err
 				}
 
@@ -126,8 +126,8 @@ func (l *LogAnalyticsInput) setType(e *entry.Entry, records map[string]interface
 }
 
 // setTimestamp set the entry's timestamp using the timegenerated log analytics field
-func (l *LogAnalyticsInput) setTimestamp(e *entry.Entry, records map[string]interface{}) error {
-	for key, value := range records {
+func (l *LogAnalyticsInput) setTimestamp(e *entry.Entry, bodys map[string]interface{}) error {
+	for key, value := range bodys {
 		switch key {
 		case "timegenerated":
 			if v, ok := value.(string); ok {
@@ -147,13 +147,13 @@ func (l *LogAnalyticsInput) setResource(e *entry.Entry, key, value string) {
 	e.AddResourceKey(key, value)
 }
 
-func (l *LogAnalyticsInput) setLabel(e *entry.Entry, key string, value interface{}) error {
-	r := entry.NewLabelField(key)
+func (l *LogAnalyticsInput) setAttribute(e *entry.Entry, key string, value interface{}) error {
+	r := entry.NewAttributeField(key)
 	return r.Set(e, value)
 }
 
 func (l *LogAnalyticsInput) setField(e *entry.Entry, key string, value interface{}) error {
-	r := entry.RecordField{
+	r := entry.BodyField{
 		Keys: []string{key},
 	}
 	return r.Set(e, value)

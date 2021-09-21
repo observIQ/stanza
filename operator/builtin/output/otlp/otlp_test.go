@@ -52,7 +52,7 @@ func TestOTLPOutput(t *testing.T) {
 			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test",
+				Body:      "test",
 			}},
 		},
 		{
@@ -60,10 +60,10 @@ func TestOTLPOutput(t *testing.T) {
 			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test1",
+				Body:      "test1",
 			}, {
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test2",
+				Body:      "test2",
 			}},
 		},
 	}

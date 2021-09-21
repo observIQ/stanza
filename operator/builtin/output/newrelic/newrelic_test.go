@@ -55,35 +55,35 @@ func TestNewRelicOutput(t *testing.T) {
 			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test",
+				Body:      "test",
 			}},
-			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"record":"test","resource":null,"severity":"default"},"message":"test"}]}]` + "\n",
+			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"attributes":null,"body":"test","resource":null,"severity":"default"},"message":"test"}]}]` + "\n",
 		},
 		{
 			"Multi",
 			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test1",
+				Body:      "test1",
 			}, {
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test2",
+				Body:      "test2",
 			}},
-			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"record":"test1","resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"labels":null,"record":"test2","resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
+			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"attributes":null,"body":"test1","resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"attributes":null,"body":"test2","resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
 		},
 		{
 			"CustomMessage",
 			func(cfg *NewRelicOutputConfig) {
-				cfg.MessageField = entry.NewRecordField("log")
+				cfg.MessageField = entry.NewBodyField("log")
 			},
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"log":     "testlog",
 					"message": "testmessage",
 				},
 			}},
-			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"record":{"log":"testlog","message":"testmessage"},"resource":null,"severity":"default"},"message":"testlog"}]}]` + "\n",
+			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"attributes":null,"body":{"log":"testlog","message":"testmessage"},"resource":null,"severity":"default"},"message":"testlog"}]}]` + "\n",
 		},
 	}
 

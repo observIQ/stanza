@@ -27,19 +27,19 @@ func TestRouterOperator(t *testing.T) {
 	}
 
 	cases := []struct {
-		name           string
-		input          *entry.Entry
-		routes         []*RouterOperatorRouteConfig
-		defaultOutput  helper.OutputIDs
-		expectedCounts map[string]int
-		expectedLabels map[string]string
+		name               string
+		input              *entry.Entry
+		routes             []*RouterOperatorRouteConfig
+		defaultOutput      helper.OutputIDs
+		expectedCounts     map[string]int
+		expectedAttributes map[string]string
 	}{
 		{
 			"DefaultRoute",
 			entry.New(),
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					"true",
 					[]string{"output1"},
 				},
@@ -53,7 +53,7 @@ func TestRouterOperator(t *testing.T) {
 			entry.New(),
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`false`,
 					[]string{"output1"},
 				},
@@ -65,18 +65,18 @@ func TestRouterOperator(t *testing.T) {
 		{
 			"SimpleMatch",
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test_message",
 				},
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`$.message == "non_match"`,
 					[]string{"output1"},
 				},
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`$.message == "test_message"`,
 					[]string{"output2"},
 				},
@@ -86,22 +86,22 @@ func TestRouterOperator(t *testing.T) {
 			nil,
 		},
 		{
-			"MatchWithLabel",
+			"MatchWithAttribute",
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test_message",
 				},
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`$.message == "non_match"`,
 					[]string{"output1"},
 				},
 				{
-					helper.LabelerConfig{
-						Labels: map[string]helper.ExprStringConfig{
-							"label-key": "label-value",
+					helper.AttributerConfig{
+						Attributes: map[string]helper.ExprStringConfig{
+							"attribute-key": "attribute-value",
 						},
 					},
 					`$.message == "test_message"`,
@@ -111,24 +111,24 @@ func TestRouterOperator(t *testing.T) {
 			nil,
 			map[string]int{"output2": 1},
 			map[string]string{
-				"label-key": "label-value",
+				"attribute-key": "attribute-value",
 			},
 		},
 		{
 			"MatchEnv",
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test_message",
 				},
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`env("TEST_ROUTER_PLUGIN_ENV") == "foo"`,
 					[]string{"output1"},
 				},
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`true`,
 					[]string{"output2"},
 				},
@@ -140,13 +140,13 @@ func TestRouterOperator(t *testing.T) {
 		{
 			"UseDefault",
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test_message",
 				},
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`false`,
 					[]string{"output1"},
 				},
@@ -158,13 +158,13 @@ func TestRouterOperator(t *testing.T) {
 		{
 			"MatchBeforeDefault",
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test_message",
 				},
 			},
 			[]*RouterOperatorRouteConfig{
 				{
-					helper.NewLabelerConfig(),
+					helper.NewAttributerConfig(),
 					`true`,
 					[]string{"output1"},
 				},
@@ -187,13 +187,13 @@ func TestRouterOperator(t *testing.T) {
 			op := ops[0]
 
 			results := map[string]int{}
-			var labels map[string]string
+			var attributes map[string]string
 
 			mock1 := testutil.NewMockOperator("$.output1")
 			mock1.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 				results["output1"] = results["output1"] + 1
 				if entry, ok := args[1].(*entry.Entry); ok {
-					labels = entry.Labels
+					attributes = entry.Attributes
 				}
 			})
 
@@ -201,7 +201,7 @@ func TestRouterOperator(t *testing.T) {
 			mock2.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 				results["output2"] = results["output2"] + 1
 				if entry, ok := args[1].(*entry.Entry); ok {
-					labels = entry.Labels
+					attributes = entry.Attributes
 				}
 			})
 
@@ -213,7 +213,7 @@ func TestRouterOperator(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expectedCounts, results)
-			require.Equal(t, tc.expectedLabels, labels)
+			require.Equal(t, tc.expectedAttributes, attributes)
 		})
 	}
 }

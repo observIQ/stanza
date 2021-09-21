@@ -1,6 +1,6 @@
 ## `metadata` operator
 
-The `metadata` operator adds labels to incoming entries.
+The `metadata` operator adds attributes to incoming entries.
 
 ### Configuration Fields
 
@@ -8,23 +8,23 @@ The `metadata` operator adds labels to incoming entries.
 | ---        | ---              | ---                                                                                             |
 | `id`       | `metadata`       | A unique identifier for the operator                                                            |
 | `output`   | Next in pipeline | The connected operator(s) that will receive all outbound entries                                |
-| `labels`   | {}               | A map of `key: value` labels to add to the entry's labels                                       |
-| `resource` | {}               | A map of `key: value` labels to add to the entry's resource                                     |
+| `attributes`   | {}               | A map of `key: value` attributes to add to the entry's attributes                                       |
+| `resource` | {}               | A map of `key: value` attributes to add to the entry's resource                                     |
 | `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md) |
 
-Inside the label values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
-will be replaced with the evaluated form of the expression. The entry's record can be accessed
-with the `$` variable in the expression so labels can be added dynamically from fields.
+Inside the attribute values, an [expression](/docs/types/expression.md) surrounded by `EXPR()`
+will be replaced with the evaluated form of the expression. The entry's body can be accessed
+with the `$` variable in the expression so attributes can be added dynamically from fields.
 
 ### Example Configurations
 
 
-#### Add static labels and resource
+#### Add static attributes and resource
 
 Configuration:
 ```yaml
 - type: metadata
-  labels:
+  attributes:
     environment: "production"
   resource:
     cluster: "blue"
@@ -38,8 +38,8 @@ Configuration:
 ```json
 {
   "timestamp": "2020-06-15T11:15:50.475364-04:00",
-  "labels": {},
-  "record": {
+  "attributes": {},
+  "body": {
     "message": "test"
   }
 }
@@ -51,13 +51,13 @@ Configuration:
 ```json
 {
   "timestamp": "2020-06-15T11:15:50.475364-04:00",
-  "labels": {
+  "attributes": {
     "environment": "production"
   },
   "resource": {
     "cluster": "blue"
   },
-  "record": {
+  "body": {
     "message": "test"
   }
 }
@@ -67,13 +67,13 @@ Configuration:
 </tr>
 </table>
 
-#### Add dynamic tags and labels
+#### Add dynamic attributes
 
 Configuration:
 ```yaml
 - type: metadata
   output: metadata_receiver
-  labels:
+  attributes:
     environment: 'EXPR( $.environment == "production" ? "prod" : "dev" )'
 ```
 
@@ -85,8 +85,8 @@ Configuration:
 ```json
 {
   "timestamp": "2020-06-15T11:15:50.475364-04:00",
-  "labels": {},
-  "record": {
+  "attributes": {},
+  "body": {
     "production_location": "us_east",
     "environment": "nonproduction"
   }
@@ -99,10 +99,10 @@ Configuration:
 ```json
 {
   "timestamp": "2020-06-15T11:15:50.475364-04:00",
-  "labels": {
+  "attributes": {
     "environment": "dev"
   },
-  "record": {
+  "body": {
     "production_location": "us_east",
     "environment": "nonproduction"
   }

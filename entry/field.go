@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	labelsPrefix   = "$labels"
-	resourcePrefix = "$resource"
-	recordPrefix   = "$record"
+	attributesPrefix = "$attributes"
+	resourcePrefix   = "$resource"
+	bodyPrefix       = "$body"
 )
 
 // Field represents a potential field on an entry.
@@ -55,20 +55,20 @@ func fieldFromString(s string) (Field, error) {
 	}
 
 	switch split[0] {
-	case labelsPrefix:
+	case attributesPrefix:
 		if len(split) != 2 {
-			return Field{}, fmt.Errorf("labels cannot be nested")
+			return Field{}, fmt.Errorf("attributes cannot be nested")
 		}
-		return Field{LabelField{split[1]}}, nil
+		return Field{AttributeField{split[1]}}, nil
 	case resourcePrefix:
 		if len(split) != 2 {
 			return Field{}, fmt.Errorf("resource fields cannot be nested")
 		}
 		return Field{ResourceField{split[1]}}, nil
-	case recordPrefix, "$":
-		return Field{RecordField{split[1:]}}, nil
+	case bodyPrefix, "$":
+		return Field{BodyField{split[1:]}}, nil
 	default:
-		return Field{RecordField{split}}, nil
+		return Field{BodyField{split}}, nil
 	}
 }
 

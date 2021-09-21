@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package journald
@@ -98,7 +99,7 @@ func TestInputJournald(t *testing.T) {
 
 	select {
 	case e := <-received:
-		require.Equal(t, expected, e.Record)
+		require.Equal(t, expected, e.Body)
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for entry to be read")
 	}

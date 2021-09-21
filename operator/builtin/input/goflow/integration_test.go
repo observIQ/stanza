@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package goflow
@@ -151,9 +152,9 @@ func TestNetflowV5(t *testing.T) {
 			require.NoError(t, err, "expected to unmarshal stanza file output to FlowMessage struct")
 			return
 		}
-		require.NotEmpty(t, m.Record)
+		require.NotEmpty(t, m.Body)
 		require.NotEqual(t, m.Timestamp, time.Time{})
-		require.Equal(t, samplerAddress, m.Record.SamplerAddress, "expected sampleraddress to be the loadgen container's ip address")
+		require.Equal(t, samplerAddress, m.Body.SamplerAddress, "expected sampleraddress to be the loadgen container's ip address")
 		return
 	}
 	if err := scanner.Err(); err != nil {
@@ -165,7 +166,7 @@ func TestNetflowV5(t *testing.T) {
 type OutputEntry struct {
 	Timestamp time.Time `json:"timestamp"`
 	Severity  int       `json:"severity"`
-	Record    struct {
+	Body      struct {
 		// based on https://github.com/cloudflare/goflow/blob/ddd88a7faa89bd9a8e75f0ceca17cbb443c14a8f/pb/flow.pb.go
 		// all ip addresses are strings instead of []byte, and noted with a comment
 		Type          flowmessage.FlowMessage_FlowType `json:"type,omitempty"`
@@ -240,5 +241,5 @@ type OutputEntry struct {
 		XXX_NoUnkeyedLiteral struct{} `json:"-"`
 		XXX_unrecognized     []byte   `json:"-"`
 		XXX_sizecache        int32    `json:"-"`
-	} `json:"record"`
+	} `json:"body"`
 }

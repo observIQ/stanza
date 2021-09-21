@@ -504,11 +504,11 @@ func TestUnmarshal(t *testing.T) {
 			}(),
 		},
 		{
-			Name:      "label_regex",
+			Name:      "attribute_regex",
 			ExpectErr: false,
 			Expect: func() *InputConfig {
 				cfg := defaultCfg()
-				cfg.LabelRegex = "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"
+				cfg.AttributeRegex = "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"
 				return cfg
 			}(),
 		},
@@ -546,9 +546,9 @@ func TestBuild(t *testing.T) {
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {
 				require.Equal(t, f.OutputOperators[0], fakeOutput)
-				require.Equal(t, f.Include, []string{"/var/log/testpath.*"})
+				require.Equal(t, f.finder.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.FilePathField, entry.NewNilField())
-				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
+				require.Equal(t, f.FileNameField, entry.NewAttributeField("file_name"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
 			},
 		},
@@ -647,33 +647,33 @@ func TestBuild(t *testing.T) {
 			nil,
 		},
 		{
-			"ValidLabelRegex",
+			"ValidAttributeRegex",
 			func(f *InputConfig) {
-				f.LabelRegex = "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"
+				f.AttributeRegex = "^(?P<key>[a-zA-z]+ [A-Z]+): (?P<value>.*)"
 			},
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {},
 		},
 		{
-			"ValidLabelRegexReverse",
+			"ValidAttributeRegexReverse",
 			func(f *InputConfig) {
-				f.LabelRegex = "^(?P<value>[a-zA-z]+ [A-Z]+): (?P<key>.*)"
+				f.AttributeRegex = "^(?P<value>[a-zA-z]+ [A-Z]+): (?P<key>.*)"
 			},
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {},
 		},
 		{
-			"InvalidLabelRegexPattern",
+			"InvalidAttributeRegexPattern",
 			func(f *InputConfig) {
-				f.LabelRegex = "^(?P<something>[a-zA-z]"
+				f.AttributeRegex = "^(?P<something>[a-zA-z]"
 			},
 			require.Error,
 			nil,
 		},
 		{
-			"InvalidLabelRegexCaptureGroup",
+			"InvalidAttributeRegexCaptureGroup",
 			func(f *InputConfig) {
-				f.LabelRegex = "^(?P<something>[a-zA-z]+ [A-Z]+): (?P<invalid>.*)"
+				f.AttributeRegex = "^(?P<something>[a-zA-z]+ [A-Z]+): (?P<invalid>.*)"
 			},
 			require.Error,
 			nil,

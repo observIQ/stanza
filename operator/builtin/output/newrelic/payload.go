@@ -54,9 +54,9 @@ func LogMessageFromEntry(entry *entry.Entry, messageField entry.Field) *LogMessa
 		logMessage.Message = message
 	}
 
-	logMessage.Attributes["record"] = entry.Record
+	logMessage.Attributes["body"] = entry.Body
 	logMessage.Attributes["resource"] = entry.Resource
-	logMessage.Attributes["labels"] = entry.Labels
+	logMessage.Attributes["attributes"] = entry.Attributes
 	logMessage.Attributes["severity"] = entry.Severity.String()
 
 	return logMessage

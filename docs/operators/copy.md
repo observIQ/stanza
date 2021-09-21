@@ -16,7 +16,7 @@ The `copy` operator copies a value from one [field](/docs/types/field.md) to ano
 Example usage:
 
 <hr>
-Copy a value from the record to resource
+Copy a value from the body to resource
 
 ```yaml
 - type: copy
@@ -32,8 +32,8 @@ Copy a value from the record to resource
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": { 
+  "attributes": { },  
+  "body": { 
     "key":"value"
   }
 }
@@ -47,8 +47,8 @@ Copy a value from the record to resource
   "resource": { 
        "newkey":"value"
   },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key":"value"
   }
 }
@@ -60,11 +60,11 @@ Copy a value from the record to resource
 
 <hr>
 
-Copy a value from the record to labels
+Copy a value from the body to attributes
 ```yaml
 - type: copy
   from: key2
-  to: $labels.newkey
+  to: $attributes.newkey
 ```
 
 <table>
@@ -75,8 +75,8 @@ Copy a value from the record to labels
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -89,10 +89,10 @@ Copy a value from the record to labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
       "newkey": "val2"
   },  
-  "record": {
+  "body": {
     "key3": "val1",
     "key2": "val2"
   }
@@ -105,10 +105,10 @@ Copy a value from the record to labels
 
 <hr>
 
-Copy a value from labels to the record
+Copy a value from attributes to the body
 ```yaml
 - type: copy
-  from: $labels.key
+  from: $attributes.key
   to: newkey
 ```
 
@@ -120,10 +120,10 @@ Copy a value from labels to the record
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
       "key": "newval"
   },  
-  "record": {
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -136,10 +136,10 @@ Copy a value from labels to the record
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
       "key": "newval"
   },  
-  "record": {
+  "body": {
     "key3": "val1",
     "key2": "val2",
     "newkey": "newval"
@@ -153,7 +153,7 @@ Copy a value from labels to the record
 
 <hr>
 
-Copy a value within the record
+Copy a value within the body
 ```yaml
 - type: copy
   from: obj.nested
@@ -168,8 +168,8 @@ Copy a value within the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
       "obj": {
         "nested":"nestedvalue"
     }
@@ -183,8 +183,8 @@ Copy a value within the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "obj": {
         "nested":"nestedvalue"
     },

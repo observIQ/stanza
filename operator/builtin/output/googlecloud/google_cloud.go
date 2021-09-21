@@ -212,7 +212,7 @@ func (g *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
 func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 	g.Debug("performing test connection")
 	testEntry := entry.New()
-	testEntry.Record = map[string]interface{}{"message": "Test connection"}
+	testEntry.Body = map[string]interface{}{"message": "Test connection"}
 	req := g.createWriteRequest([]*entry.Entry{testEntry})
 	if _, err := g.client.WriteLogEntries(ctx, req); err != nil {
 		return fmt.Errorf("test connection: %s", err)
@@ -278,7 +278,7 @@ func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entri
 
 	if numEnts == 1 {
 		s.Debugw("single entry too large: %s", entries[0], zap.Any("error", err))
-		entries[0].Record = err.Error()
+		entries[0].Body = err.Error()
 		return s.Send(ctx, clearer, entries, offset)
 	}
 
@@ -329,7 +329,7 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry = &logpb.LogEntry{
 		Timestamp: ts,
-		Labels:    e.Labels,
+		Labels:    e.Attributes,
 	}
 
 	if g.logNameField != nil {
@@ -362,12 +362,25 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 	}
 
 	newEntry.Severity = convertSeverity(e.Severity)
-	err = setPayload(newEntry, e.Record)
+	err = setPayload(newEntry, e.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "set entry payload")
 	}
 
 	newEntry.Resource = getResource(e)
+
+	// Google monitored resources wipe out Stanza's entry.Resources with
+	// a static set of resources, therefore we need to move the entry's resources
+	// to entry.Labels
+	for k, v := range e.Resource {
+		if val, ok := newEntry.Labels[k]; ok {
+			if val != v {
+				g.Warnf("resource to labels merge failed, entry has label %s=%s, tried to add %s=%s", k, val, k, v)
+			}
+			continue
+		}
+		newEntry.Labels[k] = v
+	}
 
 	return newEntry, nil
 }

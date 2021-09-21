@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 	cases := []struct {
 		name     string
 		event    azhub.Event
-		records  map[string]interface{}
+		body     map[string]interface{}
 		expected *entry.Entry
 	}{
 		{
@@ -54,10 +54,10 @@ func TestParse(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTimeGenerated,
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"azure_log_analytics_table": "unit_test",
 				},
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",
@@ -86,7 +86,7 @@ func TestParse(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := entry.New()
-			err := operator.parse(tc.event, tc.records, e)
+			err := operator.parse(tc.event, tc.body, e)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, e)
 		})

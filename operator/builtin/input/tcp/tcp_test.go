@@ -99,7 +99,7 @@ func tcpInputTest(input []byte, expected []string) func(t *testing.T) {
 		for _, expectedMessage := range expected {
 			select {
 			case entry := <-entryChan:
-				require.Equal(t, expectedMessage, entry.Record)
+				require.Equal(t, expectedMessage, entry.Body)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
 			}
@@ -114,11 +114,11 @@ func tcpInputTest(input []byte, expected []string) func(t *testing.T) {
 	}
 }
 
-func tcpInputLabelsTest(input []byte, expected []string) func(t *testing.T) {
+func tcpInputAttributesTest(input []byte, expected []string) func(t *testing.T) {
 	return func(t *testing.T) {
 		cfg := NewTCPInputConfig("test_id")
 		cfg.ListenAddress = ":0"
-		cfg.AddLabels = true
+		cfg.AddAttributes = true
 
 		ops, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
@@ -147,19 +147,19 @@ func tcpInputLabelsTest(input []byte, expected []string) func(t *testing.T) {
 		for _, expectedMessage := range expected {
 			select {
 			case entry := <-entryChan:
-				expectedLabels := map[string]string{
+				expectedAttributes := map[string]string{
 					"net.transport": "IP.TCP",
 				}
 				if addr, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
-					expectedLabels["net.host.ip"] = addr.IP.String()
-					expectedLabels["net.host.port"] = strconv.FormatInt(int64(addr.Port), 10)
+					expectedAttributes["net.host.ip"] = addr.IP.String()
+					expectedAttributes["net.host.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
 				if addr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
-					expectedLabels["net.peer.ip"] = addr.IP.String()
-					expectedLabels["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
+					expectedAttributes["net.peer.ip"] = addr.IP.String()
+					expectedAttributes["net.peer.port"] = strconv.FormatInt(int64(addr.Port), 10)
 				}
-				require.Equal(t, expectedMessage, entry.Record)
-				require.Equal(t, expectedLabels, entry.Labels)
+				require.Equal(t, expectedMessage, entry.Body)
+				require.Equal(t, expectedAttributes, entry.Attributes)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
 			}
@@ -226,7 +226,7 @@ func tlsTCPInputTest(input []byte, expected []string) func(t *testing.T) {
 		for _, expectedMessage := range expected {
 			select {
 			case entry := <-entryChan:
-				require.Equal(t, expectedMessage, entry.Record)
+				require.Equal(t, expectedMessage, entry.Body)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for message to be written")
 			}
@@ -243,9 +243,9 @@ func tlsTCPInputTest(input []byte, expected []string) func(t *testing.T) {
 
 func TestBuild(t *testing.T) {
 	cases := []struct {
-		name        string
-		inputRecord TCPInputConfig
-		expectErr   bool
+		name      string
+		inputBody TCPInputConfig
+		expectErr bool
 	}{
 		{
 			"default-auto-address",
@@ -407,9 +407,9 @@ func TestBuild(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := NewTCPInputConfig("test_id")
-			cfg.ListenAddress = tc.inputRecord.ListenAddress
-			cfg.MaxBufferSize = tc.inputRecord.MaxBufferSize
-			cfg.TLS = tc.inputRecord.TLS
+			cfg.ListenAddress = tc.inputBody.ListenAddress
+			cfg.MaxBufferSize = tc.inputBody.MaxBufferSize
+			cfg.TLS = tc.inputBody.TLS
 			_, err := cfg.Build(testutil.NewBuildContext(t))
 			if tc.expectErr {
 				require.Error(t, err)
@@ -426,8 +426,8 @@ func TestTcpInput(t *testing.T) {
 }
 
 func TestTcpInputAattributes(t *testing.T) {
-	t.Run("Simple", tcpInputLabelsTest([]byte("message\n"), []string{"message"}))
-	t.Run("CarriageReturn", tcpInputLabelsTest([]byte("message\r\n"), []string{"message"}))
+	t.Run("Simple", tcpInputAttributesTest([]byte("message\n"), []string{"message"}))
+	t.Run("CarriageReturn", tcpInputAttributesTest([]byte("message\r\n"), []string{"message"}))
 }
 
 func TestTLSTcpInput(t *testing.T) {

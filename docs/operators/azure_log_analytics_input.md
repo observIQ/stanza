@@ -2,7 +2,7 @@
 
 The `azure_log_analytics_input` operator reads Azure Log Analytics logs from Azure Event Hub using.
 
-The `azure_log_analytics_input` operator will use the `timegenerated` field as the parsed entry's timestamp. The label `azure_log_analytics_table` is derived from the log's `type` field.
+The `azure_log_analytics_input` operator will use the `timegenerated` field as the parsed entry's timestamp. The attribute `azure_log_analytics_table` is derived from the log's `type` field.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ A list of potential fields for each Azure Log Analytics table can be found [here
 {
   "timestamp": "2021-05-07T14:01:26.105Z",
   "severity": 0,
-  "record": {
+  "body": {
     "containerlog": {
       "_internal_workspaceresourceid": "/subscriptions/000-000/resourcegroups/integration/providers/microsoft.operationalinsights/workspaces/stanza",
       "_resourceid": "/subscriptions/0000-000/resourceGroups/devops/providers/Microsoft.ContainerService/managedClusters/log-analytics",

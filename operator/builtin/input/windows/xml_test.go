@@ -81,7 +81,7 @@ func TestParseRecord(t *testing.T) {
 		"system_time": "2020-07-30T01:01:01.123456789Z",
 		"computer":    "computer",
 		"channel":     "application",
-		"record_id":   uint64(1),
+		"body_id":     uint64(1),
 		"level":       "Information",
 		"message":     "message",
 		"task":        "task",

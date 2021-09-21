@@ -47,8 +47,8 @@ func TestAddFileFields(t *testing.T) {
 	defer operator.Stop()
 
 	e := waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(temp.Name()), e.Labels["file_name"])
-	require.Equal(t, temp.Name(), e.Labels["file_path"])
+	require.Equal(t, filepath.Base(temp.Name()), e.Attributes["file_name"])
+	require.Equal(t, temp.Name(), e.Attributes["file_path"])
 }
 
 // AddFileResolvedFields tests that the `file_name_resolved` and `file_path_resolved` fields are included
@@ -87,10 +87,10 @@ func TestAddFileResolvedFields(t *testing.T) {
 	defer operator.Stop()
 
 	e := waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(symLinkPath), e.Labels["file_name"])
-	require.Equal(t, symLinkPath, e.Labels["file_path"])
-	require.Equal(t, filepath.Base(resolved), e.Labels["file_name_resolved"])
-	require.Equal(t, resolved, e.Labels["file_path_resolved"])
+	require.Equal(t, filepath.Base(symLinkPath), e.Attributes["file_name"])
+	require.Equal(t, symLinkPath, e.Attributes["file_path"])
+	require.Equal(t, filepath.Base(resolved), e.Attributes["file_name_resolved"])
+	require.Equal(t, resolved, e.Attributes["file_path_resolved"])
 
 	// Clean up (linux based host)
 	// Ignore error on windows host (The process cannot access the file because it is being used by another process.)
@@ -148,10 +148,10 @@ func TestAddFileResolvedFieldsWithChangeOfSymlinkTarget(t *testing.T) {
 	defer operator.Stop()
 
 	e := waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(symLinkPath), e.Labels["file_name"])
-	require.Equal(t, symLinkPath, e.Labels["file_path"])
-	require.Equal(t, filepath.Base(resolved1), e.Labels["file_name_resolved"])
-	require.Equal(t, resolved1, e.Labels["file_path_resolved"])
+	require.Equal(t, filepath.Base(symLinkPath), e.Attributes["file_name"])
+	require.Equal(t, symLinkPath, e.Attributes["file_path"])
+	require.Equal(t, filepath.Base(resolved1), e.Attributes["file_name_resolved"])
+	require.Equal(t, resolved1, e.Attributes["file_path_resolved"])
 
 	// Change middleSymLink to point to file2
 	err = os.Remove(middleSymLinkPath)
@@ -163,10 +163,10 @@ func TestAddFileResolvedFieldsWithChangeOfSymlinkTarget(t *testing.T) {
 	writeString(t, file2, "testlog2\n")
 
 	e = waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(symLinkPath), e.Labels["file_name"])
-	require.Equal(t, symLinkPath, e.Labels["file_path"])
-	require.Equal(t, filepath.Base(resolved2), e.Labels["file_name_resolved"])
-	require.Equal(t, resolved2, e.Labels["file_path_resolved"])
+	require.Equal(t, filepath.Base(symLinkPath), e.Attributes["file_name"])
+	require.Equal(t, symLinkPath, e.Attributes["file_path"])
+	require.Equal(t, filepath.Base(resolved2), e.Attributes["file_name_resolved"])
+	require.Equal(t, resolved2, e.Attributes["file_path_resolved"])
 
 	// Clean up (linux based host)
 	// Ignore error on windows host (The process cannot access the file because it is being used by another process.)
@@ -658,6 +658,65 @@ func TestFileReader_FingerprintUpdated(t *testing.T) {
 	require.Equal(t, []byte("testlog1\n"), reader.Fingerprint.FirstBytes)
 }
 
+// Test that a fingerprint:
+// - Starts empty
+// - Updates as a file is read
+// - Stops updating when the max fingerprint size is reached
+// - Stops exactly at max fingerprint size, regardless of content
+func TestFingerprintGrowsAndStops(t *testing.T) {
+	t.Parallel()
+
+	// Use a number with many factors.
+	// Sometimes fingerprint length will align with
+	// the end of a line, sometimes not. Test both.
+	maxFP := 360
+
+	// Use prime numbers to ensure variation in
+	// whether or not they are factors of maxFP
+	lineLens := []int{3, 5, 7, 11, 13, 17, 19, 23, 27}
+
+	for _, lineLen := range lineLens {
+		t.Run(fmt.Sprintf("%d", lineLen), func(t *testing.T) {
+			t.Parallel()
+			operator, _, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+				cfg.FingerprintSize = helper.ByteSize(maxFP)
+			}, nil)
+			defer operator.Stop()
+
+			temp := openTemp(t, tempDir)
+			tempCopy := openFile(t, temp.Name())
+			fp, err := operator.NewFingerprint(temp)
+			require.NoError(t, err)
+			require.Equal(t, []byte(""), fp.FirstBytes)
+
+			reader, err := operator.NewReader(temp.Name(), tempCopy, fp)
+			require.NoError(t, err)
+			defer reader.Close()
+
+			// keep track of what has been written to the file
+			fileContent := []byte{}
+
+			// keep track of expected fingerprint size
+			expectedFP := 0
+
+			// Write lines until file is much larger than the length of the fingerprint
+			for len(fileContent) < 2*maxFP {
+				expectedFP += lineLen
+				if expectedFP > maxFP {
+					expectedFP = maxFP
+				}
+
+				line := stringWithLength(lineLen-1) + "\n"
+				fileContent = append(fileContent, []byte(line)...)
+
+				writeString(t, temp, line)
+				reader.ReadToEnd(context.Background())
+				require.Equal(t, fileContent[:expectedFP], reader.Fingerprint.FirstBytes)
+			}
+		})
+	}
+}
+
 func TestEncodings(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -734,54 +793,11 @@ func TestEncodings(t *testing.T) {
 			for _, expected := range tc.expected {
 				select {
 				case entry := <-receivedEntries:
-					require.Equal(t, expected, []byte(entry.Record.(string)))
+					require.Equal(t, expected, []byte(entry.Body.(string)))
 				case <-time.After(500 * time.Millisecond):
 					require.FailNow(t, "Timed out waiting for entry to be read")
 				}
 			}
 		})
 	}
-}
-
-// TestExclude tests that a log file will be excluded if it matches the
-// glob specified in the operator.
-func TestExclude(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"include.log", "exclude.log"})
-
-	includes := []string{filepath.Join(tempDir, "*")}
-	excludes := []string{filepath.Join(tempDir, "*exclude.log")}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths[:1])
-}
-func TestExcludeEmpty(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"include.log", "exclude.log"})
-
-	includes := []string{filepath.Join(tempDir, "*")}
-	excludes := []string{}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths)
-}
-func TestExcludeMany(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
-
-	includes := []string{filepath.Join(tempDir, "*")}
-	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths[2:3])
-}
-func TestExcludeDuplicates(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
-
-	includes := []string{filepath.Join(tempDir, "*1*"), filepath.Join(tempDir, "a*")}
-	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths[2:3])
 }

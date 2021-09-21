@@ -24,49 +24,49 @@ func TestMetadata(t *testing.T) {
 		expected  *entry.Entry
 	}{
 		{
-			"AddLabelLiteral",
+			"AddAttributeLiteral",
 			func(cfg *MetadataOperatorConfig) {
-				cfg.Labels = map[string]helper.ExprStringConfig{
-					"label1": "value1",
+				cfg.Attributes = map[string]helper.ExprStringConfig{
+					"attribute1": "value1",
 				}
 			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
-					"label1": "value1",
+				e.Attributes = map[string]string{
+					"attribute1": "value1",
 				}
 				return e
 			}(),
 		},
 		{
-			"AddLabelExpr",
+			"AddAttributeExpr",
 			func(cfg *MetadataOperatorConfig) {
-				cfg.Labels = map[string]helper.ExprStringConfig{
-					"label1": `EXPR("start" + "end")`,
+				cfg.Attributes = map[string]helper.ExprStringConfig{
+					"attribute1": `EXPR("start" + "end")`,
 				}
 			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
-					"label1": "startend",
+				e.Attributes = map[string]string{
+					"attribute1": "startend",
 				}
 				return e
 			}(),
 		},
 		{
-			"AddLabelEnv",
+			"AddAttributeEnv",
 			func(cfg *MetadataOperatorConfig) {
-				cfg.Labels = map[string]helper.ExprStringConfig{
-					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
+				cfg.Attributes = map[string]helper.ExprStringConfig{
+					"attribute1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
 			},
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
-					"label1": "foo",
+				e.Attributes = map[string]string{
+					"attribute1": "foo",
 				}
 				return e
 			}(),
@@ -139,7 +139,7 @@ func TestMetadata(t *testing.T) {
 
 			select {
 			case e := <-fake.Received:
-				require.Equal(t, e.Labels, tc.expected.Labels)
+				require.Equal(t, e.Attributes, tc.expected.Attributes)
 				require.Equal(t, e.Resource, tc.expected.Resource)
 			case <-time.After(time.Second):
 				require.FailNow(t, "Timed out waiting for entry to be processed")

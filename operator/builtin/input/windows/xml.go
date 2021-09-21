@@ -50,7 +50,7 @@ func (e *EventXML) parseSeverity() entry.Severity {
 // parseRecord will parse a record from the event.
 func (e *EventXML) parseRecord() map[string]interface{} {
 	message, details := e.parseMessage()
-	record := map[string]interface{}{
+	body := map[string]interface{}{
 		"event_id": map[string]interface{}{
 			"qualifiers": e.EventID.Qualifiers,
 			"id":         e.EventID.ID,
@@ -63,7 +63,7 @@ func (e *EventXML) parseRecord() map[string]interface{} {
 		"system_time": e.TimeCreated.SystemTime,
 		"computer":    e.Computer,
 		"channel":     e.Channel,
-		"record_id":   e.RecordID,
+		"body_id":     e.RecordID,
 		"level":       e.Level,
 		"message":     message,
 		"task":        e.Task,
@@ -71,9 +71,9 @@ func (e *EventXML) parseRecord() map[string]interface{} {
 		"keywords":    e.Keywords,
 	}
 	if len(details) > 0 {
-		record["details"] = details
+		body["details"] = details
 	}
-	return record
+	return body
 }
 
 // parseMessage will attempt to parse a message into a message and details

@@ -299,8 +299,8 @@ func TestTimeParser(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -467,8 +467,8 @@ func TestTimeEpochs(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -543,8 +543,8 @@ func TestTimeErrors(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

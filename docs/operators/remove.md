@@ -1,6 +1,6 @@
 ## `remove` operator
 
-The `remove` operator removes a field from a record.
+The `remove` operator removes a field from a body.
 
 ### Configuration Fields
 
@@ -16,7 +16,7 @@ Example usage:
 
 <hr>
 
-Remove a value from the record
+Remove a value from the body
 ```yaml
 - type: remove 
   field: key1
@@ -30,8 +30,8 @@ Remove a value from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key1": "val1",
   }
 }
@@ -43,8 +43,8 @@ Remove a value from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": { }
+  "attributes": { },  
+  "body": { }
 }
 ```
 
@@ -54,7 +54,7 @@ Remove a value from the record
 
 <hr>
 
-Remove an object from the record
+Remove an object from the body
 ```yaml
 - type: remove 
   field: object
@@ -68,8 +68,8 @@ Remove an object from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "object": {
       "nestedkey": "nestedval"
     },
@@ -84,8 +84,8 @@ Remove an object from the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": { 
+  "attributes": { },  
+  "body": { 
      "key": "val"
   }
 }
@@ -97,10 +97,10 @@ Remove an object from the record
 
 <hr>
 
-Remove a value from labels
+Remove a value from attributes
 ```yaml
 - type: remove 
-  field: $labels.otherkey
+  field: $attributes.otherkey
 ```
 
 <table>
@@ -111,10 +111,10 @@ Remove a value from labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
     "otherkey": "val"
   },  
-  "record": {
+  "body": {
     "key": "val"
   },
 }
@@ -126,8 +126,8 @@ Remove a value from labels
 ```json
 {
   "resource": { },
-  "labels": {  },  
-  "record": { 
+  "attributes": {  },  
+  "body": { 
     "key": "val"
   }
 }
@@ -156,8 +156,8 @@ Remove a value from resource
   "resource": { 
     "otherkey": "val"
   },
-  "labels": {  },  
-  "record": {
+  "attributes": {  },  
+  "body": {
     "key": "val"
   },
 }
@@ -169,8 +169,8 @@ Remove a value from resource
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": { 
+  "attributes": { },  
+  "body": { 
     "key": "val"
   }
 }
