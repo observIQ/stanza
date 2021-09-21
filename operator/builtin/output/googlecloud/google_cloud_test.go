@@ -123,7 +123,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				f := entry.NewRecordField("log_name")
 				locationField := entry.NewLabelField("region")
 				c.LogNameField = &f
-				c.Location = &locationField
+				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{
@@ -171,7 +171,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				f := entry.NewRecordField("log_name")
 				locationField := entry.NewRecordField("region")
 				c.LogNameField = &f
-				c.Location = &locationField
+				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{
@@ -220,7 +220,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				f := entry.NewRecordField("log_name")
 				locationField := entry.NewRecordField("region")
 				c.LogNameField = &f
-				c.Location = &locationField
+				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{
@@ -270,7 +270,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 				f := entry.NewRecordField("log_name")
 				locationField := entry.NewResourceField("region")
 				c.LogNameField = &f
-				c.Location = &locationField
+				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{

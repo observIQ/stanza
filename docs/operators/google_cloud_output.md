@@ -11,7 +11,7 @@ The `google_cloud_output` operator will send entries to Google Cloud Logging.
 | `credentials_file` |                       | A path to a file containing the JSON-formatted credentials                                                 |
 | `project_id`       |                       | The Google Cloud project ID the logs should be sent to. Defaults to project_id found in credentials        |
 | `log_name_field`   |                       | A [field](/docs/types/field.md) for the log name on the entry. Log name defaults to `default` if unset     |
-| `location`         |                       | A [field](/docs/types/field.md) for the log location resource when an entry [fulfills a monitored resource type's requirements](https://cloud.google.com/logging/docs/api/v2/resource-list#resource-types) |
+| `location_field`   |                       | A [field](/docs/types/field.md) for the log location resource when an entry [fulfills a monitored resource type's requirements](https://cloud.google.com/logging/docs/api/v2/resource-list#resource-types) |
 | `severity_field`   |                       | A [field](/docs/types/field.md) for the severity on the log entry                                          |
 | `trace_field`      |                       | A [field](/docs/types/field.md) for the trace on the log entry                                             |
 | `span_id_field`    |                       | A [field](/docs/types/field.md) for the span_id on the log entry                                           |

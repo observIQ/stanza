@@ -52,7 +52,7 @@ type GoogleCloudOutputConfig struct {
 	CredentialsFile     string          `json:"credentials_file,omitempty" yaml:"credentials_file,omitempty"`
 	ProjectID           string          `json:"project_id"                 yaml:"project_id"`
 	LogNameField        *entry.Field    `json:"log_name_field,omitempty"   yaml:"log_name_field,omitempty"`
-	Location            *entry.Field    `json:"location,omitempty"   yaml:"location,omitempty"`
+	LocationField       *entry.Field    `json:"location_field,omitempty"   yaml:"location_field,omitempty"`
 	TraceField          *entry.Field    `json:"trace_field,omitempty"      yaml:"trace_field,omitempty"`
 	SpanIDField         *entry.Field    `json:"span_id_field,omitempty"    yaml:"span_id_field,omitempty"`
 	Timeout             helper.Duration `json:"timeout,omitempty"          yaml:"timeout,omitempty"`
@@ -82,7 +82,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 		buffer:          newBuffer,
 		flusher:         newFlusher,
 		logNameField:    c.LogNameField,
-		location:        c.Location,
+		locationField:   c.LocationField,
 		traceField:      c.TraceField,
 		spanIDField:     c.SpanIDField,
 		timeout:         c.Timeout.Raw(),
@@ -105,7 +105,7 @@ type GoogleCloudOutput struct {
 	projectID       string
 
 	logNameField   *entry.Field
-	location       *entry.Field
+	locationField  *entry.Field
 	traceField     *entry.Field
 	spanIDField    *entry.Field
 	useCompression bool
@@ -372,14 +372,14 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 
 	newEntry.Resource = getResource(e)
 
-	if g.location != nil && newEntry.Resource != nil {
+	if g.locationField != nil && newEntry.Resource != nil {
 		var rawLocation string
-		err := e.Read(*g.location, &rawLocation)
+		err := e.Read(*g.locationField, &rawLocation)
 		if err != nil {
 			g.Warnw("Failed to set location", zap.Error(err), "entry", e)
 		} else {
 			newEntry.Resource.Labels["location"] = rawLocation
-			e.Delete(*g.location)
+			e.Delete(*g.locationField)
 		}
 	}
 
