@@ -343,10 +343,10 @@ func (c *CloudwatchInput) filterLogEventsInputBuilder(nextToken string, logGroup
 func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs.FilteredLogEvent, logGroupName string) {
 	e := map[string]interface{}{}
 	if event.Message != nil {
-		e["message"] = event.Message
+		e["message"] = *event.Message
 	}
 	if event.IngestionTime != nil {
-		e["ingestion_time"] = event.IngestionTime
+		e["ingestion_time"] = *event.IngestionTime
 	}
 	entry, err := c.NewEntry(e)
 	if err != nil {
