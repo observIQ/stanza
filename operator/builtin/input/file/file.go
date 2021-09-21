@@ -77,9 +77,6 @@ func (f *InputOperator) Stop() error {
 	for _, reader := range f.lastPollReaders {
 		reader.Close()
 	}
-	for _, reader := range f.knownFiles {
-		reader.Close()
-	}
 	f.knownFiles = nil
 	f.cancel = nil
 	return nil
