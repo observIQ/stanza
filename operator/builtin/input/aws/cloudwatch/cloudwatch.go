@@ -15,7 +15,7 @@ import (
 )
 
 const operatorName = "aws_cloudwatch_input"
-const eventLimit = 10_000 //The maximum number of events to return. The default is up to 10,000 events or max of 1mb.
+const eventLimit = 10_000 // The maximum number of events to return. The default is up to 10,000 events or max of 1mb.
 
 func init() {
 	operator.Register(operatorName, func() operator.Builder { return NewCloudwatchConfig("") })
