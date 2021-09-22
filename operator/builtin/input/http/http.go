@@ -174,6 +174,13 @@ func (t *HTTPInput) Start() error {
 	return nil
 }
 
+// Stop will stop listening for log entries over http.
+func (t *HTTPInput) Stop() error {
+	t.cancel()
+	t.wg.Wait()
+	return nil
+}
+
 // goListenn will listen for http connections.
 func (t *HTTPInput) goListen(ctx context.Context) {
 	t.Debugf("using server config: %d", t.server.MaxHeaderBytes)
@@ -216,17 +223,8 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	}()
 }
 
-// Stop will stop listening for log entries over http.
-func (t *HTTPInput) Stop() error {
-	t.cancel()
-	t.wg.Wait()
-	return nil
-}
-
 // goHandleMessages will handles messages from a http connection.
 func (t *HTTPInput) goHandleMessages(w http.ResponseWriter, req *http.Request) {
-	t.Debugf("Handling incoming entry %s request from %s", req.Method, req.RemoteAddr)
-
 	t.wg.Add(1)
 
 	ctx, cancel := context.WithCancel(req.Context())
@@ -235,19 +233,24 @@ func (t *HTTPInput) goHandleMessages(w http.ResponseWriter, req *http.Request) {
 	defer cancel()
 
 	req.Body = http.MaxBytesReader(w, req.Body, t.maxBodySize)
-	decoder := t.json.NewDecoder(req.Body) // TODO: limit the size of this payload
+	decoder := t.json.NewDecoder(req.Body)
 	m := make(map[string]interface{})
 	if err := decoder.Decode(&m); err != nil {
-		t.Errorf("failed to decode http %s request from %s", req.Method, req.RemoteAddr)
-		w.WriteHeader(http.StatusBadRequest) // TODO: IS this a valid status code for an invalid map?
-		w.Write([]byte("invalid payload"))
+		t.Errorf("failed to decode http %s request from %s: %s", req.Method, req.RemoteAddr, err)
+		if strings.Contains(err.Error(), "too large") {
+			w.Write([]byte("request body too large"))
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid request, failed to decode json payload"))
 		return
 	}
 
 	entry, err := t.NewEntry(m)
 	if err != nil {
-		t.Errorf("failed to create entry from http %s request from %s", req.Method, req.RemoteAddr)
-		w.WriteHeader(http.StatusInternalServerError) // Stanza should have no trouble creating an entry from map[string]interface{}
+		t.Errorf("failed to create entry from http %s request from %s: %s", req.Method, req.RemoteAddr, err)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal server error"))
 		return
 	}
@@ -267,7 +270,7 @@ func (t *HTTPInput) goHandleMessages(w http.ResponseWriter, req *http.Request) {
 	addHeaderLabels(req.Header, entry)
 
 	t.Write(ctx, entry)
-	w.WriteHeader(http.StatusCreated) // http status 201
+	w.WriteHeader(http.StatusCreated)
 }
 
 func addPeerLabels(remoteAddr string, entry *entry.Entry) error {
