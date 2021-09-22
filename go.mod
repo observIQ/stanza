@@ -12,6 +12,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.13.0
 	github.com/golang/protobuf v1.5.2
+	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/jpillora/backoff v1.0.0
