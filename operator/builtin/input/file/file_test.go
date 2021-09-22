@@ -638,6 +638,79 @@ func TestDeleteAfterRead(t *testing.T) {
 	}
 }
 
+func TestDeleteAfterRead_SkipPartials(t *testing.T) {
+	t.Parallel()
+
+	bytesPerLine := 100
+	shortFileLine := stringWithLength(bytesPerLine - 1)
+	longFileLines := 100000
+	longFileSize := longFileLines * bytesPerLine
+
+	operator, logReceived, tempDir := newTestFileOperator(t,
+		func(cfg *InputConfig) {
+			cfg.DeleteAfterRead = true
+		},
+		func(out *testutil.FakeOutput) {
+			out.Received = make(chan *entry.Entry, longFileLines)
+		},
+	)
+	defer operator.Stop()
+
+	shortFile := openTemp(t, tempDir)
+	shortFile.WriteString(shortFileLine + "\n")
+	require.NoError(t, shortFile.Close())
+
+	longFile := openTemp(t, tempDir)
+	for line := 0; line < longFileLines; line++ {
+		longFile.WriteString(stringWithLength(bytesPerLine-1) + "\n")
+	}
+	require.NoError(t, longFile.Close())
+
+	// Verify we have no checkpointed files
+	require.Equal(t, 0, len(operator.knownFiles))
+
+	// Wait until the only line in the short file and
+	// at least one line from the long file have been consumed
+	var shortOne, longOne bool
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		operator.poll(ctx)
+		wg.Done()
+	}()
+
+	for !(shortOne && longOne) {
+		if line := waitForOne(t, logReceived); line.Record == shortFileLine {
+			shortOne = true
+		} else {
+			longOne = true
+		}
+	}
+
+	// Stop consuming before long file has been fully consumed
+	// TODO is there a more robust way to stop after partially reading?
+	cancel()
+	wg.Wait()
+
+	// short file was fully consumed and should have been deleted
+	_, err := os.Stat(shortFile.Name())
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+
+	// long file was partially consumed and should NOT have been deleted
+	_, err = os.Stat(longFile.Name())
+	require.NoError(t, err)
+
+	// Verify that only long file is remembered and that (0 < offset < fileSize)
+	require.Equal(t, 1, len(operator.knownFiles))
+	reader := operator.knownFiles[0]
+	require.Equal(t, longFile.Name(), reader.file.Name())
+	require.Greater(t, reader.Offset, int64(0))
+	require.Less(t, reader.Offset, int64(longFileSize))
+}
+
 func TestFilenameRecallPeriod(t *testing.T) {
 	t.Parallel()
 
@@ -653,11 +726,11 @@ func TestFilenameRecallPeriod(t *testing.T) {
 	// Create some new files
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, stringWithLength(10))
-	temp1.Close()
+	require.NoError(t, temp1.Close())
 
 	temp2 := openTemp(t, tempDir)
 	writeString(t, temp2, stringWithLength(20))
-	temp2.Close()
+	require.NoError(t, temp2.Close())
 
 	require.Equal(t, 0, len(operator.SeenPaths))
 

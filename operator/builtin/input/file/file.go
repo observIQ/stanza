@@ -143,7 +143,6 @@ func (f *InputOperator) poll(ctx context.Context) {
 	wg.Wait()
 
 	if f.deleteAfterRead {
-
 		f.Debug("cleaning up log files that have been fully consumed")
 		unfinishedReaders := make([]*Reader, 0, len(readers))
 		for _, reader := range readers {
@@ -157,11 +156,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 			}
 		}
 		readers = unfinishedReaders
-
 	} else {
-
-		// Detect files that have been rotated out of matching pattern
-		lostReaders := make([]*Reader, 0, len(f.lastPollReaders))
 	OUTER:
 		for _, oldReader := range f.lastPollReaders {
 			for _, reader := range readers {
@@ -169,21 +164,14 @@ func (f *InputOperator) poll(ctx context.Context) {
 					continue OUTER
 				}
 			}
-			lostReaders = append(lostReaders, oldReader)
-		}
-
-		for _, reader := range lostReaders {
 			wg.Add(1)
 			go func(r *Reader) {
 				defer wg.Done()
 				r.ReadToEnd(ctx)
-			}(reader)
+				r.Close()
+			}(oldReader)
 		}
 		wg.Wait()
-
-		for _, reader := range f.lastPollReaders {
-			reader.Close()
-		}
 
 		f.lastPollReaders = readers
 	}
