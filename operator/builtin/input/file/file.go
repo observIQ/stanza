@@ -143,44 +143,40 @@ func (f *InputOperator) poll(ctx context.Context) {
 	wg.Wait()
 
 	if f.deleteAfterRead {
-		f.Debug("cleaning up log files that have been consumed")
+		f.Debug("cleaning up log files that have been fully consumed")
+		unfinishedReaders := make([]*Reader, 0, len(readers))
 		for _, reader := range readers {
 			reader.Close()
-			if err := os.Remove(reader.file.Name()); err != nil {
-				f.Errorf("could not delete %s", reader.file.Name())
+			if reader.eof {
+				if err := os.Remove(reader.file.Name()); err != nil {
+					f.Errorf("could not delete %s", reader.file.Name())
+				}
+			} else {
+				unfinishedReaders = append(unfinishedReaders, reader)
 			}
 		}
-
-		// Since files are being deleted, skip further tracking
-		return
-	}
-
-	// Detect files that have been rotated out of matching pattern
-	lostReaders := make([]*Reader, 0, len(f.lastPollReaders))
-OUTER:
-	for _, oldReader := range f.lastPollReaders {
-		for _, reader := range readers {
-			if reader.Fingerprint.StartsWith(oldReader.Fingerprint) {
-				continue OUTER
+		readers = unfinishedReaders
+	} else {
+	OUTER:
+		for _, oldReader := range f.lastPollReaders {
+			for _, reader := range readers {
+				if reader.Fingerprint.StartsWith(oldReader.Fingerprint) {
+					continue OUTER
+				}
 			}
+			wg.Add(1)
+			go func(r *Reader) {
+				defer wg.Done()
+				r.ReadToEnd(ctx)
+			}(oldReader)
 		}
-		lostReaders = append(lostReaders, oldReader)
-	}
+		wg.Wait()
 
-	for _, reader := range lostReaders {
-		wg.Add(1)
-		go func(r *Reader) {
-			defer wg.Done()
-			r.ReadToEnd(ctx)
-		}(reader)
+		for _, reader := range f.lastPollReaders {
+			reader.Close()
+		}
+		f.lastPollReaders = readers
 	}
-	wg.Wait()
-
-	for _, reader := range f.lastPollReaders {
-		reader.Close()
-	}
-
-	f.lastPollReaders = readers
 
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()

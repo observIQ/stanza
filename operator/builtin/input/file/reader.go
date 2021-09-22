@@ -47,6 +47,7 @@ func (f *InputOperator) resolveFileLabels(path string) *fileLabels {
 type Reader struct {
 	Fingerprint *Fingerprint
 	Offset      int64
+	eof         bool
 
 	// HeaderLabels is an optional map that contains entry labels
 	// derived from a log files' headers, added to every record
@@ -116,6 +117,7 @@ func (f *Reader) ReadHeaders(ctx context.Context) {
 }
 
 func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
+	f.eof = false
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
 		return
@@ -129,11 +131,12 @@ func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 			return
 		default:
 		}
-		ok := scanner.Scan()
-		if !ok {
+
+		if ok := scanner.Scan(); !ok {
 			if err := getScannerError(scanner); err != nil {
 				f.Errorw("Failed during scan", zap.Error(err))
 			}
+			f.eof = true
 			break
 		}
 		if err := consumer(ctx, scanner.Bytes()); err != nil {
