@@ -677,8 +677,8 @@ func TestDeleteAfterRead_SkipPartials(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		operator.poll(ctx)
-		wg.Done()
 	}()
 
 	for !(shortOne && longOne) {
