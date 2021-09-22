@@ -10,7 +10,9 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/cenkalti/backoff/v4 v4.1.1
+	github.com/cornelk/hashmap v1.0.1
 	github.com/elastic/go-elasticsearch/v7 v7.13.0
+	github.com/emirpasic/gods v1.12.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-uuid v1.0.2
@@ -75,6 +77,7 @@ require (
 	github.com/containerd/containerd v1.5.0-beta.4 // indirect
 	github.com/daixiang0/gci v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dchest/siphash v1.1.0 // indirect
 	github.com/denis-tingajkin/go-header v0.3.1 // indirect
 	github.com/devigned/tab v0.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.0.2 // indirect

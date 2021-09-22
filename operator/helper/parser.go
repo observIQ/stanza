@@ -2,10 +2,12 @@ package helper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/operator/cache"
 )
 
 // NewParserConfig creates a new parser config with default values
@@ -27,6 +29,8 @@ type ParserConfig struct {
 	PreserveTo           *entry.Field          `json:"preserve_to"         yaml:"preserve_to"`
 	TimeParser           *TimeParser           `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 	SeverityParserConfig *SeverityParserConfig `json:"severity,omitempty"  yaml:"severity,omitempty"`
+
+	CacheConfig `json:"cache" yaml:"cache"`
 }
 
 // Build will build a parser operator.
@@ -58,12 +62,22 @@ func (c ParserConfig) Build(context operator.BuildContext) (ParserOperator, erro
 		parserOperator.SeverityParser = &severityParser
 	}
 
+	switch c.CacheType {
+	case "":
+		parserOperator.Cache = nil
+	case "memory":
+		parserOperator.Cache = cache.NewMemory(20, 100)
+	default:
+		return parserOperator, fmt.Errorf("cache type is invalid: %s", c.CacheType)
+	}
+
 	return parserOperator, nil
 }
 
 // ParserOperator provides a basic implementation of a parser operator.
 type ParserOperator struct {
 	TransformerOperator
+	cache.Cache
 	ParseFrom      entry.Field
 	ParseTo        entry.Field
 	PreserveTo     *entry.Field
