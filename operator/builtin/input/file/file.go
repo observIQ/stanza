@@ -168,11 +168,13 @@ func (f *InputOperator) poll(ctx context.Context) {
 			go func(r *Reader) {
 				defer wg.Done()
 				r.ReadToEnd(ctx)
-				r.Close()
 			}(oldReader)
 		}
 		wg.Wait()
 
+		for _, reader := range f.lastPollReaders {
+			reader.Close()
+		}
 		f.lastPollReaders = readers
 	}
 
