@@ -2,7 +2,6 @@ package httpevents
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/builtin/input/tcp"
 	"github.com/observiq/stanza/operator/helper"
 )
 
@@ -27,132 +25,6 @@ const (
 
 func init() {
 	operator.Register("http_input", func() operator.Builder { return NewHTTPInputConfig("") })
-}
-
-// NewHTTPInputConfig creates a new HTTP input config with default values
-func NewHTTPInputConfig(operatorID string) *HTTPInputConfig {
-	return &HTTPInputConfig{
-		InputConfig:   helper.NewInputConfig(operatorID, "http_input"),
-		IdleTimeout:   helper.NewDuration(DefaultIdleTimeout),
-		ReadTimeout:   helper.NewDuration(DefaultTimeout),
-		WriteTimeout:  helper.NewDuration(DefaultTimeout),
-		MaxHeaderSize: helper.ByteSize(http.DefaultMaxHeaderBytes),
-		MaxBodySize:   helper.ByteSize(DefaultMaxBodySize),
-	}
-}
-
-// HTTPInputConfig is the configuration of a http input operator.
-type HTTPInputConfig struct {
-	helper.InputConfig `yaml:",inline"`
-
-	ListenAddress string          `json:"listen_address,omitempty"  yaml:"listen_address,omitempty"`
-	TLS           tcp.TLSConfig   `json:"tls,omitempty"             yaml:"tls,omitempty"`
-	IdleTimeout   helper.Duration `json:"idle_timeout,omitempty"    yaml:"idle_timeout,omitempty"`
-	ReadTimeout   helper.Duration `json:"read_timeout,omitempty"    yaml:"read_timeout,omitempty"`
-	WriteTimeout  helper.Duration `json:"write_timeout,omitempty"   yaml:"write_timeout,omitempty"`
-	MaxHeaderSize helper.ByteSize `json:"max_header_size,omitempty" yaml:"max_header_size,omitempty"`
-	MaxBodySize   helper.ByteSize `json:"max_body_size,omitempty"   yaml:"max_body_size,omitempty"`
-}
-
-// Build will build a http input operator.
-func (c HTTPInputConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
-	inputOperator, err := c.InputConfig.Build(context)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.ListenAddress == "" {
-		return nil, fmt.Errorf("missing required parameter 'listen_address'")
-	}
-
-	// validate the input address
-	if _, err := net.ResolveTCPAddr("tcp", c.ListenAddress); err != nil {
-		return nil, fmt.Errorf("failed to resolve listen_address: %s", err)
-	}
-
-	cert := tls.Certificate{}
-	if c.TLS.Enable {
-		if c.TLS.Certificate == "" {
-			return nil, fmt.Errorf("missing required parameter 'certificate', required when TLS is enabled")
-		}
-
-		if c.TLS.PrivateKey == "" {
-			return nil, fmt.Errorf("missing required parameter 'private_key', required when TLS is enabled")
-		}
-
-		c, err := tls.LoadX509KeyPair(c.TLS.Certificate, c.TLS.PrivateKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load tls certificate: %w", err)
-		}
-		cert = c
-	}
-
-	// Allow user to configure 0 for timeout values as this is the default behavior
-	if c.IdleTimeout.Seconds() < 0 {
-		return nil, fmt.Errorf("idle_timeout cannot be less than 0")
-	}
-	if c.ReadTimeout.Seconds() < 0 {
-		return nil, fmt.Errorf("read_timeout cannot be less than 0")
-	}
-	if c.WriteTimeout.Seconds() < 0 {
-		return nil, fmt.Errorf("write_timeout cannot be less than 0")
-	}
-
-	// Allow user to configure 0 for max header size as this is the default behavior
-	if c.MaxHeaderSize < 0 {
-		return nil, fmt.Errorf("max_header_size cannot be less than 0")
-	}
-
-	if c.MaxBodySize < 1 {
-		return nil, fmt.Errorf("max_body_size cannot be less than 1 byte")
-	}
-
-	var tlsMinVersion uint16
-	switch c.TLS.MinVersion {
-	case 0, 1.0:
-		// TLS 1.0 is the default version implemented by cypto/tls https://pkg.go.dev/crypto/tls#Config
-		tlsMinVersion = tls.VersionTLS10
-	case 1.1:
-		tlsMinVersion = tls.VersionTLS11
-	case 1.2:
-		tlsMinVersion = tls.VersionTLS12
-	case 1.3:
-		tlsMinVersion = tls.VersionTLS13
-	default:
-		return nil, fmt.Errorf("unsupported tls version: %f", c.TLS.MinVersion)
-	}
-
-	httpInput := &HTTPInput{
-		InputOperator: inputOperator,
-		server: http.Server{
-			Addr: c.ListenAddress,
-			TLSConfig: &tls.Config{
-				MinVersion:   tlsMinVersion,
-				Certificates: []tls.Certificate{cert},
-			},
-			ReadTimeout:       c.ReadTimeout.Raw(),
-			ReadHeaderTimeout: c.ReadTimeout.Raw(),
-			WriteTimeout:      c.WriteTimeout.Raw(),
-			IdleTimeout:       c.IdleTimeout.Raw(),
-			/*
-				 This value is padded with 4096 bytes
-				 https://cs.opensource.google/go/go/+/refs/tags/go1.17.1:src/net/http/server.go;l=865
-
-				func (srv *Server) initialReadLimitSize() int64 {
-					return int64(srv.maxHeaderBytes()) + 4096 // bufio slop
-				}
-			*/
-			MaxHeaderBytes: int(c.MaxHeaderSize),
-			TLSNextProto:   nil, // This should be configured if we want HTTP/2 support
-			ConnState:      nil,
-			ErrorLog:       nil, // TODO: logger logs http server errors
-			BaseContext:    nil,
-			ConnContext:    nil,
-		},
-		maxBodySize: int64(c.MaxBodySize),
-		json:        jsoniter.ConfigFastest,
-	}
-	return []operator.Operator{httpInput}, nil
 }
 
 // HTTPInput is an operator that listens for log entries over http.
