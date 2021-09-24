@@ -43,6 +43,54 @@ func TestBuildOperator(t *testing.T) {
 			"",
 		},
 		{
+			"basic-auth",
+			func() (*HTTPInputConfig, func() error, error) {
+				cfg := NewHTTPInputConfig("test_id")
+				cfg.ListenAddress = ":0"
+				cfg.AuthConfig.Username = "dev"
+				cfg.AuthConfig.Password = "dev-password"
+				return cfg, nil, nil
+			},
+			false,
+			"",
+		},
+		{
+			"basic-auth-missing-password",
+			func() (*HTTPInputConfig, func() error, error) {
+				cfg := NewHTTPInputConfig("test_id")
+				cfg.ListenAddress = ":0"
+				cfg.AuthConfig.Username = "dev"
+				return cfg, nil, nil
+			},
+			true,
+			"password must be set when basic auth username is set",
+		},
+		{
+			"basic-auth-missing-username",
+			func() (*HTTPInputConfig, func() error, error) {
+				cfg := NewHTTPInputConfig("test_id")
+				cfg.ListenAddress = ":0"
+				cfg.AuthConfig.Password = "dev"
+				return cfg, nil, nil
+			},
+			true,
+			"username must be set when basic auth password is set",
+		},
+		{
+			"multi-auth",
+			func() (*HTTPInputConfig, func() error, error) {
+				cfg := NewHTTPInputConfig("test_id")
+				cfg.ListenAddress = ":0"
+				cfg.AuthConfig.Username = "stanza"
+				cfg.AuthConfig.Password = "dev"
+				cfg.AuthConfig.TokenHeader = "x-secret-key"
+				cfg.AuthConfig.Tokens = []string{"token-a", "token-b"}
+				return cfg, nil, nil
+			},
+			true,
+			"token auth and basic auth cannot be enabled at the same time",
+		},
+		{
 			"token-auth",
 			func() (*HTTPInputConfig, func() error, error) {
 				cfg := NewHTTPInputConfig("test_id")

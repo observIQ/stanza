@@ -65,10 +65,17 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 
 	m := mux.NewRouter()
 	m.HandleFunc("/", t.goHandleMessages).Methods(entryCreateMethods...)
+
 	if t.authConfig.TokenHeader != "" {
-		m.Use(t.auth)
+		m.Use(t.authToken)
 	}
+
+	if t.authConfig.Username != "" && t.authConfig.Password != "" {
+		m.Use(t.authBasic)
+	}
+
 	m.HandleFunc("/health", t.health).Methods("GET")
+
 	t.server.Handler = m
 
 	// TODO: Provide http server with a cancelable context so we dont need this go routine
@@ -100,8 +107,9 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	}()
 }
 
-// auth is amiddleware function, which will be called for each request
-func (t *HTTPInput) auth(next http.Handler) http.Handler {
+// authToken is amiddleware function, which will be called for each request
+// when token auth is enabled
+func (t *HTTPInput) authToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get(t.authConfig.TokenHeader)
 
@@ -111,8 +119,24 @@ func (t *HTTPInput) auth(next http.Handler) http.Handler {
 				return
 			}
 		}
-		t.Debugf("invalid authentication request from %s", r.RemoteAddr)
-		http.Error(w, "", http.StatusForbidden)
+		t.Debugf("invalid token authentication request from %s", r.RemoteAddr)
+		w.WriteHeader(http.StatusForbidden)
+	})
+}
+
+// authBasic is amiddleware function, which will be called for each request
+// when token auth is enabled
+func (t *HTTPInput) authBasic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		if ok {
+			if u == t.authConfig.Username && p == t.authConfig.Password {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		t.Debugf("invalid basic authentication request from %s", r.RemoteAddr)
+		w.WriteHeader(http.StatusForbidden)
 	})
 }
 

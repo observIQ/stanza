@@ -147,6 +147,133 @@ func TestServer(t *testing.T) {
 	}
 }
 
+func TestServerBasicAuth(t *testing.T) {
+	address := "localhost"
+	port := freePort(address)
+	if port == 0 {
+		t.Errorf("failed to find available port for test server")
+		return
+	}
+
+	cfg := NewHTTPInputConfig("test_id")
+	cfg.ListenAddress = fmt.Sprintf("%s:%d", address, port)
+	cfg.AuthConfig.Username = "stanza"
+	cfg.AuthConfig.Password = "dev"
+	op, err := cfg.build(testutil.NewBuildContext(t))
+	if err != nil {
+		require.NoError(t, err)
+		return
+	}
+	if err := op.Start(); err != nil {
+		require.NoError(t, err)
+	}
+	defer func() {
+		if err := op.Stop(); err != nil {
+			t.Errorf(err.Error())
+		}
+	}()
+
+	cases := []struct {
+		name         string
+		inputRequest *http.Request
+		expectStatus int
+	}{
+		{
+			"missing-auth",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				return req
+			}(),
+			403,
+		},
+		{
+			"valid",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.SetBasicAuth("stanza", "dev")
+				return req
+			}(),
+			201,
+		},
+		{
+			"invalid-password",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.SetBasicAuth("stanza", "bad-password")
+				return req
+			}(),
+			403,
+		},
+		{
+			"invalid-username",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.SetBasicAuth("wrong-username", "dev")
+				return req
+			}(),
+			403,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := http.Client{}
+
+			resp, err := client.Do(tc.inputRequest)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectStatus, resp.StatusCode)
+		})
+	}
+}
+
 func TestServerTokenAuth(t *testing.T) {
 	address := "localhost"
 	port := freePort(address)

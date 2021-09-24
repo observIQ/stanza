@@ -41,6 +41,8 @@ type HTTPInputConfig struct {
 type auth struct {
 	TokenHeader string   `json:"token_header,omitempty" yaml:"token_header,omitempty"`
 	Tokens      []string `json:"tokens,omitempty"       yaml:"tokens,omitempty"`
+	Username    string   `json:"username,omitempty"       yaml:"username,omitempty"`
+	Password    string   `json:"password,omitempty"       yaml:"password,omitempty"`
 }
 
 // Build will build a http input operator.
@@ -116,6 +118,18 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		tlsMinVersion = tls.VersionTLS13
 	default:
 		return &HTTPInput{}, fmt.Errorf("unsupported tls version: %f", c.TLS.MinVersion)
+	}
+
+	if c.AuthConfig.TokenHeader != "" && c.AuthConfig.Username != "" {
+		return &HTTPInput{}, fmt.Errorf("token auth and basic auth cannot be enabled at the same time")
+	}
+
+	if c.AuthConfig.Username != "" && c.AuthConfig.Password == "" {
+		return &HTTPInput{}, fmt.Errorf("password must be set when basic auth username is set")
+	}
+
+	if c.AuthConfig.Password != "" && c.AuthConfig.Username == "" {
+		return &HTTPInput{}, fmt.Errorf("username must be set when basic auth password is set")
 	}
 
 	if c.AuthConfig.TokenHeader != "" {
