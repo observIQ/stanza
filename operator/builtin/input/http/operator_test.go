@@ -433,9 +433,6 @@ func TestParse(t *testing.T) {
 				"message": "generic event",
 			},
 			&http.Request{
-				Header: map[string][]string{
-					"User-Agent": {"Mozilla/5.0", "Test"},
-				},
 				RemoteAddr: "10.1.1.1:5555",
 				Host:       "1.1.1.1:80",
 				Proto:      "HTTP/1.1",
@@ -451,7 +448,35 @@ func TestParse(t *testing.T) {
 					"net.host.port":    "80",
 					"protocol":         "HTTP",
 					"protocol_version": "1.1",
-					"user-agent":       "Mozilla/5.0,Test",
+				},
+			},
+			false,
+			"",
+		}, {
+			"valid-request-without-message",
+			map[string]interface{}{
+				"xxx":   "generic event",
+				"stage": "dev",
+			},
+			&http.Request{
+				RemoteAddr: "10.1.1.1:5555",
+				Host:       "1.1.1.1:80",
+				Proto:      "HTTP/1.1",
+			},
+			&entry.Entry{
+				Record: map[string]interface{}{
+					"http_body": map[string]interface{}{
+						"xxx":   "generic event",
+						"stage": "dev",
+					},
+				},
+				Labels: map[string]string{
+					"net.peer.ip":      "10.1.1.1",
+					"net.peer.port":    "5555",
+					"net.host.ip":      "1.1.1.1",
+					"net.host.port":    "80",
+					"protocol":         "HTTP",
+					"protocol_version": "1.1",
 				},
 			},
 			false,
@@ -469,9 +494,6 @@ func TestParse(t *testing.T) {
 				},
 			},
 			&http.Request{
-				Header: map[string][]string{
-					"User-Agent": {"Mozilla/5.0", "Test"},
-				},
 				RemoteAddr: "10.1.1.1:5555",
 				Host:       "1.1.1.1:80",
 				Proto:      "HTTP/1.1",
@@ -479,7 +501,7 @@ func TestParse(t *testing.T) {
 			&entry.Entry{
 				Record: map[string]interface{}{
 					"message": "generic event",
-					"body": map[string]interface{}{
+					"http_body": map[string]interface{}{
 						"event_id": 155,
 						"dev_mode": true,
 						"params": map[string]string{
@@ -495,7 +517,6 @@ func TestParse(t *testing.T) {
 					"net.host.port":    "80",
 					"protocol":         "HTTP",
 					"protocol_version": "1.1",
-					"user-agent":       "Mozilla/5.0,Test",
 				},
 			},
 			false,

@@ -68,6 +68,7 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	m.HandleFunc("/", t.goHandleMessages).Methods(entryCreateMethods...)
 
 	if t.auth != nil {
+		t.Debugf("using authentication middleware: %s", t.auth.name())
 		m.Use(t.auth.auth)
 	}
 
@@ -146,7 +147,7 @@ func (t *HTTPInput) parse(body map[string]interface{}, req *http.Request) (*entr
 	payload := make(map[string]interface{})
 
 	const msgKey = "message"
-	const bodyKey = "body"
+	const bodyKey = "http_body"
 	if m, ok := body[msgKey]; ok {
 		switch m := m.(type) {
 		case string:
@@ -178,7 +179,6 @@ func (t *HTTPInput) addLabels(req *http.Request, entry *entry.Entry) {
 	if err := addProtoLabels(req.Proto, entry); err != nil {
 		t.Errorf("failed to set protocol and protocol_version labels: %s", err)
 	}
-	addHeaderLabels(req.Header, entry)
 }
 
 func addPeerLabels(remoteAddr string, entry *entry.Entry) error {
@@ -214,13 +214,6 @@ func addProtoLabels(proto string, entry *entry.Entry) error {
 	entry.AddLabel("protocol_version", p[1])
 
 	return nil
-}
-
-func addHeaderLabels(headers http.Header, entry *entry.Entry) {
-	for k, v := range headers {
-		k = strings.ToLower(k)
-		entry.AddLabel(k, strings.Join(v, ","))
-	}
 }
 
 func (t *HTTPInput) health(w http.ResponseWriter, req *http.Request) {

@@ -4,6 +4,7 @@ import "net/http"
 
 type authMiddleware interface {
 	auth(next http.Handler) http.Handler
+	name() string
 }
 
 type authToken struct {
@@ -25,6 +26,10 @@ func (a authToken) auth(next http.Handler) http.Handler {
 	})
 }
 
+func (a authToken) name() string {
+	return "token-auth"
+}
+
 type authBasic struct {
 	username string
 	password string
@@ -41,4 +46,8 @@ func (a authBasic) auth(next http.Handler) http.Handler {
 		}
 		w.WriteHeader(http.StatusForbidden)
 	})
+}
+
+func (a authBasic) name() string {
+	return "basic-auth"
 }
