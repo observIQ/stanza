@@ -90,6 +90,24 @@ func TestSeverityParser(t *testing.T) {
 			expected: entry.Error,
 		},
 		{
+			name:     "error2",
+			sample:   "error2",
+			mapping:  nil,
+			expected: entry.Error2,
+		},
+		{
+			name:     "error3",
+			sample:   "error3",
+			mapping:  nil,
+			expected: entry.Error3,
+		},
+		{
+			name:     "error4",
+			sample:   "error4",
+			mapping:  nil,
+			expected: entry.Error4,
+		},
+		{
 			name:     "error-capitalized",
 			sample:   "Error",
 			mapping:  nil,
@@ -123,6 +141,12 @@ func TestSeverityParser(t *testing.T) {
 			name:     "mixed-list-string",
 			sample:   "ThiS Is BaD",
 			mapping:  map[interface{}]interface{}{"error": []interface{}{"NOOOOOOO", "this is bad", 1234}},
+			expected: entry.Error,
+		},
+		{
+			name:     "custom-float64",
+			sample:   float64(6),
+			mapping:  map[interface{}]interface{}{"error": 6},
 			expected: entry.Error,
 		},
 		{
