@@ -77,7 +77,8 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				t.Debugf("Triggering http server shutdown")
-				ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+				defer cancel()
 				if err := t.server.Shutdown(ctx); err != nil {
 					t.Errorf("error while shutting down http server: %s", err)
 				}
