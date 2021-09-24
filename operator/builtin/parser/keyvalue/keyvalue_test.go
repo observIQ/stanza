@@ -161,19 +161,6 @@ func TestKVParser(t *testing.T) {
 			false,
 		},
 		{
-			"complex",
-			map[string]interface{}{
-				"testfield": `qstr=p\\=%2fetc%2fpasswd`,
-			},
-			map[string]interface{}{
-				"testparsed": map[string]interface{}{
-					"qstr": `p\\=%2fetc%2fpasswd`,
-				},
-			},
-			"=",
-			false,
-		},
-		{
 			"double-quotes-removed",
 			map[string]interface{}{
 				"testfield": "name=\"stanza\" age=2",
