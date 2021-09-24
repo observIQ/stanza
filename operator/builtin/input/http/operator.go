@@ -17,12 +17,6 @@ import (
 	"github.com/observiq/stanza/operator/helper"
 )
 
-const (
-	DefaultTimeout     = time.Second * 20
-	DefaultIdleTimeout = time.Second * 60
-	DefaultMaxBodySize = 10000000 // 10 megabyte
-)
-
 func init() {
 	operator.Register("http_input", func() operator.Builder { return NewHTTPInputConfig("") })
 }

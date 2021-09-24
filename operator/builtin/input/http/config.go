@@ -5,11 +5,18 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/builtin/input/tcp"
 	"github.com/observiq/stanza/operator/helper"
+)
+
+const (
+	DefaultTimeout     = time.Second * 20
+	DefaultIdleTimeout = time.Second * 60
+	DefaultMaxBodySize = 10000000 // 10 megabyte
 )
 
 // NewHTTPInputConfig creates a new HTTP input config with default values
