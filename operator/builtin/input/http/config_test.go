@@ -374,7 +374,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"failed to load tls certificate: open /tmp/some-invalid-path: no such file or directory",
+			"failed to load tls certificate",
 		},
 		{
 			"wrong-private-key-path",
@@ -396,7 +396,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"failed to load tls certificate: open /invalid/path: no such file or directory",
+			"failed to load tls",
 		},
 		{
 			"read-timeout",
