@@ -70,7 +70,7 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 
 	t.server.Handler = m
 
-	// TODO: Provide http server with a cancelable context so we dont need this go routine
+	// shutdown go routine waits for a canceled context before stopping the server
 	go func() {
 		defer t.wg.Done()
 		for {
