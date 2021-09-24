@@ -147,6 +147,134 @@ func TestServer(t *testing.T) {
 	}
 }
 
+func TestServerTokenAuth(t *testing.T) {
+	address := "localhost"
+	port := freePort(address)
+	if port == 0 {
+		t.Errorf("failed to find available port for test server")
+		return
+	}
+
+	cfg := NewHTTPInputConfig("test_id")
+	cfg.ListenAddress = fmt.Sprintf("%s:%d", address, port)
+	cfg.AuthConfig.TokenHeader = "x-secret-key"
+	cfg.AuthConfig.Tokens = []string{"test-token", "test-token-2"}
+	op, err := cfg.build(testutil.NewBuildContext(t))
+	if err != nil {
+		require.NoError(t, err)
+		return
+	}
+	if err := op.Start(); err != nil {
+		require.NoError(t, err)
+	}
+	defer func() {
+		if err := op.Stop(); err != nil {
+			t.Errorf(err.Error())
+		}
+	}()
+
+	cases := []struct {
+		name         string
+		inputRequest *http.Request
+		expectStatus int
+	}{
+		{
+			"test-token",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.Header["x-secret-key"] = []string{"test-token"}
+				return req
+			}(),
+			201,
+		},
+		{
+			"test-token2",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.Header["x-secret-key"] = []string{"test-token"}
+				return req
+			}(),
+			201,
+		},
+		{
+			"invalid-token",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.Header["x-secret-key"] = []string{"invalid"}
+				return req
+			}(),
+			403,
+		},
+		{
+			"invalid-header",
+			func() *http.Request {
+				u := url.URL{
+					Scheme: "http",
+					Host:   cfg.ListenAddress,
+					Path:   "/",
+				}
+
+				raw := map[string]interface{}{
+					"message": "this is a basic event",
+				}
+				b, _ := json.Marshal(raw)
+				buf := bytes.NewBuffer(b)
+
+				req, _ := http.NewRequest("POST", u.String(), buf)
+				req.Header["x-invalid-key"] = []string{"test-token"}
+				return req
+			}(),
+			403,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := http.Client{}
+
+			resp, err := client.Do(tc.inputRequest)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectStatus, resp.StatusCode)
+		})
+	}
+}
+
 func TestParse(t *testing.T) {
 	cases := []struct {
 		name         string

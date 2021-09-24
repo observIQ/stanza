@@ -43,6 +43,29 @@ func TestBuildOperator(t *testing.T) {
 			"",
 		},
 		{
+			"token-auth",
+			func() (*HTTPInputConfig, func() error, error) {
+				cfg := NewHTTPInputConfig("test_id")
+				cfg.ListenAddress = ":0"
+				cfg.AuthConfig.TokenHeader = "x-secret-key"
+				cfg.AuthConfig.Tokens = []string{"token-a", "token-b"}
+				return cfg, nil, nil
+			},
+			false,
+			"",
+		},
+		{
+			"token-auth-missing-tokens",
+			func() (*HTTPInputConfig, func() error, error) {
+				cfg := NewHTTPInputConfig("test_id")
+				cfg.ListenAddress = ":0"
+				cfg.AuthConfig.TokenHeader = "x-secret-key"
+				return cfg, nil, nil
+			},
+			true,
+			"auth.tokens is a required parameter when auth.token_header is set",
+		},
+		{
 			"localhost-address",
 			func() (*HTTPInputConfig, func() error, error) {
 				cfg := NewHTTPInputConfig("test_id")

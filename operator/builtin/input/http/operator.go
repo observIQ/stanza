@@ -34,6 +34,8 @@ type HTTPInput struct {
 	json        jsoniter.API
 	maxBodySize int64
 
+	authConfig auth
+
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
@@ -63,6 +65,9 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 
 	m := mux.NewRouter()
 	m.HandleFunc("/", t.goHandleMessages).Methods(entryCreateMethods...)
+	if t.authConfig.TokenHeader != "" {
+		m.Use(t.auth)
+	}
 	m.HandleFunc("/health", t.health).Methods("GET")
 	t.server.Handler = m
 
@@ -93,6 +98,22 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 		}
 		t.Debugf("Http server shutdown finished")
 	}()
+}
+
+// auth is amiddleware function, which will be called for each request
+func (t *HTTPInput) auth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get(t.authConfig.TokenHeader)
+
+		for _, validToken := range t.authConfig.Tokens {
+			if validToken == token {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		t.Debugf("invalid authentication request from %s", r.RemoteAddr)
+		http.Error(w, "", http.StatusForbidden)
+	})
 }
 
 // goHandleMessages will handles messages from a http connection by reading the request

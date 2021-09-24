@@ -35,6 +35,12 @@ type HTTPInputConfig struct {
 	WriteTimeout  helper.Duration `json:"write_timeout,omitempty"   yaml:"write_timeout,omitempty"`
 	MaxHeaderSize helper.ByteSize `json:"max_header_size,omitempty" yaml:"max_header_size,omitempty"`
 	MaxBodySize   helper.ByteSize `json:"max_body_size,omitempty"   yaml:"max_body_size,omitempty"`
+	AuthConfig    auth            `json:"auth,omitempty"   yaml:"auth,omitempty"`
+}
+
+type auth struct {
+	TokenHeader string   `json:"token_header,omitempty" yaml:"token_header,omitempty"`
+	Tokens      []string `json:"tokens,omitempty"       yaml:"tokens,omitempty"`
 }
 
 // Build will build a http input operator.
@@ -112,6 +118,12 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		return &HTTPInput{}, fmt.Errorf("unsupported tls version: %f", c.TLS.MinVersion)
 	}
 
+	if c.AuthConfig.TokenHeader != "" {
+		if len(c.AuthConfig.Tokens) == 0 {
+			return &HTTPInput{}, fmt.Errorf("auth.tokens is a required parameter when auth.token_header is set")
+		}
+	}
+
 	httpInput := &HTTPInput{
 		InputOperator: inputOperator,
 		server: http.Server{
@@ -141,6 +153,8 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		},
 		maxBodySize: int64(c.MaxBodySize),
 		json:        jsoniter.ConfigFastest,
+		authConfig:  c.AuthConfig,
 	}
+
 	return httpInput, nil
 }
