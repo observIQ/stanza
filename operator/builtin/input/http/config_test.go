@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -597,7 +596,7 @@ func TestBuild(t *testing.T) {
 // createTestCert writes a key pair to the file system and returns
 // the certificate's path, private key's path, cleanup function, error
 func createTestCert() (string, string, func() error, error) {
-	crt, err := ioutil.TempFile("", "test.crt")
+	crt, err := ioutil.TempFile("./", "test.crt")
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to open temp file for certificate: %s", err)
 	}
@@ -607,7 +606,7 @@ func createTestCert() (string, string, func() error, error) {
 		return "", "", nil, fmt.Errorf("failed to write test certificate: %s", err)
 	}
 
-	key, err := ioutil.TempFile("", fmt.Sprintf("%s-", filepath.Base("test.key")))
+	key, err := ioutil.TempFile("./", "test.key")
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to open temp file for private key: %s", err)
 	}
