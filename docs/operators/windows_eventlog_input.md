@@ -30,7 +30,7 @@ Output entry sample:
 ```json
 {
   "timestamp": "2020-04-30T12:10:17.656726-04:00",
-  "severity": 30,
+  "severity": 9,
   "body": {
 		"event_id": {
 			"qualifiers": 0,

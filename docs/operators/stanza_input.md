@@ -26,7 +26,7 @@ Sample entry output:
 ```yaml
 {
   "timestamp": "2020-11-06T13:55:11.314283-05:00",
-  "severity": 60,
+  "severity": `17`,
   "body": {
     "action": "send",
     "entry": {
