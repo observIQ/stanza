@@ -35,10 +35,10 @@ type HTTPInputConfig struct {
 	WriteTimeout  helper.Duration `json:"write_timeout,omitempty"   yaml:"write_timeout,omitempty"`
 	MaxHeaderSize helper.ByteSize `json:"max_header_size,omitempty" yaml:"max_header_size,omitempty"`
 	MaxBodySize   helper.ByteSize `json:"max_body_size,omitempty"   yaml:"max_body_size,omitempty"`
-	AuthConfig    auth            `json:"auth,omitempty"   yaml:"auth,omitempty"`
+	AuthConfig    authConfig      `json:"auth,omitempty"   yaml:"auth,omitempty"`
 }
 
-type auth struct {
+type authConfig struct {
 	TokenHeader string   `json:"token_header,omitempty" yaml:"token_header,omitempty"`
 	Tokens      []string `json:"tokens,omitempty"       yaml:"tokens,omitempty"`
 	Username    string   `json:"username,omitempty"       yaml:"username,omitempty"`
@@ -138,6 +138,19 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		}
 	}
 
+	var auth authMiddleware
+	if c.AuthConfig.TokenHeader != "" {
+		auth = authToken{
+			tokenHeader: c.AuthConfig.TokenHeader,
+			tokens:      c.AuthConfig.Tokens,
+		}
+	} else if c.AuthConfig.Username != "" {
+		auth = authBasic{
+			username: c.AuthConfig.Username,
+			password: c.AuthConfig.Password,
+		}
+	}
+
 	httpInput := &HTTPInput{
 		InputOperator: inputOperator,
 		server: http.Server{
@@ -167,7 +180,7 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		},
 		maxBodySize: int64(c.MaxBodySize),
 		json:        jsoniter.ConfigFastest,
-		authConfig:  c.AuthConfig,
+		auth:        auth,
 	}
 
 	return httpInput, nil

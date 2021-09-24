@@ -30,11 +30,12 @@ func init() {
 // HTTPInput is an operator that listens for log entries over http.
 type HTTPInput struct {
 	helper.InputOperator
+
 	server      http.Server
 	json        jsoniter.API
 	maxBodySize int64
 
-	authConfig auth
+	auth authMiddleware
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -66,12 +67,8 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	m := mux.NewRouter()
 	m.HandleFunc("/", t.goHandleMessages).Methods(entryCreateMethods...)
 
-	if t.authConfig.TokenHeader != "" {
-		m.Use(t.authToken)
-	}
-
-	if t.authConfig.Username != "" && t.authConfig.Password != "" {
-		m.Use(t.authBasic)
+	if t.auth != nil {
+		m.Use(t.auth.auth)
 	}
 
 	m.HandleFunc("/health", t.health).Methods("GET")
@@ -105,39 +102,6 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 		}
 		t.Debugf("Http server shutdown finished")
 	}()
-}
-
-// authToken is amiddleware function, which will be called for each request
-// when token auth is enabled
-func (t *HTTPInput) authToken(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get(t.authConfig.TokenHeader)
-
-		for _, validToken := range t.authConfig.Tokens {
-			if validToken == token {
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
-		t.Debugf("invalid token authentication request from %s", r.RemoteAddr)
-		w.WriteHeader(http.StatusForbidden)
-	})
-}
-
-// authBasic is amiddleware function, which will be called for each request
-// when token auth is enabled
-func (t *HTTPInput) authBasic(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, p, ok := r.BasicAuth()
-		if ok {
-			if u == t.authConfig.Username && p == t.authConfig.Password {
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
-		t.Debugf("invalid basic authentication request from %s", r.RemoteAddr)
-		w.WriteHeader(http.StatusForbidden)
-	})
 }
 
 // goHandleMessages will handles messages from a http connection by reading the request
