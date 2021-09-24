@@ -162,6 +162,7 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		InputOperator: inputOperator,
 		server: http.Server{
 			Addr: c.ListenAddress,
+			// #nosec - User to specify tls minimum version
 			TLSConfig: &tls.Config{
 				MinVersion:   tlsMinVersion,
 				Certificates: []tls.Certificate{cert},
