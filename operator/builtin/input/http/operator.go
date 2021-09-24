@@ -95,54 +95,81 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	}()
 }
 
-// goHandleMessages will handles messages from a http connection.
+// goHandleMessages will handles messages from a http connection by reading the request
+// body and returning http status codes.
 func (t *HTTPInput) goHandleMessages(w http.ResponseWriter, req *http.Request) {
-	t.wg.Add(1)
-
 	ctx, cancel := context.WithCancel(req.Context())
-
+	t.wg.Add(1)
 	defer t.wg.Done()
 	defer cancel()
 
-	req.Body = http.MaxBytesReader(w, req.Body, t.maxBodySize)
+	req.Body = http.MaxBytesReader(nil, req.Body, t.maxBodySize)
 	decoder := t.json.NewDecoder(req.Body)
-	m := make(map[string]interface{})
-	if err := decoder.Decode(&m); err != nil {
-		t.Errorf("failed to decode http %s request from %s: %s", req.Method, req.RemoteAddr, err)
+	body := make(map[string]interface{})
+	if err := decoder.Decode(&body); err != nil {
 		if strings.Contains(err.Error(), "too large") {
-			w.Write([]byte("request body too large"))
+			t.Errorf("failed to decode http %s request from %s: %s", req.Method, req.RemoteAddr, err)
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
 		}
+		t.Errorf(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid request, failed to decode json payload"))
 		return
 	}
 
-	entry, err := t.NewEntry(m)
+	entry, err := t.parse(body, req)
 	if err != nil {
 		t.Errorf("failed to create entry from http %s request from %s: %s", req.Method, req.RemoteAddr, err)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal server error"))
 		return
 	}
 
+	t.Write(ctx, entry)
+	w.WriteHeader(http.StatusCreated)
+}
+
+// parse will parse an http request's body into an entry
+func (t *HTTPInput) parse(body map[string]interface{}, req *http.Request) (*entry.Entry, error) {
+	if body == nil || req == nil {
+		return nil, fmt.Errorf("payload and http request must be set")
+	}
+
+	payload := make(map[string]interface{})
+
+	const msgKey = "message"
+	const bodyKey = "body"
+	if m, ok := body[msgKey]; ok {
+		switch m := m.(type) {
+		case string:
+			payload[msgKey] = m
+			delete(body, msgKey)
+		}
+	}
+	if len(body) > 0 {
+		payload[bodyKey] = body
+	}
+
+	e, err := t.NewEntry(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	t.addLabels(req, e)
+
+	return e, nil
+}
+
+func (t *HTTPInput) addLabels(req *http.Request, entry *entry.Entry) {
 	if err := addPeerLabels(req.RemoteAddr, entry); err != nil {
 		t.Errorf("failed to set net.peer labels: %s", err)
 	}
-
 	if err := addHostLabels(req.Host, entry); err != nil {
 		t.Errorf("failed to set net.host labels: %s", err)
 	}
-
 	if err := addProtoLabels(req.Proto, entry); err != nil {
 		t.Errorf("failed to set protocol and protocol_version labels: %s", err)
 	}
-
 	addHeaderLabels(req.Header, entry)
-
-	t.Write(ctx, entry)
-	w.WriteHeader(http.StatusCreated)
 }
 
 func addPeerLabels(remoteAddr string, entry *entry.Entry) error {
