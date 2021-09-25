@@ -3,6 +3,7 @@ package cache
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -13,6 +14,9 @@ func TestNewMemory(t *testing.T) {
 	require.Equal(t, 100, m.maxSize)
 }
 func TestMemory(t *testing.T) {
+	startTime := time.Now()
+	time.Sleep(time.Nanosecond * 2)
+
 	cases := []struct {
 		name   string
 		cache  *Memory
@@ -55,10 +59,12 @@ func TestMemory(t *testing.T) {
 				out, ok := tc.cache.Get(key)
 				require.True(t, ok, "expected to get value from cache immediately after adding it")
 				require.Equal(t, value, out, "expected value to equal the value that was added to the cache")
+				require.Greater(t, tc.cache.cache[key].timestamp.Nanosecond(), startTime.Nanosecond(), "expected cache entry to have a timestamp greater than zero")
 			}
 
 			require.Equal(t, tc.expect.maxSize, tc.cache.maxSize)
 			require.Equal(t, len(tc.expect.cache), len(tc.cache.cache))
+
 			for expectKey, expectItem := range tc.expect.cache {
 				actual, ok := tc.cache.Get(expectKey)
 				require.True(t, ok)
