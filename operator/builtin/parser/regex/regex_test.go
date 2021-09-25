@@ -225,7 +225,7 @@ func BenchmarkParse(b *testing.B) {
 
 func BenchmarkParseWithMemoryCache(b *testing.B) {
 	parser := newTestParser(&testing.T{}, benchPattern)
-	parser.Cache = cache.NewMemory(20, 100)
+	parser.Cache = cache.NewMemory(100)
 
 	var n int
 	var wg sync.WaitGroup

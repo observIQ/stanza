@@ -5,9 +5,10 @@ import (
 	"time"
 )
 
-func NewMemory(initSize, maxSize uint) *Memory {
+func NewMemory(maxSize uint) *Memory {
 	m := Memory{}
-	m.cache = make(map[string]item, initSize)
+	m.cache = make(map[string]item)
+	m.maxSize = int(maxSize)
 	return &m
 }
 
