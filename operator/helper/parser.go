@@ -66,7 +66,7 @@ func (c ParserConfig) Build(context operator.BuildContext) (ParserOperator, erro
 	case "":
 		parserOperator.Cache = nil
 	case "memory":
-		parserOperator.Cache = cache.NewMemory(100)
+		parserOperator.Cache = cache.NewMemory(c.CacheMaxSize)
 	default:
 		return parserOperator, fmt.Errorf("cache type is invalid: %s", c.CacheType)
 	}

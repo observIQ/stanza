@@ -9,9 +9,9 @@ import (
 )
 
 func TestNewMemory(t *testing.T) {
-	m := NewMemory(100)
+	m := NewMemory(11)
 	require.NotNil(t, m.cache)
-	require.Equal(t, 100, m.maxSize)
+	require.Equal(t, 11, m.maxSize)
 }
 func TestMemory(t *testing.T) {
 	startTime := time.Now()
