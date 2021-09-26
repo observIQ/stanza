@@ -35,7 +35,7 @@ func (m *Memory) Add(key string, data interface{}) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if len(m.cache) == m.maxSize {
+	if m.maxSize > 0 && len(m.cache) == m.maxSize {
 		now := time.Now()
 		oldest := ""
 		for i, _ := range m.cache {
