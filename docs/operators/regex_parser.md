@@ -16,6 +16,17 @@ The `regex_parser` operator parses the string-type field selected by `parse_from
 | `if`          |                  | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 | `timestamp`   | `nil`            | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator                                                                                               |
 | `severity`    | `nil`            | An optional [severity](/docs/types/severity.md) block which will parse a severity field before passing the entry to the output operator                                                                                                  |
+| `cache`       | `nil`            | An optional `cache` block which will cache `regex_parser`'s output, see the `cache` configuration section.                                                                                                                               |
+
+### Cache
+
+Regex is an expensive operation, caching is useful when parsing the same value repeatedly. For example, extracting fields derived from a kubernetes pod's log file name.
+Enabling caching can have a negative effect on memory, therefore it is a good idea to limit the cache size to something realistic.
+
+| Field         | Default          | Description                                                     |
+| ---           | ---              | ---                                                             |
+| `type`        | `memory`         | Cache type to use. Currently, only `memory` cache is supported. |
+| `size`        | `0`              | Max number of items to keep in the cache. `0` will allow unlimited size. The cache will delete the oldest item to make room for a new item when max capacity is reached. |
 
 ### Example Configurations
 
@@ -52,6 +63,48 @@ Configuration:
   "record": {
     "host": "127.0.0.1",
     "type": "HTTP"
+  }
+}
+```
+
+</td>
+</tr>
+</table>
+
+#### Parse a file name with a regular expression and cache the result
+
+Configuration:
+```yaml
+- type: regex_parser
+  regex: '^(?P<pod_name>[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?P<namespace>[^_]+)_(?P<container_name>.+)-(?P<container_id>[a-z0-9]{64})\.log$'
+  cache:
+    type: memory
+    size: 5
+```
+
+<table>
+<tr><td> Input record </td> <td> Output record </td></tr>
+<tr>
+<td>
+
+```json
+{
+  "timestamp": "",
+  "record": "coredns-5644d7b6d9-mzngq_kube-system_coredns-901f7510281180a402936c92f5bc0f3557f5a21ccb5a4591c5bf98f3ddbffdd6.log"
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "timestamp": "",
+  "record": {
+    "container_id": "901f7510281180a402936c92f5bc0f3557f5a21ccb5a4591c5bf98f3ddbffdd6",
+    "container_name": "coredns",
+    "namespace": "kube-system",
+    "pod_name": "coredns-5644d7b6d9-mzngq"
   }
 }
 ```
