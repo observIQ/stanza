@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -61,10 +60,5 @@ func TestRateLimit(t *testing.T) {
 	close(fake.Received)
 	wg.Wait()
 
-	if runtime.GOOS == "darwin" {
-		t.Log("Using a wider acceptable range on darwin because of slow CI servers")
-		require.InEpsilon(t, elapsed.Nanoseconds(), 5*time.Second.Nanoseconds(), 0.6)
-	} else {
-		require.InEpsilon(t, elapsed.Nanoseconds(), 5*time.Second.Nanoseconds(), 0.4)
-	}
+	require.InEpsilon(t, elapsed.Nanoseconds(), 5*time.Second.Nanoseconds(), 0.6)
 }

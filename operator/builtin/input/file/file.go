@@ -7,12 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
 
-	"github.com/bmatcuk/doublestar/v2"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
 	"go.uber.org/zap"
@@ -22,8 +20,7 @@ import (
 type InputOperator struct {
 	helper.InputOperator
 
-	Include               []string
-	Exclude               []string
+	finder                Finder
 	FilePathField         entry.Field
 	FileNameField         entry.Field
 	FilePathResolvedField entry.Field
@@ -32,7 +29,8 @@ type InputOperator struct {
 	SplitFunc             bufio.SplitFunc
 	MaxLogSize            int
 	MaxConcurrentFiles    int
-	SeenPaths             map[string]struct{}
+	SeenPaths             map[string]time.Time
+	filenameRecallPeriod  time.Duration
 
 	persist helper.Persister
 
@@ -51,7 +49,6 @@ type InputOperator struct {
 	encoding helper.Encoding
 
 	wg         sync.WaitGroup
-	readerWg   sync.WaitGroup
 	firstCheck bool
 	cancel     context.CancelFunc
 }
@@ -78,9 +75,6 @@ func (f *InputOperator) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	for _, reader := range f.lastPollReaders {
-		reader.Close()
-	}
-	for _, reader := range f.knownFiles {
 		reader.Close()
 	}
 	f.knownFiles = nil
@@ -125,9 +119,11 @@ func (f *InputOperator) poll(ctx context.Context) {
 		}
 
 		// Get the list of paths on disk
-		matches = getMatches(f.Include, f.Exclude)
+		matches = f.finder.FindFiles()
 		if f.firstCheck && len(matches) == 0 {
-			f.Warnw("no files match the configured include patterns", "include", f.Include)
+			f.Warnw("no files match the configured include patterns",
+				"include", f.finder.Include,
+				"exclude", f.finder.Exclude)
 		} else if len(matches) > f.maxBatchFiles {
 			matches, f.queuedMatches = matches[:f.maxBatchFiles], matches[f.maxBatchFiles:]
 		}
@@ -136,83 +132,54 @@ func (f *InputOperator) poll(ctx context.Context) {
 	readers := f.makeReaders(ctx, matches)
 	f.firstCheck = false
 
-	// Detect files that have been rotated out of matching pattern
-	lostReaders := make([]*Reader, 0, len(f.lastPollReaders))
-OUTER:
-	for _, oldReader := range f.lastPollReaders {
-		for _, reader := range readers {
-			if reader.Fingerprint.StartsWith(oldReader.Fingerprint) {
-				continue OUTER
-			}
-		}
-		lostReaders = append(lostReaders, oldReader)
-	}
-
 	var wg sync.WaitGroup
-	for _, reader := range lostReaders {
-		wg.Add(1)
-		go func(r *Reader) {
-			defer wg.Done()
-			r.ReadToEnd(ctx)
-		}(reader)
-	}
-
 	for _, reader := range readers {
 		wg.Add(1)
 		go func(r *Reader) {
 			defer wg.Done()
 			r.ReadToEnd(ctx)
-			if f.deleteAfterRead {
-				r.Close()
-				if err := os.Remove(r.file.Name()); err != nil {
-					f.Errorf("could not delete %s", r.file.Name())
-				}
-			}
 		}(reader)
 	}
-
-	// Wait until all the reader goroutines are finished
 	wg.Wait()
 
 	if f.deleteAfterRead {
-		// No need to track files, since we only consume them once
-		return
-	}
+		f.Debug("cleaning up log files that have been fully consumed")
+		unfinishedReaders := make([]*Reader, 0, len(readers))
+		for _, reader := range readers {
+			reader.Close()
+			if reader.eof {
+				if err := os.Remove(reader.file.Name()); err != nil {
+					f.Errorf("could not delete %s", reader.file.Name())
+				}
+			} else {
+				unfinishedReaders = append(unfinishedReaders, reader)
+			}
+		}
+		readers = unfinishedReaders
+	} else {
+	OUTER:
+		for _, oldReader := range f.lastPollReaders {
+			for _, reader := range readers {
+				if reader.Fingerprint.StartsWith(oldReader.Fingerprint) {
+					continue OUTER
+				}
+			}
+			wg.Add(1)
+			go func(r *Reader) {
+				defer wg.Done()
+				r.ReadToEnd(ctx)
+			}(oldReader)
+		}
+		wg.Wait()
 
-	for _, reader := range f.lastPollReaders {
-		reader.Close()
+		for _, reader := range f.lastPollReaders {
+			reader.Close()
+		}
+		f.lastPollReaders = readers
 	}
-
-	f.lastPollReaders = readers
 
 	f.saveCurrent(readers)
 	f.syncLastPollFiles()
-}
-
-// getMatches gets a list of paths given an array of glob patterns to include and exclude
-func getMatches(includes, excludes []string) []string {
-	all := make([]string, 0, len(includes))
-	for _, include := range includes {
-		matches, _ := filepath.Glob(include) // compile error checked in build
-	INCLUDE:
-		for _, match := range matches {
-			for _, exclude := range excludes {
-				if itMatches, _ := doublestar.PathMatch(exclude, match); itMatches {
-					continue INCLUDE
-				}
-			}
-
-			for _, existing := range all {
-				if existing == match {
-					continue INCLUDE
-				}
-			}
-
-			all = append(all, match)
-		}
-	}
-
-	return all
 }
 
 // makeReaders takes a list of paths, then creates readers from each of those paths,
@@ -220,15 +187,23 @@ func getMatches(includes, excludes []string) []string {
 // been read this polling interval
 func (f *InputOperator) makeReaders(ctx context.Context, filePaths []string) []*Reader {
 	// Open the files first to minimize the time between listing and opening
+	now := time.Now()
+	cutoff := now.Add(f.filenameRecallPeriod * -1)
+	for filename, lastSeenTime := range f.SeenPaths {
+		if lastSeenTime.Before(cutoff) {
+			delete(f.SeenPaths, filename)
+		}
+	}
+
 	files := make([]*os.File, 0, len(filePaths))
 	for _, path := range filePaths {
 		if _, ok := f.SeenPaths[path]; !ok {
+			f.SeenPaths[path] = now
 			if f.startAtBeginning {
 				f.Infow("Started watching file", "path", path)
 			} else {
 				f.Infow("Started watching file from end. To read preexisting logs, configure the argument 'start_at' to 'beginning'", "path", path)
 			}
-			f.SeenPaths[path] = struct{}{}
 		}
 		file, err := os.Open(path) // #nosec - operator must read in files defined by user
 		if err != nil {

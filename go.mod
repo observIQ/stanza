@@ -4,13 +4,15 @@ go 1.17
 
 require (
 	cloud.google.com/go/logging v1.4.2
-	github.com/Azure/azure-event-hubs-go/v3 v3.3.11
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.13
 	github.com/antonmedv/expr v1.9.0
 	github.com/aws/aws-sdk-go v1.40.26
 	github.com/bmatcuk/doublestar/v2 v2.0.4
+	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.13.0
 	github.com/golang/protobuf v1.5.2
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/jpillora/backoff v1.0.0
 	github.com/json-iterator/go v1.1.11
@@ -31,7 +33,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/text v0.3.7
-	gonum.org/v1/gonum v0.9.1
+	gonum.org/v1/gonum v0.9.3
 	google.golang.org/api v0.52.0
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/grpc v1.40.0
@@ -45,15 +47,15 @@ require (
 require (
 	cloud.google.com/go v0.88.0 // indirect
 	github.com/Azure/azure-amqp-common-go/v3 v3.0.1 // indirect
-	github.com/Azure/azure-sdk-for-go v45.1.0+incompatible // indirect
-	github.com/Azure/go-amqp v0.13.1 // indirect
+	github.com/Azure/azure-sdk-for-go v51.1.0+incompatible // indirect
+	github.com/Azure/go-amqp v0.13.12 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.13 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
-	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
-	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
+	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
+	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
@@ -124,6 +126,7 @@ require (
 	github.com/gookit/color v1.2.5 // indirect
 	github.com/gostaticanalysis/analysisutil v0.0.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect

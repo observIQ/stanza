@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
+	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 	sev "google.golang.org/genproto/googleapis/logging/type"
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/grpc"
@@ -110,6 +111,305 @@ func TestGoogleCloudOutput(t *testing.T) {
 						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
 							"message": "test message",
 						})},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"k8s_pod",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				f := entry.NewRecordField("log_name")
+				locationField := entry.NewLabelField("region")
+				c.LogNameField = &f
+				c.LocationField = &locationField
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"log_name": "app-pod",
+				},
+				Resource: map[string]string{
+					"k8s.pod.name":       "test-pod",
+					"k8s.cluster.name":   "test-cluster",
+					"k8s.namespace.name": "test-namespace",
+				},
+				Labels: map[string]string{
+					"region": "us-east1",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						LogName:   "projects/test_project_id/logs/app-pod",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+						Resource: &mrpb.MonitoredResource{
+							Type: "k8s_pod",
+							Labels: map[string]string{
+								"pod_name":       "test-pod",
+								"cluster_name":   "test-cluster",
+								"namespace_name": "test-namespace",
+								"location":       "us-east1",
+							},
+						},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"k8s_container",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				f := entry.NewRecordField("log_name")
+				locationField := entry.NewRecordField("region")
+				c.LogNameField = &f
+				c.LocationField = &locationField
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"log_name": "app-pod",
+					"region":   "us-west1",
+				},
+				Resource: map[string]string{
+					"container.name":     "test-container",
+					"k8s.pod.name":       "test-pod",
+					"k8s.cluster.name":   "test-cluster",
+					"k8s.namespace.name": "test-namespace",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						LogName:   "projects/test_project_id/logs/app-pod",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+							"region":  "us-west1",
+						})},
+						Resource: &mrpb.MonitoredResource{
+							Type: "k8s_container",
+							Labels: map[string]string{
+								"container_name": "test-container",
+								"pod_name":       "test-pod",
+								"cluster_name":   "test-cluster",
+								"namespace_name": "test-namespace",
+								"location":       "us-west1",
+							},
+						},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"k8s_container_alt",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				f := entry.NewRecordField("log_name")
+				locationField := entry.NewRecordField("region")
+				c.LogNameField = &f
+				c.LocationField = &locationField
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"log_name": "app-pod",
+					"region":   "us-central1",
+				},
+				Resource: map[string]string{
+					// "k8s.container.name" instead of container.name
+					"k8s.container.name": "test-container",
+					"k8s.pod.name":       "test-pod",
+					"k8s.cluster.name":   "test-cluster",
+					"k8s.namespace.name": "test-namespace",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						LogName:   "projects/test_project_id/logs/app-pod",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+							"region":  "us-central1",
+						})},
+						Resource: &mrpb.MonitoredResource{
+							Type: "k8s_container",
+							Labels: map[string]string{
+								"container_name": "test-container",
+								"pod_name":       "test-pod",
+								"cluster_name":   "test-cluster",
+								"namespace_name": "test-namespace",
+								"location":       "us-central1",
+							},
+						},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"k8s_node",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				f := entry.NewRecordField("log_name")
+				locationField := entry.NewResourceField("region")
+				c.LogNameField = &f
+				c.LocationField = &locationField
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"log_name": "app-pod",
+				},
+				Resource: map[string]string{
+					"k8s.cluster.name": "test-cluster",
+					"host.name":        "test-node",
+					"region":           "us-west1",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						LogName:   "projects/test_project_id/logs/app-pod",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+						Resource: &mrpb.MonitoredResource{
+							Type: "k8s_node",
+							Labels: map[string]string{
+								"node_name":    "test-node",
+								"cluster_name": "test-cluster",
+								"location":     "us-west1",
+							},
+						},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"k8s_cluster",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				f := entry.NewRecordField("log_name")
+				c.LogNameField = &f
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message":  "test message",
+					"log_name": "app-pod",
+				},
+				Resource: map[string]string{
+					"k8s.cluster.name": "test-cluster",
+					"region":           "us-west1",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						LogName:   "projects/test_project_id/logs/app-pod",
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+						Resource: &mrpb.MonitoredResource{
+							Type: "k8s_cluster",
+							Labels: map[string]string{
+								"cluster_name": "test-cluster",
+							},
+						},
+						// Region label is preserved because Location field parameter is not set
+						Labels: map[string]string{
+							"region": "us-west1",
+						},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"generic_node",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message": "test message",
+				},
+				Resource: map[string]string{
+					"host.name": "test-host",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+						Resource: &mrpb.MonitoredResource{
+							Type: "generic_node",
+							Labels: map[string]string{
+								"node_id": "test-host",
+							},
+						},
+					},
+				}
+				return req
+			}(),
+		},
+		{
+			"unknown_resource_type",
+			func() *GoogleCloudOutputConfig {
+				c := googleCloudBasicConfig()
+				return c
+			}(),
+			&entry.Entry{
+				Timestamp: now,
+				Record: map[string]interface{}{
+					"message": "test message",
+				},
+				Resource: map[string]string{
+					"datacenter": "test-dc",
+				},
+			},
+			func() *logpb.WriteLogEntriesRequest {
+				req := googleCloudBasicWriteEntriesRequest()
+				req.Entries = []*logpb.LogEntry{
+					{
+						Timestamp: protoTs,
+						Payload: &logpb.LogEntry_JsonPayload{JsonPayload: jsonMapToProtoStruct(map[string]interface{}{
+							"message": "test message",
+						})},
+						Labels: map[string]string{
+							"datacenter": "test-dc",
+						},
 					},
 				}
 				return req

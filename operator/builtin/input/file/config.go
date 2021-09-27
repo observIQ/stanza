@@ -16,15 +16,17 @@ func init() {
 }
 
 const (
-	defaultMaxLogSize         = 1024 * 1024
-	defaultMaxConcurrentFiles = 1024
+	defaultMaxLogSize           = 1024 * 1024
+	defaultMaxConcurrentFiles   = 512
+	defaultFilenameRecallPeriod = time.Minute
+	defaultPollInterval         = 200 * time.Millisecond
 )
 
 // NewInputConfig creates a new input config with default values
 func NewInputConfig(operatorID string) *InputConfig {
 	return &InputConfig{
 		InputConfig:             helper.NewInputConfig(operatorID, "file_input"),
-		PollInterval:            helper.Duration{Duration: 200 * time.Millisecond},
+		PollInterval:            helper.Duration{Duration: defaultPollInterval},
 		IncludeFileName:         true,
 		IncludeFilePath:         false,
 		IncludeFileNameResolved: false,
@@ -34,15 +36,14 @@ func NewInputConfig(operatorID string) *InputConfig {
 		MaxLogSize:              defaultMaxLogSize,
 		MaxConcurrentFiles:      defaultMaxConcurrentFiles,
 		Encoding:                helper.NewEncodingConfig(),
+		FilenameRecallPeriod:    helper.Duration{Duration: defaultFilenameRecallPeriod},
 	}
 }
 
 // InputConfig is the configuration of a file input operator
 type InputConfig struct {
 	helper.InputConfig `yaml:",inline"`
-
-	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
-	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
+	Finder             `mapstructure:",squash" yaml:",inline"`
 
 	PollInterval            helper.Duration        `json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
 	Multiline               helper.MultilineConfig `json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
@@ -57,6 +58,7 @@ type InputConfig struct {
 	DeleteAfterRead         bool                   `json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
 	LabelRegex              string                 `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
 	Encoding                helper.EncodingConfig  `json:",inline,omitempty"                     yaml:",inline,omitempty"`
+	FilenameRecallPeriod    helper.Duration        `json:"filename_recall_period,omitempty"      yaml:"filename_recall_period,omitempty"`
 }
 
 // Build will build a file input operator from the supplied configuration
@@ -167,8 +169,7 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 
 	op := &InputOperator{
 		InputOperator:         inputOperator,
-		Include:               c.Include,
-		Exclude:               c.Exclude,
+		finder:                c.Finder,
 		SplitFunc:             splitFunc,
 		PollInterval:          c.PollInterval.Raw(),
 		persist:               helper.NewScopedDBPersister(context.Database, c.ID()),
@@ -187,7 +188,8 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		fingerprintSize:       int(c.FingerprintSize),
 		MaxLogSize:            int(c.MaxLogSize),
 		MaxConcurrentFiles:    c.MaxConcurrentFiles,
-		SeenPaths:             make(map[string]struct{}, 100),
+		SeenPaths:             make(map[string]time.Time, 100),
+		filenameRecallPeriod:  c.FilenameRecallPeriod.Raw(),
 	}
 
 	return []operator.Operator{op}, nil

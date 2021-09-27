@@ -1,18 +1,23 @@
 package cloudwatch
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	cwLogs "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+
+	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/operator"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuild(t *testing.T) {
 	basicConfig := func() *CloudwatchInputConfig {
 		cfg := NewCloudwatchConfig("test_operator_id")
-		cfg.LogGroupName = "test"
 		cfg.Region = "test"
 		return cfg
 	}
@@ -28,6 +33,10 @@ func TestBuild(t *testing.T) {
 			"default",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				return cfg
 			}(),
 			false,
@@ -36,6 +45,10 @@ func TestBuild(t *testing.T) {
 			"log-stream-name-prefix",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.LogStreamNamePrefix = ""
 				return cfg
 			}(),
@@ -45,6 +58,10 @@ func TestBuild(t *testing.T) {
 			"event-limit",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.EventLimit = 5000
 				return cfg
 			}(),
@@ -54,6 +71,10 @@ func TestBuild(t *testing.T) {
 			"poll-interval",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.PollInterval = helper.Duration{Duration: 15 * time.Second}
 				return cfg
 			}(),
@@ -63,6 +84,10 @@ func TestBuild(t *testing.T) {
 			"profile",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.Profile = "test"
 				return cfg
 			}(),
@@ -72,6 +97,10 @@ func TestBuild(t *testing.T) {
 			"log-stream-names",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.LogStreamNames = testStreams
 				return cfg
 			}(),
@@ -81,6 +110,10 @@ func TestBuild(t *testing.T) {
 			"startat-end",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.StartAt = "end"
 				return cfg
 			}(),
@@ -90,6 +123,10 @@ func TestBuild(t *testing.T) {
 			"logStreamNames and logStreamNamePrefix both parameters Error",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.LogStreamNames = testStreams
 				cfg.LogStreamNamePrefix = "test"
 				return cfg
@@ -100,6 +137,10 @@ func TestBuild(t *testing.T) {
 			"startat-beginning",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.StartAt = "beginning"
 				cfg.LogStreamNamePrefix = "test"
 				return cfg
@@ -110,6 +151,10 @@ func TestBuild(t *testing.T) {
 			"poll-interval-invalid",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.PollInterval = helper.Duration{Duration: time.Second * 0}
 				return cfg
 			}(),
@@ -119,6 +164,10 @@ func TestBuild(t *testing.T) {
 			"event-limit-invalid",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.EventLimit = 10001
 				return cfg
 			}(),
@@ -128,10 +177,94 @@ func TestBuild(t *testing.T) {
 			"default-required-startat-invalid",
 			func() *CloudwatchInputConfig {
 				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
 				cfg.StartAt = "invalid"
 				return cfg
 			}(),
 			true,
+		},
+		{
+			"log-group-name",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupName = "test"
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-groups",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-groups-and-log-group-name",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupName = "test"
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-group-prefix",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-group-prefix-and-log-groups",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				cfg.LogGroups = []string{
+					"test",
+					"test-2",
+				}
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log-group-prefix-and-log-group-name",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				cfg.LogGroupName = "test"
+				return cfg
+			}(),
+			false,
+		},
+		{
+			"log_group_prefix-log_group_name-log_groups",
+			func() *CloudwatchInputConfig {
+				cfg := basicConfig()
+				cfg.LogGroupPrefix = "/aws"
+				cfg.LogGroupName = "test"
+				cfg.LogGroups = []string{
+					"test",
+					"aws",
+				}
+				return cfg
+			}(),
+			false,
 		},
 	}
 
@@ -279,6 +412,103 @@ func TestTimeLayoutParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.expected, timeLayoutParser(tc.input, time.Unix(tc.timeToUse, 0)))
+		})
+	}
+}
+
+func TestHandleEvent(t *testing.T) {
+	cfg := NewCloudwatchConfig("")
+	cfg.LogGroupName = "logGroupName"
+	cfg.LogGroups = []string{}
+	cfg.Region = "us-west-2"
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+
+	op := ops[0]
+
+	cwOperator, ok := op.(*CloudwatchInput)
+	require.True(t, ok)
+	logStreamName, eventID, ingestionTime := "logStream", "eventID", int64(10000)
+	ts := int64(1632240412056)
+	msg := "test-message"
+	logGroupName := "logGroupName"
+
+	cases := []struct {
+		name         string
+		event        *cwLogs.FilteredLogEvent
+		logGroupName string
+		expected     *entry.Entry
+	}{
+		{
+			name:         "no nil",
+			logGroupName: logGroupName,
+			event: &cwLogs.FilteredLogEvent{
+				EventId:       &eventID,
+				IngestionTime: &ingestionTime,
+				LogStreamName: &logStreamName,
+				Message:       &msg,
+				Timestamp:     &ts,
+			},
+			expected: &entry.Entry{
+				Timestamp: fromUnixMilli(ts),
+				Record: map[string]interface{}{
+					"ingestion_time": ingestionTime,
+					"message":        msg,
+				},
+				Resource: map[string]string{
+					"event_id":   eventID,
+					"log_group":  logGroupName,
+					"log_stream": logStreamName,
+					"region":     cwOperator.region,
+				},
+			},
+		},
+		{
+			name:         "no message",
+			logGroupName: logGroupName,
+			event: &cwLogs.FilteredLogEvent{
+				EventId:       &eventID,
+				IngestionTime: &ingestionTime,
+				LogStreamName: &logStreamName,
+				Timestamp:     &ts,
+			},
+			expected: &entry.Entry{
+				Timestamp: fromUnixMilli(ts),
+				Record: map[string]interface{}{
+					"ingestion_time": ingestionTime,
+				},
+				Resource: map[string]string{
+					"event_id":   eventID,
+					"log_group":  logGroupName,
+					"log_stream": logStreamName,
+					"region":     cwOperator.region,
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.TODO()
+			var outputEntry *entry.Entry
+			if tc.expected != nil {
+				mockOut := testutil.NewMockOperator("output")
+				cwOperator.OutputOperators = []operator.Operator{mockOut}
+				defer func() {
+					cwOperator.OutputOperators = []operator.Operator{}
+				}()
+
+				mockOut.On("Process", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+					e := args[1]
+					outputEntry, ok = e.(*entry.Entry)
+					require.True(t, ok)
+				})
+				require.NoError(t, err)
+			}
+			cwOperator.handleEvent(ctx, tc.event, tc.logGroupName)
+			if outputEntry != nil {
+				require.Equal(t, tc.expected, outputEntry)
+			}
 		})
 	}
 }

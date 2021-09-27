@@ -638,6 +638,126 @@ func TestDeleteAfterRead(t *testing.T) {
 	}
 }
 
+func TestDeleteAfterRead_SkipPartials(t *testing.T) {
+	t.Parallel()
+
+	bytesPerLine := 100
+	shortFileLine := stringWithLength(bytesPerLine - 1)
+	longFileLines := 100000
+	longFileSize := longFileLines * bytesPerLine
+
+	operator, logReceived, tempDir := newTestFileOperator(t,
+		func(cfg *InputConfig) {
+			cfg.DeleteAfterRead = true
+		},
+		func(out *testutil.FakeOutput) {
+			out.Received = make(chan *entry.Entry, longFileLines)
+		},
+	)
+	defer operator.Stop()
+
+	shortFile := openTemp(t, tempDir)
+	shortFile.WriteString(shortFileLine + "\n")
+	require.NoError(t, shortFile.Close())
+
+	longFile := openTemp(t, tempDir)
+	for line := 0; line < longFileLines; line++ {
+		longFile.WriteString(stringWithLength(bytesPerLine-1) + "\n")
+	}
+	require.NoError(t, longFile.Close())
+
+	// Verify we have no checkpointed files
+	require.Equal(t, 0, len(operator.knownFiles))
+
+	// Wait until the only line in the short file and
+	// at least one line from the long file have been consumed
+	var shortOne, longOne bool
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		operator.poll(ctx)
+	}()
+
+	for !(shortOne && longOne) {
+		if line := waitForOne(t, logReceived); line.Record == shortFileLine {
+			shortOne = true
+		} else {
+			longOne = true
+		}
+	}
+
+	// Stop consuming before long file has been fully consumed
+	// TODO is there a more robust way to stop after partially reading?
+	cancel()
+	wg.Wait()
+
+	// short file was fully consumed and should have been deleted
+	_, err := os.Stat(shortFile.Name())
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+
+	// long file was partially consumed and should NOT have been deleted
+	_, err = os.Stat(longFile.Name())
+	require.NoError(t, err)
+
+	// Verify that only long file is remembered and that (0 < offset < fileSize)
+	require.Equal(t, 1, len(operator.knownFiles))
+	reader := operator.knownFiles[0]
+	require.Equal(t, longFile.Name(), reader.file.Name())
+	require.Greater(t, reader.Offset, int64(0))
+	require.Less(t, reader.Offset, int64(longFileSize))
+}
+
+func TestFilenameRecallPeriod(t *testing.T) {
+	t.Parallel()
+
+	operator, _, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+		cfg.FilenameRecallPeriod = helper.Duration{
+			// start large, but this will be modified
+			Duration: time.Minute,
+		}
+		// so file only exist for first poll
+		cfg.DeleteAfterRead = true
+	}, nil)
+
+	// Create some new files
+	temp1 := openTemp(t, tempDir)
+	writeString(t, temp1, stringWithLength(10))
+	require.NoError(t, temp1.Close())
+
+	temp2 := openTemp(t, tempDir)
+	writeString(t, temp2, stringWithLength(20))
+	require.NoError(t, temp2.Close())
+
+	require.Equal(t, 0, len(operator.SeenPaths))
+
+	// Poll once and validate that the files are remembered
+	operator.poll(context.Background())
+	defer operator.Stop()
+	require.Equal(t, 2, len(operator.SeenPaths))
+	require.Contains(t, operator.SeenPaths, temp1.Name())
+	require.Contains(t, operator.SeenPaths, temp2.Name())
+
+	// Poll again to validate the files are still remembered
+	operator.poll(context.Background())
+	require.Equal(t, 2, len(operator.SeenPaths))
+	require.Contains(t, operator.SeenPaths, temp1.Name())
+	require.Contains(t, operator.SeenPaths, temp2.Name())
+
+	time.Sleep(100 * time.Millisecond)
+	// Hijack the recall period to trigger a purge
+	operator.filenameRecallPeriod = time.Millisecond
+
+	// Poll a final time
+	operator.poll(context.Background())
+
+	// SeenPaths has been purged of ancient files
+	require.Equal(t, 0, len(operator.SeenPaths))
+}
+
 func TestFileReader_FingerprintUpdated(t *testing.T) {
 	t.Parallel()
 
@@ -656,6 +776,65 @@ func TestFileReader_FingerprintUpdated(t *testing.T) {
 	reader.ReadToEnd(context.Background())
 	waitForMessage(t, logReceived, "testlog1")
 	require.Equal(t, []byte("testlog1\n"), reader.Fingerprint.FirstBytes)
+}
+
+// Test that a fingerprint:
+// - Starts empty
+// - Updates as a file is read
+// - Stops updating when the max fingerprint size is reached
+// - Stops exactly at max fingerprint size, regardless of content
+func TestFingerprintGrowsAndStops(t *testing.T) {
+	t.Parallel()
+
+	// Use a number with many factors.
+	// Sometimes fingerprint length will align with
+	// the end of a line, sometimes not. Test both.
+	maxFP := 360
+
+	// Use prime numbers to ensure variation in
+	// whether or not they are factors of maxFP
+	lineLens := []int{3, 5, 7, 11, 13, 17, 19, 23, 27}
+
+	for _, lineLen := range lineLens {
+		t.Run(fmt.Sprintf("%d", lineLen), func(t *testing.T) {
+			t.Parallel()
+			operator, _, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
+				cfg.FingerprintSize = helper.ByteSize(maxFP)
+			}, nil)
+			defer operator.Stop()
+
+			temp := openTemp(t, tempDir)
+			tempCopy := openFile(t, temp.Name())
+			fp, err := operator.NewFingerprint(temp)
+			require.NoError(t, err)
+			require.Equal(t, []byte(""), fp.FirstBytes)
+
+			reader, err := operator.NewReader(temp.Name(), tempCopy, fp)
+			require.NoError(t, err)
+			defer reader.Close()
+
+			// keep track of what has been written to the file
+			fileContent := []byte{}
+
+			// keep track of expected fingerprint size
+			expectedFP := 0
+
+			// Write lines until file is much larger than the length of the fingerprint
+			for len(fileContent) < 2*maxFP {
+				expectedFP += lineLen
+				if expectedFP > maxFP {
+					expectedFP = maxFP
+				}
+
+				line := stringWithLength(lineLen-1) + "\n"
+				fileContent = append(fileContent, []byte(line)...)
+
+				writeString(t, temp, line)
+				reader.ReadToEnd(context.Background())
+				require.Equal(t, fileContent[:expectedFP], reader.Fingerprint.FirstBytes)
+			}
+		})
+	}
 }
 
 func TestEncodings(t *testing.T) {
@@ -741,47 +920,4 @@ func TestEncodings(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestExclude tests that a log file will be excluded if it matches the
-// glob specified in the operator.
-func TestExclude(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"include.log", "exclude.log"})
-
-	includes := []string{filepath.Join(tempDir, "*")}
-	excludes := []string{filepath.Join(tempDir, "*exclude.log")}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths[:1])
-}
-func TestExcludeEmpty(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"include.log", "exclude.log"})
-
-	includes := []string{filepath.Join(tempDir, "*")}
-	excludes := []string{}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths)
-}
-func TestExcludeMany(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
-
-	includes := []string{filepath.Join(tempDir, "*")}
-	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths[2:3])
-}
-func TestExcludeDuplicates(t *testing.T) {
-	tempDir := testutil.NewTempDir(t)
-	paths := writeTempFiles(tempDir, []string{"a1.log", "a2.log", "b1.log", "b2.log"})
-
-	includes := []string{filepath.Join(tempDir, "*1*"), filepath.Join(tempDir, "a*")}
-	excludes := []string{filepath.Join(tempDir, "a*.log"), filepath.Join(tempDir, "*2.log")}
-
-	matches := getMatches(includes, excludes)
-	require.ElementsMatch(t, matches, paths[2:3])
 }

@@ -4,11 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.2.6 - Unreleased
+## 1.2.7 - 2021-09-22
+
+### Added
+
+- Key Value Parser: [PR426](https://github.com/observIQ/stanza/pull/426)
+  - Parse `key=value` pairs
+
+### Changed
+
+- Google Output: entry.Resources are now mapped as labels, because Google Cloud Logging does not support custom resources [PR425](https://github.com/observIQ/stanza/pull/425)
+- File Input: Optimize excluded file detection [PR444](https://github.com/observIQ/stanza/pull/444)
+  - Significant startup time reduction when reading from a directory with 50,000+ files
+- File Input: Optimize `delete_after_read`
+  - Do not store deleted files in database: https://github.com/observIQ/stanza/pull/442
+  - Added filename_recall_period parameter: https://github.com/observIQ/stanza/pull/440
+
+### Fixed
+
+- TCP / UDP Input: Resolve panic when closing nil connection: [PR437](https://github.com/observIQ/stanza/pull/437)
+- Cloudwatch Input: Do not store pointers on the entry [PR445](https://github.com/observIQ/stanza/pull/445)
+  - Resolves an issue where an expression cannot be used against an entry from Cloudwatch input
+- File Input: Resolve issue where doublestar does not correctly detect files [PR433](https://github.com/observIQ/stanza/pull/433)
+  - Ported from otel: https://github.com/open-telemetry/opentelemetry-log-collection/pull/268
+
+## 1.2.6 - 2021-09-14
 
 ### Changed
 
 - Upgrade from Go 1.16 to 1.17
+- AWS Cloudwatch Input: Added abilty to monitor more than one log group [PR 420](https://github.com/observIQ/stanza/pull/420)
+- File Input: Changed default max files from 1024 to 512 [PR 423](https://github.com/observIQ/stanza/pull/423)
 
 ## 1.2.5 - 2021-09-13
 

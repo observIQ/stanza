@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -48,6 +47,7 @@ func (f *InputOperator) resolveFileLabels(path string) *fileLabels {
 type Reader struct {
 	Fingerprint *Fingerprint
 	Offset      int64
+	eof         bool
 
 	// HeaderLabels is an optional map that contains entry labels
 	// derived from a log files' headers, added to every record
@@ -101,7 +101,6 @@ func (f *Reader) InitializeOffset(startAtBeginning bool) error {
 		}
 		f.Offset = info.Size()
 	}
-
 	return nil
 }
 
@@ -118,12 +117,12 @@ func (f *Reader) ReadHeaders(ctx context.Context) {
 }
 
 func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
+	f.eof = false
 	if _, err := f.file.Seek(f.Offset, 0); err != nil {
 		f.Errorw("Failed to seek", zap.Error(err))
 		return
 	}
-	fr := NewFingerprintUpdatingReader(f.file, f.Offset, f.Fingerprint, f.fileInput.fingerprintSize)
-	scanner := NewPositionalScanner(fr, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
+	scanner := NewPositionalScanner(f, f.fileInput.MaxLogSize, f.Offset, f.fileInput.SplitFunc)
 
 	// Iterate over the tokenized file
 	for {
@@ -132,11 +131,12 @@ func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 			return
 		default:
 		}
-		ok := scanner.Scan()
-		if !ok {
+
+		if ok := scanner.Scan(); !ok {
 			if err := getScannerError(scanner); err != nil {
 				f.Errorw("Failed during scan", zap.Error(err))
 			}
+			f.eof = true
 			break
 		}
 		if err := consumer(ctx, scanner.Bytes()); err != nil {
@@ -174,7 +174,7 @@ func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
 func (f *Reader) Close() {
 	if f.file != nil {
 		if err := f.file.Close(); err != nil {
-			f.Debugf("Problem closing reader", "Error", err.Error())
+			f.Warnf("Problem closing reader", "Error", err.Error())
 		}
 	}
 }
@@ -247,35 +247,13 @@ func getScannerError(scanner *PositionalScanner) error {
 	}
 	return nil
 }
-
-// NewFingerprintUpdatingReader creates a new FingerprintUpdatingReader starting starting at the given offset
-func NewFingerprintUpdatingReader(r io.Reader, offset int64, f *Fingerprint, fingerprintSize int) *FingerprintUpdatingReader {
-	return &FingerprintUpdatingReader{
-		fingerprint:     f,
-		fingerprintSize: fingerprintSize,
-		reader:          r,
-		offset:          offset,
+func (f *Reader) Read(dst []byte) (int, error) {
+	if len(f.Fingerprint.FirstBytes) == f.fileInput.fingerprintSize {
+		return f.file.Read(dst)
 	}
-}
-
-// FingerprintUpdatingReader wraps another reader, and updates the fingerprint
-// with each read in the first fingerPrintSize bytes
-type FingerprintUpdatingReader struct {
-	fingerprint     *Fingerprint
-	fingerprintSize int
-	reader          io.Reader
-	offset          int64
-}
-
-// Read reads from the wrapped reader, saving the read bytes to the fingerprint
-func (f *FingerprintUpdatingReader) Read(dst []byte) (int, error) {
-	if len(f.fingerprint.FirstBytes) == f.fingerprintSize {
-		return f.reader.Read(dst)
-	}
-	n, err := f.reader.Read(dst)
-	appendCount := min0(n, f.fingerprintSize-int(f.offset))
-	f.fingerprint.FirstBytes = append(f.fingerprint.FirstBytes[:f.offset], dst[:appendCount]...)
-	f.offset += int64(n)
+	n, err := f.file.Read(dst)
+	appendCount := min0(n, f.fileInput.fingerprintSize-int(f.Offset))
+	f.Fingerprint.FirstBytes = append(f.Fingerprint.FirstBytes[:f.Offset], dst[:appendCount]...)
 	return n, err
 }
 
