@@ -195,7 +195,7 @@ func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
 		delete(mc.buffer.inFlight, id)
 	}
 	mc.buffer.inFlightMux.Unlock()
-	mc.buffer.sem.Release(int64(end - start - 1))
+	mc.buffer.sem.Release(int64(end - start))
 	return nil
 }
 
