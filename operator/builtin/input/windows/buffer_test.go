@@ -16,7 +16,7 @@ func TestBufferReadBytes(t *testing.T) {
 	for i, b := range utf16 {
 		buffer.buffer[i] = b
 	}
-	offset := uint32(len(utf16))
+	offset := uint32(len(utf16) / 2)
 	bytes, err := buffer.ReadBytes(offset)
 	require.NoError(t, err)
 	require.Equal(t, utf8, bytes)
@@ -29,7 +29,7 @@ func TestBufferReadString(t *testing.T) {
 	for i, b := range utf16 {
 		buffer.buffer[i] = b
 	}
-	offset := uint32(len(utf16))
+	offset := uint32(len(utf16) / 2)
 	result, err := buffer.ReadString(offset)
 	require.NoError(t, err)
 	require.Equal(t, "test", result)
@@ -38,12 +38,12 @@ func TestBufferReadString(t *testing.T) {
 func TestBufferUpdateSize(t *testing.T) {
 	buffer := NewBuffer()
 	buffer.UpdateSize(1)
-	require.Equal(t, 1, len(buffer.buffer))
+	require.Equal(t, 1*bytesPerWChar, len(buffer.buffer))
 }
 
 func TestBufferSize(t *testing.T) {
 	buffer := NewBuffer()
-	require.Equal(t, uint32(defaultBufferSize), buffer.Size())
+	require.Equal(t, uint32(defaultBufferSize/bytesPerWChar), buffer.Size())
 }
 
 func TestBufferFirstByte(t *testing.T) {
