@@ -11,6 +11,7 @@ import (
 
 // defaultBufferSize is the default size of the buffer.
 const defaultBufferSize = 16384
+const bytesPerWChar = 2
 
 // Buffer is a buffer of utf-16 bytes.
 type Buffer struct {
@@ -19,7 +20,7 @@ type Buffer struct {
 
 // ReadBytes will read UTF-8 bytes from the buffer.
 func (b *Buffer) ReadBytes(offset uint32) ([]byte, error) {
-	utf16 := b.buffer[:offset]
+	utf16 := b.buffer[:bytesPerWChar*offset]
 	utf8, err := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder().Bytes(utf16)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert buffer contents to utf8: %s", err)
@@ -39,12 +40,12 @@ func (b *Buffer) ReadString(offset uint32) (string, error) {
 
 // UpdateSize will update the size of the buffer.
 func (b *Buffer) UpdateSize(size uint32) {
-	b.buffer = make([]byte, size)
+	b.buffer = make([]byte, bytesPerWChar*size)
 }
 
 // Size will return the size of the buffer.
 func (b *Buffer) Size() uint32 {
-	return uint32(len(b.buffer))
+	return uint32(len(b.buffer) / bytesPerWChar)
 }
 
 // FirstByte will return a pointer to the first byte.
