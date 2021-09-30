@@ -1,6 +1,6 @@
 ## `http_input` operator
 
-The `http_input` operator will send entries to Google Cloud Logging.
+The `http_input` operator starts an HTTP server for receiving log messages.
 
 ### Configuration Fields
 
