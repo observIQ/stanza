@@ -61,10 +61,8 @@ curl localhost:9090/ \
     "protocol_version": "1.1"
   },
   "record": {
-    "http_body": {
-      "mode": "test",
-      "user": "devel"
-    },
+    "mode": "test",
+    "user": "devel",
     "message": "logging enabled"
   }
 }

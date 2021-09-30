@@ -138,22 +138,7 @@ func (t *HTTPInput) parse(body map[string]interface{}, req *http.Request) (*entr
 		return nil, fmt.Errorf("payload and http request must be set")
 	}
 
-	payload := make(map[string]interface{})
-
-	const msgKey = "message"
-	const bodyKey = "http_body"
-	if m, ok := body[msgKey]; ok {
-		switch m := m.(type) {
-		case string:
-			payload[msgKey] = m
-			delete(body, msgKey)
-		}
-	}
-	if len(body) > 0 {
-		payload[bodyKey] = body
-	}
-
-	e, err := t.NewEntry(payload)
+	e, err := t.NewEntry(body)
 	if err != nil {
 		return nil, err
 	}

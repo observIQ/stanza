@@ -457,7 +457,7 @@ func TestParse(t *testing.T) {
 		}, {
 			"valid-request-without-message",
 			map[string]interface{}{
-				"xxx":   "generic event",
+				"msg":   "generic event",
 				"stage": "dev",
 			},
 			&http.Request{
@@ -467,10 +467,8 @@ func TestParse(t *testing.T) {
 			},
 			&entry.Entry{
 				Record: map[string]interface{}{
-					"http_body": map[string]interface{}{
-						"xxx":   "generic event",
-						"stage": "dev",
-					},
+					"msg":   "generic event",
+					"stage": "dev",
 				},
 				Labels: map[string]string{
 					"net.peer.ip":      "10.1.1.1",
@@ -502,14 +500,12 @@ func TestParse(t *testing.T) {
 			},
 			&entry.Entry{
 				Record: map[string]interface{}{
-					"message": "generic event",
-					"http_body": map[string]interface{}{
-						"event_id": 155,
-						"dev_mode": true,
-						"params": map[string]string{
-							"mode": "cluster",
-							"user": "admin",
-						},
+					"message":  "generic event",
+					"event_id": 155,
+					"dev_mode": true,
+					"params": map[string]string{
+						"mode": "cluster",
+						"user": "admin",
 					},
 				},
 				Labels: map[string]string{
