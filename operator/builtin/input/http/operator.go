@@ -52,8 +52,6 @@ func (t *HTTPInput) Stop() error {
 
 // goListenn will listen for http connections.
 func (t *HTTPInput) goListen(ctx context.Context) {
-	t.Debugf("using server config: %d", t.server.MaxHeaderBytes)
-
 	entryCreateMethods := []string{"POST", "PUT"}
 
 	m := mux.NewRouter()
@@ -72,19 +70,12 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	t.wg.Add(1)
 	go func() {
 		defer t.wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				t.Debugf("Triggering http server shutdown")
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-				defer cancel()
-				if err := t.server.Shutdown(ctx); err != nil {
-					t.Errorf("error while shutting down http server: %s", err)
-				}
-				return
-			default:
-				time.Sleep(time.Second * 2)
-			}
+		<-ctx.Done()
+		t.Debugf("Triggering http server shutdown")
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		if err := t.server.Shutdown(ctx); err != nil {
+			t.Errorf("error while shutting down http server: %s", err)
 		}
 	}()
 
