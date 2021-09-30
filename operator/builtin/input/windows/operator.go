@@ -98,7 +98,8 @@ func (e *EventLogInput) Start() error {
 
 	if offsetXML != "" {
 		if err := e.bookmark.Open(offsetXML); err != nil {
-			return fmt.Errorf("failed to open bookmark: %s", err)
+			e.Errorf("Failed to open bookmark, continuing without previous bookmark: %s", err)
+			e.offsets.Set(e.channel, []byte{})
 		}
 	}
 
