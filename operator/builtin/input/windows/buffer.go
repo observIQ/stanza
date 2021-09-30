@@ -20,15 +20,20 @@ type Buffer struct {
 	buffer []byte
 }
 
-// ReadBytes will read UTF-8 bytes from the buffer.
+// ReadBytes will read UTF-8 bytes from the buffer, where offset is the number of bytes to be read
 func (b *Buffer) ReadBytes(offset uint32) ([]byte, error) {
-	utf16 := b.buffer[:bytesPerWChar*offset]
+	utf16 := b.buffer[:offset]
 	utf8, err := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder().Bytes(utf16)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert buffer contents to utf8: %s", err)
 	}
 
 	return bytes.Trim(utf8, "\u0000"), nil
+}
+
+// ReadWideChars will read UTF-8 bytes from the buffer, where offset is the number of wchars to read
+func (b *Buffer) ReadWideChars(offset uint32) ([]byte, error) {
+	return b.ReadBytes(offset * bytesPerWChar)
 }
 
 // ReadString will read a UTF-8 string from the buffer.
@@ -40,13 +45,23 @@ func (b *Buffer) ReadString(offset uint32) (string, error) {
 	return string(bytes), nil
 }
 
-// UpdateSize will update the size of the buffer.
-func (b *Buffer) UpdateSize(size uint32) {
+// UpdateSizeBytes will update the size of the buffer to fit size bytes.
+func (b *Buffer) UpdateSizeBytes(size uint32) {
+	b.buffer = make([]byte, size)
+}
+
+// UpdateSizeWide will update the size of the buffer to fit size wchars.
+func (b *Buffer) UpdateSizeWide(size uint32) {
 	b.buffer = make([]byte, bytesPerWChar*size)
 }
 
-// Size will return the size of the buffer.
-func (b *Buffer) Size() uint32 {
+// SizeBytes will return the size of the buffer as number of bytes.
+func (b *Buffer) SizeBytes() uint32 {
+	return uint32(len(b.buffer))
+}
+
+// SizeWide returns the size of the buffer as number of wchars
+func (b *Buffer) SizeWide() uint32 {
 	return uint32(len(b.buffer) / bytesPerWChar)
 }
 
