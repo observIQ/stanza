@@ -54,8 +54,6 @@ func (t *HTTPInput) Stop() error {
 func (t *HTTPInput) goListen(ctx context.Context) {
 	t.Debugf("using server config: %d", t.server.MaxHeaderBytes)
 
-	t.wg.Add(1)
-
 	entryCreateMethods := []string{"POST", "PUT"}
 
 	m := mux.NewRouter()
@@ -71,6 +69,7 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	t.server.Handler = m
 
 	// shutdown go routine waits for a canceled context before stopping the server
+	t.wg.Add(1)
 	go func() {
 		defer t.wg.Done()
 		for {
@@ -90,7 +89,9 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	}()
 
 	// server go routine runs the http server
+	t.wg.Add(1)
 	go func() {
+		defer t.wg.Done()
 		t.Debugf("Starting http server on socket %s", t.server.Addr)
 		if err := t.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			t.Errorf("http server failed: %s", err)
@@ -104,8 +105,6 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 // body and returning http status codes.
 func (t *HTTPInput) goHandleMessages(w http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithCancel(req.Context())
-	t.wg.Add(1)
-	defer t.wg.Done()
 	defer cancel()
 
 	req.Body = http.MaxBytesReader(nil, req.Body, t.maxBodySize)
