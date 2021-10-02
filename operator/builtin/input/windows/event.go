@@ -18,9 +18,9 @@ func (e *Event) RenderSimple(buffer Buffer) (EventXML, error) {
 	}
 
 	var bufferUsed, propertyCount uint32
-	err := evtRender(0, e.handle, EvtRenderEventXML, buffer.Size(), buffer.FirstByte(), &bufferUsed, &propertyCount)
+	err := evtRender(0, e.handle, EvtRenderEventXML, buffer.SizeBytes(), buffer.FirstByte(), &bufferUsed, &propertyCount)
 	if err == ErrorInsufficientBuffer {
-		buffer.UpdateSize(bufferUsed)
+		buffer.UpdateSizeBytes(bufferUsed)
 		return e.RenderSimple(buffer)
 	}
 
@@ -43,17 +43,19 @@ func (e *Event) RenderFormatted(buffer Buffer, publisher Publisher) (EventXML, e
 	}
 
 	var bufferUsed uint32
-	err := evtFormatMessage(publisher.handle, e.handle, 0, 0, 0, EvtFormatMessageXML, buffer.Size(), buffer.FirstByte(), &bufferUsed)
+	err := evtFormatMessage(publisher.handle, e.handle, 0, 0, 0, EvtFormatMessageXML, buffer.SizeWide(), buffer.FirstByte(), &bufferUsed)
 	if err == ErrorInsufficientBuffer {
-		buffer.UpdateSize(bufferUsed)
+		buffer.UpdateSizeWide(bufferUsed)
 		return e.RenderFormatted(buffer, publisher)
 	}
 
 	if err != nil {
-		return EventXML{}, fmt.Errorf("syscall to 'EvtFormatMessage' failed: %s", err)
+		return EventXML{}, fmt.Errorf("syscall to 'EvtFormatMessage' failed: %w, params: (%x, %x, 0, 0, 0, %x, %x, %p, %p)",
+			err,
+			publisher.handle, e.handle, EvtFormatMessageXML, buffer.SizeWide(), buffer.FirstByte(), &bufferUsed)
 	}
 
-	bytes, err := buffer.ReadBytes(bufferUsed)
+	bytes, err := buffer.ReadWideChars(bufferUsed)
 	if err != nil {
 		return EventXML{}, fmt.Errorf("failed to read bytes from buffer: %s", err)
 	}

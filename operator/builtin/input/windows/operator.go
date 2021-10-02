@@ -98,7 +98,11 @@ func (e *EventLogInput) Start() error {
 
 	if offsetXML != "" {
 		if err := e.bookmark.Open(offsetXML); err != nil {
-			return fmt.Errorf("failed to open bookmark: %s", err)
+			e.Errorf("Failed to open bookmark, continuing without previous bookmark: %s", err)
+			e.offsets.Set(e.channel, []byte{})
+			if err := e.Sync(); err != nil {
+				return fmt.Errorf("Could not sync empty bookmark to offsets database: %s", err)
+			}
 		}
 	}
 
@@ -188,7 +192,7 @@ func (e *EventLogInput) processEvent(ctx context.Context, event Event) {
 
 	publisher := NewPublisher()
 	if err := publisher.Open(simpleEvent.Provider.Name); err != nil {
-		e.Errorf("Failed to open publisher: %s: Submitting entry without further parsing", err)
+		e.Debugf("Failed to open publisher: %s: Submitting entry without further parsing", err)
 		e.sendEvent(ctx, simpleEvent)
 		return
 	}
