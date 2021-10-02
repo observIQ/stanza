@@ -302,6 +302,8 @@ func TestServerTokenAuth(t *testing.T) {
 		}
 	}()
 
+	require.NoError(t, testConnection(cfg.ListenAddress), "expected http server to start and accept requests")
+
 	cases := []struct {
 		name         string
 		inputRequest *http.Request
