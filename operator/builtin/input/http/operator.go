@@ -25,6 +25,7 @@ func init() {
 type HTTPInput struct {
 	helper.InputOperator
 
+	tls         bool
 	server      http.Server
 	json        jsoniter.API
 	maxBodySize int64
@@ -84,10 +85,18 @@ func (t *HTTPInput) goListen(ctx context.Context) {
 	go func() {
 		defer t.wg.Done()
 		t.Debugf("Starting http server on socket %s", t.server.Addr)
-		if err := t.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("http server failed: %s", err)
-			return
+		if t.tls {
+			if err := t.server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				t.Errorf("http server failed: %s", err)
+				return
+			}
+		} else {
+			if err := t.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				t.Errorf("http server failed: %s", err)
+				return
+			}
 		}
+
 		t.Debugf("Http server shutdown finished")
 	}()
 }
