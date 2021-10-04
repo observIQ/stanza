@@ -100,7 +100,7 @@ func (e *EventLogInput) Start() error {
 		if err := e.bookmark.Open(offsetXML); err != nil {
 			e.Errorf("Failed to open bookmark, continuing without previous bookmark: %s", err)
 			e.offsets.Set(e.channel, []byte{})
-			if err := e.Sync(); err != nil {
+			if err := e.offsets.Sync(); err != nil {
 				return fmt.Errorf("Could not sync empty bookmark to offsets database: %s", err)
 			}
 		}
