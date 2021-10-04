@@ -158,7 +158,7 @@ require (
 	github.com/nishanths/exhaustive v0.0.0-20200811152831-6cf413ae40e0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/opencontainers/runc v1.0.0-rc93 // indirect
+	github.com/opencontainers/runc v1.0.2 // indirect
 	github.com/ory/go-acc v0.2.6 // indirect
 	github.com/ory/viper v1.7.5 // indirect
 	github.com/pavius/impi v0.0.3 // indirect
@@ -178,7 +178,7 @@ require (
 	github.com/ryanrolds/sqlclosecheck v0.3.0 // indirect
 	github.com/securego/gosec/v2 v2.4.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
-	github.com/sirupsen/logrus v1.7.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/sonatard/noctx v0.0.1 // indirect
 	github.com/sourcegraph/go-diff v0.6.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
