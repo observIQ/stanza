@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed an issue where TLS configuration fails to enable TLS: [PR466](https://github.com/observIQ/stanza/pull/466)
 - Fixed an incorrect sync call when saving offsets: [PR465](https://github.com/observIQ/stanza/pull/465)
+- Windows Event Log operator fix for Windows Server 2022: [PR456](https://github.com/observIQ/stanza/pull/456)
 
 ## 1.2.9 - 2021-09-29
 
