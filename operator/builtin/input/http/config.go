@@ -160,6 +160,7 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 
 	httpInput := &HTTPInput{
 		InputOperator: inputOperator,
+		tls:           c.TLS.Enable,
 		server: http.Server{
 			Addr: c.ListenAddress,
 			// #nosec - User to specify tls minimum version
