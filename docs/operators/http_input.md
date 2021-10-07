@@ -106,8 +106,8 @@ Configuration:
   max_header_size: 5000
   max_body_size: 1mb
   auth:
-    token: x-secret-key
-    values:
+    token_header: x-secret-key
+    tokens:
     - "token-a"
     - "token-stage"
 ```
