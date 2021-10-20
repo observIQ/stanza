@@ -40,15 +40,14 @@ func (c StringReplaceOperatorConfig) Build(context operator.BuildContext) ([]ope
 		return nil, fmt.Errorf("missing required field 'String'")
 	}
 
-	r, err := c.Replacement
-	if err != nil {
-		return nil, fmt.Errorf("invalid replacement string: %s", err)
+	if c.Replacement == "" {
+		return nil, fmt.Errorf("missing required field 'Replacement'")
 	}
 
 	string_replaceOperator := &string_replaceOperator{
                 TransformerOperator: transformerOperator
-                String:              r
-                Replacement:	     v
+                String:              c.String
+                Replacement:	     c.Replacement
         }
 
 	return []operator.Operator{string_replaceOperator}, nil
