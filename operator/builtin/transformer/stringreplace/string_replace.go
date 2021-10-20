@@ -1,4 +1,4 @@
-package replace
+package string_replace
 
 import (
 	"context"
