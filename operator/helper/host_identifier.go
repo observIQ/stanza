@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // NewHostIdentifierConfig returns a HostIdentifierConfig with default values

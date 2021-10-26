@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,10 +15,10 @@ func TestRecombineOperator(t *testing.T) {
 	t1 := time.Date(2020, time.April, 11, 21, 34, 01, 0, time.UTC)
 	t2 := time.Date(2020, time.April, 11, 21, 34, 02, 0, time.UTC)
 
-	entryWithRecord := func(ts time.Time, record interface{}) *entry.Entry {
+	entryWithRecord := func(ts time.Time, body interface{}) *entry.Entry {
 		e := entry.New()
 		e.Timestamp = ts
-		e.Record = record
+		e.Body = body
 		return e
 	}
 
@@ -32,7 +32,7 @@ func TestRecombineOperator(t *testing.T) {
 			"NoEntriesFirst",
 			func() *RecombineOperatorConfig {
 				cfg := NewRecombineOperatorConfig("")
-				cfg.CombineField = entry.NewRecordField()
+				cfg.CombineField = entry.NewBodyField()
 				cfg.IsFirstEntry = "true"
 				cfg.OutputIDs = []string{"fake"}
 				return cfg
@@ -44,7 +44,7 @@ func TestRecombineOperator(t *testing.T) {
 			"NoEntriesLast",
 			func() *RecombineOperatorConfig {
 				cfg := NewRecombineOperatorConfig("")
-				cfg.CombineField = entry.NewRecordField()
+				cfg.CombineField = entry.NewBodyField()
 				cfg.IsLastEntry = "true"
 				cfg.OutputIDs = []string{"fake"}
 				return cfg
@@ -56,7 +56,7 @@ func TestRecombineOperator(t *testing.T) {
 			"OneEntryFirst",
 			func() *RecombineOperatorConfig {
 				cfg := NewRecombineOperatorConfig("")
-				cfg.CombineField = entry.NewRecordField()
+				cfg.CombineField = entry.NewBodyField()
 				cfg.IsFirstEntry = "true"
 				cfg.OutputIDs = []string{"fake"}
 				return cfg
@@ -68,7 +68,7 @@ func TestRecombineOperator(t *testing.T) {
 			"OneEntryLast",
 			func() *RecombineOperatorConfig {
 				cfg := NewRecombineOperatorConfig("")
-				cfg.CombineField = entry.NewRecordField()
+				cfg.CombineField = entry.NewBodyField()
 				cfg.IsLastEntry = "true"
 				cfg.OutputIDs = []string{"fake"}
 				return cfg
@@ -80,8 +80,8 @@ func TestRecombineOperator(t *testing.T) {
 			"TwoEntriesLast",
 			func() *RecombineOperatorConfig {
 				cfg := NewRecombineOperatorConfig("")
-				cfg.CombineField = entry.NewRecordField()
-				cfg.IsLastEntry = "$record == 'test2'"
+				cfg.CombineField = entry.NewBodyField()
+				cfg.IsLastEntry = "$body == 'test2'"
 				cfg.OutputIDs = []string{"fake"}
 				return cfg
 			}(),
@@ -95,8 +95,8 @@ func TestRecombineOperator(t *testing.T) {
 			"ThreeEntriesFirstNewest",
 			func() *RecombineOperatorConfig {
 				cfg := NewRecombineOperatorConfig("")
-				cfg.CombineField = entry.NewRecordField()
-				cfg.IsFirstEntry = "$record == 'test1'"
+				cfg.CombineField = entry.NewBodyField()
+				cfg.IsFirstEntry = "$body == 'test1'"
 				cfg.OutputIDs = []string{"fake"}
 				cfg.OverwriteWith = "newest"
 				return cfg
@@ -140,7 +140,7 @@ func TestRecombineOperator(t *testing.T) {
 
 	t.Run("FlushesOnShutdown", func(t *testing.T) {
 		cfg := NewRecombineOperatorConfig("")
-		cfg.CombineField = entry.NewRecordField()
+		cfg.CombineField = entry.NewBodyField()
 		cfg.IsFirstEntry = "false"
 		cfg.OutputIDs = []string{"fake"}
 		ops, err := cfg.Build(testutil.NewBuildContext(t))

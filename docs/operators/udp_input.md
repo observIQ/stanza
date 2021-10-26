@@ -9,10 +9,10 @@ The `udp_input` operator listens for logs from UDP packets.
 | `id`              | `udp_input`      | A unique identifier for the operator                                              |
 | `output`          | Next in pipeline | The connected operator(s) that will receive all outbound entries                  |
 | `listen_address`  | required         | A listen address of the form `<ip>:<port>`                                        |
-| `write_to`        | $                | The record [field](/docs/types/field.md) written to when creating a new log entry |
-| `labels`          | {}               | A map of `key: value` labels to add to the entry's labels                         |
-| `resource`        | {}               | A map of `key: value` labels to add to the entry's resource                       |
-| `add_labels`      | false            | Adds `net.transport`, `net.peer.ip`, `net.peer.port`, `net.host.ip` and `net.host.port` labels |
+| `write_to`        | $                | The body [field](/docs/types/field.md) written to when creating a new log entry |
+| `attributes`          | {}               | A map of `key: value` attributes to add to the entry's attributes                         |
+| `resource`        | {}               | A map of `key: value` attributes to add to the entry's resource                       |
+| `add_attributes`      | false            | Adds `net.transport`, `net.peer.ip`, `net.peer.port`, `net.host.ip` and `net.host.port` attributes |
 
 ### Example Configurations
 
@@ -36,6 +36,6 @@ Generated entries:
 ```json
 {
   "timestamp": "2020-04-30T12:10:17.656726-04:00",
-  "record": "message1\nmessage2\n"
+  "body": "message1\nmessage2\n"
 }
 ```

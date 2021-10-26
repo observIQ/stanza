@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -129,8 +129,8 @@ func TestTimeParser(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -297,8 +297,8 @@ func TestTimeEpochs(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -360,8 +360,8 @@ func TestTimeErrors(t *testing.T) {
 		},
 	}
 
-	rootField := entry.NewRecordField()
-	someField := entry.NewRecordField("some_field")
+	rootField := entry.NewBodyField()
+	someField := entry.NewBodyField("some_field")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

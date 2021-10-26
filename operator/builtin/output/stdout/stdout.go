@@ -7,9 +7,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // Stdout is a global handle to standard output
@@ -58,7 +58,7 @@ func (o *StdoutOperator) Process(ctx context.Context, entry *entry.Entry) error 
 	err := o.encoder.Encode(entry)
 	if err != nil {
 		o.mux.Unlock()
-		o.Errorf("Failed to process entry: %s, $s", err, entry.Record)
+		o.Errorf("Failed to process entry: %s, $s", err, entry.Body)
 		return err
 	}
 	o.mux.Unlock()

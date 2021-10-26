@@ -1,7 +1,7 @@
 package googlecloud
 
 import (
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 )
 

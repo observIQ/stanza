@@ -12,9 +12,9 @@ import (
 
 	"github.com/gorilla/mux"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -143,54 +143,54 @@ func (t *HTTPInput) parse(body map[string]interface{}, req *http.Request) (*entr
 		return nil, err
 	}
 
-	t.addLabels(req, e)
+	t.addAttributes(req, e)
 
 	return e, nil
 }
 
-func (t *HTTPInput) addLabels(req *http.Request, entry *entry.Entry) {
-	if err := addPeerLabels(req.RemoteAddr, entry); err != nil {
+func (t *HTTPInput) addAttributes(req *http.Request, entry *entry.Entry) {
+	if err := addPeerAttributes(req.RemoteAddr, entry); err != nil {
 		t.Errorf("failed to set net.peer labels: %s", err)
 	}
-	if err := addHostLabels(req.Host, entry); err != nil {
+	if err := addHostAttributes(req.Host, entry); err != nil {
 		t.Errorf("failed to set net.host labels: %s", err)
 	}
-	if err := addProtoLabels(req.Proto, entry); err != nil {
+	if err := addProtoAttributes(req.Proto, entry); err != nil {
 		t.Errorf("failed to set protocol and protocol_version labels: %s", err)
 	}
 }
 
-func addPeerLabels(remoteAddr string, entry *entry.Entry) error {
+func addPeerAttributes(remoteAddr string, entry *entry.Entry) error {
 	ip, port, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s into ip and port: %s", remoteAddr, err)
 	}
-	entry.AddLabel("net.peer.ip", ip)
-	entry.AddLabel("net.peer.port", port)
+	entry.AddAttribute("net.peer.ip", ip)
+	entry.AddAttribute("net.peer.port", port)
 	return nil
 }
 
-func addHostLabels(host string, entry *entry.Entry) error {
+func addHostAttributes(host string, entry *entry.Entry) error {
 	ip, port, err := net.SplitHostPort(host)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s into ip and port: %s", host, err)
 	}
-	entry.AddLabel("net.host.ip", ip)
-	entry.AddLabel("net.host.port", port)
+	entry.AddAttribute("net.host.ip", ip)
+	entry.AddAttribute("net.host.port", port)
 	return nil
 }
 
-func addProtoLabels(proto string, entry *entry.Entry) error {
+func addProtoAttributes(proto string, entry *entry.Entry) error {
 	p := strings.Split(proto, "/")
 	if len(p) != 2 {
 		return fmt.Errorf("failed to parse %s", proto)
 	}
-	entry.AddLabel("protocol", p[0])
+	entry.AddAttribute("protocol", p[0])
 
 	if _, err := strconv.ParseFloat(p[1], 32); err != nil {
 		return fmt.Errorf("failed to parse %s as protocol_version", p[1])
 	}
-	entry.AddLabel("protocol_version", p[1])
+	entry.AddAttribute("protocol_version", p[1])
 
 	return nil
 }

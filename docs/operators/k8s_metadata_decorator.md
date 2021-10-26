@@ -1,6 +1,6 @@
 ## `k8s_metadata_decorator` operator
 
-The `k8s_metadata_decorator` operator adds labels and annotations to the entry using data from the Kubernetes metadata API.
+The `k8s_metadata_decorator` operator adds attributes and annotations to the entry using data from the Kubernetes metadata API.
 
 ### Configuration Fields
 
@@ -18,7 +18,7 @@ The `k8s_metadata_decorator` operator adds labels and annotations to the entry u
 ### Example Configurations
 
 
-#### Add labels and annotations to a log entry
+#### Add attributes and annotations to a log entry
 
 Configuration:
 ```yaml
@@ -26,14 +26,14 @@ Configuration:
 ```
 
 <table>
-<tr><td> Input record </td> <td> Output record </td></tr>
+<tr><td> Input body </td> <td> Output body </td></tr>
 <tr>
 <td>
 
 ```json
 {
   "timestamp": "",
-  "record": {
+  "body": {
     "namespace": "my-namespace",
     "pod_name": "samplepod-6cdcf6bf9d-f4f9n"
   }
@@ -46,7 +46,7 @@ Configuration:
 ```json
 {
   "timestamp": "",
-  "labels": {
+  "attributes": {
     "k8s_ns_annotation/addonmanager.kubernetes.io/mode": "Reconcile",
     "k8s_ns_annotation/control-plane": "true",
     "k8s_ns_annotation/kubernetes.io/cluster-service": "true",
@@ -58,7 +58,7 @@ Configuration:
     "k8s_pod_label/k8s-app": "dashboard-metrics-scraper",
     "k8s_pod_label/pod-template-hash": "5f44bbb8b5"
   },
-  "record": {
+  "body": {
     "namespace": "my-namespace",
     "pod_name": "samplepod-6cdcf6bf9d-f4f9n"
   }

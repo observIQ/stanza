@@ -5,7 +5,7 @@ import (
 	"time"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +37,7 @@ func TestParseEvent(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-sequence-number": &testSequenceNum,
@@ -76,7 +76,7 @@ func TestParseEvent(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":       "hello world",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
@@ -134,7 +134,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: enqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
@@ -156,7 +156,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"iothub-enqueuedtime": &ioTHubEnqueuedTime,
@@ -179,7 +179,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: enqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &enqueuedTime,
@@ -203,7 +203,7 @@ func TestPromoteTime(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: ioTHubEnqueuedTime,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "event hub entry",
 					"system_properties": map[string]interface{}{
 						"x-opt-enqueued-time": &time.Time{},

@@ -28,7 +28,7 @@ type UDPInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
 	ListenAddress string `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
-	AddLabels     bool   `json:"add_labels,omitempty" yaml:"add_labels,omitempty"`
+	AddAttributes bool   `json:"add_attributes,omitempty" yaml:"add_attributes,omitempty"`
 }
 
 // Build will build a udp input operator.
@@ -51,7 +51,7 @@ func (c UDPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		InputOperator: inputOperator,
 		address:       address,
 		buffer:        make([]byte, 8192),
-		addLabels:     c.AddLabels,
+		addAttributes: c.AddAttributes,
 	}
 	return []operator.Operator{udpInput}, nil
 }
@@ -60,8 +60,8 @@ func (c UDPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 type UDPInput struct {
 	buffer []byte
 	helper.InputOperator
-	address   *net.UDPAddr
-	addLabels bool
+	address       *net.UDPAddr
+	addAttributes bool
 
 	connection net.PacketConn
 	cancel     context.CancelFunc
@@ -108,16 +108,16 @@ func (u *UDPInput) goHandleMessages(ctx context.Context) {
 				continue
 			}
 
-			if u.addLabels {
-				entry.AddLabel("net.transport", "IP.UDP")
+			if u.addAttributes {
+				entry.AddAttribute("net.transport", "IP.UDP")
 				if addr, ok := u.connection.LocalAddr().(*net.UDPAddr); ok {
-					entry.AddLabel("net.host.ip", addr.IP.String())
-					entry.AddLabel("net.host.port", strconv.FormatInt(int64(addr.Port), 10))
+					entry.AddAttribute("net.host.ip", addr.IP.String())
+					entry.AddAttribute("net.host.port", strconv.FormatInt(int64(addr.Port), 10))
 				}
 
 				if addr, ok := remoteAddr.(*net.UDPAddr); ok {
-					entry.AddLabel("net.peer.ip", addr.IP.String())
-					entry.AddLabel("net.peer.port", strconv.FormatInt(int64(addr.Port), 10))
+					entry.AddAttribute("net.peer.ip", addr.IP.String())
+					entry.AddAttribute("net.peer.port", strconv.FormatInt(int64(addr.Port), 10))
 				}
 			}
 

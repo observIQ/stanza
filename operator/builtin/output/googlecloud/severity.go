@@ -1,22 +1,22 @@
 package googlecloud
 
 import (
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	sev "google.golang.org/genproto/googleapis/logging/type"
 )
 
 var fastSev = map[entry.Severity]sev.LogSeverity{
-	entry.Catastrophe: sev.LogSeverity_EMERGENCY,
-	entry.Emergency:   sev.LogSeverity_EMERGENCY,
-	entry.Alert:       sev.LogSeverity_ALERT,
-	entry.Critical:    sev.LogSeverity_CRITICAL,
-	entry.Error:       sev.LogSeverity_ERROR,
-	entry.Warning:     sev.LogSeverity_WARNING,
-	entry.Notice:      sev.LogSeverity_NOTICE,
-	entry.Info:        sev.LogSeverity_INFO,
-	entry.Debug:       sev.LogSeverity_DEBUG,
-	entry.Trace:       sev.LogSeverity_DEBUG,
-	entry.Default:     sev.LogSeverity_DEFAULT,
+	entry.Fatal2:  sev.LogSeverity_EMERGENCY,
+	entry.Fatal:   sev.LogSeverity_EMERGENCY,
+	entry.Error3:  sev.LogSeverity_ALERT,
+	entry.Error2:  sev.LogSeverity_CRITICAL,
+	entry.Error:   sev.LogSeverity_ERROR,
+	entry.Warn:    sev.LogSeverity_WARNING,
+	entry.Info2:   sev.LogSeverity_NOTICE,
+	entry.Info:    sev.LogSeverity_INFO,
+	entry.Debug:   sev.LogSeverity_DEBUG,
+	entry.Trace:   sev.LogSeverity_DEBUG,
+	entry.Default: sev.LogSeverity_DEFAULT,
 }
 
 func convertSeverity(s entry.Severity) sev.LogSeverity {
@@ -25,17 +25,17 @@ func convertSeverity(s entry.Severity) sev.LogSeverity {
 	}
 
 	switch {
-	case s >= entry.Emergency:
+	case s >= entry.Fatal:
 		return sev.LogSeverity_EMERGENCY
-	case s >= entry.Alert:
+	case s >= entry.Error3:
 		return sev.LogSeverity_ALERT
-	case s >= entry.Critical:
+	case s >= entry.Error2:
 		return sev.LogSeverity_CRITICAL
 	case s >= entry.Error:
 		return sev.LogSeverity_ERROR
-	case s >= entry.Warning:
+	case s >= entry.Warn:
 		return sev.LogSeverity_WARNING
-	case s >= entry.Notice:
+	case s >= entry.Info2:
 		return sev.LogSeverity_NOTICE
 	case s >= entry.Info:
 		return sev.LogSeverity_INFO

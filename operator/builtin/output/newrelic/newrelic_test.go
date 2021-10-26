@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,7 +55,7 @@ func TestNewRelicOutput(t *testing.T) {
 			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test",
+				Body:      "test",
 			}},
 			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"record":"test","resource":null,"severity":"default"},"message":"test"}]}]` + "\n",
 		},
@@ -64,21 +64,21 @@ func TestNewRelicOutput(t *testing.T) {
 			nil,
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test1",
+				Body:      "test1",
 			}, {
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record:    "test2",
+				Body:      "test2",
 			}},
 			`[{"common":{"attributes":{"plugin":{"type":"stanza","version":"unknown"}}},"logs":[{"timestamp":1476089932000,"attributes":{"labels":null,"record":"test1","resource":null,"severity":"default"},"message":"test1"},{"timestamp":1476089932000,"attributes":{"labels":null,"record":"test2","resource":null,"severity":"default"},"message":"test2"}]}]` + "\n",
 		},
 		{
 			"CustomMessage",
 			func(cfg *NewRelicOutputConfig) {
-				cfg.MessageField = entry.NewRecordField("log")
+				cfg.MessageField = entry.NewBodyField("log")
 			},
 			[]*entry.Entry{{
 				Timestamp: time.Date(2016, 10, 10, 8, 58, 52, 0, time.UTC),
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"log":     "testlog",
 					"message": "testmessage",
 				},

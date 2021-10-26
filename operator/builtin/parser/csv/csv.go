@@ -7,9 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -104,7 +104,7 @@ type CSVParser struct {
 // Process will parse an entry for csv.
 func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
 	if r.headerLabel != "" {
-		h, ok := e.Labels[r.headerLabel]
+		h, ok := e.Attributes[r.headerLabel]
 		if !ok {
 			// TODO: returned error is not logged, so log it here
 			err := fmt.Errorf("failed to read dynamic header label %s", r.headerLabel)

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/v2/database"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"go.etcd.io/bbolt"
 	"golang.org/x/sync/semaphore"
 )

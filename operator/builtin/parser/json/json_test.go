@@ -6,10 +6,10 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -76,8 +76,8 @@ func NewFakeJSONOperator() (*JSONParser, *testutil.Operator) {
 					OutputOperators: []operator.Operator{&mock},
 				},
 			},
-			ParseFrom: entry.NewRecordField("testfield"),
-			ParseTo:   entry.NewRecordField("testparsed"),
+			ParseFrom: entry.NewBodyField("testfield"),
+			ParseTo:   entry.NewBodyField("testparsed"),
 		},
 		json: jsoniter.ConfigFastest,
 	}, &mock
@@ -121,15 +121,15 @@ func TestJSONParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			input := entry.New()
-			input.Record = tc.inputRecord
+			input.Body = tc.inputRecord
 
 			output := entry.New()
-			output.Record = tc.expectedRecord
+			output.Body = tc.expectedRecord
 
 			parser, mockOutput := NewFakeJSONOperator()
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)
-				require.Equal(t, tc.expectedRecord, e.Record)
+				require.Equal(t, tc.expectedRecord, e.Body)
 			}).Return(nil)
 
 			err := parser.Process(context.Background(), input)
@@ -171,7 +171,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 			},
 			false,
 			func() *entry.Field {
-				f := entry.NewRecordField("original_timestamp")
+				f := entry.NewBodyField("original_timestamp")
 				return &f
 			}(),
 		},
@@ -193,13 +193,13 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			input := entry.New()
-			input.Record = tc.inputRecord
+			input.Body = tc.inputRecord
 
 			output := entry.New()
-			output.Record = tc.expectedRecord
+			output.Body = tc.expectedRecord
 
 			parser, mockOutput := NewFakeJSONOperator()
-			parseFrom := entry.NewRecordField("testparsed", "timestamp")
+			parseFrom := entry.NewBodyField("testparsed", "timestamp")
 			parser.ParserOperator.TimeParser = &helper.TimeParser{
 				ParseFrom:  &parseFrom,
 				LayoutType: "epoch",
@@ -208,7 +208,7 @@ func TestJSONParserWithEmbeddedTimeParser(t *testing.T) {
 			}
 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				e := args[1].(*entry.Entry)
-				require.Equal(t, tc.expectedRecord, e.Record)
+				require.Equal(t, tc.expectedRecord, e.Body)
 				require.Equal(t, testTime, e.Timestamp)
 			}).Return(nil)
 

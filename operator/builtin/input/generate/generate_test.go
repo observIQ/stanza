@@ -3,9 +3,9 @@ package generate
 import (
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +14,7 @@ func TestInputGenerate(t *testing.T) {
 	cfg.OutputIDs = []string{"fake"}
 	cfg.Count = 5
 	cfg.Entry = entry.Entry{
-		Record: "test message",
+		Body: "test message",
 	}
 
 	ops, err := cfg.Build(testutil.NewBuildContext(t))
@@ -29,6 +29,6 @@ func TestInputGenerate(t *testing.T) {
 	defer op.Stop()
 
 	for i := 0; i < 5; i++ {
-		fake.ExpectRecord(t, "test message")
+		fake.ExpectBody(t, "test message")
 	}
 }

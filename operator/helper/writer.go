@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // NewWriterConfig creates a new writer config

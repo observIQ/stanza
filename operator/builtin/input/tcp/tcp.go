@@ -46,7 +46,7 @@ type TCPInputConfig struct {
 	MaxBufferSize helper.ByteSize `json:"max_buffer_size,omitempty" yaml:"max_buffer_size,omitempty"`
 	ListenAddress string          `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
 	TLS           TLSConfig       `json:"tls,omitempty" yaml:"tls,omitempty"`
-	AddLabels     bool            `json:"add_labels,omitempty" yaml:"add_labels,omitempty"`
+	AddAttributes bool            `json:"add_attributes,omitempty" yaml:"add_attributes,omitempty"`
 }
 
 // TLSConfig is the configuration for a TLS listener
@@ -126,7 +126,7 @@ func (c TCPInputConfig) Build(context operator.BuildContext) ([]operator.Operato
 		InputOperator: inputOperator,
 		address:       c.ListenAddress,
 		maxBufferSize: int(c.MaxBufferSize),
-		addLabels:     c.AddLabels,
+		addAttributes: c.AddAttributes,
 		tlsEnable:     c.TLS.Enable,
 		tlsKeyPair:    cert,
 		tlsMinVersion: tlsMinVersion,
@@ -145,7 +145,7 @@ type TCPInput struct {
 	helper.InputOperator
 	address       string
 	maxBufferSize int
-	addLabels     bool
+	addAttributes bool
 	tlsEnable     bool
 	tlsKeyPair    tls.Certificate
 	tlsMinVersion uint16
@@ -257,16 +257,16 @@ func (t *TCPInput) goHandleMessages(ctx context.Context, conn net.Conn, cancel c
 				continue
 			}
 
-			if t.addLabels {
-				entry.AddLabel("net.transport", "IP.TCP")
+			if t.addAttributes {
+				entry.AddAttribute("net.transport", "IP.TCP")
 				if addr, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
-					entry.AddLabel("net.peer.ip", addr.IP.String())
-					entry.AddLabel("net.peer.port", strconv.FormatInt(int64(addr.Port), 10))
+					entry.AddAttribute("net.peer.ip", addr.IP.String())
+					entry.AddAttribute("net.peer.port", strconv.FormatInt(int64(addr.Port), 10))
 				}
 
 				if addr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
-					entry.AddLabel("net.host.ip", addr.IP.String())
-					entry.AddLabel("net.host.port", strconv.FormatInt(int64(addr.Port), 10))
+					entry.AddAttribute("net.host.ip", addr.IP.String())
+					entry.AddAttribute("net.host.port", strconv.FormatInt(int64(addr.Port), 10))
 				}
 			}
 

@@ -9,9 +9,9 @@ import (
 	sl "github.com/observiq/go-syslog/v3"
 	"github.com/observiq/go-syslog/v3/rfc3164"
 	"github.com/observiq/go-syslog/v3/rfc5424"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -36,7 +36,7 @@ type SyslogParserConfig struct {
 // Build will build a JSON parser operator.
 func (c SyslogParserConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	if c.ParserConfig.TimeParser == nil {
-		parseFromField := entry.NewRecordField("timestamp")
+		parseFromField := entry.NewBodyField("timestamp")
 		c.ParserConfig.TimeParser = &helper.TimeParser{
 			ParseFrom:  &parseFromField,
 			LayoutType: helper.NativeKey,
@@ -214,12 +214,12 @@ func handleSymbols(b []byte) []byte {
 }
 
 var severityMapping = [...]entry.Severity{
-	0: entry.Emergency,
-	1: entry.Alert,
-	2: entry.Critical,
+	0: entry.Fatal,
+	1: entry.Error3,
+	2: entry.Error2,
 	3: entry.Error,
-	4: entry.Warning,
-	5: entry.Notice,
+	4: entry.Warn,
+	5: entry.Info3,
 	6: entry.Info,
 	7: entry.Debug,
 }
@@ -235,7 +235,7 @@ var severityText = [...]string{
 	7: "debug",
 }
 
-var severityField = entry.NewRecordField("severity")
+var severityField = entry.NewBodyField("severity")
 
 func promoteSeverity(e *entry.Entry) error {
 	sev, ok := severityField.Delete(e)

@@ -13,10 +13,10 @@ import (
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
@@ -70,7 +70,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			googleCloudBasicConfig(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 				},
 			},
@@ -91,13 +91,13 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"LogNameField",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
+				f := entry.NewBodyField("log_name")
 				c.LogNameField = &f
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "mylogname",
 				},
@@ -120,15 +120,15 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"k8s_pod",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
-				locationField := entry.NewLabelField("region")
+				f := entry.NewBodyField("log_name")
+				locationField := entry.NewAttributeField("region")
 				c.LogNameField = &f
 				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "app-pod",
 				},
@@ -137,7 +137,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 					"k8s.cluster.name":   "test-cluster",
 					"k8s.namespace.name": "test-namespace",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"region": "us-east1",
 				},
 			},
@@ -168,15 +168,15 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"k8s_container",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
-				locationField := entry.NewRecordField("region")
+				f := entry.NewBodyField("log_name")
+				locationField := entry.NewBodyField("region")
 				c.LogNameField = &f
 				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "app-pod",
 					"region":   "us-west1",
@@ -217,15 +217,15 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"k8s_container_alt",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
-				locationField := entry.NewRecordField("region")
+				f := entry.NewBodyField("log_name")
+				locationField := entry.NewBodyField("region")
 				c.LogNameField = &f
 				c.LocationField = &locationField
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "app-pod",
 					"region":   "us-central1",
@@ -267,7 +267,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"k8s_node",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
+				f := entry.NewBodyField("log_name")
 				locationField := entry.NewResourceField("region")
 				c.LogNameField = &f
 				c.LocationField = &locationField
@@ -275,7 +275,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "app-pod",
 				},
@@ -311,13 +311,13 @@ func TestGoogleCloudOutput(t *testing.T) {
 			"k8s_cluster",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				f := entry.NewRecordField("log_name")
+				f := entry.NewBodyField("log_name")
 				c.LogNameField = &f
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "test message",
 					"log_name": "app-pod",
 				},
@@ -358,7 +358,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 				},
 				Resource: map[string]string{
@@ -392,7 +392,7 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 				},
 				Resource: map[string]string{
@@ -422,10 +422,10 @@ func TestGoogleCloudOutput(t *testing.T) {
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"label1": "value1",
 				},
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 				},
 			},
@@ -445,40 +445,40 @@ func TestGoogleCloudOutput(t *testing.T) {
 				return req
 			}(),
 		},
-		googleCloudSeverityTestCase(entry.Catastrophe, sev.LogSeverity_EMERGENCY),
-		googleCloudSeverityTestCase(entry.Severity(95), sev.LogSeverity_EMERGENCY),
-		googleCloudSeverityTestCase(entry.Emergency, sev.LogSeverity_EMERGENCY),
-		googleCloudSeverityTestCase(entry.Severity(85), sev.LogSeverity_ALERT),
-		googleCloudSeverityTestCase(entry.Alert, sev.LogSeverity_ALERT),
-		googleCloudSeverityTestCase(entry.Severity(75), sev.LogSeverity_CRITICAL),
-		googleCloudSeverityTestCase(entry.Critical, sev.LogSeverity_CRITICAL),
-		googleCloudSeverityTestCase(entry.Severity(65), sev.LogSeverity_ERROR),
+		googleCloudSeverityTestCase(entry.Fatal2, sev.LogSeverity_EMERGENCY),
+		googleCloudSeverityTestCase(entry.Severity(21), sev.LogSeverity_EMERGENCY),
+		googleCloudSeverityTestCase(entry.Fatal, sev.LogSeverity_EMERGENCY),
+		googleCloudSeverityTestCase(entry.Severity(19), sev.LogSeverity_ALERT),
+		googleCloudSeverityTestCase(entry.Error3, sev.LogSeverity_ALERT),
+		googleCloudSeverityTestCase(entry.Severity(18), sev.LogSeverity_CRITICAL),
+		googleCloudSeverityTestCase(entry.Error2, sev.LogSeverity_CRITICAL),
+		googleCloudSeverityTestCase(entry.Severity(17), sev.LogSeverity_ERROR),
 		googleCloudSeverityTestCase(entry.Error, sev.LogSeverity_ERROR),
-		googleCloudSeverityTestCase(entry.Severity(55), sev.LogSeverity_WARNING),
-		googleCloudSeverityTestCase(entry.Warning, sev.LogSeverity_WARNING),
-		googleCloudSeverityTestCase(entry.Severity(45), sev.LogSeverity_NOTICE),
-		googleCloudSeverityTestCase(entry.Notice, sev.LogSeverity_NOTICE),
-		googleCloudSeverityTestCase(entry.Severity(35), sev.LogSeverity_INFO),
+		googleCloudSeverityTestCase(entry.Severity(13), sev.LogSeverity_WARNING),
+		googleCloudSeverityTestCase(entry.Warn, sev.LogSeverity_WARNING),
+		googleCloudSeverityTestCase(entry.Severity(10), sev.LogSeverity_NOTICE),
+		googleCloudSeverityTestCase(entry.Info2, sev.LogSeverity_NOTICE),
+		googleCloudSeverityTestCase(entry.Severity(9), sev.LogSeverity_INFO),
 		googleCloudSeverityTestCase(entry.Info, sev.LogSeverity_INFO),
-		googleCloudSeverityTestCase(entry.Severity(25), sev.LogSeverity_DEBUG),
-		googleCloudSeverityTestCase(entry.Debug, sev.LogSeverity_DEBUG),
-		googleCloudSeverityTestCase(entry.Severity(15), sev.LogSeverity_DEBUG),
-		googleCloudSeverityTestCase(entry.Trace, sev.LogSeverity_DEBUG),
 		googleCloudSeverityTestCase(entry.Severity(5), sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Debug, sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Severity(3), sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Trace, sev.LogSeverity_DEBUG),
+		googleCloudSeverityTestCase(entry.Severity(1), sev.LogSeverity_DEBUG),
 		googleCloudSeverityTestCase(entry.Default, sev.LogSeverity_DEFAULT),
 		{
 			"TraceAndSpanFields",
 			func() *GoogleCloudOutputConfig {
 				c := googleCloudBasicConfig()
-				traceField := entry.NewRecordField("trace")
-				spanIDField := entry.NewRecordField("span_id")
+				traceField := entry.NewBodyField("trace")
+				spanIDField := entry.NewBodyField("span_id")
 				c.TraceField = &traceField
 				c.SpanIDField = &spanIDField
 				return c
 			}(),
 			&entry.Entry{
 				Timestamp: now,
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "test message",
 					"trace":   "projects/my-projectid/traces/06796866738c859f2f19b7cfb3214824",
 					"span_id": "000000000000004a",
@@ -550,7 +550,7 @@ func googleCloudSeverityTestCase(s entry.Severity, expected sev.LogSeverity) goo
 		&entry.Entry{
 			Timestamp: now,
 			Severity:  s,
-			Record: map[string]interface{}{
+			Body: map[string]interface{}{
 				"message": "test message",
 			},
 		},
@@ -739,7 +739,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"Simple",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "test",
+				Body:      "test",
 			},
 			nil,
 		},
@@ -747,7 +747,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"MapRecord",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    mapOfSize(1, 0),
+				Body:      mapOfSize(1, 0),
 			},
 			nil,
 		},
@@ -755,7 +755,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"LargeMapRecord",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    mapOfSize(30, 0),
+				Body:      mapOfSize(30, 0),
 			},
 			nil,
 		},
@@ -763,7 +763,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"DeepMapRecord",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    mapOfSize(1, 10),
+				Body:      mapOfSize(1, 10),
 			},
 			nil,
 		},
@@ -771,8 +771,8 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"Labels",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "test",
-				Labels: map[string]string{
+				Body:      "test",
+				Attributes: map[string]string{
 					"test": "val",
 				},
 			},
@@ -782,7 +782,7 @@ func BenchmarkGoogleCloudOutput(b *testing.B) {
 			"NoCompression",
 			&entry.Entry{
 				Timestamp: t,
-				Record:    "test",
+				Body:      "test",
 			},
 			func(cfg *GoogleCloudOutputConfig) {
 				cfg.UseCompression = false
@@ -928,7 +928,7 @@ func sized(i int) *entry.Entry {
 	for i := range b {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
-	ent.Record = string(b)
+	ent.Body = string(b)
 	return ent
 }
 
@@ -948,7 +948,7 @@ func (s *mockSender) Debugw(template string, args ...interface{}) {
 func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
 	totalSize := 0
 	for _, ent := range entries {
-		s, ok := ent.Record.(string)
+		s, ok := ent.Body.(string)
 		if !ok {
 			panic("unexpected value in test")
 		}

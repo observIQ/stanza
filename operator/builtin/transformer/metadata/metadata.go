@@ -3,10 +3,10 @@ package metadata
 import (
 	"context"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -17,7 +17,7 @@ func init() {
 func NewMetadataOperatorConfig(operatorID string) *MetadataOperatorConfig {
 	return &MetadataOperatorConfig{
 		TransformerConfig: helper.NewTransformerConfig(operatorID, "metadata"),
-		LabelerConfig:     helper.NewLabelerConfig(),
+		AttributerConfig:  helper.NewAttributerConfig(),
 		IdentifierConfig:  helper.NewIdentifierConfig(),
 	}
 }
@@ -25,7 +25,7 @@ func NewMetadataOperatorConfig(operatorID string) *MetadataOperatorConfig {
 // MetadataOperatorConfig is the configuration of a metadata operator
 type MetadataOperatorConfig struct {
 	helper.TransformerConfig `yaml:",inline"`
-	helper.LabelerConfig     `yaml:",inline"`
+	helper.AttributerConfig  `yaml:",inline"`
 	helper.IdentifierConfig  `yaml:",inline"`
 }
 
@@ -36,7 +36,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) ([]operator
 		return nil, errors.Wrap(err, "failed to build transformer")
 	}
 
-	labeler, err := c.LabelerConfig.Build()
+	labeler, err := c.AttributerConfig.Build()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build labeler")
 	}
@@ -48,7 +48,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) ([]operator
 
 	metadataOperator := &MetadataOperator{
 		TransformerOperator: transformerOperator,
-		Labeler:             labeler,
+		Attributer:          labeler,
 		Identifier:          identifier,
 	}
 
@@ -58,7 +58,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) ([]operator
 // MetadataOperator is an operator that can add metadata to incoming entries
 type MetadataOperator struct {
 	helper.TransformerOperator
-	helper.Labeler
+	helper.Attributer
 	helper.Identifier
 }
 
@@ -69,8 +69,8 @@ func (p *MetadataOperator) Process(ctx context.Context, entry *entry.Entry) erro
 
 // Transform will transform an entry using the labeler and tagger.
 func (p *MetadataOperator) Transform(entry *entry.Entry) error {
-	if err := p.Label(entry); err != nil {
-		return errors.Wrap(err, "failed to add labels to entry")
+	if err := p.Attribute(entry); err != nil {
+		return errors.Wrap(err, "failed to add attributes to entry")
 	}
 
 	if err := p.Identify(entry); err != nil {

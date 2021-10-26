@@ -12,11 +12,11 @@ The `retain` operator keeps the specified list of fields, and removes the rest.
 | `on_error` | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                                                                                          |
 | `if`       |                  | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
 <hr>
-<b>NOTE:</b> If no fields in a group (labels, resource, or record) are specified, that entire group will be retained.
+<b>NOTE:</b> If no fields in a group (attributes, resource, or body) are specified, that entire group will be retained.
 <hr>
 Example usage:
 <hr>
-Retain fields in the record
+Retain fields in the body
 
 ```yaml
 - type: retain
@@ -33,8 +33,8 @@ Retain fields in the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key1": "val1",
     "key2": "val2",
     "key3": "val3",
@@ -49,8 +49,8 @@ Retain fields in the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key1": "val1",
     "key2": "val2"
   }
@@ -62,7 +62,7 @@ Retain fields in the record
 </table>
 
 <hr>
-Retain an object in the record
+Retain an object in the body
 
 ```yaml
 - type: retain
@@ -78,8 +78,8 @@ Retain an object in the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key1": "val1",
     "object": {
       "nestedkey": "val2",
@@ -94,8 +94,8 @@ Retain an object in the record
 ```json
 {
   "resource": { },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "object": {
       "nestedkey": "val2",
     }
@@ -129,8 +129,8 @@ Retain fields from resource
      "key2": "val2",
      "key3": "val3"
   },
-  "labels": { },  
-  "record": {
+  "attributes": { },  
+  "body": {
     "key1": "val1",
     }
   }
@@ -146,8 +146,8 @@ Retain fields from resource
      "key1": "val1",
      "key2": "val2",
   },
-  "labels": { },  
-  "record": { 
+  "attributes": { },  
+  "body": { 
     "key1": "val1",
   }
 }
@@ -158,13 +158,13 @@ Retain fields from resource
 </table>
 
 <hr>
-Retain fields from labels
+Retain fields from attributes
 
 ```yaml
 - type: retain
   fields:
-    - $labels.key1
-    - $labels.key2
+    - $attributes.key1
+    - $attributes.key2
 ```
 
 <table>
@@ -175,12 +175,12 @@ Retain fields from labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
      "key1": "val1",
      "key2": "val2",
      "key3": "val3"
   },  
-  "record": { 
+  "body": { 
     "key1": "val1",
   }
 }
@@ -192,11 +192,11 @@ Retain fields from labels
 ```json
 {
   "resource": { },
-  "labels": { 
+  "attributes": { 
      "key1": "val1",
      "key2": "val2",
   },  
-  "record": { 
+  "body": { 
     "key1": "val1",
   }
 }
@@ -213,7 +213,7 @@ Retain fields from all sources
 - type: retain
   fields:
     - $resource.key1
-    - $labels.key3
+    - $attributes.key3
     - key5
 ```
 
@@ -228,11 +228,11 @@ Retain fields from all sources
      "key1": "val1",
      "key2": "val2"
   },
-  "labels": { 
+  "attributes": { 
      "key3": "val3",
      "key4": "val4"
   },  
-  "record": { 
+  "body": { 
     "key5": "val5",
     "key6": "val6",
   }
@@ -247,10 +247,10 @@ Retain fields from all sources
   "resource": { 
      "key1": "val1",
   },
-  "labels": { 
+  "attributes": { 
      "key3": "val3",
   },  
-  "record": { 
+  "body": { 
     "key5": "val5",
   }
 }

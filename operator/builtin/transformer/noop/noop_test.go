@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,8 +49,11 @@ func TestProcess(t *testing.T) {
 	op.SetOutputs([]operator.Operator{fake})
 
 	entry := entry.New()
-	entry.AddLabel("label", "value")
+	entry.AddAttribute("label", "value")
 	entry.AddResourceKey("resource", "value")
+	entry.SpanId = []byte("span")
+	entry.TraceId = []byte("trace")
+	entry.TraceFlags = []byte("flags")
 
 	expected := entry.Copy()
 	err = op.Process(context.Background(), entry)

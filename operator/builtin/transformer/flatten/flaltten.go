@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -39,7 +39,7 @@ func NewFlattenOperatorConfig(operatorID string) *FlattenOperatorConfig {
 // FlattenOperatorConfig is the configuration of a flatten operator
 type FlattenOperatorConfig struct {
 	helper.TransformerConfig `mapstructure:",squash" yaml:",inline"`
-	Field                    entry.RecordField `mapstructure:"field" json:"field" yaml:"field"`
+	Field                    entry.BodyField `mapstructure:"field" json:"field" yaml:"field"`
 }
 
 // Build will build a Flatten operator from the supplied configuration
@@ -64,7 +64,7 @@ func (c FlattenOperatorConfig) Build(context operator.BuildContext) ([]operator.
 // FlattenOperator flattens an object in the body field
 type FlattenOperator struct {
 	helper.TransformerOperator
-	Field entry.RecordField
+	Field entry.BodyField
 }
 
 // Process will process an entry with a flatten transformation.

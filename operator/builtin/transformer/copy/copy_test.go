@@ -20,9 +20,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 type testCase struct {
@@ -38,7 +38,7 @@ func TestBuildAndProcess(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"key": "val",
 			"nested": map[string]interface{}{
 				"nestedkey": "nestedval",
@@ -53,14 +53,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewRecordField("key2")
+				cfg.From = entry.NewBodyField("key")
+				cfg.To = entry.NewBodyField("key2")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -75,14 +75,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("nested", "nestedkey")
-				cfg.To = entry.NewRecordField("key2")
+				cfg.From = entry.NewBodyField("nested", "nestedkey")
+				cfg.To = entry.NewBodyField("key2")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -97,14 +97,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewRecordField("nested", "key2")
+				cfg.From = entry.NewBodyField("key")
+				cfg.To = entry.NewBodyField("nested", "key2")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -119,20 +119,20 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewLabelField("key2")
+				cfg.From = entry.NewBodyField("key")
+				cfg.To = entry.NewAttributeField("key2")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
 					},
 				}
-				e.Labels = map[string]string{"key2": "val"}
+				e.Attributes = map[string]string{"key2": "val"}
 				return e
 			},
 		},
@@ -141,25 +141,25 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("key")
-				cfg.To = entry.NewRecordField("key2")
+				cfg.From = entry.NewAttributeField("key")
+				cfg.To = entry.NewBodyField("key2")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
 					},
 					"key2": "val",
 				}
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				return e
 			},
 		},
@@ -168,18 +168,18 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("key")
+				cfg.From = entry.NewAttributeField("key")
 				cfg.To = entry.NewResourceField("key2")
 				return cfg
 			}(),
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				return e
 			},
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"key": "val"}
+				e.Attributes = map[string]string{"key": "val"}
 				e.Resource = map[string]string{"key2": "val"}
 				return e
 			},
@@ -189,14 +189,14 @@ func TestBuildAndProcess(t *testing.T) {
 			false,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("key")
-				cfg.To = entry.NewRecordField("nested")
+				cfg.From = entry.NewBodyField("key")
+				cfg.To = entry.NewBodyField("nested")
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key":    "val",
 					"nested": "val",
 				}
@@ -208,7 +208,7 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("nested")
+				cfg.From = entry.NewBodyField("nested")
 				cfg.To = entry.NewResourceField("invalid")
 				return cfg
 			}(),
@@ -220,8 +220,8 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewRecordField("nested")
-				cfg.To = entry.NewLabelField("invalid")
+				cfg.From = entry.NewBodyField("nested")
+				cfg.To = entry.NewAttributeField("invalid")
 				return cfg
 			}(),
 			newTestEntry,
@@ -232,7 +232,7 @@ func TestBuildAndProcess(t *testing.T) {
 			true,
 			func() *CopyOperatorConfig {
 				cfg := defaultCfg()
-				cfg.From = entry.NewLabelField("nonexistentkey")
+				cfg.From = entry.NewAttributeField("nonexistentkey")
 				cfg.To = entry.NewResourceField("key2")
 				return cfg
 			}(),

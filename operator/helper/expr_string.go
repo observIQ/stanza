@@ -8,8 +8,8 @@ import (
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // ExprStringConfig is a string that represents an expression
@@ -126,9 +126,9 @@ var envPool = sync.Pool{
 // GetExprEnv returns a map of key/value pairs that can be be used to evaluate an expression
 func GetExprEnv(e *entry.Entry) map[string]interface{} {
 	env := envPool.Get().(map[string]interface{})
-	env["$"] = e.Record
-	env["$record"] = e.Record
-	env["$labels"] = e.Labels
+	env["$"] = e.Body
+	env["$body"] = e.Body
+	env["$attributes"] = e.Attributes
 	env["$resource"] = e.Resource
 	env["$timestamp"] = e.Timestamp
 

@@ -7,8 +7,8 @@ being processed.
 For reference documentation of the expression language, see [here](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md).
 
 Available to the expressions are a few special variables:
-- `$record` contains the entry's record
-- `$labels` contains the entry's labels
+- `$body` contains the entry's body
+- `$attributes` contains the entry's attributes
 - `$resource` contains the entry's resource
 - `$timestamp` contains the entry's timestamp
 - `env()` is a function that allows you to read environment variables
@@ -19,6 +19,6 @@ Available to the expressions are a few special variables:
 
 ```yaml
 - type: metadata
-  labels:
+  attributes:
     stack: 'EXPR(env("STACK"))'
 ```

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,15 +14,15 @@ func TestLabeler(t *testing.T) {
 
 	cases := []struct {
 		name     string
-		config   LabelerConfig
+		config   AttributerConfig
 		input    *entry.Entry
 		expected *entry.Entry
 	}{
 		{
 			"AddLabelLiteral",
-			func() LabelerConfig {
-				cfg := NewLabelerConfig()
-				cfg.Labels = map[string]ExprStringConfig{
+			func() AttributerConfig {
+				cfg := NewAttributerConfig()
+				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": "value1",
 				}
 				return cfg
@@ -30,7 +30,7 @@ func TestLabeler(t *testing.T) {
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"label1": "value1",
 				}
 				return e
@@ -38,9 +38,9 @@ func TestLabeler(t *testing.T) {
 		},
 		{
 			"AddLabelExpr",
-			func() LabelerConfig {
-				cfg := NewLabelerConfig()
-				cfg.Labels = map[string]ExprStringConfig{
+			func() AttributerConfig {
+				cfg := NewAttributerConfig()
+				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": `EXPR("start" + "end")`,
 				}
 				return cfg
@@ -48,7 +48,7 @@ func TestLabeler(t *testing.T) {
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"label1": "startend",
 				}
 				return e
@@ -56,9 +56,9 @@ func TestLabeler(t *testing.T) {
 		},
 		{
 			"AddLabelEnv",
-			func() LabelerConfig {
-				cfg := NewLabelerConfig()
-				cfg.Labels = map[string]ExprStringConfig{
+			func() AttributerConfig {
+				cfg := NewAttributerConfig()
+				cfg.Attributes = map[string]ExprStringConfig{
 					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
 				return cfg
@@ -66,7 +66,7 @@ func TestLabeler(t *testing.T) {
 			entry.New(),
 			func() *entry.Entry {
 				e := entry.New()
-				e.Labels = map[string]string{
+				e.Attributes = map[string]string{
 					"label1": "foo",
 				}
 				return e
@@ -79,9 +79,9 @@ func TestLabeler(t *testing.T) {
 			labeler, err := tc.config.Build()
 			require.NoError(t, err)
 
-			err = labeler.Label(tc.input)
+			err = labeler.Attribute(tc.input)
 			require.NoError(t, err)
-			require.Equal(t, tc.expected.Labels, tc.input.Labels)
+			require.Equal(t, tc.expected.Attributes, tc.input.Attributes)
 		})
 	}
 }

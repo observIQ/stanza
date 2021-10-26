@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"go.uber.org/zap"
 )
 

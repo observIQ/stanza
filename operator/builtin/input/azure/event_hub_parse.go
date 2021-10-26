@@ -6,7 +6,7 @@ import (
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
 	"github.com/mitchellh/mapstructure"
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // ParseEvent parses an Azure Event Hub event as an Entry.
@@ -49,7 +49,7 @@ func parse(event azhub.Event, e *entry.Entry) error {
 		m["system_properties"] = sysProp
 	}
 
-	e.Record = m
+	e.Body = m
 	return nil
 }
 

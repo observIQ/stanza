@@ -5,7 +5,7 @@ import (
 	"time"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,10 +54,10 @@ func TestParse(t *testing.T) {
 			},
 			&entry.Entry{
 				Timestamp: testTimeGenerated,
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"azure_log_analytics_table": "unit_test",
 				},
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",

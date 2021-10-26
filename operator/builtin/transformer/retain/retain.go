@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -62,7 +62,7 @@ func (c RetainOperatorConfig) Build(context operator.BuildContext) ([]operator.O
 			retainOp.AllResourceFields = true
 			continue
 		}
-		if strings.HasPrefix(typeCheck, "$labels") {
+		if strings.HasPrefix(typeCheck, "$attributes") {
 			retainOp.AllAttributeFields = true
 			continue
 		}
@@ -94,10 +94,10 @@ func (p *RetainOperator) Transform(e *entry.Entry) error {
 		newEntry.Resource = e.Resource
 	}
 	if !p.AllAttributeFields {
-		newEntry.Labels = e.Labels
+		newEntry.Attributes = e.Attributes
 	}
 	if !p.AllBodyFields {
-		newEntry.Record = e.Record
+		newEntry.Body = e.Body
 	}
 
 	for _, field := range p.Fields {

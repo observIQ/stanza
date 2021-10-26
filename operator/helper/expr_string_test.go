@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +15,7 @@ func TestExprString(t *testing.T) {
 
 	exampleEntry := func() *entry.Entry {
 		e := entry.New()
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"test": "value",
 		}
 		e.Resource = map[string]string{

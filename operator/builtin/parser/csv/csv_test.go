@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,7 +75,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,INFO,started agent",
+					Body: "stanza,INFO,started agent",
 				},
 			},
 			[]interface{}{
@@ -95,13 +95,13 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,INFO,started agent",
+					Body: "stanza,INFO,started agent",
 				},
 				{
-					Record: "stanza,ERROR,agent killed",
+					Body: "stanza,ERROR,agent killed",
 				},
 				{
-					Record: "kernel,TRACE,oom",
+					Body: "kernel,TRACE,oom",
 				},
 			},
 			[]interface{}{
@@ -132,7 +132,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza;Evergreen;1;555-5555;agent",
+					Body: "stanza;Evergreen;1;555-5555;agent",
 				},
 			},
 			[]interface{}{
@@ -155,10 +155,10 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Labels: map[string]string{
+					Attributes: map[string]string{
 						"Fields": "name,age,height,number",
 					},
-					Record: "stanza dev,1,400,555-555-5555",
+					Body: "stanza dev,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -180,22 +180,22 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Labels: map[string]string{
+					Attributes: map[string]string{
 						"Fields": "name,age,height,number",
 					},
-					Record: "stanza dev,1,400,555-555-5555",
+					Body: "stanza dev,1,400,555-555-5555",
 				},
 				{
-					Labels: map[string]string{
+					Attributes: map[string]string{
 						"Fields": "x,y",
 					},
-					Record: "000100,2",
+					Body: "000100,2",
 				},
 				{
-					Labels: map[string]string{
+					Attributes: map[string]string{
 						"Fields": "a,b,c,d,e,f",
 					},
-					Record: "1,2,3,4,5,6",
+					Body: "1,2,3,4,5,6",
 				},
 			},
 			[]interface{}{
@@ -230,10 +230,10 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Labels: map[string]string{
+					Attributes: map[string]string{
 						"columns": "name	age	height	number",
 					},
-					Record: "stanza dev,1,400,555-555-5555",
+					Body: "stanza dev,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -255,7 +255,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza dev,1,400,555-555-5555",
+					Body: "stanza dev,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -276,7 +276,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,1,400,555-555-5555",
+					Body: "stanza,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -299,7 +299,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,1,400,555-555-5555",
+					Body: "stanza,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -320,7 +320,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "20210316 17:08:01,oiq-int-mysql,load,oiq-int-mysql.bluemedora.localnet,5,0,DISCONNECT,,,0",
+					Body: "20210316 17:08:01,oiq-int-mysql,load,oiq-int-mysql.bluemedora.localnet,5,0,DISCONNECT,,,0",
 				},
 			},
 			[]interface{}{
@@ -347,7 +347,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,Evergreen,,555-5555,agent",
+					Body: "stanza,Evergreen,,555-5555,agent",
 				},
 			},
 			[]interface{}{
@@ -370,7 +370,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza	Evergreen	1	555-5555	agent",
+					Body: "stanza	Evergreen	1	555-5555	agent",
 				},
 			},
 			[]interface{}{
@@ -392,7 +392,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,\"Evergreen,49508\",1,555-5555,agent",
+					Body: "stanza,\"Evergreen,49508\",1,555-5555,agent",
 				},
 			},
 			[]interface{}{
@@ -414,7 +414,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "\"bob \"\"the man\"\"\",Evergreen,1,555-5555,agent",
+					Body: "\"bob \"\"the man\"\"\",Evergreen,1,555-5555,agent",
 				},
 			},
 			[]interface{}{
@@ -437,7 +437,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,INFO,started agent",
+					Body: "stanza,INFO,started agent",
 				},
 			},
 			[]interface{}{
@@ -459,7 +459,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza\tINFO\tstarted agent",
+					Body: "stanza\tINFO\tstarted agent",
 				},
 			},
 			[]interface{}{
@@ -480,7 +480,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,1,400,555-555-5555",
+					Body: "stanza,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -503,7 +503,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza,1,400,555-555-5555",
+					Body: "stanza,1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -525,7 +525,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "1,400,555-555-5555",
+					Body: "1,400,555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -547,7 +547,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza:1:400:555-555-5555",
+					Body: "stanza:1:400:555-555-5555",
 				},
 			},
 			[]interface{}{
@@ -570,7 +570,7 @@ func TestParserCSV(t *testing.T) {
 			},
 			[]entry.Entry{
 				{
-					Record: "stanza \"log parser\",1,6ft,5",
+					Body: "stanza \"log parser\",1,6ft,5",
 				},
 			},
 			[]interface{}{
@@ -611,7 +611,7 @@ func TestParserCSV(t *testing.T) {
 				}
 				require.NoError(t, err)
 
-				fake.ExpectRecord(t, tc.outputRecord[i])
+				fake.ExpectBody(t, tc.outputRecord[i])
 			}
 		})
 	}
@@ -631,13 +631,13 @@ func TestParserCSVMultipleRecords(t *testing.T) {
 		op.SetOutputs([]operator.Operator{fake})
 
 		entry := entry.New()
-		entry.Record = "stanza,INFO,started agent\nstanza,DEBUG,started agent"
+		entry.Body = "stanza,INFO,started agent\nstanza,DEBUG,started agent"
 		err = op.Process(context.Background(), entry)
 		// require.Nil(t, err, "Expected to parse a single csv record, got '2'")
 		// require.Contains(t, err.Error(), "Expected to parse a single csv record, got '2'")
 		require.NoError(t, err)
 
-		fake.ExpectRecord(t, map[string]interface{}{
+		fake.ExpectBody(t, map[string]interface{}{
 			"name": "stanza",
 			"sev":  "DEBUG",
 			"msg":  "started agent",
@@ -659,10 +659,10 @@ func TestParserCSVInvalidJSONInput(t *testing.T) {
 		op.SetOutputs([]operator.Operator{fake})
 
 		entry := entry.New()
-		entry.Record = "{\"name\": \"stanza\"}"
+		entry.Body = "{\"name\": \"stanza\"}"
 		err = op.Process(context.Background(), entry)
 		require.Error(t, err, "parse error on line 1, column 1: bare \" in non-quoted-field")
-		fake.ExpectRecord(t, "{\"name\": \"stanza\"}")
+		fake.ExpectBody(t, "{\"name\": \"stanza\"}")
 	})
 }
 

@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"go.uber.org/zap"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -275,7 +275,7 @@ func (k *K8sEvents) consumeWatchEvents(ctx context.Context, events <-chan watch.
 				entry.Timestamp = typedEvent.FirstTimestamp.Time
 			}
 
-			entry.AddLabel("event_type", string(event.Type))
+			entry.AddAttribute("event_type", string(event.Type))
 			k.populateResource(typedEvent, entry)
 			k.Write(ctx, entry)
 		case <-ctx.Done():

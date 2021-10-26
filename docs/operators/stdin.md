@@ -29,6 +29,6 @@ Output records:
 {
   "timestamp": "2020-11-10T11:09:56.505467-05:00",
   "severity": 0,
-  "record": "test"
+  "body": "test"
 }
 ```
