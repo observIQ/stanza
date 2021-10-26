@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+<<<<<<< HEAD
 ### Added
 
 - Added agent log file rotation [PR488](https://github.com/observIQ/stanza/pull/488)
@@ -14,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Deprecated the `--debug` flag in favor of the `--log_level` flag [PR488](https://github.com/observIQ/stanza/pull/488)
+- Renamed record to body on a log entry [PR471](https://github.com/observIQ/stanza/pull/471)
+- Renamed labels to attributes on a log entry [PR471](https://github.com/observIQ/stanza/pull/471)
 
 ## 1.3.0
 
