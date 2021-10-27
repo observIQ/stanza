@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added the `lazy_quotes` parameter to the csv parser [PR472](https://github.com/observIQ/stanza/pull/472)
+
 ### Removed
 
 - Removed OTLP output operator [PR470](https://github.com/observIQ/stanza/pull/470)
