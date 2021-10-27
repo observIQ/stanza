@@ -35,7 +35,7 @@ func TestCSVParserBuildFailureInvalidDelimiter(t *testing.T) {
 	cfg.FieldDelimiter = ";;"
 	_, err := cfg.Build(testutil.NewBuildContext(t))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Invalid 'delimiter': ';;'")
+	require.Contains(t, err.Error(), "invalid 'delimiter': ';;'")
 }
 
 func TestCSVParserStringFailure(t *testing.T) {
@@ -560,6 +560,29 @@ func TestParserCSV(t *testing.T) {
 			},
 			false,
 			true,
+		},
+		{
+			"parse-with-lazy-quotes",
+			func(p *CSVParserConfig) {
+				p.Header = "name,age,height,number"
+				p.FieldDelimiter = ","
+				p.LazyQuotes = true
+			},
+			[]entry.Entry{
+				{
+					Record: "stanza \"log parser\",1,6ft,5",
+				},
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"name":   "stanza \"log parser\"",
+					"age":    "1",
+					"height": "6ft",
+					"number": "5",
+				},
+			},
+			false,
+			false,
 		},
 	}
 

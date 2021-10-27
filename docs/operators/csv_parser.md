@@ -4,20 +4,21 @@ The `csv_parser` operator parses the string-type field selected by `parse_from` 
 
 ### Configuration Fields
 
-| Field          | Default          | Description                                                                                                                                                                                                                              |
-| ---            | ---              | ---                                                                                                                                                                                                                                      |
-| `id`           | `csv_parser`     | A unique identifier for the operator                                                                                                                                                                                                     |
-| `output`       | Next in pipeline | The connected operator(s) that will receive all outbound entries                                                                                                                                                                         |
-| `header`       | required when `header_label` not set  | A string of delimited field names                                                                                                                            |
-| `header_label` | required when `header` not set        | A label name to read the header field from, to support dynamic field names                                                                                                                                          |
-| `header_delimiter`   | value of delimiter              | A character that will be used as a delimiter for the header. Values `\r` and `\n` cannot be used as a delimiter                                                                                                     |
-| `delimiter`    | `,`              | A character that will be used as a delimiter. Values `\r` and `\n` cannot be used as a delimiter                                                                                                                                         |
-| `parse_from`   | $                | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                                                                                                                    |
-| `parse_to`     | $                | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                                                                                                                    |
-| `preserve_to`  |                  | Preserves the unparsed value at the specified [field](/docs/types/field.md)                                                                                                                                                              |
-| `on_error`     | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                                                                                          |
-| `timestamp`    | `nil`            | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator                                                                                               |
-| `severity`     | `nil`            | An optional [severity](/docs/types/severity.md) block which will parse a severity field before passing the entry to the output operator                                                                                                  |
+| Field              | Default                              | Description                                                                                                                                 |
+| ---                | ---                                  | ---                                                                                                                                         |
+| `id`               | `csv_parser`                         | A unique identifier for the operator                                                                                                        |
+| `output`           | Next in pipeline                     | The connected operator(s) that will receive all outbound entries                                                                            |
+| `header`           | required when `header_label` not set | A string of delimited field names                                                                                                           |
+| `header_label`     | required when `header` not set       | A label name to read the header field from, to support dynamic field names                                                                  |
+| `header_delimiter` | value of delimiter                   | A character that will be used as a delimiter for the header. Values `\r` and `\n` cannot be used as a delimiter                             |
+| `delimiter`        | `,`                                  | A character that will be used as a delimiter. Values `\r` and `\n` cannot be used as a delimiter                                            |
+| `lazy_quotes`      | `false`                              | If true, a quote may appear in an unquoted field and a non-doubled quote may appear in a quoted field.                                      |
+| `parse_from`       | $                                    | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                       |
+| `parse_to`         | $                                    | A [field](/docs/types/field.md) that indicates the field to be parsed                                                                       |
+| `preserve_to`      |                                      | Preserves the unparsed value at the specified [field](/docs/types/field.md)                                                                 |
+| `on_error`         | `send`                               | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                             |
+| `timestamp`        | `nil`                                | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator  |
+| `severity`         | `nil`                                | An optional [severity](/docs/types/severity.md) block which will parse a severity field before passing the entry to the output operator     |
 
 ### Example Configurations
 
