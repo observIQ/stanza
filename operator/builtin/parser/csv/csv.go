@@ -31,6 +31,7 @@ type CSVParserConfig struct {
 	HeaderLabel     string `json:"header_label" yaml:"header_label"`
 	HeaderDelimiter string `json:"header_delimiter,omitempty" yaml:"header_delimiter,omitempty"`
 	FieldDelimiter  string `json:"delimiter,omitempty" yaml:"delimiter,omitempty"`
+	LazyQuotes      bool   `json:"lazy_quotes,omitempty" yaml:"lazy_quotes,omitempty"`
 }
 
 // Build will build a csv parser operator.
@@ -59,7 +60,7 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 	}
 
 	if len([]rune(c.FieldDelimiter)) != 1 {
-		return nil, fmt.Errorf("Invalid 'delimiter': '%s'", c.FieldDelimiter)
+		return nil, fmt.Errorf("invalid 'delimiter': '%s'", c.FieldDelimiter)
 	}
 
 	fieldDelimiter := []rune(c.FieldDelimiter)[0]
@@ -80,9 +81,10 @@ func (c CSVParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 		headerLabel:     c.HeaderLabel,
 		headerDelimiter: headerDelimiter,
 		fieldDelimiter:  fieldDelimiter,
+		lazyQuotes:      c.LazyQuotes,
 
 		// initial parse function, overwritten when dynamic headers are enabled
-		parse: generateParseFunc(c.Header, headerDelimiter, fieldDelimiter, false),
+		parse: generateParseFunc(c.Header, headerDelimiter, fieldDelimiter, c.LazyQuotes, false),
 	}
 
 	return []operator.Operator{csvParser}, nil
@@ -95,6 +97,7 @@ type CSVParser struct {
 	headerLabel     string
 	headerDelimiter rune
 	fieldDelimiter  rune
+	lazyQuotes      bool
 	parse           ParseFunc
 }
 
@@ -108,7 +111,7 @@ func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
 			r.Error(err)
 			return err
 		}
-		r.parse = generateParseFunc(h, r.headerDelimiter, r.fieldDelimiter, true)
+		r.parse = generateParseFunc(h, r.headerDelimiter, r.fieldDelimiter, r.lazyQuotes, true)
 	}
 	return r.ParserOperator.ProcessWith(ctx, e, r.parse)
 }
@@ -118,7 +121,7 @@ type ParseFunc func(interface{}) (interface{}, error)
 // generateParseFunc returns a parse function for a given header, allowing
 // each entry to have a potentially unique set of fields when using dynamic
 // field names retrieved from an entry's label
-func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, isDynamic bool) ParseFunc {
+func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, lazyQuotes bool, isDynamic bool) ParseFunc {
 	headerFields := strings.Split(header, string([]rune{headerDelimiter}))
 
 	return func(value interface{}) (interface{}, error) {
@@ -139,6 +142,7 @@ func generateParseFunc(header string, headerDelimiter, fieldDelimiter rune, isDy
 		reader := csvparser.NewReader(strings.NewReader(csvLine))
 		reader.Comma = fieldDelimiter
 		reader.FieldsPerRecord = len(headerFields)
+		reader.LazyQuotes = lazyQuotes
 		parsedValues := make(map[string]interface{})
 
 		for {
