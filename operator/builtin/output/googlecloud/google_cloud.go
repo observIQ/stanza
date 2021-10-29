@@ -10,7 +10,6 @@ import (
 	"time"
 
 	vkit "cloud.google.com/go/logging/apiv2"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
 	"github.com/observiq/stanza/operator"
@@ -26,6 +25,7 @@ import (
 	logpb "google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func init() {
@@ -325,61 +325,58 @@ func (g *GoogleCloudOutput) toLogNamePath(logName string) string {
 }
 
 func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb.LogEntry, err error) {
-	ts, err := ptypes.TimestampProto(e.Timestamp)
-	if err != nil {
-		return nil, err
-	}
+	stanzaEntry := e.Copy()
 
 	newEntry = &logpb.LogEntry{
-		Timestamp: ts,
-		Labels:    e.Labels,
+		Timestamp: timestamppb.New(stanzaEntry.Timestamp),
+		Labels:    stanzaEntry.Labels,
 	}
 
 	if g.logNameField != nil {
 		var rawLogName string
-		err := e.Read(*g.logNameField, &rawLogName)
+		err := stanzaEntry.Read(*g.logNameField, &rawLogName)
 		if err != nil {
-			g.Warnw("Failed to set log name", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set log name", zap.Error(err), "entry", stanzaEntry)
 		} else {
 			newEntry.LogName = g.toLogNamePath(rawLogName)
-			e.Delete(*g.logNameField)
+			stanzaEntry.Delete(*g.logNameField)
 		}
 	}
 
 	if g.traceField != nil {
-		err := e.Read(*g.traceField, &newEntry.Trace)
+		err := stanzaEntry.Read(*g.traceField, &newEntry.Trace)
 		if err != nil {
-			g.Warnw("Failed to set trace", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set trace", zap.Error(err), "entry", stanzaEntry)
 		} else {
-			e.Delete(*g.traceField)
+			stanzaEntry.Delete(*g.traceField)
 		}
 	}
 
 	if g.spanIDField != nil {
-		err := e.Read(*g.spanIDField, &newEntry.SpanId)
+		err := stanzaEntry.Read(*g.spanIDField, &newEntry.SpanId)
 		if err != nil {
-			g.Warnw("Failed to set span ID", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set span ID", zap.Error(err), "entry", stanzaEntry)
 		} else {
-			e.Delete(*g.spanIDField)
+			stanzaEntry.Delete(*g.spanIDField)
 		}
 	}
 
-	newEntry.Severity = convertSeverity(e.Severity)
-	err = setPayload(newEntry, e.Record)
+	newEntry.Severity = convertSeverity(stanzaEntry.Severity)
+	err = setPayload(newEntry, stanzaEntry.Record)
 	if err != nil {
 		return nil, errors.Wrap(err, "set entry payload")
 	}
 
-	newEntry.Resource = getResource(e)
+	newEntry.Resource = getResource(stanzaEntry)
 
 	if g.locationField != nil && newEntry.Resource != nil {
 		var rawLocation string
-		err := e.Read(*g.locationField, &rawLocation)
+		err := stanzaEntry.Read(*g.locationField, &rawLocation)
 		if err != nil {
-			g.Warnw("Failed to set location", zap.Error(err), "entry", e)
+			g.Warnw("Failed to set location", zap.Error(err), "entry", stanzaEntry)
 		} else {
 			newEntry.Resource.Labels["location"] = rawLocation
-			e.Delete(*g.locationField)
+			stanzaEntry.Delete(*g.locationField)
 		}
 	}
 
@@ -389,7 +386,7 @@ func (g *GoogleCloudOutput) createProtobufEntry(e *entry.Entry) (newEntry *logpb
 	if newEntry.Labels == nil {
 		newEntry.Labels = make(map[string]string)
 	}
-	for k, v := range e.Resource {
+	for k, v := range stanzaEntry.Resource {
 		if val, ok := newEntry.Labels[k]; ok {
 			if val != v {
 				g.Warnf("resource to labels merge failed, entry has label %s=%s, tried to add %s=%s", k, val, k, v)
