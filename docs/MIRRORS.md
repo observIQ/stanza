@@ -29,4 +29,4 @@ It is suggested to use an automated synchronization process to manage keeping th
 ```
 
 ## Further Information
-For further usage information, and other supported flags, please see the base [README.md](README.md)
+For further usage information, and other supported flags, please see the [Quick Start Guide](README.md)
