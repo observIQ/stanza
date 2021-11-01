@@ -12,8 +12,9 @@ Example of web URL for version 1.2.13: `http://dl.example.com/some/path/download
 Example of web URL for version 1.2.12: `http://dl.example.com/some/path/download/v1.2.12/`  
 Example of file URL for latest version: `file:///Users/username/Downloads/stanza_local/latest/download/`  
 Example of file URL for version 1.2.13: `file:///Users/username/Downloads/stanza_local/download/v1.2.13`
-Example of file URL for version 1.2.12: `file:///Users/username/Downloads/stanza_local/download/v1.2.12`
-
+Example of file URL for version 1.2.12: `file:///Users/username/Downloads/stanza_local/download/v1.2.12`  
+  
+It is suggested to use an automated synchronization process to manage keeping ths up to date, including rewriting the symlink for the latests to the highest version number.
 
 ## Usage Syntax with the Install Script
 
