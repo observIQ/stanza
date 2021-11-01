@@ -144,6 +144,10 @@ Usage:
       Defines the service user that will run the agent as a service.
       If not provided, this will default to root.
 
+  $(fg_yellow '-l, --url')
+      Defines the URL that the components will be downloaded from.
+      If not provided, this will default to Stanza\'s GitHub releases.
+
 EOF
   )
   info "$USAGE"
@@ -258,12 +262,16 @@ set_download_urls()
     version=$STANZA_VERSION
   fi
 
+  if [ -z "$url" ] ; then
+    url=$DOWNLOAD_BASE
+  fi
+
   if [ -z "$version" ] ; then
-    agent_download_url="$DOWNLOAD_BASE/latest/download/${BINARY_NAME}_${os}_amd64"
-    plugins_download_url="$DOWNLOAD_BASE/latest/download/${PLUGINS_PACKAGE}"
+    agent_download_url="$url/latest/download/${BINARY_NAME}_${os}_amd64"
+    plugins_download_url="$url/latest/download/${PLUGINS_PACKAGE}"
   else
-    agent_download_url="$DOWNLOAD_BASE/download/$version/${BINARY_NAME}_${os}_amd64"
-    plugins_download_url="$DOWNLOAD_BASE/download/$version/${PLUGINS_PACKAGE}"
+    agent_download_url="$url/download/$version/${BINARY_NAME}_${os}_amd64"
+    plugins_download_url="$url/download/$version/${PLUGINS_PACKAGE}"
   fi
 }
 
@@ -1030,6 +1038,8 @@ main()
           install_dir=$2 ; shift 2 ;;
         -u|--service-user)
           service_user=$2 ; shift 2 ;;
+        -l|--url)
+          url=$2 ; shift 2 ;;
         -h|--help)
           usage
           force_exit
