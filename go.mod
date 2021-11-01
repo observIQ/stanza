@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	cloud.google.com/go/logging v1.4.2
-	github.com/Azure/azure-event-hubs-go/v3 v3.3.13
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.16
 	github.com/antonmedv/expr v1.9.0
 	github.com/aws/aws-sdk-go v1.40.26
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -37,6 +37,7 @@ require (
 	google.golang.org/api v0.52.0
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/grpc v1.40.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 	// k8s.io modules should be the same version
 	k8s.io/api v0.22.2
@@ -46,9 +47,9 @@ require (
 
 require (
 	cloud.google.com/go v0.88.0 // indirect
-	github.com/Azure/azure-amqp-common-go/v3 v3.0.1 // indirect
+	github.com/Azure/azure-amqp-common-go/v3 v3.2.1 // indirect
 	github.com/Azure/azure-sdk-for-go v51.1.0+incompatible // indirect
-	github.com/Azure/go-amqp v0.13.12 // indirect
+	github.com/Azure/go-amqp v0.16.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
@@ -111,7 +112,6 @@ require (
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
