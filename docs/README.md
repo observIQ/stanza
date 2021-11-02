@@ -5,11 +5,7 @@
 
 We recommend using our single-line installer provided with each release:
 
-### Linux
-```shell
-sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download/unix-install.sh)" unix-install.sh
-```
-### macOS
+### Linux/macOS
 ```shell
 sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
@@ -19,6 +15,10 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 ```
 
 #### Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
+
+## Local File System Stanza Mirrior
+For Linux and macOS it is possible to run the script from a local mirror,  
+passing in the URL. See the [Local Mirror](MIRRORS.md) documentation.
 
 
 ## Running Stanza

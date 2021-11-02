@@ -135,14 +135,22 @@ Usage:
   $(fg_yellow '-v, --version')
       Defines the version of the agent.
       If not provided, this will default to the latest version.
+      Example: '-v 1.2.12' will download 1.2.12.
 
   $(fg_yellow '-i, --install-dir')
       Defines the install directory of the agent.
       If not provided, this will default to an OS specific location.
+      Example: '-i /mnt/agent/' will install to that directory.
 
   $(fg_yellow '-u, --service-user')
       Defines the service user that will run the agent as a service.
       If not provided, this will default to root.
+      Example: '-u agent' will run the script as user 'agent'.
+
+  $(fg_yellow '-l, --url')
+      Defines the URL that the components will be downloaded from.
+      If not provided, this will default to Stanza\'s GitHub releases.
+      Example: '-l http://my.domain.org/stanza' will download from there.
 
 EOF
   )
@@ -251,6 +259,8 @@ set_os()
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or STANZA_VERSION env variable.
 # If not specified, the version defaults to "latest".
+# 2021-11-02: Added the ability to specify URL to anything that cURL supports, so long as
+# it follows the directory structure paradigm.
 set_download_urls()
 {
   if [ -z "$version" ] ; then
@@ -258,12 +268,16 @@ set_download_urls()
     version=$STANZA_VERSION
   fi
 
+  if [ -z "$url" ] ; then
+    url=$DOWNLOAD_BASE
+  fi
+
   if [ -z "$version" ] ; then
-    agent_download_url="$DOWNLOAD_BASE/latest/download/${BINARY_NAME}_${os}_amd64"
-    plugins_download_url="$DOWNLOAD_BASE/latest/download/${PLUGINS_PACKAGE}"
+    agent_download_url="$url/latest/download/${BINARY_NAME}_${os}_amd64"
+    plugins_download_url="$url/latest/download/${PLUGINS_PACKAGE}"
   else
-    agent_download_url="$DOWNLOAD_BASE/download/$version/${BINARY_NAME}_${os}_amd64"
-    plugins_download_url="$DOWNLOAD_BASE/download/$version/${PLUGINS_PACKAGE}"
+    agent_download_url="$url/download/v$version/${BINARY_NAME}_${os}_amd64"
+    plugins_download_url="$url/download/v$version/${PLUGINS_PACKAGE}"
   fi
 }
 
@@ -1030,6 +1044,8 @@ main()
           install_dir=$2 ; shift 2 ;;
         -u|--service-user)
           service_user=$2 ; shift 2 ;;
+        -l|--url)
+          url=$2 ; shift 2 ;;
         -h|--help)
           usage
           force_exit

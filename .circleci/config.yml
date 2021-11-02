@@ -203,29 +203,29 @@ jobs:
       - codecov/upload:
           file: '**/coverage.txt'
 
-  test-linux-arm64:
-    machine:
-      image: ubuntu-2004:202101-01
-    resource_class: arm.large
-
-    steps:
-      - checkout
-      - run:
-          name: Download golang
-          command: curl -SL https://golang.org/dl/go1.17.1.linux-arm64.tar.gz -O
-      - run:
-          name: Extract golang
-          command: tar -C ~ -xzf go1.17.1.linux-arm64.tar.gz
-      - run:
-          name: Add Golang to Path
-          command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
-      - run:
-          # call go vet and go test directly, as `make test` will attempt
-          # to run with GOOS=windows GOARCH=arm64, which is an invalid combination
-          name: Run Unit Tests
-          command: go vet ./... && go test -race -coverprofile coverage.txt -coverpkg ./... ./...
-      - codecov/upload:
-          file: '**/coverage.txt'
+  #test-linux-arm64:
+  #  machine:
+  #    image: ubuntu-2004:202101-01
+  #  resource_class: arm.large
+  #
+  #  steps:
+  #    - checkout
+  #    - run:
+  #        name: Download golang
+  #        command: curl -SL https://golang.org/dl/go1.17.1.linux-arm64.tar.gz -O
+  #    - run:
+  #        name: Extract golang
+  #        command: tar -C ~ -xzf go1.17.1.linux-arm64.tar.gz
+  #    - run:
+  #        name: Add Golang to Path
+  #        command: echo 'export PATH=~/go/bin:$PATH' >> $BASH_ENV
+  #    - run:
+  #        # call go vet and go test directly, as `make test` will attempt
+  #        # to run with GOOS=windows GOARCH=arm64, which is an invalid combination
+  #        name: Run Unit Tests
+  #        command: go vet ./... && go test -race -coverprofile coverage.txt -coverpkg ./... ./...
+  #    - codecov/upload:
+  #        file: '**/coverage.txt'
 
   test-macos:
     executor: mac
@@ -517,10 +517,10 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*/
-      - test-linux-arm64:
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
+      #- test-linux-arm64:
+      #    filters:
+      #      tags:
+      #        only: /^v\d+\.\d+\.\d+.*/
       - test-macos:
           filters:
             tags:
@@ -550,7 +550,7 @@ workflows:
       - wait-for-validation:
           requires:
             - test-linux
-            - test-linux-arm64
+            #- test-linux-arm64
             - test-macos
             - test-windows
             - build
