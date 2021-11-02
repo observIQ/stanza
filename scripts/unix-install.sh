@@ -260,7 +260,7 @@ set_os()
 # These urls are constructed based on the --version flag or STANZA_VERSION env variable.
 # If not specified, the version defaults to "latest".
 # 2021-11-02: Added the ability to specify URL to anything that cURL supports, so long as
-# it follows the directory structer paradigm.
+# it follows the directory structure paradigm.
 set_download_urls()
 {
   if [ -z "$version" ] ; then
