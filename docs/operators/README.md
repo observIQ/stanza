@@ -21,6 +21,7 @@ Parsers:
 - [Syslog](/docs/operators/syslog_parser.md)
 - [Severity](/docs/operators/severity_parser.md)
 - [Time](/docs/operators/time_parser.md)
+- [XML](/docs/operators/xml_parser.md)
 
 Outputs:
 - [Google Cloud Logging](/docs/operators/google_cloud_output.md)
