@@ -1,23 +1,104 @@
 package xml
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/require"
 )
 
-func newTestParser(t *testing.T) *XMLParser {
-	config := NewXMLParserConfig("test")
-	ops, err := config.Build(testutil.NewBuildContext(t))
-	op := ops[0]
-	require.NoError(t, err)
-	return op.(*XMLParser)
+func TestParse(t *testing.T) {
+	testCases := []struct {
+		name           string
+		value          interface{}
+		expectedResult interface{}
+		expectedErr    error
+	}{
+		{
+			name:        "Empty string",
+			value:       "",
+			expectedErr: errors.New("failed to decode as xml"),
+		},
+		{
+			name:        "No nodes",
+			value:       "regular string",
+			expectedErr: errors.New("no xml nodes found"),
+		},
+		{
+			name:        "Non string value",
+			value:       5,
+			expectedErr: errors.New("value is not a string"),
+		},
+		{
+			name:        "Incomplete node",
+			value:       "<person age='30'>",
+			expectedErr: errors.New("failed to get next xml token"),
+		},
+		{
+			name:  "Single node",
+			value: "<person age='30'>Jon Smith</person>",
+			expectedResult: map[string]interface{}{
+				"type": "person",
+				"attributes": map[string]string{
+					"age": "30",
+				},
+				"value": "Jon Smith",
+			},
+		},
+		{
+			name:  "Multiple nodes",
+			value: "<person age='30'>Jon Smith</person><person age='28'>Sally Smith</person>",
+			expectedResult: []map[string]interface{}{
+				{
+					"type": "person",
+					"attributes": map[string]string{
+						"age": "30",
+					},
+					"value": "Jon Smith",
+				},
+				{
+					"type": "person",
+					"attributes": map[string]string{
+						"age": "28",
+					},
+					"value": "Sally Smith",
+				},
+			},
+		},
+		{
+			name:  "Children nodes",
+			value: "<worker><person age='30'>Jon Smith</person></worker>",
+			expectedResult: map[string]interface{}{
+				"type": "worker",
+				"children": []map[string]interface{}{
+					{
+						"type": "person",
+						"attributes": map[string]string{
+							"age": "30",
+						},
+						"value": "Jon Smith",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := parse(tc.value)
+			if tc.expectedErr != nil {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expectedResult, result)
+			}
+		})
+	}
 }
 
 func TestXMLParserConfigBuild(t *testing.T) {
@@ -36,186 +117,25 @@ func TestXMLParserConfigBuildFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid `on_error` field")
 }
 
-func TestXMLParserStringFailure(t *testing.T) {
-	parser := newTestParser(t)
-	_, err := parser.Parse("invalid")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "CharData does not belong to any child")
-}
-
-func TestXMLParserStringFailure_v2(t *testing.T) {
-	parser := newTestParser(t)
-	_, err := parser.Parse(`<bookstore></bookstore>`)
+func TestXMLPaserProcess(t *testing.T) {
+	config := NewXMLParserConfig("test")
+	ops, err := config.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
-	// require.Contains(t, err.Error(), "CharData does not belong to any child")
+
+	op := ops[0]
+	entry := &entry.Entry{
+		Record: "<test>test value</test>",
+	}
+
+	err = op.Process(context.Background(), entry)
+	require.NoError(t, err)
 }
 
-func TestXMLParserByteFailure(t *testing.T) {
-	parser := newTestParser(t)
-	_, err := parser.Parse([]byte("invalid"))
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Value is not a string")
+func TestXMLParserInitHook(t *testing.T) {
+	builderFunc, ok := operator.DefaultRegistry.Lookup("xml_parser")
+	require.True(t, ok)
+
+	config := builderFunc()
+	_, ok = config.(*XMLParserConfig)
+	require.True(t, ok)
 }
-
-func TestXMLParserInvalidType(t *testing.T) {
-	parser := newTestParser(t)
-	_, err := parser.Parse([]int{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Value is not a string")
-}
-
-func NewFakeXMLOperator() (*XMLParser, *testutil.Operator) {
-	mock := testutil.Operator{}
-	logger, _ := zap.NewProduction()
-	return &XMLParser{
-		ParserOperator: helper.ParserOperator{
-			TransformerOperator: helper.TransformerOperator{
-				WriterOperator: helper.WriterOperator{
-					BasicOperator: helper.BasicOperator{
-						OperatorID:    "test",
-						OperatorType:  "json_parser",
-						SugaredLogger: logger.Sugar(),
-					},
-					OutputOperators: []operator.Operator{&mock},
-				},
-			},
-			ParseFrom: entry.NewRecordField("testfield"),
-			ParseTo:   entry.NewRecordField("testparsed"),
-		},
-	}, &mock
-}
-
-func TestXMLImplementations(t *testing.T) {
-	require.Implements(t, (*operator.Operator)(nil), new(XMLParser))
-}
-
-// func TestXMLParser(t *testing.T) {
-// 	cases := []struct {
-// 		name           string
-// 		inputRecord    map[string]interface{}
-// 		expectedRecord map[string]interface{}
-// 		errorExpected  bool
-// 	}{
-// 		{
-// 			"simple",
-// 			map[string]interface{}{
-// 				"testfield": `{}`,
-// 			},
-// 			map[string]interface{}{
-// 				"testparsed": map[string]interface{}{},
-// 			},
-// 			false,
-// 		},
-// 		{
-// 			"nested",
-// 			map[string]interface{}{
-// 				"testfield": `{"superkey":"superval"}`,
-// 			},
-// 			map[string]interface{}{
-// 				"testparsed": map[string]interface{}{
-// 					"superkey": "superval",
-// 				},
-// 			},
-// 			false,
-// 		},
-// 	}
-
-// 	for _, tc := range cases {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			input := entry.New()
-// 			input.Record = tc.inputRecord
-
-// 			output := entry.New()
-// 			output.Record = tc.expectedRecord
-
-// 			parser, mockOutput := NewFakeXMLOperator()
-// 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-// 				e := args[1].(*entry.Entry)
-// 				require.Equal(t, tc.expectedRecord, e.Record)
-// 			}).Return(nil)
-
-// 			err := parser.Process(context.Background(), input)
-// 			require.NoError(t, err)
-// 		})
-// 	}
-// }
-
-// func TestXMLParserWithEmbeddedTimeParser(t *testing.T) {
-
-// 	testTime := time.Unix(1136214245, 0)
-
-// 	cases := []struct {
-// 		name           string
-// 		inputRecord    map[string]interface{}
-// 		expectedRecord map[string]interface{}
-// 		errorExpected  bool
-// 		preserveTo     *entry.Field
-// 	}{
-// 		{
-// 			"simple",
-// 			map[string]interface{}{
-// 				"testfield": `{"timestamp":1136214245}`,
-// 			},
-// 			map[string]interface{}{
-// 				"testparsed": map[string]interface{}{},
-// 			},
-// 			false,
-// 			nil,
-// 		},
-// 		{
-// 			"preserve",
-// 			map[string]interface{}{
-// 				"testfield": `{"timestamp":"1136214245"}`,
-// 			},
-// 			map[string]interface{}{
-// 				"testparsed":         map[string]interface{}{},
-// 				"original_timestamp": "1136214245",
-// 			},
-// 			false,
-// 			func() *entry.Field {
-// 				f := entry.NewRecordField("original_timestamp")
-// 				return &f
-// 			}(),
-// 		},
-// 		{
-// 			"nested",
-// 			map[string]interface{}{
-// 				"testfield": `{"superkey":"superval","timestamp":1136214245.123}`,
-// 			},
-// 			map[string]interface{}{
-// 				"testparsed": map[string]interface{}{
-// 					"superkey": "superval",
-// 				},
-// 			},
-// 			false,
-// 			nil,
-// 		},
-// 	}
-
-// 	for _, tc := range cases {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			input := entry.New()
-// 			input.Record = tc.inputRecord
-
-// 			output := entry.New()
-// 			output.Record = tc.expectedRecord
-
-// 			parser, mockOutput := NewFakeJSONOperator()
-// 			parseFrom := entry.NewRecordField("testparsed", "timestamp")
-// 			parser.ParserOperator.TimeParser = &helper.TimeParser{
-// 				ParseFrom:  &parseFrom,
-// 				LayoutType: "epoch",
-// 				Layout:     "s",
-// 				PreserveTo: tc.preserveTo,
-// 			}
-// 			mockOutput.On("Process", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-// 				e := args[1].(*entry.Entry)
-// 				require.Equal(t, tc.expectedRecord, e.Record)
-// 				require.Equal(t, testTime, e.Timestamp)
-// 			}).Return(nil)
-
-// 			err := parser.Process(context.Background(), input)
-// 			require.NoError(t, err)
-// 		})
-// 	}
-// }

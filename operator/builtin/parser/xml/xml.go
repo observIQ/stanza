@@ -1,7 +1,6 @@
 package xml
 
 import (
-	"bytes"
 	"context"
 	"encoding/xml"
 	"fmt"
@@ -17,19 +16,19 @@ func init() {
 	operator.Register("xml_parser", func() operator.Builder { return NewXMLParserConfig("") })
 }
 
-// NewXMLParserConfig creates a new JSON parser config with default values
+// NewXMLParserConfig creates a new XML parser config with default values
 func NewXMLParserConfig(operatorID string) *XMLParserConfig {
 	return &XMLParserConfig{
 		ParserConfig: helper.NewParserConfig(operatorID, "xml_parser"),
 	}
 }
 
-// XMLParserConfig is the configuration of a JSON parser operator.
+// XMLParserConfig is the configuration of an XML parser operator.
 type XMLParserConfig struct {
 	helper.ParserConfig `yaml:",inline"`
 }
 
-// Build will build a JSON parser operator.
+// Build will build an XML parser operator.
 func (c XMLParserConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	parserOperator, err := c.ParserConfig.Build(context)
 	if err != nil {
@@ -43,45 +42,31 @@ func (c XMLParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 	return []operator.Operator{xmlParser}, nil
 }
 
-// XMLParser is an operator that parses JSON.
+// XMLParser is an operator that parses XML.
 type XMLParser struct {
 	helper.ParserOperator
 }
 
-// Process will parse an entry for JSON.
+// Process will parse an entry for XML.
 func (x *XMLParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return x.ParserOperator.ProcessWith(ctx, entry, x.Parse)
+	return x.ParserOperator.ProcessWith(ctx, entry, parse)
 }
 
-// Document is the root level of an XML document
-type Document struct {
-	Nodes []*Node `json:"nodes"`
-}
-
-// Node represents an XML element
-type Node struct {
-	Type       string            `json:"type"`
-	Value      string            `json:"value,omitempty"`
-	Attributes map[string]string `json:"attributes,omitempty"`
-	Children   []*Node           `json:"children,omitempty"`
-	Parent     *Node             `json:"-"`
-}
-
-// Parse will parse an xml document
-func (x *XMLParser) Parse(value interface{}) (interface{}, error) {
+// parse will parse an xml value
+func parse(value interface{}) (interface{}, error) {
 	strValue, ok := value.(string)
 	if !ok {
-		return nil, fmt.Errorf("Value is not a string")
+		return nil, fmt.Errorf("value is not a string")
 	}
 
 	reader := strings.NewReader(strValue)
 	decoder := xml.NewDecoder(reader)
 	token, err := decoder.Token()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get decoder token: %w", err)
+		return nil, fmt.Errorf("failed to decode as xml: %w", err)
 	}
 
-	document := &Document{}
+	nodes := []*Node{}
 	var parent *Node
 	var child *Node
 
@@ -95,7 +80,7 @@ func (x *XMLParser) Parse(value interface{}) (interface{}, error) {
 			if parent != nil {
 				parent.Children = append(parent.Children, child)
 			} else {
-				document.Nodes = append(document.Nodes, child)
+				nodes = append(nodes, child)
 			}
 		case xml.EndElement:
 			child = parent
@@ -105,59 +90,21 @@ func (x *XMLParser) Parse(value interface{}) (interface{}, error) {
 		case xml.CharData:
 			if child != nil {
 				child.Value = getValue(token)
-			} else {
-				return nil, fmt.Errorf("CharData does not belong to any child")
 			}
 		}
 
 		token, err = decoder.Token()
 		if err != nil && err != io.EOF {
-			return nil, fmt.Errorf("failed to get next token: %w", err)
+			return nil, fmt.Errorf("failed to get next xml token: %w", err)
 		}
 	}
 
-	return document, nil
-}
-
-// newNode creates a new node for the given element
-func newNode(element xml.StartElement) *Node {
-	return &Node{
-		Type:       element.Name.Local,
-		Attributes: getAttributes(element),
+	switch len(nodes) {
+	case 0:
+		return nil, fmt.Errorf("no xml nodes found")
+	case 1:
+		return convertToMap(nodes[0]), nil
+	default:
+		return convertToMaps(nodes), nil
 	}
-}
-
-// getAttributes returns the attributes of the given element
-func getAttributes(element xml.StartElement) map[string]string {
-	if len(element.Attr) == 0 {
-		return nil
-	}
-
-	attributes := map[string]string{}
-	for _, attr := range element.Attr {
-		key := attr.Name.Local
-		attributes[key] = attr.Value
-	}
-
-	return attributes
-}
-
-// getValue returns value of the given char data
-func getValue(data xml.CharData) string {
-	return string(bytes.TrimSpace(data))
-}
-
-// getNumOfElements returns the num of XML elements currently stored in an array of Nodes
-func getNumOfElements(nodes []*Node) int {
-	sum := 0
-
-	if len(nodes) == 0 {
-		return 0
-	}
-
-	for _, i := range nodes {
-		sum += 1 + getNumOfElements(i.Children)
-	}
-
-	return sum
 }
