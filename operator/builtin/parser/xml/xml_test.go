@@ -71,16 +71,21 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:  "Children nodes",
-			value: "<worker><person age='30'>Jon Smith</person></worker>",
+			value: "<office><worker><person age='30'>Jon Smith</person></worker></office>",
 			expectedResult: map[string]interface{}{
-				"type": "worker",
+				"type": "office",
 				"children": []map[string]interface{}{
 					{
-						"type": "person",
-						"attributes": map[string]string{
-							"age": "30",
+						"type": "worker",
+						"children": []map[string]interface{}{
+							{
+								"type": "person",
+								"attributes": map[string]string{
+									"age": "30",
+								},
+								"value": "Jon Smith",
+							},
 						},
-						"value": "Jon Smith",
 					},
 				},
 			},
