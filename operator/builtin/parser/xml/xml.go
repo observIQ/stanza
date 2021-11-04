@@ -50,7 +50,7 @@ type XMLParser struct {
 
 // Process will parse an entry for JSON.
 func (x *XMLParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return x.ParserOperator.ProcessWith(ctx, entry, Parse)
+	return x.ParserOperator.ProcessWith(ctx, entry, x.Parse)
 }
 
 // Document is the root level of an XML document
@@ -68,7 +68,7 @@ type Node struct {
 }
 
 // Parse will parse an xml document
-func Parse(value interface{}) (interface{}, error) {
+func (x *XMLParser) Parse(value interface{}) (interface{}, error) {
 	strValue, ok := value.(string)
 	if !ok {
 		return nil, fmt.Errorf("Value is not a string")
@@ -105,6 +105,8 @@ func Parse(value interface{}) (interface{}, error) {
 		case xml.CharData:
 			if child != nil {
 				child.Value = getValue(token)
+			} else {
+				return nil, fmt.Errorf("CharData does not belong to any child")
 			}
 		}
 
