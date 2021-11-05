@@ -49,11 +49,11 @@ Configuration:
 {
   "timestamp": "",
   "record": {
-    "type": "person",
+    "tag": "person",
     "attributes": {
       "age": "30"
     },
-    "value": "Jon Smith"
+    "content": "Jon Smith"
   }
 }
 ```
@@ -92,18 +92,18 @@ Configuration:
   "timestamp": "",
   "record": [
     {
-    "type": "person",
+    "tag": "person",
     "attributes": {
       "age": "30"
     },
-    "value": "Jon Smith"
+    "content": "Jon Smith"
     },
     {
-    "type": "person",
+    "tag": "person",
     "attributes": {
       "age": "28"
     },
-    "value": "Sally Smith"
+    "content": "Sally Smith"
     }
   ]
 }
@@ -138,14 +138,14 @@ Configuration:
 {
   "timestamp": "",
   "record": {
-    "type": "worker",
+    "tag": "worker",
     "children": [
       {
-        "type": "person",
+        "tag": "person",
         "attributes": {
           "age": "30"
         },
-        "value": "Jon Smith"
+        "content": "Jon Smith"
       }
     ]
   }

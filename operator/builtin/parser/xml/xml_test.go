@@ -24,9 +24,9 @@ func TestParse(t *testing.T) {
 			expectedErr: errors.New("failed to decode as xml"),
 		},
 		{
-			name:        "No nodes",
+			name:        "No elements",
 			value:       "regular string",
-			expectedErr: errors.New("no xml nodes found"),
+			expectedErr: errors.New("no xml elements found"),
 		},
 		{
 			name:        "Non string value",
@@ -34,56 +34,56 @@ func TestParse(t *testing.T) {
 			expectedErr: errors.New("value is not a string"),
 		},
 		{
-			name:        "Incomplete node",
+			name:        "Incomplete element",
 			value:       "<person age='30'>",
 			expectedErr: errors.New("failed to get next xml token"),
 		},
 		{
-			name:  "Single node",
+			name:  "Single element",
 			value: "<person age='30'>Jon Smith</person>",
 			expectedResult: map[string]interface{}{
-				"type": "person",
+				"tag": "person",
 				"attributes": map[string]string{
 					"age": "30",
 				},
-				"value": "Jon Smith",
+				"content": "Jon Smith",
 			},
 		},
 		{
-			name:  "Multiple nodes",
+			name:  "Multiple elements",
 			value: "<person age='30'>Jon Smith</person><person age='28'>Sally Smith</person>",
 			expectedResult: []map[string]interface{}{
 				{
-					"type": "person",
+					"tag": "person",
 					"attributes": map[string]string{
 						"age": "30",
 					},
-					"value": "Jon Smith",
+					"content": "Jon Smith",
 				},
 				{
-					"type": "person",
+					"tag": "person",
 					"attributes": map[string]string{
 						"age": "28",
 					},
-					"value": "Sally Smith",
+					"content": "Sally Smith",
 				},
 			},
 		},
 		{
-			name:  "Children nodes",
+			name:  "Child elements",
 			value: "<office><worker><person age='30'>Jon Smith</person></worker></office>",
 			expectedResult: map[string]interface{}{
-				"type": "office",
+				"tag": "office",
 				"children": []map[string]interface{}{
 					{
-						"type": "worker",
+						"tag": "worker",
 						"children": []map[string]interface{}{
 							{
-								"type": "person",
+								"tag": "person",
 								"attributes": map[string]string{
 									"age": "30",
 								},
-								"value": "Jon Smith",
+								"content": "Jon Smith",
 							},
 						},
 					},

@@ -66,21 +66,21 @@ func parse(value interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("failed to decode as xml: %w", err)
 	}
 
-	nodes := []*Node{}
-	var parent *Node
-	var child *Node
+	elements := []*Element{}
+	var parent *Element
+	var child *Element
 
 	for token != nil {
 		switch token := token.(type) {
 		case xml.StartElement:
 			parent = child
-			child = newNode(token)
+			child = newElement(token)
 			child.Parent = parent
 
 			if parent != nil {
 				parent.Children = append(parent.Children, child)
 			} else {
-				nodes = append(nodes, child)
+				elements = append(elements, child)
 			}
 		case xml.EndElement:
 			child = parent
@@ -89,7 +89,7 @@ func parse(value interface{}) (interface{}, error) {
 			}
 		case xml.CharData:
 			if child != nil {
-				child.Value = getValue(token)
+				child.Content = getValue(token)
 			}
 		}
 
@@ -99,12 +99,12 @@ func parse(value interface{}) (interface{}, error) {
 		}
 	}
 
-	switch len(nodes) {
+	switch len(elements) {
 	case 0:
-		return nil, fmt.Errorf("no xml nodes found")
+		return nil, fmt.Errorf("no xml elements found")
 	case 1:
-		return convertToMap(nodes[0]), nil
+		return convertToMap(elements[0]), nil
 	default:
-		return convertToMaps(nodes), nil
+		return convertToMaps(elements), nil
 	}
 }
