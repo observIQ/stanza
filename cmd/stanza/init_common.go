@@ -24,6 +24,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/parser/syslog"
 	_ "github.com/observiq/stanza/operator/builtin/parser/time"
 	_ "github.com/observiq/stanza/operator/builtin/parser/uri"
+	_ "github.com/observiq/stanza/operator/builtin/parser/xml"
 
 	_ "github.com/observiq/stanza/operator/builtin/transformer/add"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/copy"
