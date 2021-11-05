@@ -56,7 +56,7 @@ func (x *XMLParser) Process(ctx context.Context, entry *entry.Entry) error {
 func parse(value interface{}) (interface{}, error) {
 	strValue, ok := value.(string)
 	if !ok {
-		return nil, fmt.Errorf("value is not a string")
+		return nil, fmt.Errorf("value passed to parser is not a string")
 	}
 
 	reader := strings.NewReader(strValue)
@@ -68,28 +68,28 @@ func parse(value interface{}) (interface{}, error) {
 
 	elements := []*Element{}
 	var parent *Element
-	var child *Element
+	var current *Element
 
 	for token != nil {
 		switch token := token.(type) {
 		case xml.StartElement:
-			parent = child
-			child = newElement(token)
-			child.Parent = parent
+			parent = current
+			current = newElement(token)
+			current.Parent = parent
 
 			if parent != nil {
-				parent.Children = append(parent.Children, child)
+				parent.Children = append(parent.Children, current)
 			} else {
-				elements = append(elements, child)
+				elements = append(elements, current)
 			}
 		case xml.EndElement:
-			child = parent
+			current = parent
 			if parent != nil {
 				parent = parent.Parent
 			}
 		case xml.CharData:
-			if child != nil {
-				child.Content = getValue(token)
+			if current != nil {
+				current.Content = getValue(token)
 			}
 		}
 

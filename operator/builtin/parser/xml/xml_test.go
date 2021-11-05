@@ -31,7 +31,7 @@ func TestParse(t *testing.T) {
 		{
 			name:        "Non string value",
 			value:       5,
-			expectedErr: errors.New("value is not a string"),
+			expectedErr: errors.New("value passed to parser is not a string"),
 		},
 		{
 			name:        "Incomplete element",
@@ -52,6 +52,11 @@ func TestParse(t *testing.T) {
 			name:        "Invalid attribute",
 			value:       "<person age=30></person>",
 			expectedErr: errors.New("unquoted or missing attribute value in element"),
+		},
+		{
+			name:        "Not matching element",
+			value:       "<person age='30'></dog>",
+			expectedErr: errors.New("element <person> closed by </dog>"),
 		},
 		{
 			name:  "Single element",
