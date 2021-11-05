@@ -39,6 +39,21 @@ func TestParse(t *testing.T) {
 			expectedErr: errors.New("failed to get next xml token"),
 		},
 		{
+			name:        "Invalid start character",
+			value:       "person age='30'></person>",
+			expectedErr: errors.New("failed to get next xml token"),
+		},
+		{
+			name:        "Invalid end character",
+			value:       "<person age='30'></person",
+			expectedErr: errors.New("failed to get next xml token"),
+		},
+		{
+			name:        "Invalid attribute",
+			value:       "<person age=30></person>",
+			expectedErr: errors.New("unquoted or missing attribute value in element"),
+		},
+		{
 			name:  "Single element",
 			value: "<person age='30'>Jon Smith</person>",
 			expectedResult: map[string]interface{}{
