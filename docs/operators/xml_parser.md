@@ -154,6 +154,10 @@ Configuration:
 }
 ```
 
+</td>
+</tr>
+</table>
+
 #### Parse embedded xml elements
 
 Configuration:
@@ -196,3 +200,6 @@ Configuration:
   }
 }
 ```
+</td>
+</tr>
+</table>
