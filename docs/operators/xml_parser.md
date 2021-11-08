@@ -13,6 +13,7 @@ The `xml_parser` operator parses the string-type field selected by `parse_from` 
 | `preserve_to` |                  | Preserves the unparsed value at the specified [field](/docs/types/field.md)                                                                                                                                                              |
 | `on_error`    | `send`           | The behavior of the operator if it encounters an error. See [on_error](/docs/types/on_error.md)                                                                                                                                          |
 | `if`          |                  | An [expression](/docs/types/expression.md) that, when set, will be evaluated to determine whether this operator should be used for the given entry. This allows you to do easy conditional parsing without branching logic with routers. |
+| `strict`      |      `true`      | A boolean value that sets the xml.Decoder.Strict field of the parser. When not configured, value is defaulted to true |
 | `timestamp`   | `nil`            | An optional [timestamp](/docs/types/timestamp.md) block which will parse a timestamp field before passing the entry to the output operator                                                                                               |
 | `severity`    | `nil`            | An optional [severity](/docs/types/severity.md) block which will parse a severity field before passing the entry to the output operator                                                                                                  |
 
@@ -52,6 +53,45 @@ Configuration:
     "tag": "person",
     "attributes": {
       "age": "30"
+    },
+    "content": "Jon Smith"
+  }
+}
+```
+
+#### Parse the field `message` as XML WITHOUT strict
+
+Configuration:
+```yaml
+- type: xml_parser
+  parse_from: message
+  strict : false
+```
+
+<table>
+<tr><td> Input record </td> <td> Output record </td></tr>
+<tr>
+<td>
+
+```json
+{
+  "timestamp": "",
+  "record": {
+    "message": "<person company='at&t'>Jon Smith</person>"
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "timestamp": "",
+  "record": {
+    "tag": "person",
+    "attributes": {
+      "company": "at&t"
     },
     "content": "Jon Smith"
   }

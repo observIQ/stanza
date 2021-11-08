@@ -12,9 +12,12 @@ import (
 )
 
 func TestParse(t *testing.T) {
+	var disabled bool = false
+
 	testCases := []struct {
 		name           string
 		value          interface{}
+		strict         *bool
 		expectedResult interface{}
 		expectedErr    error
 	}{
@@ -70,6 +73,18 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:   "Special character without strict",
+			value:  "<person company='at&t'>Jon Smith</person>",
+			strict: &disabled,
+			expectedResult: map[string]interface{}{
+				"tag": "person",
+				"attributes": map[string]string{
+					"company": "at&t",
+				},
+				"content": "Jon Smith",
+			},
+		},
+		{
 			name:  "Multiple elements",
 			value: "<person age='30'>Jon Smith</person><person age='28'>Sally Smith</person>",
 			expectedResult: []map[string]interface{}{
@@ -114,7 +129,15 @@ func TestParse(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := parse(tc.value)
+			config := NewXMLParserConfig("test")
+			config.Strict = tc.strict
+
+			ops, err := config.Build(testutil.NewBuildContext(t))
+			op := ops[0]
+			parser, ok := op.(*XMLParser)
+			require.True(t, ok)
+
+			result, err := parser.parse(tc.value)
 			if tc.expectedErr != nil {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr.Error())
