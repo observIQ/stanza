@@ -59,6 +59,11 @@ Configuration:
 }
 ```
 
+
+</td>
+</tr>
+</table>
+
 #### Parse the field `message` as XML WITHOUT strict
 
 Configuration:
