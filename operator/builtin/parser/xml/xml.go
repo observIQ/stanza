@@ -26,6 +26,7 @@ func NewXMLParserConfig(operatorID string) *XMLParserConfig {
 // XMLParserConfig is the configuration of an XML parser operator.
 type XMLParserConfig struct {
 	helper.ParserConfig `yaml:",inline"`
+	Strict              *bool `yaml:"strict,omitempty"`
 }
 
 // Build will build an XML parser operator.
@@ -35,8 +36,14 @@ func (c XMLParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 		return nil, err
 	}
 
+	strict := true
+	if c.Strict != nil {
+		strict = *c.Strict
+	}
+
 	xmlParser := &XMLParser{
 		ParserOperator: parserOperator,
+		strict:         strict,
 	}
 
 	return []operator.Operator{xmlParser}, nil
@@ -45,15 +52,16 @@ func (c XMLParserConfig) Build(context operator.BuildContext) ([]operator.Operat
 // XMLParser is an operator that parses XML.
 type XMLParser struct {
 	helper.ParserOperator
+	strict bool
 }
 
 // Process will parse an entry for XML.
 func (x *XMLParser) Process(ctx context.Context, entry *entry.Entry) error {
-	return x.ParserOperator.ProcessWith(ctx, entry, parse)
+	return x.ParserOperator.ProcessWith(ctx, entry, x.parse)
 }
 
 // parse will parse an xml value
-func parse(value interface{}) (interface{}, error) {
+func (x *XMLParser) parse(value interface{}) (interface{}, error) {
 	strValue, ok := value.(string)
 	if !ok {
 		return nil, fmt.Errorf("value passed to parser is not a string")
@@ -61,6 +69,7 @@ func parse(value interface{}) (interface{}, error) {
 
 	reader := strings.NewReader(strValue)
 	decoder := xml.NewDecoder(reader)
+	decoder.Strict = x.strict
 	token, err := decoder.Token()
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode as xml: %w", err)
