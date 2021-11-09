@@ -12,7 +12,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	var disabled bool = false
+	var strictDisabled bool = false
 
 	testCases := []struct {
 		name           string
@@ -75,7 +75,7 @@ func TestParse(t *testing.T) {
 		{
 			name:   "Special character without strict",
 			value:  "<person company='at&t'>Jon Smith</person>",
-			strict: &disabled,
+			strict: &strictDisabled,
 			expectedResult: map[string]interface{}{
 				"tag": "person",
 				"attributes": map[string]string{
