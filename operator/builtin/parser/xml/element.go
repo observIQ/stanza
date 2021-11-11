@@ -9,7 +9,7 @@ import (
 type Element struct {
 	Tag        string
 	Content    string
-	Attributes map[string]string
+	Attributes map[string]interface{}
 	Children   []*Element
 	Parent     *Element
 }
@@ -53,12 +53,12 @@ func newElement(element xml.StartElement) *Element {
 }
 
 // getAttributes returns the attributes of the given element
-func getAttributes(element xml.StartElement) map[string]string {
+func getAttributes(element xml.StartElement) map[string]interface{} {
 	if len(element.Attr) == 0 {
 		return nil
 	}
 
-	attributes := map[string]string{}
+	attributes := map[string]interface{}{}
 	for _, attr := range element.Attr {
 		key := attr.Name.Local
 		attributes[key] = attr.Value
