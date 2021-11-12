@@ -66,7 +66,7 @@ func TestParse(t *testing.T) {
 			value: "<person age='30'>Jon Smith</person>",
 			expectedResult: map[string]interface{}{
 				"tag": "person",
-				"attributes": map[string]string{
+				"attributes": map[string]interface{}{
 					"age": "30",
 				},
 				"content": "Jon Smith",
@@ -78,7 +78,7 @@ func TestParse(t *testing.T) {
 			strict: &strictDisabled,
 			expectedResult: map[string]interface{}{
 				"tag": "person",
-				"attributes": map[string]string{
+				"attributes": map[string]interface{}{
 					"company": "at&t",
 				},
 				"content": "Jon Smith",
@@ -90,14 +90,14 @@ func TestParse(t *testing.T) {
 			expectedResult: []map[string]interface{}{
 				{
 					"tag": "person",
-					"attributes": map[string]string{
+					"attributes": map[string]interface{}{
 						"age": "30",
 					},
 					"content": "Jon Smith",
 				},
 				{
 					"tag": "person",
-					"attributes": map[string]string{
+					"attributes": map[string]interface{}{
 						"age": "28",
 					},
 					"content": "Sally Smith",
@@ -115,7 +115,7 @@ func TestParse(t *testing.T) {
 						"children": []map[string]interface{}{
 							{
 								"tag": "person",
-								"attributes": map[string]string{
+								"attributes": map[string]interface{}{
 									"age": "30",
 								},
 								"content": "Jon Smith",

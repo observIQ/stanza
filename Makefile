@@ -18,6 +18,7 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
 	cd $(TOOLS_MOD_DIR) && go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench
+	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec@v2.8.1
 
 .PHONY: scan-license
 scan-license: build-all
@@ -77,6 +78,10 @@ vet: check-missing-modules
 	GOOS=darwin $(MAKE) for-all CMD="go vet ./..."
 	GOOS=linux $(MAKE) for-all CMD="go vet ./..."
 	GOOS=windows $(MAKE) for-all CMD="go vet ./..."
+
+.PHONY: secure
+secure:
+	gosec ./...
 
 .PHONY: check-missing-modules
 check-missing-modules:

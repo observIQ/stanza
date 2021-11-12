@@ -155,12 +155,8 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 			f, err := os.Create(flags.CPUProfile)
 			if err != nil {
 				logger.Errorw("Failed to create CPU profile", zap.Error(err))
+				return
 			}
-			defer func() {
-				if err := f.Close(); err != nil {
-					logger.Errorf(err.Error())
-				}
-			}()
 
 			if err := pprof.StartCPUProfile(f); err != nil {
 				log.Fatal("could not start CPU profile: ", err)
@@ -171,6 +167,12 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 			case <-time.After(flags.CPUProfileDuration):
 			}
 			pprof.StopCPUProfile()
+
+			if f != nil {
+				if err := f.Close(); err != nil { // #nosec G307
+					logger.Errorf(err.Error())
+				}
+			}
 		}()
 	}
 
@@ -189,15 +191,16 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 			if err != nil {
 				logger.Errorw("Failed to create memory profile", zap.Error(err))
 			}
-			defer func() {
-				if err := f.Close(); err != nil {
-					logger.Errorw("Failed to close file", zap.Error(err))
-				}
-			}()
 
 			runtime.GC() // get up-to-date statistics
 			if err := pprof.WriteHeapProfile(f); err != nil {
 				log.Fatal("could not write memory profile: ", err)
+			}
+
+			if f != nil {
+				if err := f.Close(); err != nil {
+					logger.Errorw("Failed to close file", zap.Error(err))
+				}
 			}
 		}()
 	}
