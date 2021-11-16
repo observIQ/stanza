@@ -45,6 +45,8 @@ require (
 	k8s.io/client-go v0.22.2
 )
 
+require gopkg.in/natefinch/lumberjack.v2 v2.0.0
+
 require (
 	cloud.google.com/go v0.88.0 // indirect
 	github.com/Azure/azure-amqp-common-go/v3 v3.0.1 // indirect

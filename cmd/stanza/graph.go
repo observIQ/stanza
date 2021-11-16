@@ -9,7 +9,6 @@ import (
 	"github.com/observiq/stanza/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // GraphFlags are the flags that can be supplied when running the graph command
@@ -28,43 +27,38 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 }
 
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
-	var sugaredLogger *zap.SugaredLogger
-	if flags.Debug {
-		sugaredLogger = newDefaultLoggerAt(zapcore.DebugLevel, "")
-	} else {
-		sugaredLogger = newDefaultLoggerAt(zapcore.InfoLevel, "")
-	}
+	logger := newLogger(*flags).Sugar()
 	defer func() {
-		_ = sugaredLogger.Sync()
+		_ = logger.Sync()
 	}()
 
 	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
 	if err != nil {
-		sugaredLogger.Errorw("Failed to read configs from glob", zap.Any("error", err))
+		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	if errs := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); len(errs) != 0 {
-		sugaredLogger.Errorw("Got errors parsing parsing", "errors", err)
+		logger.Errorw("Got errors parsing parsing", "errors", err)
 	}
 
-	buildContext := operator.NewBuildContext(database.NewStubDatabase(), sugaredLogger)
+	buildContext := operator.NewBuildContext(database.NewStubDatabase(), logger)
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
 	if err != nil {
-		sugaredLogger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
+		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	dotGraph, err := pipeline.Render()
 	if err != nil {
-		sugaredLogger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
+		logger.Errorw("Failed to marshal dot graph", zap.Any("error", err))
 		os.Exit(1)
 	}
 
 	dotGraph = append(dotGraph, '\n')
 	_, err = stdout.Write(dotGraph)
 	if err != nil {
-		sugaredLogger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))
+		logger.Errorw("Failed to write dot graph to stdout", zap.Any("error", err))
 		os.Exit(1)
 	}
 }

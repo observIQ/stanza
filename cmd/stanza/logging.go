@@ -1,64 +1,85 @@
 package main
 
 import (
-	"net/url"
+	"io"
 	"os"
-	"path/filepath"
-	"runtime"
-	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func init() {
-	registerWindowsSink()
-}
-
-func newDefaultLoggerAt(level zapcore.Level, path string) *zap.SugaredLogger {
-	logCfg := zap.NewProductionConfig()
-	logCfg.Level = zap.NewAtomicLevelAt(level)
-	logCfg.Sampling = nil
-	logCfg.EncoderConfig.CallerKey = ""
-	logCfg.EncoderConfig.StacktraceKey = ""
-	logCfg.EncoderConfig.TimeKey = "timestamp"
-	logCfg.EncoderConfig.MessageKey = "message"
-	logCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	if path != "" {
-		logCfg.OutputPaths = []string{pathToURI(path)}
+// newLogger creates a logger from the supplied flags.
+// If the flags do not specify a log file, the logger will default to stdout.
+func newLogger(flags RootFlags) *zap.Logger {
+	if flags.LogFile == "" {
+		return newStdLogger(flags)
 	}
 
-	baseLogger, err := logCfg.Build()
-	if err != nil {
-		panic(err)
-	}
-	return baseLogger.Sugar()
+	return newFileLogger(flags)
 }
 
-func pathToURI(path string) string {
-	switch runtime.GOOS {
-	case "windows":
-		return "winfile:///" + filepath.ToSlash(path)
+// newFileLogger creates a new logger that writes to a file
+func newFileLogger(flags RootFlags) *zap.Logger {
+	writer := &lumberjack.Logger{
+		Filename:   flags.LogFile,
+		MaxSize:    flags.MaxLogSize,
+		MaxBackups: flags.MaxLogBackups,
+		MaxAge:     flags.MaxLogAge,
+	}
+
+	zapLevel := getZapLevel(flags.LogLevel)
+	core := newWriterCore(writer, zapLevel)
+	return zap.New(core)
+}
+
+// newStdLogger creates a new logger that writes to stdout
+func newStdLogger(flags RootFlags) *zap.Logger {
+	zapLevel := getZapLevel(flags.LogLevel)
+	core := newStdCore(zapLevel)
+	return zap.New(core)
+}
+
+// newWriterCore returns a new core for logging to an io.Writer
+func newWriterCore(writer io.Writer, level zapcore.Level) zapcore.Core {
+	encoder := defaultEncoder()
+	syncer := zapcore.AddSync(writer)
+	return zapcore.NewCore(encoder, syncer, level)
+}
+
+// newStdCore creates a new core for logging to stdout.
+func newStdCore(level zapcore.Level) zapcore.Core {
+	encoder := defaultEncoder()
+	syncer := zapcore.Lock(os.Stdout)
+	return zapcore.NewCore(encoder, syncer, level)
+}
+
+// defaultEncoder returns the default encoder for logging
+func defaultEncoder() zapcore.Encoder {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.TimeKey = "timestamp"
+	encoderConfig.MessageKey = "message"
+	return zapcore.NewJSONEncoder(encoderConfig)
+}
+
+// getZapLevel gets the zap level for the supplied string
+// If the string does not match a known value, this will default to InfoLevel
+func getZapLevel(level string) zapcore.Level {
+	switch string(level) {
+	case "debug", "DEBUG":
+		return zapcore.DebugLevel
+	case "info", "INFO":
+		return zapcore.InfoLevel
+	case "warn", "WARN":
+		return zapcore.WarnLevel
+	case "error", "ERROR":
+		return zapcore.ErrorLevel
+	case "panic", "PANIC":
+		return zapcore.PanicLevel
+	case "fatal", "FATAL":
+		return zapcore.FatalLevel
 	default:
-		return filepath.ToSlash(path)
+		return zapcore.InfoLevel
 	}
-}
-
-var registerSyncsOnce sync.Once
-
-func registerWindowsSink() {
-	registerSyncsOnce.Do(func() {
-		if runtime.GOOS == "windows" {
-			err := zap.RegisterSink("winfile", newWinFileSink)
-			if err != nil {
-				panic(err)
-			}
-		}
-	})
-}
-
-func newWinFileSink(u *url.URL) (zap.Sink, error) {
-	// Ensure permissions restrict access to the running user only
-	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
 }
