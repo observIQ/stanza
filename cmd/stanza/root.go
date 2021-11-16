@@ -35,6 +35,7 @@ type RootFlags struct {
 	MaxLogSize    int
 	MaxLogBackups int
 	MaxLogAge     int
+	Debug         bool
 }
 
 // NewRootCmd will return a root level command
@@ -55,6 +56,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet.IntVar(&rootFlags.MaxLogSize, "max_log_size", 10, "sets the maximum size of agent log files in MB before rotating")
 	rootFlagSet.IntVar(&rootFlags.MaxLogBackups, "max_log_backups", 5, "sets the maximum number of rotated log files to retain")
 	rootFlagSet.IntVar(&rootFlags.MaxLogAge, "max_log_age", 7, "sets the maximum number of days to retain a rotated log file")
+	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging flag - deprecated")
 
 	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{defaultConfig()}, "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")

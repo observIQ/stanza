@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added agent log file rotation [PR488](https://github.com/observIQ/stanza/pull/488)
 - Added flags `--max_log_size`, `--max_log_age`, and `--max_log_backups` [PR488](https://github.com/observIQ/stanza/pull/488)
 
-### Removed
+### Changed
 
-- Replaced `--debug` flag with a more explicit `--log_level` flag [PR488](https://github.com/observIQ/stanza/pull/488)
+- Deprecated the `--debug` flag in favor of the `--log_level` flag [PR488](https://github.com/observIQ/stanza/pull/488)
 
 ## 1.3.0
 
