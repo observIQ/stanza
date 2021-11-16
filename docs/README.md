@@ -55,11 +55,14 @@ If you'd like to run the agent manually rather than as a service, you can do tha
 stanza
 
 # Supported flags:
---config      The location of the agent config file (default: ./config.yaml)
---plugin_dir  The location of the plugins directory (default: ./plugins)
---database    The location of the offsets database file. If this is not specified, offsets will not be maintained across agent restarts
---log_file    The location of the agent log file. If not specified, stanza will log to `stderr`
---debug       Enables debug logging
+--config          The location of the agent config file (default: ./config.yaml)
+--plugin_dir      The location of the plugins directory (default: ./plugins)
+--database        The location of the offsets database file. If this is not specified, offsets will not be maintained across agent restarts
+--log_level       The log level of the agent logger (default: INFO)
+--log_file        The location of the agent log file. If not specified, stanza will log to `stdout`
+--max_log_size    The maximum size of the agent log file in MB before rotating (default: 10)
+--max_log_backups The maximum number of agent log files to retain when rotating (default: 5)
+--max_log_age     The maximum number of days to retain a rotated agent log file (default: 7)
 ```
 
 
