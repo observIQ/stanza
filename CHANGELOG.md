@@ -8,7 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the `xml_parser`
+- Added agent log file rotation
+- Added flags `--max_log_size`, `--max_log_age`, and `--max_log_backups`
+
+### Removed
+
+- Replaced `--debug` flag with a more explicit `--log_level` flag
+
+## 1.3.0
+
+### Added
+
+- Added the `xml_parser` operator [PR482](https://github.com/observIQ/stanza/pull/472)
 
 ## 1.2.13 - 2021-10-29
 
