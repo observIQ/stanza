@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/operator"
 )
 
 // Buffer is an interface for an entry buffer

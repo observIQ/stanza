@@ -10,6 +10,7 @@ ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 FIELDALIGNMENT_DIRS := ./...
 
+# TOOLS_MOD_DIR is an empty directory so go install doesn't conflict with the go.mod file
 TOOLS_MOD_DIR := ./internal/tools
 .PHONY: install-tools
 install-tools:

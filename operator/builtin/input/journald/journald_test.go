@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package journald
@@ -10,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )

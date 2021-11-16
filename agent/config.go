@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/observiq/stanza/pipeline"
+	"github.com/observiq/stanza/v2/pipeline"
 	yaml "gopkg.in/yaml.v2"
 )
 

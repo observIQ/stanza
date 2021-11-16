@@ -2,15 +2,15 @@ package k8smetadata
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
-	"net/url"
-	"net/http"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/errors"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/operator/helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -121,8 +121,8 @@ func (k *K8sMetadataDecorator) Start() error {
 		)
 	}
 
-	if ! k.allowProxy {
-		config.Proxy = func (*http.Request) (*url.URL, error) {
+	if !k.allowProxy {
+		config.Proxy = func(*http.Request) (*url.URL, error) {
 			return nil, nil
 		}
 	}

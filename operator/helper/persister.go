@@ -3,7 +3,7 @@ package helper
 import (
 	"sync"
 
-	"github.com/observiq/stanza/database"
+	"github.com/observiq/stanza/v2/database"
 	"go.etcd.io/bbolt"
 )
 

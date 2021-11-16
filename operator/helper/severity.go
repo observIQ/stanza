@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/errors"
 )
 
 // SeverityParser is a helper that parses severity onto an entry.

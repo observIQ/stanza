@@ -9,9 +9,9 @@ import (
 	sl "github.com/observiq/go-syslog/v3"
 	"github.com/observiq/go-syslog/v3/rfc3164"
 	"github.com/observiq/go-syslog/v3/rfc5424"
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/operator/helper"
 )
 
 func init() {

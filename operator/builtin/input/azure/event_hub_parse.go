@@ -6,7 +6,7 @@ import (
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
 	"github.com/mitchellh/mapstructure"
-	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/v2/entry"
 )
 
 // ParseEvent parses an Azure Event Hub event as an Entry.

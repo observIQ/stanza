@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/operator/helper"
 	"go.uber.org/zap"
 )
 

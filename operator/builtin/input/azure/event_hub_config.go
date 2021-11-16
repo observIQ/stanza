@@ -3,8 +3,8 @@ package azure
 import (
 	"fmt"
 
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/operator/helper"
 )
 
 // AzureConfig is the configuration of a Azure Event Hub input operator.

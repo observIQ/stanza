@@ -4,9 +4,9 @@ import (
 	"context"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/builtin/input/azure"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/operator/builtin/input/azure"
+	"github.com/observiq/stanza/v2/operator/helper"
 )
 
 const operatorName = "azure_log_analytics_input"

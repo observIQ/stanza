@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/v2/errors"
+	"github.com/observiq/stanza/v2/operator"
 )
 
 // NewOutputConfig creates a new output config

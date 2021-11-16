@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/helper"
 )
 
 type Persister struct {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-event-hubs-go/v3/persist"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/helper"
 )
 
 // Persister implements persist.CheckpointPersister

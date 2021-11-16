@@ -1,7 +1,7 @@
 package googlecloud
 
 import (
-	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/v2/entry"
 	sev "google.golang.org/genproto/googleapis/logging/type"
 )
 

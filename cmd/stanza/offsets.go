@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/observiq/stanza/database"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/database"
+	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"

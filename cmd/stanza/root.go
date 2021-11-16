@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/observiq/stanza/agent"
+	agent "github.com/observiq/stanza/v2/agent"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )

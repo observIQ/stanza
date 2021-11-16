@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/observiq/stanza/logger"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/v2/logger"
+	"github.com/observiq/stanza/v2/operator"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"

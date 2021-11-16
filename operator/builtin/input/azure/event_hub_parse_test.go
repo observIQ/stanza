@@ -5,7 +5,7 @@ import (
 	"time"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/v2/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,7 +77,7 @@ func TestParseEvent(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTime,
 				Record: map[string]interface{}{
-					"message":    "hello world",
+					"message":       "hello world",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",

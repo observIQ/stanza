@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/v2/entry"
 )
 
 // NewIdentifierConfig creates a new identifier config with default values

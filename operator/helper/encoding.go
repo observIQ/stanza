@@ -23,7 +23,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/v2/operator"
 )
 
 // NewBasicConfig creates a new Encoding config

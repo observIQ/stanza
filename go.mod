@@ -1,4 +1,4 @@
-module github.com/observiq/stanza
+module github.com/observiq/stanza/v2
 
 go 1.17
 

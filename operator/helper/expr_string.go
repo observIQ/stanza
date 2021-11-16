@@ -8,8 +8,8 @@ import (
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/errors"
 )
 
 // ExprStringConfig is a string that represents an expression

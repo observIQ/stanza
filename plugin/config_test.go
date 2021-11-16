@@ -3,11 +3,11 @@ package plugin
 import (
 	"testing"
 
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/builtin/transformer/noop"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/pipeline"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/operator/builtin/transformer/noop"
+	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/observiq/stanza/v2/pipeline"
+	"github.com/observiq/stanza/v2/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	yaml "gopkg.in/yaml.v2"

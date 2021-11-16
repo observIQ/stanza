@@ -3,7 +3,7 @@ package logger
 import (
 	"sync"
 
-	"github.com/observiq/stanza/entry"
+	"github.com/observiq/stanza/v2/entry"
 )
 
 // Receiver is a channel that receives internal stanza logs.

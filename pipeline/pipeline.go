@@ -2,7 +2,7 @@
 
 package pipeline
 
-import "github.com/observiq/stanza/operator"
+import "github.com/observiq/stanza/v2/operator"
 
 // Pipeline is a collection of connected operators that exchange entries
 type Pipeline interface {

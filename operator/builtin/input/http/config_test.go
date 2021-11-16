@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/operator/builtin/input/tcp"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/operator/builtin/input/tcp"
+	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/observiq/stanza/v2/testutil"
 	"github.com/stretchr/testify/require"
 )
 

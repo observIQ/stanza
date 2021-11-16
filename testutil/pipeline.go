@@ -3,7 +3,7 @@
 package testutil
 
 import (
-	operator "github.com/observiq/stanza/operator"
+	operator "github.com/observiq/stanza/v2/operator"
 	mock "github.com/stretchr/testify/mock"
 )
 

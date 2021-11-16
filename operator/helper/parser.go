@@ -3,9 +3,9 @@ package helper
 import (
 	"context"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/errors"
+	"github.com/observiq/stanza/v2/operator"
 )
 
 // NewParserConfig creates a new parser config with default values

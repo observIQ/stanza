@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/operator"
+	"github.com/observiq/stanza/v2/operator/helper"
 	"golang.org/x/sync/semaphore"
 )
 

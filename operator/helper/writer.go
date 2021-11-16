@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/observiq/stanza/v2/entry"
+	"github.com/observiq/stanza/v2/operator"
 )
 
 // NewWriterConfig creates a new writer config
