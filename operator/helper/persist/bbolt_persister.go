@@ -49,7 +49,7 @@ func NewBBoltPersister(filePath string) (*BBoltPersister, error) {
 
 // Get returns the data associated with the key
 func (p *BBoltPersister) Get(_ context.Context, key string) ([]byte, error) {
-	value := make([]byte, 0)
+	var value []byte
 
 	updateErr := p.db.Update(func(tx *bbolt.Tx) error {
 
