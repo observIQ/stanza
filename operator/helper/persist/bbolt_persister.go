@@ -2,7 +2,9 @@ package persist
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,7 +25,7 @@ type BBoltPersister struct {
 func NewBBoltPersister(filePath string) (*BBoltPersister, error) {
 	// Verify directory exists for bbolt
 	if _, err := os.Stat(filepath.Dir(filePath)); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			err := os.MkdirAll(filepath.Dir(filePath), 0755) // #nosec - 0755 directory permissions are okay
 			if err != nil {
 				return nil, fmt.Errorf("creating database directory: %w", err)

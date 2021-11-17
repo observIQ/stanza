@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator"
 	entry "github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/require"
 	zap "go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
