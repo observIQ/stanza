@@ -3,20 +3,17 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/observiq/stanza/v2/database"
-	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/observiq/stanza/v2/operator/helper/persist"
+	"github.com/observiq/stanza/v2/testutil/database"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/bbolt"
 )
 
 func TestOffsets(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	databasePath := filepath.Join(tempDir, "logagent.db")
 	configPath := filepath.Join(tempDir, "config.yaml")
@@ -30,7 +27,7 @@ func TestOffsets(t *testing.T) {
 	db, err := database.OpenDatabase(databasePath)
 	require.NoError(t, err)
 	db.Update(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(helper.OffsetsBucket)
+		bucket, err := tx.CreateBucketIfNotExists(persist.OffsetsBucket)
 		require.NoError(t, err)
 
 		_, err = bucket.CreateBucket([]byte("$.testoperatorid1"))

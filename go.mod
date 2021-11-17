@@ -45,7 +45,10 @@ require (
 	k8s.io/client-go v0.22.2
 )
 
-require gopkg.in/natefinch/lumberjack.v2 v2.0.0
+require (
+	github.com/open-telemetry/opentelemetry-log-collection v0.22.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+)
 
 require github.com/open-telemetry/opentelemetry-log-collection v0.22.0
 
@@ -83,7 +86,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
@@ -102,14 +105,15 @@ require (
 	github.com/opencontainers/runc v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.7.1 // indirect
+	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.14.0 // indirect
+	github.com/prometheus/common v0.30.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
+	go.opentelemetry.io/collector v0.35.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect

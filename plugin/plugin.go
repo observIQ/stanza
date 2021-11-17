@@ -10,7 +10,7 @@ import (
 	"text/template"
 
 	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	yaml "gopkg.in/yaml.v2"
 )
 
