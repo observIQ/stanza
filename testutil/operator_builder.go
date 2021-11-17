@@ -3,7 +3,7 @@
 package testutil
 
 import (
-	operator "github.com/observiq/stanza/v2/operator"
+	operator "github.com/open-telemetry/opentelemetry-log-collection/operator"
 	mock "github.com/stretchr/testify/mock"
 )
 

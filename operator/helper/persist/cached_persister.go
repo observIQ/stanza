@@ -67,7 +67,7 @@ func (p *CachedPersister) Set(ctx context.Context, key string, value []byte) err
 
 func (p *CachedPersister) Delete(ctx context.Context, key string) error {
 	p.cacheMux.Lock()
-	p.cacheMux.Unlock()
+	defer p.cacheMux.Unlock()
 
 	// First delete in base persister.
 	if err := p.base.Delete(ctx, key); err != nil {
