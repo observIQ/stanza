@@ -59,13 +59,13 @@ func (c RouterOperatorConfig) Build(bc operator.BuildContext) ([]operator.Operat
 			return nil, fmt.Errorf("failed to compile expression '%s': %w", routeConfig.Expression, err)
 		}
 
-		labeler, err := routeConfig.AttributerConfig.Build()
+		attributer, err := routeConfig.AttributerConfig.Build()
 		if err != nil {
-			return nil, fmt.Errorf("failed to build labeler for route '%s': %w", routeConfig.Expression, err)
+			return nil, fmt.Errorf("failed to build attributer for route '%s': %w", routeConfig.Expression, err)
 		}
 
 		route := RouterOperatorRoute{
-			Attributer: labeler,
+			Attributer: attributer,
 			Expression: compiled,
 			OutputIDs:  routeConfig.OutputIDs.WithNamespace(bc),
 		}
@@ -114,7 +114,7 @@ func (p *RouterOperator) Process(ctx context.Context, entry *entry.Entry) error 
 		// we compile the expression with "AsBool", so this should be safe
 		if matches.(bool) {
 			if err := route.Attribute(entry); err != nil {
-				p.Errorf("Failed to label entry: %s", err)
+				p.Errorf("Failed to attribute entry: %s", err)
 				return err
 			}
 

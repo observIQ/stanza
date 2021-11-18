@@ -89,7 +89,7 @@ func TestInputOperatorNewEntry(t *testing.T) {
 	buildContext := testutil.NewBuildContext(t)
 	writeTo := entry.NewBodyField("test-field")
 
-	labelExpr, err := ExprStringConfig("test").Build()
+	attributeExpr, err := ExprStringConfig("test").Build()
 	require.NoError(t, err)
 
 	resourceExpr, err := ExprStringConfig("resource").Build()
@@ -98,7 +98,7 @@ func TestInputOperatorNewEntry(t *testing.T) {
 	input := InputOperator{
 		Attributer: Attributer{
 			attributes: map[string]*ExprString{
-				"test-label": labelExpr,
+				"test-attribute": attributeExpr,
 			},
 		},
 		Identifier: Identifier{
@@ -123,9 +123,9 @@ func TestInputOperatorNewEntry(t *testing.T) {
 	require.True(t, exists)
 	require.Equal(t, "test", value)
 
-	labelValue, exists := entry.Attributes["test-label"]
+	attributeValue, exists := entry.Attributes["test-attribute"]
 	require.True(t, exists)
-	require.Equal(t, "test", labelValue)
+	require.Equal(t, "test", attributeValue)
 
 	resourceValue, exists := entry.Resource["resource-key"]
 	require.True(t, exists)

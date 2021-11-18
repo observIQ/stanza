@@ -24,7 +24,7 @@ Command:
 echo "test" | stanza -c ./config.yaml
 ```
 
-Output records:
+Output bodies:
 ```json
 {
   "timestamp": "2020-11-10T11:09:56.505467-05:00",

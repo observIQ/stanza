@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLabeler(t *testing.T) {
+func TestAttributer(t *testing.T) {
 	os.Setenv("TEST_METADATA_PLUGIN_ENV", "foo")
 	defer os.Unsetenv("TEST_METADATA_PLUGIN_ENV")
 
@@ -19,11 +19,11 @@ func TestLabeler(t *testing.T) {
 		expected *entry.Entry
 	}{
 		{
-			"AddLabelLiteral",
+			"AddAttributeLiteral",
 			func() AttributerConfig {
 				cfg := NewAttributerConfig()
 				cfg.Attributes = map[string]ExprStringConfig{
-					"label1": "value1",
+					"attribute1": "value1",
 				}
 				return cfg
 			}(),
@@ -31,17 +31,17 @@ func TestLabeler(t *testing.T) {
 			func() *entry.Entry {
 				e := entry.New()
 				e.Attributes = map[string]string{
-					"label1": "value1",
+					"attribute1": "value1",
 				}
 				return e
 			}(),
 		},
 		{
-			"AddLabelExpr",
+			"AddAttributeExpr",
 			func() AttributerConfig {
 				cfg := NewAttributerConfig()
 				cfg.Attributes = map[string]ExprStringConfig{
-					"label1": `EXPR("start" + "end")`,
+					"attribute1": `EXPR("start" + "end")`,
 				}
 				return cfg
 			}(),
@@ -49,17 +49,17 @@ func TestLabeler(t *testing.T) {
 			func() *entry.Entry {
 				e := entry.New()
 				e.Attributes = map[string]string{
-					"label1": "startend",
+					"attribute1": "startend",
 				}
 				return e
 			}(),
 		},
 		{
-			"AddLabelEnv",
+			"AddAttributeEnv",
 			func() AttributerConfig {
 				cfg := NewAttributerConfig()
 				cfg.Attributes = map[string]ExprStringConfig{
-					"label1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
+					"attribute1": `EXPR(env("TEST_METADATA_PLUGIN_ENV"))`,
 				}
 				return cfg
 			}(),
@@ -67,7 +67,7 @@ func TestLabeler(t *testing.T) {
 			func() *entry.Entry {
 				e := entry.New()
 				e.Attributes = map[string]string{
-					"label1": "foo",
+					"attribute1": "foo",
 				}
 				return e
 			}(),
@@ -76,10 +76,10 @@ func TestLabeler(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			labeler, err := tc.config.Build()
+			attributeer, err := tc.config.Build()
 			require.NoError(t, err)
 
-			err = labeler.Attribute(tc.input)
+			err = attributeer.Attribute(tc.input)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected.Attributes, tc.input.Attributes)
 		})

@@ -27,7 +27,7 @@ Configuration:
       message2: log2
 ```
 
-Output records:
+Output bodies:
 ```json
 {
   "body": {

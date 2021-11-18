@@ -15,7 +15,7 @@ func TestRecombineOperator(t *testing.T) {
 	t1 := time.Date(2020, time.April, 11, 21, 34, 01, 0, time.UTC)
 	t2 := time.Date(2020, time.April, 11, 21, 34, 02, 0, time.UTC)
 
-	entryWithRecord := func(ts time.Time, body interface{}) *entry.Entry {
+	entryWithBody := func(ts time.Time, body interface{}) *entry.Entry {
 		e := entry.New()
 		e.Timestamp = ts
 		e.Body = body
@@ -73,8 +73,8 @@ func TestRecombineOperator(t *testing.T) {
 				cfg.OutputIDs = []string{"fake"}
 				return cfg
 			}(),
-			[]*entry.Entry{entryWithRecord(t1, "test")},
-			[]*entry.Entry{entryWithRecord(t1, "test")},
+			[]*entry.Entry{entryWithBody(t1, "test")},
+			[]*entry.Entry{entryWithBody(t1, "test")},
 		},
 		{
 			"TwoEntriesLast",
@@ -86,10 +86,10 @@ func TestRecombineOperator(t *testing.T) {
 				return cfg
 			}(),
 			[]*entry.Entry{
-				entryWithRecord(t1, "test1"),
-				entryWithRecord(t2, "test2"),
+				entryWithBody(t1, "test1"),
+				entryWithBody(t2, "test2"),
 			},
-			[]*entry.Entry{entryWithRecord(t1, "test1\ntest2")},
+			[]*entry.Entry{entryWithBody(t1, "test1\ntest2")},
 		},
 		{
 			"ThreeEntriesFirstNewest",
@@ -102,12 +102,12 @@ func TestRecombineOperator(t *testing.T) {
 				return cfg
 			}(),
 			[]*entry.Entry{
-				entryWithRecord(t1, "test1"),
-				entryWithRecord(t2, "test2"),
-				entryWithRecord(t2, "test1"),
+				entryWithBody(t1, "test1"),
+				entryWithBody(t2, "test2"),
+				entryWithBody(t2, "test1"),
 			},
 			[]*entry.Entry{
-				entryWithRecord(t2, "test1\ntest2"),
+				entryWithBody(t2, "test1\ntest2"),
 			},
 		},
 	}

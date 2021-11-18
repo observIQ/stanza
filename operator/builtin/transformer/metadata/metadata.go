@@ -36,9 +36,9 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) ([]operator
 		return nil, errors.Wrap(err, "failed to build transformer")
 	}
 
-	labeler, err := c.AttributerConfig.Build()
+	attributer, err := c.AttributerConfig.Build()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to build labeler")
+		return nil, errors.Wrap(err, "failed to build attributer")
 	}
 
 	identifier, err := c.IdentifierConfig.Build()
@@ -48,7 +48,7 @@ func (c MetadataOperatorConfig) Build(context operator.BuildContext) ([]operator
 
 	metadataOperator := &MetadataOperator{
 		TransformerOperator: transformerOperator,
-		Attributer:          labeler,
+		Attributer:          attributer,
 		Identifier:          identifier,
 	}
 
@@ -67,7 +67,7 @@ func (p *MetadataOperator) Process(ctx context.Context, entry *entry.Entry) erro
 	return p.ProcessWith(ctx, entry, p.Transform)
 }
 
-// Transform will transform an entry using the labeler and tagger.
+// Transform will transform an entry using the attributer and tagger.
 func (p *MetadataOperator) Transform(entry *entry.Entry) error {
 	if err := p.Attribute(entry); err != nil {
 		return errors.Wrap(err, "failed to add attributes to entry")

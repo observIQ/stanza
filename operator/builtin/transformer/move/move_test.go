@@ -35,7 +35,7 @@ func TestMoveProcess(t *testing.T) {
 
 	cases := []processTestCase{
 		{
-			"MoveRecordToRecord",
+			"MoveBodyToBody",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -56,7 +56,7 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveRecordToLabel",
+			"MoveBodyToAttribute",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -77,7 +77,7 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveLabelToRecord",
+			"MoveAttributeToBody",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -104,7 +104,7 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveLabelToResource",
+			"MoveAttributeToResource",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -125,7 +125,7 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MoveResourceToLabel",
+			"MoveResourceToAttribute",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -268,7 +268,7 @@ func TestMoveProcess(t *testing.T) {
 			nil,
 		},
 		{
-			"MoveNestToLabel",
+			"MoveNestToAttribute",
 			true,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -281,7 +281,7 @@ func TestMoveProcess(t *testing.T) {
 			nil,
 		},
 		{
-			"ReplaceRecordObj",
+			"ReplaceBodyObj",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -313,7 +313,7 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"ReplaceRecordString",
+			"ReplaceBodyString",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
@@ -329,7 +329,7 @@ func TestMoveProcess(t *testing.T) {
 			},
 		},
 		{
-			"MergeObjToRecord",
+			"MergeObjToBody",
 			false,
 			func() *MoveOperatorConfig {
 				cfg := defaultCfg()
