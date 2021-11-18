@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -67,7 +67,7 @@ type ForwardInput struct {
 }
 
 // Start will start generating log entries.
-func (f *ForwardInput) Start() error {
+func (f *ForwardInput) Start(_ operator.Persister) error {
 	addr := f.srv.Addr
 	if addr == "" {
 		addr = ":http"

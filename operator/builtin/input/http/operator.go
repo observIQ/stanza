@@ -12,9 +12,9 @@ import (
 
 	"github.com/gorilla/mux"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 func init() {
@@ -37,7 +37,7 @@ type HTTPInput struct {
 }
 
 // Start will start listening for log entries over http.
-func (t *HTTPInput) Start() error {
+func (t *HTTPInput) Start(_ operator.Persister) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancel = cancel
 	t.goListen(ctx)

@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +32,9 @@ func TestForwardInput(t *testing.T) {
 	err = forwardInput.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
-	require.NoError(t, forwardInput.Start())
+	persister := &testutil.MockPersister{}
+
+	require.NoError(t, forwardInput.Start(persister))
 	defer forwardInput.Stop()
 
 	newEntry := entry.New()
@@ -80,7 +82,8 @@ func TestForwardInputTLS(t *testing.T) {
 	err = forwardInput.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
-	require.NoError(t, forwardInput.Start())
+	persister := &testutil.MockPersister{}
+	require.NoError(t, forwardInput.Start(persister))
 	defer forwardInput.Stop()
 
 	newEntry := entry.New()

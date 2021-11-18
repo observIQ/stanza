@@ -8,9 +8,8 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/builtin/input/tcp"
-	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 const (
@@ -35,14 +34,14 @@ func NewHTTPInputConfig(operatorID string) *HTTPInputConfig {
 type HTTPInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 
-	ListenAddress string          `json:"listen_address,omitempty"  yaml:"listen_address,omitempty"`
-	TLS           tcp.TLSConfig   `json:"tls,omitempty"             yaml:"tls,omitempty"`
-	IdleTimeout   helper.Duration `json:"idle_timeout,omitempty"    yaml:"idle_timeout,omitempty"`
-	ReadTimeout   helper.Duration `json:"read_timeout,omitempty"    yaml:"read_timeout,omitempty"`
-	WriteTimeout  helper.Duration `json:"write_timeout,omitempty"   yaml:"write_timeout,omitempty"`
-	MaxHeaderSize helper.ByteSize `json:"max_header_size,omitempty" yaml:"max_header_size,omitempty"`
-	MaxBodySize   helper.ByteSize `json:"max_body_size,omitempty"   yaml:"max_body_size,omitempty"`
-	AuthConfig    authConfig      `json:"auth,omitempty"   yaml:"auth,omitempty"`
+	ListenAddress string                  `json:"listen_address,omitempty"  yaml:"listen_address,omitempty"`
+	TLS           *helper.TLSServerConfig `json:"tls,omitempty"             yaml:"tls,omitempty"`
+	IdleTimeout   helper.Duration         `json:"idle_timeout,omitempty"    yaml:"idle_timeout,omitempty"`
+	ReadTimeout   helper.Duration         `json:"read_timeout,omitempty"    yaml:"read_timeout,omitempty"`
+	WriteTimeout  helper.Duration         `json:"write_timeout,omitempty"   yaml:"write_timeout,omitempty"`
+	MaxHeaderSize helper.ByteSize         `json:"max_header_size,omitempty" yaml:"max_header_size,omitempty"`
+	MaxBodySize   helper.ByteSize         `json:"max_body_size,omitempty"   yaml:"max_body_size,omitempty"`
+	AuthConfig    authConfig              `json:"auth,omitempty"   yaml:"auth,omitempty"`
 }
 
 type authConfig struct {
@@ -73,21 +72,13 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 		return &HTTPInput{}, fmt.Errorf("failed to resolve listen_address: %s", err)
 	}
 
-	cert := tls.Certificate{}
-	if c.TLS.Enable {
-		if c.TLS.Certificate == "" {
-			return &HTTPInput{}, fmt.Errorf("missing required parameter 'certificate', required when TLS is enabled")
-		}
-
-		if c.TLS.PrivateKey == "" {
-			return &HTTPInput{}, fmt.Errorf("missing required parameter 'private_key', required when TLS is enabled")
-		}
-
-		c, err := tls.LoadX509KeyPair(c.TLS.Certificate, c.TLS.PrivateKey)
+	// Get TLS Config
+	var tlsConfig *tls.Config
+	if c.TLS != nil {
+		tlsConfig, err = c.TLS.LoadTLSConfig()
 		if err != nil {
-			return &HTTPInput{}, fmt.Errorf("failed to load tls certificate: %w", err)
+			return nil, err
 		}
-		cert = c
 	}
 
 	// Allow user to configure 0 for timeout values as this is the default behavior
@@ -108,23 +99,6 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 
 	if c.MaxBodySize < 1 {
 		return &HTTPInput{}, fmt.Errorf("max_body_size cannot be less than 1 byte")
-	}
-
-	var tlsMinVersion uint16
-	switch c.TLS.MinVersion {
-	case 1.0:
-		tlsMinVersion = tls.VersionTLS10
-	case 1.1:
-		tlsMinVersion = tls.VersionTLS11
-
-	// TLS 1.0 is the default version implemented by cypto/tls https://pkg.go.dev/crypto/tls#Config
-	// however this operator will default to TLS 1.2 when tls version is not set.
-	case 0, 1.2:
-		tlsMinVersion = tls.VersionTLS12
-	case 1.3:
-		tlsMinVersion = tls.VersionTLS13
-	default:
-		return &HTTPInput{}, fmt.Errorf("unsupported tls version: %f", c.TLS.MinVersion)
 	}
 
 	if c.AuthConfig.TokenHeader != "" && c.AuthConfig.Username != "" {
@@ -160,14 +134,11 @@ func (c HTTPInputConfig) build(context operator.BuildContext) (*HTTPInput, error
 
 	httpInput := &HTTPInput{
 		InputOperator: inputOperator,
-		tls:           c.TLS.Enable,
+		tls:           c.TLS != nil,
 		server: http.Server{
 			Addr: c.ListenAddress,
 			// #nosec - User to specify tls minimum version
-			TLSConfig: &tls.Config{
-				MinVersion:   tlsMinVersion,
-				Certificates: []tls.Certificate{cert},
-			},
+			TLSConfig:         tlsConfig,
 			ReadTimeout:       c.ReadTimeout.Raw(),
 			ReadHeaderTimeout: c.ReadTimeout.Raw(),
 			WriteTimeout:      c.WriteTimeout.Raw(),
