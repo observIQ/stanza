@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
+	"github.com/observiq/stanza/v2/operator/helper/persist"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +22,12 @@ type EventHub struct {
 }
 
 // StartConsumers starts an Azure Event Hub handler for each partition_id.
-func (e *EventHub) StartConsumers(ctx context.Context) error {
+func (e *EventHub) StartConsumers(ctx context.Context, persister operator.Persister) error {
+	// Create a new persister that is based in a cached persister
+	e.Persist = &Persister{
+		base: persist.NewCachedPersister(persister),
+	}
+
 	if err := e.Connect(); err != nil {
 		return err
 	}
