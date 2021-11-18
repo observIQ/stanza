@@ -150,13 +150,13 @@ func (t *HTTPInput) parse(body map[string]interface{}, req *http.Request) (*entr
 
 func (t *HTTPInput) addAttributes(req *http.Request, entry *entry.Entry) {
 	if err := addPeerAttributes(req.RemoteAddr, entry); err != nil {
-		t.Errorf("failed to set net.peer labels: %s", err)
+		t.Errorf("failed to set net.peer attributes: %s", err)
 	}
 	if err := addHostAttributes(req.Host, entry); err != nil {
-		t.Errorf("failed to set net.host labels: %s", err)
+		t.Errorf("failed to set net.host attributes: %s", err)
 	}
 	if err := addProtoAttributes(req.Proto, entry); err != nil {
-		t.Errorf("failed to set protocol and protocol_version labels: %s", err)
+		t.Errorf("failed to set protocol and protocol_version attributes: %s", err)
 	}
 }
 
