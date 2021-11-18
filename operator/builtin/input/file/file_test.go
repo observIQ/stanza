@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,8 +47,8 @@ func TestAddFileFields(t *testing.T) {
 	defer operator.Stop()
 
 	e := waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(temp.Name()), e.Labels["file_name"])
-	require.Equal(t, temp.Name(), e.Labels["file_path"])
+	require.Equal(t, filepath.Base(temp.Name()), e.Attributes["file_name"])
+	require.Equal(t, temp.Name(), e.Attributes["file_path"])
 }
 
 // AddFileResolvedFields tests that the `file_name_resolved` and `file_path_resolved` fields are included
@@ -87,10 +87,10 @@ func TestAddFileResolvedFields(t *testing.T) {
 	defer operator.Stop()
 
 	e := waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(symLinkPath), e.Labels["file_name"])
-	require.Equal(t, symLinkPath, e.Labels["file_path"])
-	require.Equal(t, filepath.Base(resolved), e.Labels["file_name_resolved"])
-	require.Equal(t, resolved, e.Labels["file_path_resolved"])
+	require.Equal(t, filepath.Base(symLinkPath), e.Attributes["file_name"])
+	require.Equal(t, symLinkPath, e.Attributes["file_path"])
+	require.Equal(t, filepath.Base(resolved), e.Attributes["file_name_resolved"])
+	require.Equal(t, resolved, e.Attributes["file_path_resolved"])
 
 	// Clean up (linux based host)
 	// Ignore error on windows host (The process cannot access the file because it is being used by another process.)
@@ -148,10 +148,10 @@ func TestAddFileResolvedFieldsWithChangeOfSymlinkTarget(t *testing.T) {
 	defer operator.Stop()
 
 	e := waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(symLinkPath), e.Labels["file_name"])
-	require.Equal(t, symLinkPath, e.Labels["file_path"])
-	require.Equal(t, filepath.Base(resolved1), e.Labels["file_name_resolved"])
-	require.Equal(t, resolved1, e.Labels["file_path_resolved"])
+	require.Equal(t, filepath.Base(symLinkPath), e.Attributes["file_name"])
+	require.Equal(t, symLinkPath, e.Attributes["file_path"])
+	require.Equal(t, filepath.Base(resolved1), e.Attributes["file_name_resolved"])
+	require.Equal(t, resolved1, e.Attributes["file_path_resolved"])
 
 	// Change middleSymLink to point to file2
 	err = os.Remove(middleSymLinkPath)
@@ -163,10 +163,10 @@ func TestAddFileResolvedFieldsWithChangeOfSymlinkTarget(t *testing.T) {
 	writeString(t, file2, "testlog2\n")
 
 	e = waitForOne(t, logReceived)
-	require.Equal(t, filepath.Base(symLinkPath), e.Labels["file_name"])
-	require.Equal(t, symLinkPath, e.Labels["file_path"])
-	require.Equal(t, filepath.Base(resolved2), e.Labels["file_name_resolved"])
-	require.Equal(t, resolved2, e.Labels["file_path_resolved"])
+	require.Equal(t, filepath.Base(symLinkPath), e.Attributes["file_name"])
+	require.Equal(t, symLinkPath, e.Attributes["file_path"])
+	require.Equal(t, filepath.Base(resolved2), e.Attributes["file_name_resolved"])
+	require.Equal(t, resolved2, e.Attributes["file_path_resolved"])
 
 	// Clean up (linux based host)
 	// Ignore error on windows host (The process cannot access the file because it is being used by another process.)
@@ -682,7 +682,7 @@ func TestDeleteAfterRead_SkipPartials(t *testing.T) {
 	}()
 
 	for !(shortOne && longOne) {
-		if line := waitForOne(t, logReceived); line.Record == shortFileLine {
+		if line := waitForOne(t, logReceived); line.Body == shortFileLine {
 			shortOne = true
 		} else {
 			longOne = true
@@ -913,7 +913,7 @@ func TestEncodings(t *testing.T) {
 			for _, expected := range tc.expected {
 				select {
 				case entry := <-receivedEntries:
-					require.Equal(t, expected, []byte(entry.Record.(string)))
+					require.Equal(t, expected, []byte(entry.Body.(string)))
 				case <-time.After(500 * time.Millisecond):
 					require.FailNow(t, "Timed out waiting for entry to be read")
 				}

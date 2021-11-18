@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,7 +64,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error2,
 			"crit",
 		},
 		{
@@ -84,7 +84,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error2,
 			"crit",
 		},
 		{
@@ -104,7 +104,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error2,
 			"crit",
 		},
 		{
@@ -123,7 +123,7 @@ func TestSyslogParser(t *testing.T) {
 				"message":  "test message",
 				"priority": 34,
 			},
-			entry.Critical,
+			entry.Error2,
 			"crit",
 		},
 		{
@@ -305,13 +305,13 @@ func TestSyslogParser(t *testing.T) {
 			require.NoError(t, err)
 
 			newEntry := entry.New()
-			newEntry.Record = tc.inputRecord
+			newEntry.Body = tc.inputRecord
 			err = op.Process(context.Background(), newEntry)
 			require.NoError(t, err)
 
 			select {
 			case e := <-fake.Received:
-				require.Equal(t, tc.expectedRecord, e.Record)
+				require.Equal(t, tc.expectedRecord, e.Body)
 				require.Equal(t, tc.expectedTimestamp, e.Timestamp)
 				require.Equal(t, tc.expectedSeverity, e.Severity)
 				require.Equal(t, tc.expectedSeverityText, e.SeverityText)

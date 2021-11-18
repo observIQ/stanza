@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -442,10 +442,10 @@ func TestParse(t *testing.T) {
 				Proto:      "HTTP/1.1",
 			},
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "generic event",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"net.peer.ip":      "10.1.1.1",
 					"net.peer.port":    "5555",
 					"net.host.ip":      "1.1.1.1",
@@ -468,11 +468,11 @@ func TestParse(t *testing.T) {
 				Proto:      "HTTP/1.1",
 			},
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"msg":   "generic event",
 					"stage": "dev",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"net.peer.ip":      "10.1.1.1",
 					"net.peer.port":    "5555",
 					"net.host.ip":      "1.1.1.1",
@@ -501,7 +501,7 @@ func TestParse(t *testing.T) {
 				Proto:      "HTTP/1.1",
 			},
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message":  "generic event",
 					"event_id": 155,
 					"dev_mode": true,
@@ -510,7 +510,7 @@ func TestParse(t *testing.T) {
 						"user": "admin",
 					},
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"net.peer.ip":      "10.1.1.1",
 					"net.peer.port":    "5555",
 					"net.host.ip":      "1.1.1.1",
@@ -528,15 +528,15 @@ func TestParse(t *testing.T) {
 				"message": "generic event",
 			},
 			&http.Request{
-				RemoteAddr: "10.1.1.1", // should not be set in entry labels
+				RemoteAddr: "10.1.1.1", // should not be set in entry attributes
 				Host:       "1.1.1.1:80",
 				Proto:      "HTTP/1.1",
 			},
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "generic event",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"net.host.ip":      "1.1.1.1",
 					"net.host.port":    "80",
 					"protocol":         "HTTP",
@@ -557,10 +557,10 @@ func TestParse(t *testing.T) {
 				Proto:      "HTTP/1.1",
 			},
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "generic event",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"net.peer.ip":      "10.1.1.1",
 					"net.peer.port":    "5555",
 					"protocol":         "HTTP",
@@ -581,10 +581,10 @@ func TestParse(t *testing.T) {
 				Proto:      "HTTP",
 			},
 			&entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"message": "generic event",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"net.peer.ip":   "10.1.1.1",
 					"net.peer.port": "5555",
 					"net.host.ip":   "1.1.1.1",
@@ -614,35 +614,35 @@ func TestParse(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.NotNil(t, e)
-			require.Equal(t, tc.expect.Record, e.Record)
-			require.Equal(t, tc.expect.Labels, e.Labels)
+			require.Equal(t, tc.expect.Body, e.Body)
+			require.Equal(t, tc.expect.Attributes, e.Attributes)
 			require.Equal(t, tc.expect.Resource, e.Resource)
 			require.NotZero(t, e.Timestamp)
 		})
 	}
 }
 
-func TestAddPeerLabelsError(t *testing.T) {
+func TestAddPeerAttributesError(t *testing.T) {
 	e := entry.New()
 	// ip without port
-	require.Error(t, addPeerLabels("127.0.0.1", e))
+	require.Error(t, addPeerAttributes("127.0.0.1", e))
 	// port without ip
-	require.Error(t, addPeerLabels("443", e))
+	require.Error(t, addPeerAttributes("443", e))
 }
 
-func TestAddHostLabelsError(t *testing.T) {
+func TestAddHostAttributesError(t *testing.T) {
 	e := entry.New()
 	// ip without port
-	require.Error(t, addHostLabels("127.0.0.1", e))
+	require.Error(t, addHostAttributes("127.0.0.1", e))
 	// port without ip
-	require.Error(t, addHostLabels("443", e))
+	require.Error(t, addHostAttributes("443", e))
 }
 
-func TestAddProtoLabelsError(t *testing.T) {
+func TestAddProtoAttributesError(t *testing.T) {
 	e := entry.New()
-	require.Error(t, addProtoLabels("HTTP", e))
-	require.Error(t, addProtoLabels("1.1", e))
-	require.Error(t, addProtoLabels("HTTP/t", e))
+	require.Error(t, addProtoAttributes("HTTP", e))
+	require.Error(t, addProtoAttributes("1.1", e))
+	require.Error(t, addProtoAttributes("HTTP/t", e))
 }
 
 func freePort(address string) int {

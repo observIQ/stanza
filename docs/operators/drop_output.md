@@ -31,7 +31,7 @@ Compare with `stdout` output operator:
 ```json
 {"level":"info","timestamp":"2021-08-20T20:09:28.314-0400","message":"Starting stanza agent"}
 {"level":"info","timestamp":"2021-08-20T20:09:28.314-0400","message":"Stanza agent started"}
-{"timestamp":"2021-08-20T20:09:28.314776719-04:00","severity":0,"record":"hello world"}
+{"timestamp":"2021-08-20T20:09:28.314776719-04:00","severity":0,"body":"hello world"}
 {"level":"info","timestamp":"2021-08-20T20:09:28.314-0400","message":"Stdin has been closed","operator_id":"$.stdin","operator_type":"stdin"}
 ```
 

@@ -8,9 +8,9 @@ import (
 
 	strptime "github.com/observiq/ctimefmt"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
 	"github.com/observiq/stanza/v2/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // StrptimeKey is literally "strptime", and is the default layout type

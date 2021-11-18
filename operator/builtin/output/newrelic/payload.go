@@ -1,8 +1,8 @@
 package newrelic
 
 import (
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/version"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // LogPayloadFromEntries creates a new []*LogPayload from an array of entries
@@ -54,9 +54,9 @@ func LogMessageFromEntry(entry *entry.Entry, messageField entry.Field) *LogMessa
 		logMessage.Message = message
 	}
 
-	logMessage.Attributes["record"] = entry.Record
+	logMessage.Attributes["body"] = entry.Body
 	logMessage.Attributes["resource"] = entry.Resource
-	logMessage.Attributes["labels"] = entry.Labels
+	logMessage.Attributes["attributes"] = entry.Attributes
 	logMessage.Attributes["severity"] = entry.Severity.String()
 
 	return logMessage

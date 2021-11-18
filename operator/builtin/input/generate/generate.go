@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -37,7 +37,7 @@ func (c *GenerateInputConfig) Build(context operator.BuildContext) ([]operator.O
 		return nil, err
 	}
 
-	c.Entry.Record = recursiveMapInterfaceToMapString(c.Entry.Record)
+	c.Entry.Body = recursiveMapInterfaceToMapString(c.Entry.Body)
 
 	generateInput := &GenerateInput{
 		InputOperator: inputOperator,

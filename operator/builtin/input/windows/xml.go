@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // EventXML is the rendered xml of an event.
@@ -35,11 +35,11 @@ func (e *EventXML) parseTimestamp() time.Time {
 func (e *EventXML) parseSeverity() entry.Severity {
 	switch e.Level {
 	case "Critical":
-		return entry.Critical
+		return entry.Fatal
 	case "Error":
 		return entry.Error
 	case "Warning":
-		return entry.Warning
+		return entry.Warn
 	case "Information":
 		return entry.Info
 	default:

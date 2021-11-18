@@ -9,8 +9,8 @@ import (
 
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -244,7 +244,7 @@ func BenchmarkMemoryBuffer(b *testing.B) {
 	go func() {
 		defer wg.Done()
 		e := entry.New()
-		e.Record = "test log"
+		e.Body = "test log"
 		ctx := context.Background()
 		for i := 0; i < b.N; i++ {
 			panicOnErr(buffer.Add(ctx, e))

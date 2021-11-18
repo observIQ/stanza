@@ -3,17 +3,17 @@ package helper
 import (
 	"context"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
 	"github.com/observiq/stanza/v2/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // NewParserConfig creates a new parser config with default values
 func NewParserConfig(operatorID, operatorType string) ParserConfig {
 	return ParserConfig{
 		TransformerConfig: NewTransformerConfig(operatorID, operatorType),
-		ParseFrom:         entry.NewRecordField(),
-		ParseTo:           entry.NewRecordField(),
+		ParseFrom:         entry.NewBodyField(),
+		ParseTo:           entry.NewBodyField(),
 		PreserveTo:        nil,
 	}
 }

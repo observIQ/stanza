@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/observiq/nanojack"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -118,7 +118,7 @@ func waitForN(t *testing.T, c chan *entry.Entry, n int) []string {
 	for i := 0; i < n; i++ {
 		select {
 		case e := <-c:
-			messages = append(messages, e.Record.(string))
+			messages = append(messages, e.Body.(string))
 		case <-time.After(3 * time.Second):
 			require.FailNow(t, "Timed out waiting for message")
 			return nil
@@ -130,7 +130,7 @@ func waitForN(t *testing.T, c chan *entry.Entry, n int) []string {
 func waitForMessage(t *testing.T, c chan *entry.Entry, expected string) {
 	select {
 	case e := <-c:
-		require.Equal(t, expected, e.Record.(string))
+		require.Equal(t, expected, e.Body.(string))
 	case <-time.After(3 * time.Second):
 		require.FailNow(t, "Timed out waiting for message", expected)
 	}
@@ -142,7 +142,7 @@ LOOP:
 	for {
 		select {
 		case e := <-c:
-			receivedMessages = append(receivedMessages, e.Record.(string))
+			receivedMessages = append(receivedMessages, e.Body.(string))
 		case <-time.After(time.Second):
 			break LOOP
 		}
@@ -158,7 +158,7 @@ func expectNoMessages(t *testing.T, c chan *entry.Entry) {
 func expectNoMessagesUntil(t *testing.T, c chan *entry.Entry, d time.Duration) {
 	select {
 	case e := <-c:
-		require.FailNow(t, "Received unexpected message", "Message: %s", e.Record.(string))
+		require.FailNow(t, "Received unexpected message", "Message: %s", e.Body.(string))
 	case <-time.After(d):
 	}
 }

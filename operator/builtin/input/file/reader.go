@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
@@ -49,8 +49,8 @@ type Reader struct {
 	Offset      int64
 	eof         bool
 
-	// HeaderLabels is an optional map that contains entry labels
-	// derived from a log files' headers, added to every record
+	// HeaderLabels is an optional map that contains entry attributes
+	// derived from a log files' headers, added to every body
 	HeaderLabels map[string]string
 
 	generation int
@@ -211,9 +211,9 @@ func (f *Reader) emit(ctx context.Context, msgBuf []byte) error {
 		return err
 	}
 
-	// Set W3C headers as labels
+	// Set W3C headers as attributes
 	for k, v := range f.HeaderLabels {
-		field := entry.NewLabelField(k)
+		field := entry.NewAttributeField(k)
 		if err := e.Set(field, v); err != nil {
 			return err
 		}

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // SeverityParser is a helper that parses severity onto an entry.

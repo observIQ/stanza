@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,11 +91,11 @@ func TestParserRegex(t *testing.T) {
 			op.SetOutputs([]operator.Operator{fake})
 
 			entry := entry.New()
-			entry.Record = tc.inputRecord
+			entry.Body = tc.inputRecord
 			err = op.Process(context.Background(), entry)
 			require.NoError(t, err)
 
-			fake.ExpectRecord(t, tc.outputRecord)
+			fake.ExpectBody(t, tc.outputRecord)
 		})
 	}
 }

@@ -18,11 +18,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/operator/helper/operatortest"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -548,7 +548,7 @@ func TestBuild(t *testing.T) {
 				require.Equal(t, f.OutputOperators[0], fakeOutput)
 				require.Equal(t, f.finder.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.FilePathField, entry.NewNilField())
-				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
+				require.Equal(t, f.FileNameField, entry.NewAttributeField("file_name"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
 			},
 		},

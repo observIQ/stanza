@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -167,19 +167,19 @@ func TestTransformerIf(t *testing.T) {
 		},
 		{
 			name:        "EvaluatedTrue",
-			ifExpr:      "$record == 'test'",
+			ifExpr:      "$body == 'test'",
 			inputRecord: "test",
 			expected:    "parsed",
 		},
 		{
 			name:        "EvaluatedFalse",
-			ifExpr:      "$record == 'notest'",
+			ifExpr:      "$body == 'notest'",
 			inputRecord: "test",
 			expected:    "test",
 		},
 		{
 			name:        "FailingExpressionEvaluation",
-			ifExpr:      "$record.test.noexist == 'notest'",
+			ifExpr:      "$body.test.noexist == 'notest'",
 			inputRecord: "test",
 			expected:    "test",
 			errExpected: true,
@@ -198,9 +198,9 @@ func TestTransformerIf(t *testing.T) {
 			transformer.OutputOperators = []operator.Operator{fake}
 
 			e := entry.New()
-			e.Record = tc.inputRecord
+			e.Body = tc.inputRecord
 			err = transformer.ProcessWith(context.Background(), e, func(e *entry.Entry) error {
-				e.Record = "parsed"
+				e.Body = "parsed"
 				return nil
 			})
 			if tc.errExpected {
@@ -209,7 +209,7 @@ func TestTransformerIf(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			fake.ExpectRecord(t, tc.expected)
+			fake.ExpectBody(t, tc.expected)
 		})
 	}
 

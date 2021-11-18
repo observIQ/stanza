@@ -20,9 +20,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 type testCase struct {
@@ -37,7 +37,7 @@ func TestProcessAndBuild(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"key": "val",
 			"nested": map[string]interface{}{
 				"nestedkey": "nestedval",
@@ -51,14 +51,14 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_value",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("new")
+				cfg.Field = entry.NewBodyField("new")
 				cfg.Value = "randomMessage"
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record.(map[string]interface{})["new"] = "randomMessage"
+				e.Body.(map[string]interface{})["new"] = "randomMessage"
 				return e
 			},
 			false,
@@ -67,14 +67,14 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_expr",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("new")
+				cfg.Field = entry.NewBodyField("new")
 				cfg.Value = `EXPR($.key + "_suffix")`
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record.(map[string]interface{})["new"] = "val_suffix"
+				e.Body.(map[string]interface{})["new"] = "val_suffix"
 				return e
 			},
 			false,
@@ -83,7 +83,7 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_nest",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("new")
+				cfg.Field = entry.NewBodyField("new")
 				cfg.Value = map[interface{}]interface{}{
 					"nest": map[interface{}]interface{}{
 						"key": "val",
@@ -94,7 +94,7 @@ func TestProcessAndBuild(t *testing.T) {
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -113,14 +113,14 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_attribute",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewLabelField("new")
+				cfg.Field = entry.NewAttributeField("new")
 				cfg.Value = "newVal"
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Labels = map[string]string{"new": "newVal"}
+				e.Attributes = map[string]string{"new": "newVal"}
 				return e
 			},
 			false,
@@ -161,14 +161,14 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_int_to_body",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("new")
+				cfg.Field = entry.NewBodyField("new")
 				cfg.Value = 1
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -183,14 +183,14 @@ func TestProcessAndBuild(t *testing.T) {
 			"add_array_to_body",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("new")
+				cfg.Field = entry.NewBodyField("new")
 				cfg.Value = []int{1, 2, 3, 4}
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -205,14 +205,14 @@ func TestProcessAndBuild(t *testing.T) {
 			"overwrite",
 			func() *AddOperatorConfig {
 				cfg := defaultCfg()
-				cfg.Field = entry.NewRecordField("key")
+				cfg.Field = entry.NewBodyField("key")
 				cfg.Value = []int{1, 2, 3, 4}
 				return cfg
 			}(),
 			newTestEntry,
 			func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": []int{1, 2, 3, 4},
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",

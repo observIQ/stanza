@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/bmatcuk/doublestar/v2"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 func init() {
@@ -149,22 +149,22 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 
 	fileNameField := entry.NewNilField()
 	if c.IncludeFileName {
-		fileNameField = entry.NewLabelField("file_name")
+		fileNameField = entry.NewAttributeField("file_name")
 	}
 
 	filePathField := entry.NewNilField()
 	if c.IncludeFilePath {
-		filePathField = entry.NewLabelField("file_path")
+		filePathField = entry.NewAttributeField("file_path")
 	}
 
 	fileNameResolvedField := entry.NewNilField()
 	if c.IncludeFileNameResolved {
-		fileNameResolvedField = entry.NewLabelField("file_name_resolved")
+		fileNameResolvedField = entry.NewAttributeField("file_name_resolved")
 	}
 
 	filePathResolvedField := entry.NewNilField()
 	if c.IncludeFilePathResolved {
-		filePathResolvedField = entry.NewLabelField("file_path_resolved")
+		filePathResolvedField = entry.NewAttributeField("file_path_resolved")
 	}
 
 	op := &InputOperator{

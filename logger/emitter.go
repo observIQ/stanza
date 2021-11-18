@@ -3,7 +3,7 @@ package logger
 import (
 	"sync"
 
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // Receiver is a channel that receives internal stanza logs.

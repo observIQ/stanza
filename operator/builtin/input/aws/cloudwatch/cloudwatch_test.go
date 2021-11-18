@@ -7,10 +7,10 @@ import (
 
 	cwLogs "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -451,7 +451,7 @@ func TestHandleEvent(t *testing.T) {
 			},
 			expected: &entry.Entry{
 				Timestamp: fromUnixMilli(ts),
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"ingestion_time": ingestionTime,
 					"message":        msg,
 				},
@@ -474,7 +474,7 @@ func TestHandleEvent(t *testing.T) {
 			},
 			expected: &entry.Entry{
 				Timestamp: fromUnixMilli(ts),
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"ingestion_time": ingestionTime,
 				},
 				Resource: map[string]string{

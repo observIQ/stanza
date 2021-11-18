@@ -28,7 +28,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.11.0
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/multierr v1.7.0
-	go.uber.org/zap v1.17.0
+	go.uber.org/zap v1.19.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
@@ -46,6 +46,8 @@ require (
 )
 
 require gopkg.in/natefinch/lumberjack.v2 v2.0.0
+
+require github.com/open-telemetry/opentelemetry-log-collection v0.22.0
 
 require (
 	cloud.google.com/go v0.88.0 // indirect
@@ -108,7 +110,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect

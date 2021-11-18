@@ -9,10 +9,10 @@ import (
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
-	"github.com/observiq/stanza/v2/entry"
 	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
@@ -42,7 +42,7 @@ func TestRestructureOperator(t *testing.T) {
 	newTestEntry := func() *entry.Entry {
 		e := entry.New()
 		e.Timestamp = time.Unix(1586632809, 0)
-		e.Record = map[string]interface{}{
+		e.Body = map[string]interface{}{
 			"key": "val",
 			"nested": map[string]interface{}{
 				"nestedkey": "nestedval",
@@ -67,7 +67,7 @@ func TestRestructureOperator(t *testing.T) {
 			ops: []Op{
 				{
 					&OpAdd{
-						Field: entry.NewRecordField("new"),
+						Field: entry.NewBodyField("new"),
 						Value: "message",
 					},
 				},
@@ -75,7 +75,7 @@ func TestRestructureOperator(t *testing.T) {
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record.(map[string]interface{})["new"] = "message"
+				e.Body.(map[string]interface{})["new"] = "message"
 				return e
 			}(),
 		},
@@ -84,7 +84,7 @@ func TestRestructureOperator(t *testing.T) {
 			ops: []Op{
 				{
 					&OpAdd{
-						Field: entry.NewRecordField("new"),
+						Field: entry.NewBodyField("new"),
 						program: func() *vm.Program {
 							vm, err := expr.Compile(`$.key + "_suffix"`)
 							require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestRestructureOperator(t *testing.T) {
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record.(map[string]interface{})["new"] = "val_suffix"
+				e.Body.(map[string]interface{})["new"] = "val_suffix"
 				return e
 			}(),
 		},
@@ -105,7 +105,7 @@ func TestRestructureOperator(t *testing.T) {
 			ops: []Op{
 				{
 					&OpAdd{
-						Field: entry.NewRecordField("new"),
+						Field: entry.NewBodyField("new"),
 						program: func() *vm.Program {
 							vm, err := expr.Compile(`env("TEST_RESTRUCTURE_PLUGIN_ENV")`)
 							require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestRestructureOperator(t *testing.T) {
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record.(map[string]interface{})["new"] = "foo"
+				e.Body.(map[string]interface{})["new"] = "foo"
 				return e
 			}(),
 		},
@@ -125,13 +125,13 @@ func TestRestructureOperator(t *testing.T) {
 			name: "Remove",
 			ops: []Op{
 				{
-					&OpRemove{entry.NewRecordField("nested")},
+					&OpRemove{entry.NewBodyField("nested")},
 				},
 			},
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 				}
 				return e
@@ -141,13 +141,13 @@ func TestRestructureOperator(t *testing.T) {
 			name: "Retain",
 			ops: []Op{
 				{
-					&OpRetain{[]entry.Field{entry.NewRecordField("key")}},
+					&OpRetain{[]entry.Field{entry.NewBodyField("key")}},
 				},
 			},
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key": "val",
 				}
 				return e
@@ -158,15 +158,15 @@ func TestRestructureOperator(t *testing.T) {
 			ops: []Op{
 				{
 					&OpMove{
-						From: entry.NewRecordField("key"),
-						To:   entry.NewRecordField("newkey"),
+						From: entry.NewBodyField("key"),
+						To:   entry.NewBodyField("newkey"),
 					},
 				},
 			},
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"newkey": "val",
 					"nested": map[string]interface{}{
 						"nestedkey": "nestedval",
@@ -180,7 +180,7 @@ func TestRestructureOperator(t *testing.T) {
 			ops: []Op{
 				{
 					&OpFlatten{
-						Field: entry.RecordField{
+						Field: entry.BodyField{
 							Keys: []string{"nested"},
 						},
 					},
@@ -189,7 +189,7 @@ func TestRestructureOperator(t *testing.T) {
 			input: newTestEntry(),
 			output: func() *entry.Entry {
 				e := newTestEntry()
-				e.Record = map[string]interface{}{
+				e.Body = map[string]interface{}{
 					"key":       "val",
 					"nestedkey": "nestedval",
 				}
@@ -227,14 +227,14 @@ func TestRestructureSerializeRoundtrip(t *testing.T) {
 		{
 			name: "AddValue",
 			op: Op{&OpAdd{
-				Field: entry.NewRecordField("new"),
+				Field: entry.NewBodyField("new"),
 				Value: "message",
 			}},
 		},
 		{
 			name: "AddValueExpr",
 			op: Op{&OpAdd{
-				Field: entry.NewRecordField("new"),
+				Field: entry.NewBodyField("new"),
 				ValueExpr: func() *string {
 					s := `$.key + "_suffix"`
 					return &s
@@ -248,23 +248,23 @@ func TestRestructureSerializeRoundtrip(t *testing.T) {
 		},
 		{
 			name: "Remove",
-			op:   Op{&OpRemove{entry.NewRecordField("nested")}},
+			op:   Op{&OpRemove{entry.NewBodyField("nested")}},
 		},
 		{
 			name: "Retain",
-			op:   Op{&OpRetain{[]entry.Field{entry.NewRecordField("key")}}},
+			op:   Op{&OpRetain{[]entry.Field{entry.NewBodyField("key")}}},
 		},
 		{
 			name: "Move",
 			op: Op{&OpMove{
-				From: entry.NewRecordField("key"),
-				To:   entry.NewRecordField("newkey"),
+				From: entry.NewBodyField("key"),
+				To:   entry.NewBodyField("newkey"),
 			}},
 		},
 		{
 			name: "Flatten",
 			op: Op{&OpFlatten{
-				Field: entry.RecordField{
+				Field: entry.BodyField{
 					Keys: []string{"nested"},
 				},
 			}},
@@ -360,11 +360,11 @@ ops:
 			},
 			Ops: []Op{
 				{&OpAdd{
-					Field: entry.NewRecordField("message"),
+					Field: entry.NewBodyField("message"),
 					Value: "val",
 				}},
 				{&OpAdd{
-					Field: entry.NewRecordField("message_suffix"),
+					Field: entry.NewBodyField("message_suffix"),
 					ValueExpr: func() *string {
 						s := `$.message + "_suffix"`
 						return &s
@@ -376,21 +376,21 @@ ops:
 					}(),
 				}},
 				{&OpRemove{
-					Field: entry.NewRecordField("message"),
+					Field: entry.NewBodyField("message"),
 				}},
 				{&OpRetain{
 					Fields: []entry.Field{
-						entry.NewRecordField("message_retain"),
+						entry.NewBodyField("message_retain"),
 					},
 				}},
 				{&OpFlatten{
-					Field: entry.RecordField{
+					Field: entry.BodyField{
 						Keys: []string{"message_flatten"},
 					},
 				}},
 				{&OpMove{
-					From: entry.NewRecordField("message1"),
-					To:   entry.NewRecordField("message2"),
+					From: entry.NewBodyField("message1"),
+					To:   entry.NewBodyField("message2"),
 				}},
 			},
 		},

@@ -52,7 +52,7 @@ curl localhost:9090/ \
 {
   "timestamp": "2021-09-24T14:33:56.653226981-04:00",
   "severity": 0,
-  "labels": {
+  "attributes": {
     "net.host.ip": "localhost",
     "net.host.port": "9090",
     "net.peer.ip": "::1",
@@ -60,7 +60,7 @@ curl localhost:9090/ \
     "protocol": "HTTP",
     "protocol_version": "1.1"
   },
-  "record": {
+  "body": {
     "mode": "test",
     "user": "devel",
     "message": "logging enabled"

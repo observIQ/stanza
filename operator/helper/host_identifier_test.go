@@ -3,7 +3,7 @@ package helper
 import (
 	"testing"
 
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 

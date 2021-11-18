@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
 func intEntry(i int) *entry.Entry {
 	e := entry.New()
 	e.Timestamp = time.Date(2006, 01, 02, 03, 04, 05, 06, time.UTC)
-	e.Record = float64(i)
+	e.Body = float64(i)
 	return e
 }
 

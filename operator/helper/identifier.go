@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"github.com/observiq/stanza/v2/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
 // NewIdentifierConfig creates a new identifier config with default values

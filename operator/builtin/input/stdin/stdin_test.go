@@ -30,5 +30,5 @@ func TestStdin(t *testing.T) {
 
 	w.WriteString("test")
 	w.Close()
-	fake.ExpectRecord(t, "test")
+	fake.ExpectBody(t, "test")
 }

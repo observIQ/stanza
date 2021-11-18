@@ -44,7 +44,7 @@ A list of potential fields for each Azure Log Analytics table can be found [here
 {
   "timestamp": "2021-05-07T14:01:26.105Z",
   "severity": 0,
-  "record": {
+  "body": {
     "containerlog": {
       "_internal_workspaceresourceid": "/subscriptions/000-000/resourcegroups/integration/providers/microsoft.operationalinsights/workspaces/stanza",
       "_resourceid": "/subscriptions/0000-000/resourceGroups/devops/providers/Microsoft.ContainerService/managedClusters/log-analytics",
