@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +45,8 @@ func TestMultiFileRotate(t *testing.T) {
 		}
 	}
 
-	require.NoError(t, operator.Start())
+	persister := &testutil.MockPersister{}
+	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
 	temps := make([]*os.File, 0, numFiles)
@@ -102,7 +103,8 @@ func TestMultiFileRotateSlow(t *testing.T) {
 		}
 	}
 
-	require.NoError(t, operator.Start())
+	persister := &testutil.MockPersister{}
+	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
 	var wg sync.WaitGroup
@@ -148,7 +150,8 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 		}
 	}
 
-	require.NoError(t, operator.Start())
+	persister := &testutil.MockPersister{}
+	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
 	var wg sync.WaitGroup
@@ -245,7 +248,8 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 			expected = append(expected, fmt.Sprintf("%s %3d", baseStr, i))
 		}
 
-		require.NoError(t, operator.Start())
+		persister := &testutil.MockPersister{}
+		require.NoError(t, operator.Start(persister))
 		defer operator.Stop()
 
 		for _, message := range expected {
@@ -491,7 +495,8 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	require.NoError(t, temp.Close())
 
 	// Start the operator
-	require.NoError(t, operator.Start())
+	persister := &testutil.MockPersister{}
+	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
 
@@ -506,6 +511,6 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	writeString(t, temp, log2+"\n")
 
 	// Expect the message written to the new log to come through
-	require.NoError(t, operator.Start())
+	require.NoError(t, operator.Start(persister))
 	waitForMessage(t, logReceived, log2)
 }

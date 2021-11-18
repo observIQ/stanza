@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/bmatcuk/doublestar/v2"
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/helper"
+	szhelper "github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 func init() {
@@ -45,20 +46,20 @@ type InputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 	Finder             `mapstructure:",squash" yaml:",inline"`
 
-	PollInterval            helper.Duration        `json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
-	Multiline               helper.MultilineConfig `json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
-	IncludeFileName         bool                   `json:"include_file_name,omitempty"           yaml:"include_file_name,omitempty"`
-	IncludeFilePath         bool                   `json:"include_file_path,omitempty"           yaml:"include_file_path,omitempty"`
-	IncludeFileNameResolved bool                   `json:"include_file_name_resolved,omitempty"  yaml:"include_file_name_resolved,omitempty"`
-	IncludeFilePathResolved bool                   `json:"include_file_path_resolved,omitempty"  yaml:"include_file_path_resolved,omitempty"`
-	StartAt                 string                 `json:"start_at,omitempty"                    yaml:"start_at,omitempty"`
-	FingerprintSize         helper.ByteSize        `json:"fingerprint_size,omitempty"            yaml:"fingerprint_size,omitempty"`
-	MaxLogSize              helper.ByteSize        `json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
-	MaxConcurrentFiles      int                    `json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
-	DeleteAfterRead         bool                   `json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
-	LabelRegex              string                 `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
-	Encoding                helper.EncodingConfig  `json:",inline,omitempty"                     yaml:",inline,omitempty"`
-	FilenameRecallPeriod    helper.Duration        `json:"filename_recall_period,omitempty"      yaml:"filename_recall_period,omitempty"`
+	PollInterval            helper.Duration          `json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
+	Multiline               szhelper.MultilineConfig `json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
+	IncludeFileName         bool                     `json:"include_file_name,omitempty"           yaml:"include_file_name,omitempty"`
+	IncludeFilePath         bool                     `json:"include_file_path,omitempty"           yaml:"include_file_path,omitempty"`
+	IncludeFileNameResolved bool                     `json:"include_file_name_resolved,omitempty"  yaml:"include_file_name_resolved,omitempty"`
+	IncludeFilePathResolved bool                     `json:"include_file_path_resolved,omitempty"  yaml:"include_file_path_resolved,omitempty"`
+	StartAt                 string                   `json:"start_at,omitempty"                    yaml:"start_at,omitempty"`
+	FingerprintSize         helper.ByteSize          `json:"fingerprint_size,omitempty"            yaml:"fingerprint_size,omitempty"`
+	MaxLogSize              helper.ByteSize          `json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
+	MaxConcurrentFiles      int                      `json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
+	DeleteAfterRead         bool                     `json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
+	LabelRegex              string                   `json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
+	Encoding                helper.EncodingConfig    `json:",inline,omitempty"                     yaml:",inline,omitempty"`
+	FilenameRecallPeriod    helper.Duration          `json:"filename_recall_period,omitempty"      yaml:"filename_recall_period,omitempty"`
 }
 
 // Build will build a file input operator from the supplied configuration
@@ -172,7 +173,6 @@ func (c InputConfig) Build(context operator.BuildContext) ([]operator.Operator, 
 		finder:                c.Finder,
 		SplitFunc:             splitFunc,
 		PollInterval:          c.PollInterval.Raw(),
-		persist:               helper.NewScopedDBPersister(context.Database, c.ID()),
 		FilePathField:         filePathField,
 		FileNameField:         fileNameField,
 		FilePathResolvedField: filePathResolvedField,

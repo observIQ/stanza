@@ -5,6 +5,7 @@ import (
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/aws/cloudwatch"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/azure/eventhub"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/azure/loganalytics"
+	_ "github.com/observiq/stanza/v2/operator/builtin/input/file"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/forward"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/goflow"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/http"
@@ -19,7 +20,6 @@ import (
 	_ "github.com/observiq/stanza/v2/operator/builtin/transformer/ratelimit"
 
 	// TODO verify if we want to use otel versions of these or if we have our own
-	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/file"
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/generate"
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/k8sevent"
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/stanza"
