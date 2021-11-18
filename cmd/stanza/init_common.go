@@ -5,6 +5,7 @@ import (
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/aws/cloudwatch"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/azure/eventhub"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/azure/loganalytics"
+	_ "github.com/observiq/stanza/v2/operator/builtin/input/file"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/forward"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/goflow"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/http"
