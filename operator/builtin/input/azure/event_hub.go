@@ -21,10 +21,6 @@ type EventHub struct {
 
 // StartConsumers starts an Azure Event Hub handler for each partition_id.
 func (e *EventHub) StartConsumers(ctx context.Context) error {
-	if err := e.Persist.DB.Load(); err != nil {
-		return err
-	}
-
 	if err := e.Connect(); err != nil {
 		return err
 	}
@@ -54,9 +50,6 @@ func (e *EventHub) StopConsumers() error {
 		return err
 	}
 	e.Debugw(fmt.Sprintf("Closed all connections to Azure Event Hub '%s'", e.Name))
-	if err := e.Persist.DB.Sync(); err != nil {
-		return err
-	}
 	return nil
 }
 
