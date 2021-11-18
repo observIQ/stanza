@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/v2/operator/buffer"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,6 +89,8 @@ func TestNewRelicOutput(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			persiter := &testutil.MockPersister{}
+
 			ln := newListener()
 			addr, err := ln.start()
 			require.NoError(t, err)
@@ -111,7 +113,7 @@ func TestNewRelicOutput(t *testing.T) {
 			ops, err := cfg.Build(testutil.NewBuildContext(t))
 			require.NoError(t, err)
 			op := ops[0]
-			require.NoError(t, op.Start())
+			require.NoError(t, op.Start(persiter))
 			for _, entry := range tc.input {
 				require.NoError(t, op.Process(context.Background(), entry))
 			}
@@ -123,6 +125,7 @@ func TestNewRelicOutput(t *testing.T) {
 	}
 
 	t.Run("FailedTestConnection", func(t *testing.T) {
+		persiter := &testutil.MockPersister{}
 		cfg := NewNewRelicOutputConfig("test")
 		cfg.BaseURI = "http://localhost/log/v1"
 		cfg.APIKey = "testkey"
@@ -130,7 +133,7 @@ func TestNewRelicOutput(t *testing.T) {
 		ops, err := cfg.Build(testutil.NewBuildContext(t))
 		require.NoError(t, err)
 		op := ops[0]
-		err = op.Start()
+		err = op.Start(persiter)
 		require.Error(t, err)
 	})
 }

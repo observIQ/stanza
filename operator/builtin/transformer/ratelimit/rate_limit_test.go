@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +27,9 @@ func TestRateLimit(t *testing.T) {
 	err = op.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
-	err = op.Start()
+	persister := &testutil.MockPersister{}
+
+	err = op.Start(persister)
 	defer op.Stop()
 	require.NoError(t, err)
 

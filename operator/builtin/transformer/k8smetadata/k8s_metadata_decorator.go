@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -112,7 +112,7 @@ func (m *MetadataCache) Store(key string, entry MetadataCacheEntry) {
 }
 
 // Start will start the k8s_metadata_decorator operator
-func (k *K8sMetadataDecorator) Start() error {
+func (k *K8sMetadataDecorator) Start(_ operator.Persister) error {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return errors.NewError(

@@ -12,12 +12,12 @@ import (
 	vkit "cloud.google.com/go/logging/apiv2"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/version"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
@@ -119,7 +119,7 @@ type GoogleCloudOutput struct {
 }
 
 // Start will start the google cloud logger.
-func (g *GoogleCloudOutput) Start() error {
+func (g *GoogleCloudOutput) Start(_ operator.Persister) error {
 	var credentials *google.Credentials
 	var err error
 	scope := "https://www.googleapis.com/auth/logging.write"

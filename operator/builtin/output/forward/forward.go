@@ -9,11 +9,11 @@ import (
 	"sync"
 
 	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -86,7 +86,7 @@ type ForwardOutput struct {
 }
 
 // Start signals to the ForwardOutput to begin flushing
-func (f *ForwardOutput) Start() error {
+func (f *ForwardOutput) Start(_ operator.Persister) error {
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
