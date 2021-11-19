@@ -16,9 +16,9 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -87,7 +87,6 @@ func (c JournaldInputConfig) Build(buildContext operator.BuildContext) ([]operat
 
 	journaldInput := &JournaldInput{
 		InputOperator: inputOperator,
-		persist:       helper.NewScopedDBPersister(buildContext.Database, c.ID()),
 		newCmd: func(ctx context.Context, cursor []byte) cmd {
 			finalArgs := args
 			if cursor != nil {
@@ -110,7 +109,7 @@ type JournaldInput struct {
 
 	pollInterval time.Duration
 
-	persist helper.Persister
+	persist operator.Persister
 	json    jsoniter.API
 	cancel  context.CancelFunc
 	wg      sync.WaitGroup
@@ -125,14 +124,9 @@ type cmd interface {
 var lastReadCursorKey = "lastReadCursor"
 
 // Start will start generating log entries.
-func (operator *JournaldInput) Start() error {
+func (operator *JournaldInput) Start(persister operator.Persister) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	operator.cancel = cancel
-
-	err := operator.persist.Load()
-	if err != nil {
-		return err
-	}
 
 	operator.startPoller(ctx)
 	return nil
@@ -168,10 +162,11 @@ func (operator *JournaldInput) startPoller(ctx context.Context) {
 
 // poll checks all the watched paths for new entries
 func (operator *JournaldInput) poll(ctx context.Context) error {
-	defer operator.syncOffsets()
-
 	// Start from a cursor if there is a saved offset
-	cursor := operator.persist.Get(lastReadCursorKey)
+	cursor, err := operator.persist.Get(ctx, lastReadCursorKey)
+	if err != nil {
+		return fmt.Errorf("error while retrieving key from persist: %w", err)
+	}
 
 	// Start journalctl
 	cmd := operator.newCmd(ctx, cursor)
@@ -221,7 +216,9 @@ func (operator *JournaldInput) poll(ctx context.Context) error {
 			operator.Warnw("Failed to parse journal entry", zap.Error(err))
 			continue
 		}
-		operator.persist.Set(lastReadCursorKey, []byte(cursor))
+		if err := operator.persist.Set(ctx, lastReadCursorKey, []byte(cursor)); err != nil {
+			operator.Warnw("failed to save journal entry in persister", zap.Error(err))
+		}
 		operator.Write(ctx, entry)
 		count++
 	}
@@ -268,13 +265,6 @@ func (operator *JournaldInput) parseJournalEntry(line []byte) (*entry.Entry, str
 
 	entry.Timestamp = time.Unix(0, timestampInt*1000) // in microseconds
 	return entry, cursorString, nil
-}
-
-func (operator *JournaldInput) syncOffsets() {
-	err := operator.persist.Sync()
-	if err != nil {
-		operator.Errorw("Failed to sync offsets", zap.Error(err))
-	}
 }
 
 // Stop will stop generating logs.
