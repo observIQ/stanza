@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/errors"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
