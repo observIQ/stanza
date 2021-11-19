@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	out "github.com/observiq/stanza/v2/operator/builtin/output/stdout"
+	out "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/output/stdout"
 	"github.com/stretchr/testify/require"
 )
 
