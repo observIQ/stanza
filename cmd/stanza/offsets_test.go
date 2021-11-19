@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -12,7 +13,8 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-func TestOffsets(t *testing.T) {
+func TestOffsetsList(t *testing.T) {
+	operatorID1, operatorID2 := "$.testoperatorid1", "$.testoperatorid2"
 	tempDir := t.TempDir()
 
 	databasePath := filepath.Join(tempDir, "logagent.db")
@@ -30,9 +32,9 @@ func TestOffsets(t *testing.T) {
 		bucket, err := tx.CreateBucketIfNotExists(persist.OffsetsBucket)
 		require.NoError(t, err)
 
-		_, err = bucket.CreateBucket([]byte("$.testoperatorid1"))
+		err = bucket.Put([]byte(operatorID1), []byte{})
 		require.NoError(t, err)
-		_, err = bucket.CreateBucket([]byte("$.testoperatorid2"))
+		err = bucket.Put([]byte(operatorID2), []byte{})
 		require.NoError(t, err)
 		return nil
 	})
@@ -46,9 +48,36 @@ func TestOffsets(t *testing.T) {
 		"--config", configPath,
 	})
 
+	expected := fmt.Sprintf("%s\n%s\n", operatorID1, operatorID2)
+
 	err = offsetsList.Execute()
 	require.NoError(t, err)
-	require.Equal(t, "$.testoperatorid1\n$.testoperatorid2\n", buf.String())
+	require.Equal(t, expected, buf.String())
+
+}
+
+func TestOffsetsClear(t *testing.T) {
+	operatorID1, operatorID2 := "$.testoperatorid1", "$.testoperatorid2"
+	tempDir := t.TempDir()
+
+	databasePath := filepath.Join(tempDir, "logagent.db")
+	configPath := filepath.Join(tempDir, "config.yaml")
+	ioutil.WriteFile(configPath, []byte{}, 0666)
+
+	// add an offset to the database
+	db, err := database.OpenDatabase(databasePath)
+	require.NoError(t, err)
+	db.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(persist.OffsetsBucket)
+		require.NoError(t, err)
+
+		err = bucket.Put([]byte(operatorID1), []byte{})
+		require.NoError(t, err)
+		err = bucket.Put([]byte(operatorID2), []byte{})
+		require.NoError(t, err)
+		return nil
+	})
+	db.Close()
 
 	// clear the offsets
 	offsetsClear := NewRootCmd()
@@ -56,15 +85,8 @@ func TestOffsets(t *testing.T) {
 		"offsets", "clear",
 		"--database", databasePath,
 		"--config", configPath,
-		"$.testoperatorid2",
 	})
 
 	err = offsetsClear.Execute()
 	require.NoError(t, err)
-
-	// Check that offsets list only shows uncleared operator id
-	buf.Reset()
-	err = offsetsList.Execute()
-	require.NoError(t, err)
-	require.Equal(t, "$.testoperatorid1\n", buf.String())
 }

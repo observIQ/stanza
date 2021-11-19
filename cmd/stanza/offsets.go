@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/spf13/cobra"
@@ -59,9 +60,11 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 			keys, err := persister.Keys()
 			exitOnErr("Failed to read database", err)
 
-			for _, key := range keys {
-				fmt.Println(key)
-			}
+			output := strings.Join(keys, "\n")
+			stdout.Write([]byte(output))
+
+			// Write out a final newline
+			stdout.Write([]byte("\n"))
 		},
 	}
 
