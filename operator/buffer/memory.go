@@ -10,13 +10,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/observiq/stanza/v2/database"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.etcd.io/bbolt"
 	"golang.org/x/sync/semaphore"
 )
+
+// TODO Refactor this to not directly use the DB
 
 // MemoryBufferConfig holds the configuration for a memory buffer
 type MemoryBufferConfig struct {
@@ -40,7 +41,7 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 // back into memory
 func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
 	mb := &MemoryBuffer{
-		db:            context.Database,
+		// db:            context.Database,
 		pluginID:      pluginID,
 		buf:           make(chan *entry.Entry, c.MaxEntries),
 		sem:           semaphore.NewWeighted(int64(c.MaxEntries)),
@@ -59,8 +60,8 @@ func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string
 // at which point it saves the entries into a database. It provides no guarantees about
 // lost entries if shut down uncleanly.
 type MemoryBuffer struct {
-	entryID       uint64
-	db            database.Database
+	entryID uint64
+	// db            database.Database
 	pluginID      string
 	buf           chan *entry.Entry
 	inFlight      map[uint64]*entry.Entry
@@ -212,35 +213,36 @@ func (m *MemoryBuffer) newClearer(ids []uint64) Clearer {
 func (m *MemoryBuffer) Close() error {
 	m.inFlightMux.Lock()
 	defer m.inFlightMux.Unlock()
-	return m.db.Update(func(tx *bbolt.Tx) error {
-		memBufBucket, err := tx.CreateBucketIfNotExists([]byte("memory_buffer"))
-		if err != nil {
-			return err
-		}
+	// return m.db.Update(func(tx *bbolt.Tx) error {
+	// 	memBufBucket, err := tx.CreateBucketIfNotExists([]byte("memory_buffer"))
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		b, err := memBufBucket.CreateBucketIfNotExists([]byte(m.pluginID))
-		if err != nil {
-			return err
-		}
+	// 	b, err := memBufBucket.CreateBucketIfNotExists([]byte(m.pluginID))
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		for k, v := range m.inFlight {
-			if err := putKeyValue(b, k, v); err != nil {
-				return err
-			}
-		}
+	// 	for k, v := range m.inFlight {
+	// 		if err := putKeyValue(b, k, v); err != nil {
+	// 			return err
+	// 		}
+	// 	}
 
-		for {
-			select {
-			case e := <-m.buf:
-				m.entryID++
-				if err := putKeyValue(b, m.entryID, e); err != nil {
-					return err
-				}
-			default:
-				return nil
-			}
-		}
-	})
+	// 	for {
+	// 		select {
+	// 		case e := <-m.buf:
+	// 			m.entryID++
+	// 			if err := putKeyValue(b, m.entryID, e); err != nil {
+	// 				return err
+	// 			}
+	// 		default:
+	// 			return nil
+	// 		}
+	// 	}
+	// })
+	return nil
 }
 
 func putKeyValue(b *bbolt.Bucket, k uint64, v *entry.Entry) error {
@@ -258,34 +260,35 @@ func putKeyValue(b *bbolt.Bucket, k uint64, v *entry.Entry) error {
 // loadFromDB loads any entries saved to the database previously into the memory buffer,
 // allowing them to be flushed
 func (m *MemoryBuffer) loadFromDB() error {
-	return m.db.Update(func(tx *bbolt.Tx) error {
-		memBufBucket := tx.Bucket([]byte("memory_buffer"))
-		if memBufBucket == nil {
-			return nil
-		}
+	// return m.db.Update(func(tx *bbolt.Tx) error {
+	// 	memBufBucket := tx.Bucket([]byte("memory_buffer"))
+	// 	if memBufBucket == nil {
+	// 		return nil
+	// 	}
 
-		b := memBufBucket.Bucket([]byte(m.pluginID))
-		if b == nil {
-			return nil
-		}
+	// 	b := memBufBucket.Bucket([]byte(m.pluginID))
+	// 	if b == nil {
+	// 		return nil
+	// 	}
 
-		return b.ForEach(func(k, v []byte) error {
-			if ok := m.sem.TryAcquire(1); !ok {
-				return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
-			}
+	// 	return b.ForEach(func(k, v []byte) error {
+	// 		if ok := m.sem.TryAcquire(1); !ok {
+	// 			return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
+	// 		}
 
-			dec := json.NewDecoder(bytes.NewReader(v))
-			var e entry.Entry
-			if err := dec.Decode(&e); err != nil {
-				return err
-			}
+	// 		dec := json.NewDecoder(bytes.NewReader(v))
+	// 		var e entry.Entry
+	// 		if err := dec.Decode(&e); err != nil {
+	// 			return err
+	// 		}
 
-			select {
-			case m.buf <- &e:
-				return nil
-			default:
-				return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
-			}
-		})
-	})
+	// 		select {
+	// 		case m.buf <- &e:
+	// 			return nil
+	// 		default:
+	// 			return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
+	// 		}
+	// 	})
+	// })
+	return nil
 }
