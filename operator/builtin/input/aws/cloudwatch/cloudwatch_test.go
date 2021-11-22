@@ -7,6 +7,7 @@ import (
 
 	cwLogs "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
+	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
@@ -427,6 +428,14 @@ func TestHandleEvent(t *testing.T) {
 	op := ops[0]
 
 	cwOperator, ok := op.(*CloudwatchInput)
+
+	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, mock.Anything).Return(nil, nil)
+	persister.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	cwOperator.persist = &Persister{
+		base: persist.NewCachedPersister(persister),
+	}
+
 	require.True(t, ok)
 	logStreamName, eventID, ingestionTime := "logStream", "eventID", int64(10000)
 	ts := int64(1632240412056)
