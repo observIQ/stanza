@@ -106,11 +106,15 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	// Start with a Noop persister. If a database file is specified use a bbolt persister
 	var persister operator.Persister = &persist.NoopPersister{}
 	if flags.DatabaseFile != "" {
-		persister, err = persist.NewBBoltPersister(flags.DatabaseFile)
+		bboltPersister, err := persist.NewBBoltPersister(flags.DatabaseFile)
 		if err != nil {
 			logger.Errorw("Failed to init persister", zap.Any("error", err))
 			os.Exit(1)
 		}
+
+		defer bboltPersister.Close()
+
+		persister = bboltPersister
 	}
 
 	ctx, service, err := newAgentService(command.Context(), agent, persister)

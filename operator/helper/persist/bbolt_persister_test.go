@@ -27,11 +27,14 @@ func TestNewBBoltPersister(t *testing.T) {
 				filePath := filepath.Join(dirPath, "my_db")
 				persister, err := NewBBoltPersister(filePath)
 				require.NoError(t, err)
+				defer func() {
+					require.NoError(t, persister.Close())
+				}()
 				require.NotNil(t, persister)
 				require.DirExists(t, dirPath)
 				require.FileExists(t, filePath)
 
-				// Windows file permissions will match the unix ones
+				// Windows file permissions will not match the unix ones
 				if runtime.GOOS != "windows" {
 					info, err := os.Stat(dirPath)
 					require.NoError(t, err)
@@ -110,6 +113,9 @@ func TestBBoltPersisterGet(t *testing.T) {
 			// Setup persister
 			filePath := filepath.Join(tempDir, "my_db.db")
 			persister, err := NewBBoltPersister(filePath)
+			defer func() {
+				require.NoError(t, persister.Close())
+			}()
 			require.NoError(t, err)
 
 			// Add seed Data
@@ -169,6 +175,9 @@ func TestBBoltPersisterSet(t *testing.T) {
 			// Setup persister
 			filePath := filepath.Join(tempDir, "my_db.db")
 			persister, err := NewBBoltPersister(filePath)
+			defer func() {
+				require.NoError(t, persister.Close())
+			}()
 			require.NoError(t, err)
 
 			// Set data
@@ -221,6 +230,9 @@ func TestBBoltPersisterDelete(t *testing.T) {
 			// Setup persister
 			filePath := filepath.Join(tempDir, "my_db.db")
 			persister, err := NewBBoltPersister(filePath)
+			defer func() {
+				require.NoError(t, persister.Close())
+			}()
 			require.NoError(t, err)
 
 			// Add seed Data
@@ -255,6 +267,9 @@ func TestBBoltPersisterClear(t *testing.T) {
 	// Setup persister
 	filePath := filepath.Join(tempDir, "my_db.db")
 	persister, err := NewBBoltPersister(filePath)
+	defer func() {
+		require.NoError(t, persister.Close())
+	}()
 	require.NoError(t, err)
 
 	// Store keys for later lookup
@@ -288,6 +303,9 @@ func TestBBoltPersisterKeys(t *testing.T) {
 	// Setup persister
 	filePath := filepath.Join(tempDir, "my_db.db")
 	persister, err := NewBBoltPersister(filePath)
+	defer func() {
+		require.NoError(t, persister.Close())
+	}()
 	require.NoError(t, err)
 
 	// Store expectedKeys for later lookup

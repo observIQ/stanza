@@ -37,6 +37,8 @@ func NewOffsetsClearCmd(rootFlags *RootFlags) *cobra.Command {
 			persister, err := persist.NewBBoltPersister(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
 
+			defer persister.Close()
+
 			// Clear the database behind the bbolt persister
 			if err := persister.Clear(); err != nil {
 				exitOnErr("Failed to delete offsets", err)
@@ -56,6 +58,7 @@ func NewOffsetsListCmd(rootFlags *RootFlags) *cobra.Command {
 		Run: func(command *cobra.Command, args []string) {
 			persister, err := persist.NewBBoltPersister(rootFlags.DatabaseFile)
 			exitOnErr("Failed to open database", err)
+			defer persister.Close()
 
 			keys, err := persister.Keys()
 			exitOnErr("Failed to read database", err)

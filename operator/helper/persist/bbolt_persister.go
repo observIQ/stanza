@@ -128,3 +128,8 @@ func (p *BBoltPersister) Keys() ([]string, error) {
 
 	return keys, nil
 }
+
+// Close closes the underlying bbolt connection
+func (p *BBoltPersister) Close() error {
+	return p.db.Close()
+}

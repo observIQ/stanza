@@ -491,13 +491,7 @@ func TestOffsetsAfterRestart(t *testing.T) {
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
 
-	dbDir := t.TempDir()
-	dbFile := filepath.Join(dbDir, "db.db")
-
-	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
-	// As it's testing more that a persister does it's job rather than the file reader.
-	persister, err := persist.NewBBoltPersister(dbFile)
-	require.NoError(t, err)
+	persister := persist.NewCachedPersister(&persist.NoopPersister{})
 
 	// Start the operator and expect a message
 	require.NoError(t, operator.Start(persister))
@@ -524,13 +518,7 @@ func TestOffsetsAfterRestart_BigFiles(t *testing.T) {
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, log1+"\n")
 
-	dbDir := t.TempDir()
-	dbFile := filepath.Join(dbDir, "db.db")
-
-	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
-	// As it's testing more that a persister does it's job rather than the file reader.
-	persister, err := persist.NewBBoltPersister(dbFile)
-	require.NoError(t, err)
+	persister := persist.NewCachedPersister(&persist.NoopPersister{})
 
 	// Start the operator
 	require.NoError(t, operator.Start(persister))
@@ -555,13 +543,7 @@ func TestOffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, log1+"\n")
 
-	dbDir := t.TempDir()
-	dbFile := filepath.Join(dbDir, "db.db")
-
-	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
-	// As it's testing more that a persister does it's job rather than the file reader.
-	persister, err := persist.NewBBoltPersister(dbFile)
-	require.NoError(t, err)
+	persister := persist.NewCachedPersister(&persist.NoopPersister{})
 
 	// Start the operator and expect the first message
 	require.NoError(t, operator.Start(persister))

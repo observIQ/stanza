@@ -516,13 +516,7 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	writeString(t, temp, log1+"\n")
 	require.NoError(t, temp.Close())
 
-	dbDir := t.TempDir()
-	dbFile := filepath.Join(dbDir, "db.db")
-
-	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
-	// As it's testing more that a persister does it's job rather than the file reader.
-	persister, err := persist.NewBBoltPersister(dbFile)
-	require.NoError(t, err)
+	persister := persist.NewCachedPersister(&persist.NoopPersister{})
 
 	// Start the operator
 	require.NoError(t, operator.Start(persister))
@@ -532,7 +526,7 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	// Stop the operator, then rename and write a new log
 	require.NoError(t, operator.Stop())
 
-	err = os.Rename(temp.Name(), fmt.Sprintf("%s2", temp.Name()))
+	err := os.Rename(temp.Name(), fmt.Sprintf("%s2", temp.Name()))
 	require.NoError(t, err)
 
 	temp = reopenTemp(t, temp.Name())
