@@ -309,7 +309,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"unsupported tls version",
+			"unsupported TLS version",
 		},
 		{
 			"missing-certificate-file",
@@ -335,7 +335,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"missing required parameter 'certificate', required when TLS is enabled",
+			"for auth via TLS, either both certificate and key must be supplied, or neither",
 		},
 		{
 			"missing-key-file",
@@ -360,7 +360,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"missing required parameter 'private_key', required when TLS is enabled",
+			"for auth via TLS, either both certificate and key must be supplied, or neither",
 		},
 		{
 			"wrong-certificate-path",
@@ -385,7 +385,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"failed to load tls certificate",
+			"failed to load TLS cert and key",
 		},
 		{
 			"wrong-private-key-path",
@@ -410,7 +410,7 @@ func TestBuildOperator(t *testing.T) {
 				return cfg, cleanup, nil
 			},
 			true,
-			"failed to load tls",
+			"failed to load TLS",
 		},
 		{
 			"read-timeout",
@@ -587,8 +587,14 @@ func TestBuildOperator(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, cfg.ListenAddress, op.server.Addr)
-			require.NotEmpty(t, op.server.TLSConfig.MinVersion)
-			require.NotEmpty(t, op.server.TLSConfig.Certificates)
+
+			// TODO revisit this as it's not a great validation of the TLS config
+			if cfg.TLS != nil {
+				require.NotNil(t, op.server.TLSConfig)
+			} else {
+				require.Nil(t, op.server.TLSConfig)
+			}
+
 			require.Equal(t, cfg.ReadTimeout.Duration, op.server.ReadTimeout)
 			require.Equal(t, cfg.ReadTimeout.Duration, op.server.ReadHeaderTimeout)
 			require.Equal(t, cfg.WriteTimeout.Duration, op.server.WriteTimeout)
