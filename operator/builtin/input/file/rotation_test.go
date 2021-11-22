@@ -11,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,6 +48,8 @@ func TestMultiFileRotate(t *testing.T) {
 	}
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -104,6 +108,8 @@ func TestMultiFileRotateSlow(t *testing.T) {
 	}
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -151,6 +157,8 @@ func TestMultiCopyTruncateSlow(t *testing.T) {
 	}
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -249,6 +257,8 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 		}
 
 		persister := &testutil.MockPersister{}
+		persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+		persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 		require.NoError(t, operator.Start(persister))
 		defer operator.Stop()
 
@@ -369,6 +379,9 @@ func TestMoveFile(t *testing.T) {
 	}
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
@@ -394,6 +407,9 @@ func TestTrackMovedAwayFiles(t *testing.T) {
 	}
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
@@ -428,6 +444,9 @@ func TestTrackMovedAwayFiles(t *testing.T) {
 func TestTruncateThenWrite(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\ntestlog2\n")
@@ -454,6 +473,9 @@ func TestTruncateThenWrite(t *testing.T) {
 func TestCopyTruncateWriteBoth(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\ntestlog2\n")
@@ -494,8 +516,15 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	writeString(t, temp, log1+"\n")
 	require.NoError(t, temp.Close())
 
+	dbDir := t.TempDir()
+	dbFile := filepath.Join(dbDir, "db.db")
+
+	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
+	// As it's testing more that a persister does it's job rather than the file reader.
+	persister, err := persist.NewBBoltPersister(dbFile)
+	require.NoError(t, err)
+
 	// Start the operator
-	persister := &testutil.MockPersister{}
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
@@ -503,7 +532,7 @@ func TestFileMovedWhileOff_BigFiles(t *testing.T) {
 	// Stop the operator, then rename and write a new log
 	require.NoError(t, operator.Stop())
 
-	err := os.Rename(temp.Name(), fmt.Sprintf("%s2", temp.Name()))
+	err = os.Rename(temp.Name(), fmt.Sprintf("%s2", temp.Name()))
 	require.NoError(t, err)
 
 	temp = reopenTemp(t, temp.Name())

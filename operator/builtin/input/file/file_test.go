@@ -11,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,6 +48,8 @@ func TestAddFileFields(t *testing.T) {
 	writeString(t, temp, "testlog\n")
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -87,6 +91,8 @@ func TestAddFileResolvedFields(t *testing.T) {
 	require.NoError(t, err)
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -149,6 +155,8 @@ func TestAddFileResolvedFieldsWithChangeOfSymlinkTarget(t *testing.T) {
 	writeString(t, file1, "testlog\n")
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -189,6 +197,8 @@ func TestReadExistingLogs(t *testing.T) {
 	writeString(t, temp, "testlog1\ntestlog2\n")
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -201,6 +211,10 @@ func TestReadExistingLogs(t *testing.T) {
 func TestReadNewLogs(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	// Poll once so we know this isn't a new file
 	operator.poll(context.Background())
@@ -224,6 +238,10 @@ func TestReadExistingAndNewLogs(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 	defer operator.Stop()
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	// Start with a file with an entry in it, and expect that entry
 	// to come through when we poll for the first time
@@ -251,6 +269,10 @@ func TestStartAtEnd(t *testing.T) {
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1\n")
 
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
+
 	// Expect no entries on the first poll
 	operator.poll(context.Background())
 	expectNoMessages(t, logReceived)
@@ -269,6 +291,10 @@ func TestStartAtEndNewFile(t *testing.T) {
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 	operator.startAtBeginning = false
 	defer operator.Stop()
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	operator.poll(context.Background())
 
@@ -307,6 +333,8 @@ func TestSkipEmpty(t *testing.T) {
 	writeString(t, temp, "testlog1\n\ntestlog2\n")
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -320,6 +348,10 @@ func TestSplitWrite(t *testing.T) {
 	t.Parallel()
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 	defer operator.Stop()
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, "testlog1")
@@ -337,6 +369,8 @@ func TestDecodeBufferIsResized(t *testing.T) {
 	operator, logReceived, tempDir := newTestFileOperator(t, nil, nil)
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -358,6 +392,8 @@ func TestMultiFileSimple(t *testing.T) {
 	writeString(t, temp2, "testlog2\n")
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -394,6 +430,8 @@ func TestMultiFileParallel_PreloadedFiles(t *testing.T) {
 	}
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -419,6 +457,8 @@ func TestMultiFileParallel_LiveFiles(t *testing.T) {
 	}
 
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -451,8 +491,15 @@ func TestOffsetsAfterRestart(t *testing.T) {
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, "testlog1\n")
 
+	dbDir := t.TempDir()
+	dbFile := filepath.Join(dbDir, "db.db")
+
+	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
+	// As it's testing more that a persister does it's job rather than the file reader.
+	persister, err := persist.NewBBoltPersister(dbFile)
+	require.NoError(t, err)
+
 	// Start the operator and expect a message
-	persister := &testutil.MockPersister{}
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 	waitForMessage(t, logReceived, "testlog1")
@@ -477,8 +524,15 @@ func TestOffsetsAfterRestart_BigFiles(t *testing.T) {
 	temp1 := openTemp(t, tempDir)
 	writeString(t, temp1, log1+"\n")
 
+	dbDir := t.TempDir()
+	dbFile := filepath.Join(dbDir, "db.db")
+
+	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
+	// As it's testing more that a persister does it's job rather than the file reader.
+	persister, err := persist.NewBBoltPersister(dbFile)
+	require.NoError(t, err)
+
 	// Start the operator
-	persister := &testutil.MockPersister{}
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
@@ -501,8 +555,15 @@ func TestOffsetsAfterRestart_BigFilesWrittenWhileOff(t *testing.T) {
 	temp := openTemp(t, tempDir)
 	writeString(t, temp, log1+"\n")
 
+	dbDir := t.TempDir()
+	dbFile := filepath.Join(dbDir, "db.db")
+
+	// This test requires a real disk persister in order to work. Not sure if this is a great test for file
+	// As it's testing more that a persister does it's job rather than the file reader.
+	persister, err := persist.NewBBoltPersister(dbFile)
+	require.NoError(t, err)
+
 	// Start the operator and expect the first message
-	persister := &testutil.MockPersister{}
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 	waitForMessage(t, logReceived, log1)
@@ -528,6 +589,8 @@ func TestManyLogsDelivered(t *testing.T) {
 
 	// Start the operator
 	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 	require.NoError(t, operator.Start(persister))
 	defer operator.Stop()
 
@@ -567,6 +630,10 @@ func TestFileBatching(t *testing.T) {
 		},
 	)
 	defer operator.Stop()
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	temps := make([]*os.File, 0, files)
 	for i := 0; i < files; i++ {
@@ -628,6 +695,10 @@ func TestDeleteAfterRead(t *testing.T) {
 	)
 	defer operator.Stop()
 
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
+
 	temps := make([]*os.File, 0, files)
 	for i := 0; i < files; i++ {
 		temps = append(temps, openTemp(t, tempDir))
@@ -671,6 +742,10 @@ func TestDeleteAfterRead_SkipPartials(t *testing.T) {
 		},
 	)
 	defer operator.Stop()
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	shortFile := openTemp(t, tempDir)
 	shortFile.WriteString(shortFileLine + "\n")
@@ -738,6 +813,10 @@ func TestFilenameRecallPeriod(t *testing.T) {
 		// so file only exist for first poll
 		cfg.DeleteAfterRead = true
 	}, nil)
+
+	persister := &testutil.MockPersister{}
+	persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
+	operator.persister = persist.NewCachedPersister(persister)
 
 	// Create some new files
 	temp1 := openTemp(t, tempDir)
@@ -924,6 +1003,8 @@ func TestEncodings(t *testing.T) {
 			require.NoError(t, err)
 
 			persister := &testutil.MockPersister{}
+			persister.On("Get", mock.Anything, knownFilesKey).Return(nil, nil)
+			persister.On("Set", mock.Anything, knownFilesKey, mock.Anything).Return(nil)
 			require.NoError(t, operator.Start(persister))
 			defer operator.Stop()
 
