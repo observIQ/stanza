@@ -57,7 +57,8 @@ func TestInputJournald(t *testing.T) {
 	}
 
 	persister := &testutil.MockPersister{}
-
+	persister.On("Get", mock.Anything, mock.Anything).Return(nil, nil)
+	persister.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	err = op.Start(persister)
 	require.NoError(t, err)
 	defer op.Stop()

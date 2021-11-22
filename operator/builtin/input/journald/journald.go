@@ -128,6 +128,8 @@ func (operator *JournaldInput) Start(persister operator.Persister) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	operator.cancel = cancel
 
+	operator.persist = persister
+
 	operator.startPoller(ctx)
 	return nil
 }
