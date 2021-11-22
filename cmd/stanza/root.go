@@ -16,6 +16,7 @@ import (
 
 	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/open-telemetry/opentelemetry-log-collection/agent"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -102,7 +103,15 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 		os.Exit(1)
 	}
 
-	persister, err := persist.NewBBoltPersister(flags.DatabaseFile)
+	// Start with a Noop persister. If a database file is specified use a bbolt persister
+	var persister operator.Persister = &persist.NoopPersister{}
+	if flags.DatabaseFile != "" {
+		persister, err = persist.NewBBoltPersister(flags.DatabaseFile)
+		if err != nil {
+			logger.Errorw("Failed to init persister", zap.Any("error", err))
+			os.Exit(1)
+		}
+	}
 
 	ctx, service, err := newAgentService(command.Context(), agent, persister)
 	if err != nil {
