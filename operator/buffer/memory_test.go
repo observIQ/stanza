@@ -132,6 +132,8 @@ func TestMemoryBuffer(t *testing.T) {
 	})
 
 	t.Run("WriteCloseRead", func(t *testing.T) {
+		// TODO remove this test at some point as it is related to the memory buffer having a backing DB
+		t.Skip("Not supported test in current version of memory buffer")
 		t.Parallel()
 		bc := testutil.NewBuildContext(t)
 		b, err := NewMemoryBufferConfig().Build(bc, "test")
@@ -215,6 +217,8 @@ func TestMemoryBuffer(t *testing.T) {
 	})
 
 	t.Run("CloseReadUnflushed", func(t *testing.T) {
+		// TODO remove this test at some point as it is related to the memory buffer having a backing DB
+		t.Skip("Not supported test in current version of memory buffer")
 		t.Parallel()
 		buildContext := testutil.NewBuildContext(t)
 		b, err := NewMemoryBufferConfig().Build(buildContext, "test")
