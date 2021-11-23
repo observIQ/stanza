@@ -20,7 +20,7 @@ import (
 	_ "github.com/observiq/stanza/v2/operator/builtin/transformer/k8smetadata"
 	_ "github.com/observiq/stanza/v2/operator/builtin/transformer/ratelimit"
 
-	// TODO verify if we want to use otel versions of these or if we have our own
+	// Otel Operators
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/generate"
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/k8sevent"
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/input/stanza"
