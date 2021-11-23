@@ -15,7 +15,7 @@ Inputs:
 - [Goflow](/docs/operators/goflow_input.md)
 - [HTTP](/docs/operators/http_input.md)
 - [Journald](/docs/operators/journald_input.md)
-- [Kubernetes Event](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/k8s_event_input)
+- [Kubernetes Event](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/k8s_event_input.md)
 - [Stanza Forward](/docs/operators/forward_input.md)
 - [Stanza Self](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/stanza_input.md)
 - [Stdin](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/stdin.md)
@@ -35,12 +35,12 @@ Parsers:
 - [XML](/docs/operators/xml_parser.md)
 
 Outputs:
-- [Drop](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/drop_output.md)
+- [Drop](/docs/operators/drop_output.md)
 - [Elasticsearch](/docs/operators/elastic_output.md)
 - [File](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/file_output.md)
 - [Google Cloud Logging](/docs/operators/google_cloud_output.md)
-- [Newrelic](docs/operators/newrelic_output.md)
-- [Stanza Forward](docs/operators/forward_output.md)
+- [Newrelic](/docs/operators/newrelic_output.md)
+- [Stanza Forward](/docs/operators/forward_output.md)
 - [Stdout](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/stdout.md)
 
 General purpose:
@@ -57,7 +57,6 @@ General purpose:
 - [Rate Limit](/docs/operators/rate_limit.md)
 - [Restructure](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/restructure.md)
 - [Retain](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/retain.md)
-- [Router](/docs/operators/router.md)
 - [Router](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/router.md)
 
 Or create your own [plugins](/docs/plugins.md) for a technology-specific use case.
