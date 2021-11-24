@@ -1,0 +1,29 @@
+pipeline:
+# Use the Rsyslog plugin to listen on port 5140/udp 
+# for RFC 3164 syslog messages
+- type: rsyslog
+  listen_port: 5140
+  connection_type: udp
+  protocol: rfc3164 (BSD)
+  location: UTC
+
+# If the syslog message field is json, route to the json
+# parser, otherwise go straight to Google output
+- type: router
+  default: google_cloud_output
+  routes:
+  - output: json_parser
+    expr: '$record.message matches "^{.*}\\s*$"'
+
+- type: json_parser
+  parse_from: $record.message
+
+# Rename the location field to city, if it exists
+- type: move
+  if: '$record.location != nil'
+  from: location
+  to: city
+
+# Google output does not require a project or credential 
+# file when running with the cloud logging scope
+- type: google_cloud_output
