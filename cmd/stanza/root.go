@@ -14,9 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator/helper/persist"
-	"github.com/open-telemetry/opentelemetry-log-collection/agent"
-	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/observiq/stanza/v2/service"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -24,7 +22,7 @@ import (
 // RootFlags are the root level flags that be provided when invoking stanza from the command line
 type RootFlags struct {
 	DatabaseFile       string
-	ConfigFiles        []string
+	ConfigFile         string
 	PluginDir          string
 	PprofPort          int
 	CPUProfile         string
@@ -60,7 +58,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet.IntVar(&rootFlags.MaxLogAge, "max_log_age", 7, "sets the maximum number of days to retain a rotated log file")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging flag - deprecated")
 
-	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{defaultConfig()}, "path to a config file")
+	rootFlagSet.StringVarP(&rootFlags.ConfigFile, "config", "c", defaultConfig(), "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
 	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the stanza offset database")
 
@@ -94,30 +92,13 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	agent, err := agent.NewBuilder(logger).
-		WithConfigFiles(flags.ConfigFiles).
+	// Build agent service
+	service, ctx, err := service.NewBuilder().
+		WithConfigFile(flags.ConfigFile).
+		WithDatabaseFile(flags.DatabaseFile).
 		WithPluginDir(flags.PluginDir).
-		Build()
-	if err != nil {
-		logger.Errorw("Failed to build agent", zap.Any("error", err))
-		os.Exit(1)
-	}
-
-	// Start with a Noop persister. If a database file is specified use a bbolt persister
-	var persister operator.Persister = &persist.NoopPersister{}
-	if flags.DatabaseFile != "" {
-		bboltPersister, err := persist.NewBBoltPersister(flags.DatabaseFile)
-		if err != nil {
-			logger.Errorw("Failed to init persister", zap.Any("error", err))
-			os.Exit(1)
-		}
-
-		defer bboltPersister.Close()
-
-		persister = bboltPersister
-	}
-
-	ctx, service, err := newAgentService(command.Context(), agent, persister)
+		WithLogger(logger).
+		Build(command.Context())
 	if err != nil {
 		logger.Errorf("Failed to create agent service", zap.Any("error", err))
 		os.Exit(1)

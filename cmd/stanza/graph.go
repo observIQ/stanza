@@ -31,7 +31,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
+	cfg, err := agent.NewConfigFromGlobs([]string{flags.ConfigFile})
 	if err != nil {
 		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)

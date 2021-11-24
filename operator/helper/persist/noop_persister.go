@@ -2,6 +2,12 @@ package persist
 
 import "context"
 
+// NoopShutdownFunc is a PersisterShutdownFunc that returns nil.
+// To be used with persisters that have no shutdown operation
+var NoopShutdownFunc PersisterShutdownFunc = func() error {
+	return nil
+}
+
 // NoopPersister is a persister that does nothing and returns no errors
 type NoopPersister struct{}
 
