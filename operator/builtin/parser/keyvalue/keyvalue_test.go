@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 
 	"github.com/stretchr/testify/mock"
@@ -113,8 +113,8 @@ func TestKVParserInvalidType(t *testing.T) {
 	require.Contains(t, err.Error(), "type []int cannot be parsed as key value pairs")
 }
 
-func NewFakeKVOperator() (*KVParser, *testutil.Operator) {
-	mock := testutil.Operator{}
+func NewFakeKVOperator() (*KVParser, *testutil.MockOperator) {
+	mock := testutil.MockOperator{}
 	logger, _ := zap.NewProduction()
 	return &KVParser{
 		ParserOperator: helper.ParserOperator{

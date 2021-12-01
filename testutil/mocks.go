@@ -5,21 +5,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator"
 	entry "github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/require"
 	zap "go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
 // NewMockOperator will return a basic operator mock
-func NewMockOperator(id string) *Operator {
-	mockOutput := &Operator{}
+func NewMockOperator(id string) *MockOperator {
+	mockOutput := &MockOperator{}
 	mockOutput.On("ID").Return(id)
 	mockOutput.On("CanProcess").Return(true)
 	mockOutput.On("CanOutput").Return(true)
 	return mockOutput
 }
+
+var _ (operator.Operator) = (*FakeOutput)(nil)
 
 // FakeOutput is an empty output used primarily for testing
 type FakeOutput struct {
@@ -50,11 +52,17 @@ func (f *FakeOutput) Logger() *zap.SugaredLogger { return f.SugaredLogger }
 // Outputs always returns nil for a fake output
 func (f *FakeOutput) Outputs() []operator.Operator { return nil }
 
+// GetOutputIDs returns the list of connected outputs.
+func (f *FakeOutput) GetOutputIDs() []string { return nil }
+
 // SetOutputs immediately returns nil for a fake output
 func (f *FakeOutput) SetOutputs(outputs []operator.Operator) error { return nil }
 
+// SetOutputIDs will set the connected outputs' IDs.
+func (f *FakeOutput) SetOutputIDs([]string) {}
+
 // Start immediately returns nil for a fake output
-func (f *FakeOutput) Start() error { return nil }
+func (f *FakeOutput) Start(operator.Persister) error { return nil }
 
 // Stop immediately returns nil for a fake output
 func (f *FakeOutput) Stop() error { return nil }

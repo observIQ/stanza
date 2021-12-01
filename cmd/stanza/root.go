@@ -14,7 +14,9 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/observiq/stanza/v2/agent"
+	"github.com/observiq/stanza/v2/operator/helper/persist"
+	"github.com/open-telemetry/opentelemetry-log-collection/agent"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -95,15 +97,27 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	agent, err := agent.NewBuilder(logger).
 		WithConfigFiles(flags.ConfigFiles).
 		WithPluginDir(flags.PluginDir).
-		WithDatabaseFile(flags.DatabaseFile).
 		Build()
 	if err != nil {
 		logger.Errorw("Failed to build agent", zap.Any("error", err))
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithCancel(command.Context())
-	service, err := newAgentService(ctx, agent, cancel)
+	// Start with a Noop persister. If a database file is specified use a bbolt persister
+	var persister operator.Persister = &persist.NoopPersister{}
+	if flags.DatabaseFile != "" {
+		bboltPersister, err := persist.NewBBoltPersister(flags.DatabaseFile)
+		if err != nil {
+			logger.Errorw("Failed to init persister", zap.Any("error", err))
+			os.Exit(1)
+		}
+
+		defer bboltPersister.Close()
+
+		persister = bboltPersister
+	}
+
+	ctx, service, err := newAgentService(command.Context(), agent, persister)
 	if err != nil {
 		logger.Errorf("Failed to create agent service", zap.Any("error", err))
 		os.Exit(1)
@@ -140,9 +154,9 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 		go func() {
 			defer wg.Done()
 			<-ctx.Done()
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			err := srv.Shutdown(ctx)
+			err := srv.Shutdown(shutdownCtx)
 			if err != nil {
 				logger.Warnw("Errored shutting down pprof server", zap.Error(err))
 			}

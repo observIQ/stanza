@@ -11,8 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -32,7 +34,7 @@ type InputOperator struct {
 	SeenPaths             map[string]time.Time
 	filenameRecallPeriod  time.Duration
 
-	persist helper.Persister
+	persister operator.Persister
 
 	knownFiles      []*Reader
 	queuedMatches   []string
@@ -54,13 +56,15 @@ type InputOperator struct {
 }
 
 // Start will start the file monitoring process
-func (f *InputOperator) Start() error {
+func (f *InputOperator) Start(persister operator.Persister) error {
+	f.persister = persist.NewCachedPersister(persister)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	f.cancel = cancel
 	f.firstCheck = true
 
 	// Load offsets from disk
-	if err := f.loadLastPollFiles(); err != nil {
+	if err := f.loadLastPollFiles(ctx); err != nil {
 		return fmt.Errorf("read known files from database: %s", err)
 	}
 
@@ -179,7 +183,7 @@ func (f *InputOperator) poll(ctx context.Context) {
 	}
 
 	f.saveCurrent(readers)
-	f.syncLastPollFiles()
+	f.syncLastPollFiles(ctx)
 }
 
 // makeReaders takes a list of paths, then creates readers from each of those paths,
@@ -326,7 +330,7 @@ func (f *InputOperator) findFingerprintMatch(fp *Fingerprint) (*Reader, bool) {
 const knownFilesKey = "knownFiles"
 
 // syncLastPollFiles syncs the most recent set of files to the database
-func (f *InputOperator) syncLastPollFiles() {
+func (f *InputOperator) syncLastPollFiles(ctx context.Context) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 
@@ -343,20 +347,16 @@ func (f *InputOperator) syncLastPollFiles() {
 		}
 	}
 
-	f.persist.Set(knownFilesKey, buf.Bytes())
-	if err := f.persist.Sync(); err != nil {
-		f.Errorw("Failed to sync to database", zap.Error(err))
-	}
+	f.persister.Set(ctx, knownFilesKey, buf.Bytes())
 }
 
 // syncLastPollFiles loads the most recent set of files to the database
-func (f *InputOperator) loadLastPollFiles() error {
-	err := f.persist.Load()
+func (f *InputOperator) loadLastPollFiles(ctx context.Context) error {
+	encoded, err := f.persister.Get(ctx, knownFilesKey)
 	if err != nil {
 		return err
 	}
 
-	encoded := f.persist.Get(knownFilesKey)
 	if encoded == nil {
 		f.knownFiles = make([]*Reader, 0, 10)
 		return nil

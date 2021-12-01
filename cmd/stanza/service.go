@@ -7,20 +7,22 @@ import (
 	"syscall"
 
 	"github.com/kardianos/service"
-	"github.com/observiq/stanza/v2/agent"
+	"github.com/open-telemetry/opentelemetry-log-collection/agent"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"go.uber.org/zap"
 )
 
 // AgentService is a service that runs the stanza agent.
 type AgentService struct {
-	cancel context.CancelFunc
-	agent  *agent.LogAgent
+	cancel    context.CancelFunc
+	agent     *agent.LogAgent
+	persister operator.Persister
 }
 
 // Start will start the stanza agent.
 func (a *AgentService) Start(s service.Service) error {
 	a.agent.Info("Starting stanza agent")
-	if err := a.agent.Start(); err != nil {
+	if err := a.agent.Start(a.persister); err != nil {
 		a.agent.Errorw("Failed to start stanza agent", zap.Any("error", err))
 		a.cancel()
 		return nil
@@ -45,28 +47,33 @@ func (a *AgentService) Stop(s service.Service) error {
 }
 
 // newAgentService creates a new agent service with the provided agent.
-func newAgentService(ctx context.Context, agent *agent.LogAgent, cancel context.CancelFunc) (service.Service, error) {
-	agentService := &AgentService{cancel, agent}
+func newAgentService(ctx context.Context, agent *agent.LogAgent, persister operator.Persister) (context.Context, service.Service, error) {
+	// Create a context for this service based on the passed in context
+	serviceCtx, cancel := context.WithCancel(ctx)
+
+	agentService := &AgentService{
+		cancel:    cancel,
+		agent:     agent,
+		persister: persister,
+	}
 	config := &service.Config{
 		Name:        "stanza",
 		DisplayName: "Stanza Log Agent",
 		Description: "Monitors and processes log entries",
 		Option: service.KeyValue{
 			"RunWait": func() {
-				var sigChan = make(chan os.Signal, 3)
-				signal.Notify(sigChan, syscall.SIGTERM, os.Interrupt)
-				select {
-				case <-sigChan:
-				case <-ctx.Done():
-				}
+				// Create a child context off of signal notify and block on it
+				signalCtx, cancel := signal.NotifyContext(serviceCtx, syscall.SIGTERM, os.Interrupt)
+				defer cancel()
+				<-signalCtx.Done()
 			},
 		},
 	}
 
 	service, err := service.New(agentService, config)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return service, nil
+	return serviceCtx, service, nil
 }

@@ -14,7 +14,7 @@ The `http_input` operator starts an HTTP server for receiving log messages.
 | `max_header_size`  | 1mb                   |                                        |
 | `max_body_size`    | 10mb                  |                                        |
 | `auth`             |                       | An optional `Auth` configuration (see the Auth configuration section)               |
-| `tls`              |                       | An optional `TLS` configuration (see the TLS configuration section)               |
+| `tls`              | nil                   | An optional `TLS` configuration (see the TLS configuration section). |
 
 
 #### Auth Configuration
@@ -31,13 +31,14 @@ The `http_input` operator supports authentication, disabled by default.
 #### TLS Configuration
 
 The `http_input` operator supports TLS, disabled by default.
+config more detail [opentelemetry-collector#configtls](https://github.com/open-telemetry/opentelemetry-collector/tree/main/config/configtls#tls-configuration-settings).
 
-| Field             | Default          | Description                               |
-| ---               | ---              | ---                                       |
-| `enable`          | `false`          | Boolean value to enable or disable TLS    |
-| `certificate`     | `""`             | File path for the X509 certificate chain  |
-| `private_key`     | `""`             | File path for the X509 private key        |
-| `min_version`     | `1.2`            | Minimum TLS version to accept connections |
+| Field             | Default          | Description                                                                                                                                           |
+| ---               | ---              | ---                                                                                                                                                   |
+| `cert_file`       |                  | Path to the TLS cert to use for TLS required connections.                                                                                             |
+| `key_file`        |                  | Path to the TLS key to use for TLS required connections.                                                                                              |
+| `ca_file`         |                  | Path to the CA cert. For a client this verifies the server certificate. For a server this verifies client certificates. If empty uses system root CA. |
+| `client_ca_file`  |                  | Path to the TLS cert to use by the server to verify a client certificate. (optional)                                                                  |
 
 
 ### Output

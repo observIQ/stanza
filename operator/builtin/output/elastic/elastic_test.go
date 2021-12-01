@@ -109,8 +109,9 @@ func TestElastic(t *testing.T) {
 	op := ops[0]
 	e := entry.New()
 	e.Body = "test"
+	persister := &testutil.MockPersister{}
 
-	require.NoError(t, op.Start())
+	require.NoError(t, op.Start(persister))
 	op.Process(context.Background(), e)
 	select {
 	case <-time.After(5 * time.Second):

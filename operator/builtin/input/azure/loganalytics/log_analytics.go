@@ -4,9 +4,9 @@ import (
 	"context"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/builtin/input/azure"
-	"github.com/observiq/stanza/v2/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 const operatorName = "azure_log_analytics_input"
@@ -41,9 +41,6 @@ func (c *LogAnalyticsInputConfig) Build(buildContext operator.BuildContext) ([]o
 	logAnalyticsInput := &LogAnalyticsInput{
 		EventHub: azure.EventHub{
 			AzureConfig: c.AzureConfig,
-			Persist: &azure.Persister{
-				DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
-			},
 		},
 		json: jsoniter.ConfigFastest,
 	}
@@ -57,9 +54,9 @@ type LogAnalyticsInput struct {
 }
 
 // Start will start generating log entries.
-func (l *LogAnalyticsInput) Start() error {
+func (l *LogAnalyticsInput) Start(persister operator.Persister) error {
 	l.Handler = l.handleBatchedEvents
-	return l.StartConsumers(context.Background())
+	return l.StartConsumers(context.Background(), persister)
 }
 
 // Stop will stop generating logs.

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 )
 
 // Buffer is an interface for an entry buffer

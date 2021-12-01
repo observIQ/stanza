@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/observiq/stanza/v2/logger"
-	"github.com/observiq/stanza/v2/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/logger"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
@@ -63,7 +63,6 @@ func NewTestDatabase(t testing.TB) *bbolt.DB {
 // NewBuildContext will return a new build context for testing
 func NewBuildContext(t testing.TB) operator.BuildContext {
 	return operator.BuildContext{
-		Database:  NewTestDatabase(t),
 		Logger:    logger.New(zaptest.NewLogger(t, zaptest.Level(zapcore.ErrorLevel)).Sugar()),
 		Namespace: "$",
 	}

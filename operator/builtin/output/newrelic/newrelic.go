@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -126,7 +126,7 @@ type NewRelicOutput struct {
 }
 
 // Start tests the connection to New Relic and begins flushing entries
-func (nro *NewRelicOutput) Start() error {
+func (nro *NewRelicOutput) Start(_ operator.Persister) error {
 	if err := nro.testConnection(); err != nil {
 		return fmt.Errorf("test connection: %s", err)
 	}

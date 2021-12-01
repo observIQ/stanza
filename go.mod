@@ -5,7 +5,7 @@ go 1.17
 require (
 	cloud.google.com/go/logging v1.4.2
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.13
-	github.com/antonmedv/expr v1.9.0
+	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/aws/aws-sdk-go v1.40.26
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
@@ -19,8 +19,8 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kardianos/service v1.2.0
 	github.com/mitchellh/mapstructure v1.4.1
-	github.com/observiq/ctimefmt v1.0.0
-	github.com/observiq/go-syslog/v3 v3.0.2
+	github.com/observiq/ctimefmt v1.0.0 // indirect
+	github.com/observiq/go-syslog/v3 v3.0.2 // indirect
 	github.com/observiq/goflow/v3 v3.4.4
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
 	github.com/spf13/cobra v1.2.1
@@ -31,23 +31,26 @@ require (
 	go.uber.org/zap v1.19.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/text v0.3.7
-	gonum.org/v1/gonum v0.9.3
+	gonum.org/v1/gonum v0.9.3 // indirect
 	google.golang.org/api v0.52.0
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	// k8s.io modules should be the same version
-	k8s.io/api v0.22.2
+	k8s.io/api v0.22.2 // indirect
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
 )
 
-require gopkg.in/natefinch/lumberjack.v2 v2.0.0
+require (
+	github.com/open-telemetry/opentelemetry-log-collection v0.22.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+)
 
-require github.com/open-telemetry/opentelemetry-log-collection v0.22.0
+require go.opentelemetry.io/collector v0.35.0
 
 require (
 	cloud.google.com/go v0.88.0 // indirect
@@ -76,14 +79,13 @@ require (
 	github.com/docker/docker v20.10.6+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
@@ -102,9 +104,9 @@ require (
 	github.com/opencontainers/runc v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.7.1 // indirect
+	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.14.0 // indirect
+	github.com/prometheus/common v0.30.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -119,7 +121,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect

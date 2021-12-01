@@ -6,7 +6,7 @@ import (
 	"time"
 
 	flowmessage "github.com/observiq/goflow/v3/pb"
-	"github.com/observiq/stanza/v2/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
 )
 
 // Parse parses a netflow message into an entry. It is assumed that Proto,

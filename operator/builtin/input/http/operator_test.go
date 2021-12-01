@@ -21,8 +21,10 @@ func TestStartStop(t *testing.T) {
 	cfg := NewHTTPInputConfig("test_id")
 	cfg.ListenAddress = "localhost:8080"
 	op, err := cfg.build(testutil.NewBuildContext(t))
+	persister := &testutil.MockPersister{}
+
 	require.NoError(t, err)
-	require.NoError(t, op.Start(), "failed to start operator")
+	require.NoError(t, op.Start(persister), "failed to start operator")
 	require.NoError(t, op.Stop(), "failed to stop operator")
 
 	// stopping again should not panic
@@ -33,6 +35,8 @@ func TestStartStop(t *testing.T) {
 }
 
 func TestServer(t *testing.T) {
+	persister := &testutil.MockPersister{}
+
 	address := "localhost"
 	port := freePort(address)
 	if port == 0 {
@@ -48,7 +52,7 @@ func TestServer(t *testing.T) {
 		require.NoError(t, err)
 		return
 	}
-	if err := op.Start(); err != nil {
+	if err := op.Start(persister); err != nil {
 		require.NoError(t, err)
 	}
 	defer func() {
@@ -150,6 +154,7 @@ func TestServer(t *testing.T) {
 }
 
 func TestServerBasicAuth(t *testing.T) {
+	persister := &testutil.MockPersister{}
 	address := "localhost"
 	port := freePort(address)
 	if port == 0 {
@@ -166,7 +171,7 @@ func TestServerBasicAuth(t *testing.T) {
 		require.NoError(t, err)
 		return
 	}
-	if err := op.Start(); err != nil {
+	if err := op.Start(persister); err != nil {
 		require.NoError(t, err)
 	}
 	defer func() {
@@ -277,6 +282,7 @@ func TestServerBasicAuth(t *testing.T) {
 }
 
 func TestServerTokenAuth(t *testing.T) {
+	persister := &testutil.MockPersister{}
 	address := "localhost"
 	port := freePort(address)
 	if port == 0 {
@@ -293,7 +299,7 @@ func TestServerTokenAuth(t *testing.T) {
 		require.NoError(t, err)
 		return
 	}
-	if err := op.Start(); err != nil {
+	if err := op.Start(persister); err != nil {
 		require.NoError(t, err)
 	}
 	defer func() {

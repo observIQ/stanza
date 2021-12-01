@@ -10,12 +10,12 @@ import (
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/observiq/stanza/v2/errors"
-	"github.com/observiq/stanza/v2/operator"
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
-	"github.com/observiq/stanza/v2/operator/helper"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -110,7 +110,7 @@ type ElasticOutput struct {
 }
 
 // Start signals to the ElasticOutput to begin flushing
-func (e *ElasticOutput) Start() error {
+func (e *ElasticOutput) Start(_ operator.Persister) error {
 	e.wg.Add(1)
 	go func() {
 		defer e.wg.Done()
