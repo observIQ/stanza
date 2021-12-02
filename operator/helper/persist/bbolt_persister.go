@@ -12,6 +12,9 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+// PersisterShutdownFunc handles cleanup of the persister
+type PersisterShutdownFunc func() error
+
 // OffsetsBucket is the scope provided to offset persistence
 var OffsetsBucket = []byte(`offsets`)
 
@@ -22,16 +25,16 @@ type BBoltPersister struct {
 
 // NewBBoltPersister opens a connection to a bbolt database for the given filePath and wraps it in a Scopped Persister.
 // scope refers to a bbolt bucket name
-func NewBBoltPersister(filePath string) (*BBoltPersister, error) {
+func NewBBoltPersister(filePath string) (*BBoltPersister, PersisterShutdownFunc, error) {
 	// Verify directory exists for bbolt
 	if _, err := os.Stat(filepath.Dir(filePath)); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			err := os.MkdirAll(filepath.Dir(filePath), 0755) // #nosec - 0755 directory permissions are okay
 			if err != nil {
-				return nil, fmt.Errorf("creating database directory: %w", err)
+				return nil, nil, fmt.Errorf("creating database directory: %w", err)
 			}
 		} else {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -39,12 +42,17 @@ func NewBBoltPersister(filePath string) (*BBoltPersister, error) {
 	options := &bbolt.Options{Timeout: 1 * time.Second}
 	db, err := bbolt.Open(filePath, 0600, options)
 	if err != nil {
-		return nil, fmt.Errorf("error while opening bbolt connection: %w", err)
+		return nil, nil, fmt.Errorf("error while opening bbolt connection: %w", err)
 	}
 
-	return &BBoltPersister{
+	persister := &BBoltPersister{
 		db: db,
-	}, nil
+	}
+
+	shutDownFunc := func() error {
+		return db.Close()
+	}
+	return persister, shutDownFunc, nil
 }
 
 // Get returns the data associated with the key
@@ -127,9 +135,4 @@ func (p *BBoltPersister) Keys() ([]string, error) {
 	}
 
 	return keys, nil
-}
-
-// Close closes the underlying bbolt connection
-func (p *BBoltPersister) Close() error {
-	return p.db.Close()
 }

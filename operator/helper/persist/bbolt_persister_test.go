@@ -25,11 +25,9 @@ func TestNewBBoltPersister(t *testing.T) {
 				tempDir := t.TempDir()
 				dirPath := filepath.Join(tempDir, "not_existing")
 				filePath := filepath.Join(dirPath, "my_db")
-				persister, err := NewBBoltPersister(filePath)
+				persister, shutdownFunc, err := NewBBoltPersister(filePath)
 				require.NoError(t, err)
-				defer func() {
-					require.NoError(t, persister.Close())
-				}()
+				defer shutdownFunc()
 				require.NotNil(t, persister)
 				require.DirExists(t, dirPath)
 				require.FileExists(t, filePath)
@@ -55,7 +53,7 @@ func TestNewBBoltPersister(t *testing.T) {
 				require.NoError(t, err)
 
 				filePath := filepath.Join(dirPath, "db_dir", "my_db")
-				persister, err := NewBBoltPersister(filePath)
+				persister, _, err := NewBBoltPersister(filePath)
 				require.Error(t, err)
 				require.Nil(t, persister)
 			},
@@ -72,7 +70,7 @@ func TestNewBBoltPersister(t *testing.T) {
 				filePath := filepath.Join(tempDir, "my_db.db")
 				_, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0111)
 				require.NoError(t, err)
-				persister, err := NewBBoltPersister(filePath)
+				persister, _, err := NewBBoltPersister(filePath)
 				require.Error(t, err)
 				require.Nil(t, persister)
 			},
@@ -112,10 +110,8 @@ func TestBBoltPersisterGet(t *testing.T) {
 
 			// Setup persister
 			filePath := filepath.Join(tempDir, "my_db.db")
-			persister, err := NewBBoltPersister(filePath)
-			defer func() {
-				require.NoError(t, persister.Close())
-			}()
+			persister, shutdownFunc, err := NewBBoltPersister(filePath)
+			defer shutdownFunc()
 			require.NoError(t, err)
 
 			// Add seed Data
@@ -174,10 +170,8 @@ func TestBBoltPersisterSet(t *testing.T) {
 
 			// Setup persister
 			filePath := filepath.Join(tempDir, "my_db.db")
-			persister, err := NewBBoltPersister(filePath)
-			defer func() {
-				require.NoError(t, persister.Close())
-			}()
+			persister, shutdownFunc, err := NewBBoltPersister(filePath)
+			defer shutdownFunc()
 			require.NoError(t, err)
 
 			// Set data
@@ -229,10 +223,8 @@ func TestBBoltPersisterDelete(t *testing.T) {
 
 			// Setup persister
 			filePath := filepath.Join(tempDir, "my_db.db")
-			persister, err := NewBBoltPersister(filePath)
-			defer func() {
-				require.NoError(t, persister.Close())
-			}()
+			persister, shutdownFunc, err := NewBBoltPersister(filePath)
+			defer shutdownFunc()
 			require.NoError(t, err)
 
 			// Add seed Data
@@ -266,10 +258,8 @@ func TestBBoltPersisterClear(t *testing.T) {
 
 	// Setup persister
 	filePath := filepath.Join(tempDir, "my_db.db")
-	persister, err := NewBBoltPersister(filePath)
-	defer func() {
-		require.NoError(t, persister.Close())
-	}()
+	persister, shutdownFunc, err := NewBBoltPersister(filePath)
+	defer shutdownFunc()
 	require.NoError(t, err)
 
 	// Store keys for later lookup
@@ -302,10 +292,8 @@ func TestBBoltPersisterKeys(t *testing.T) {
 
 	// Setup persister
 	filePath := filepath.Join(tempDir, "my_db.db")
-	persister, err := NewBBoltPersister(filePath)
-	defer func() {
-		require.NoError(t, persister.Close())
-	}()
+	persister, shutdownFunc, err := NewBBoltPersister(filePath)
+	defer shutdownFunc()
 	require.NoError(t, err)
 
 	// Store expectedKeys for later lookup

@@ -22,7 +22,7 @@ func graphTest(config, output string) func(t *testing.T) {
 		require.NoError(t, err)
 
 		rootFlags := &RootFlags{
-			ConfigFiles: []string{configPath},
+			ConfigFile: configPath,
 		}
 		graphCmd := NewGraphCommand(rootFlags)
 
