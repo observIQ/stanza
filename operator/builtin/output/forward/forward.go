@@ -101,6 +101,7 @@ func (f *ForwardOutput) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.flusher.Stop()
+	// TODO handle buffer Drain
 	return f.buffer.Close()
 }
 
@@ -123,7 +124,7 @@ func (f *ForwardOutput) createRequest(ctx context.Context, entries []*entry.Entr
 
 func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := f.buffer.ReadChunk(ctx)
+		entries, err := f.buffer.Read(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -135,10 +136,6 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 			req, err := f.createRequest(ctx, entries)
 			if err != nil {
 				f.Errorf("Failed to create request", zap.Error(err))
-				// drop these logs because we couldn't creat a request and a retry won't help
-				if err := clearer.MarkAllAsFlushed(); err != nil {
-					f.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
-				}
 				return nil
 			}
 
@@ -151,9 +148,6 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 				return err
 			}
 
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				f.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
 			return nil
 		})
 	}
