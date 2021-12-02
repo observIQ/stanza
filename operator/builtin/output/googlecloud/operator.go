@@ -153,7 +153,7 @@ func (g *GoogleCloudOutput) startFlusher() {
 
 // flushChunk flushes a chunk of entries from the buffer
 func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
-	entries, clearer, err := g.buffer.ReadChunk(ctx)
+	entries, err := g.buffer.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read entries from buffer: %w", err)
 	}
@@ -168,11 +168,8 @@ func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
 		err := g.send(ctx, requests)
 		if err != nil {
 			g.Debugw("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
-			return err
 		}
-
-		g.Debugw("Marking entries as flushed", "chunk_id", chunkID)
-		return clearer.MarkAllAsFlushed()
+		return err
 	}
 
 	g.flusher.Do(flushFunc)

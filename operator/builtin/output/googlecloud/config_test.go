@@ -207,17 +207,6 @@ func TestBuild(t *testing.T) {
 			err: "failed to build output operator",
 		},
 		{
-			name: "invalid buffer",
-			config: GoogleCloudOutputConfig{
-				OutputConfig: helper.NewOutputConfig("test", operatorType),
-				Credentials:  `{"type": "service_account", "project_id": "test"}`,
-				BufferConfig: buffer.Config{
-					Builder: buffer.DiskBufferConfig{},
-				},
-			},
-			err: "failed to build buffer",
-		},
-		{
 			name: "invalid credentials",
 			config: GoogleCloudOutputConfig{
 				OutputConfig: helper.NewOutputConfig("test", operatorType),
