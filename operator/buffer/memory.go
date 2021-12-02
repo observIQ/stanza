@@ -1,23 +1,15 @@
 package buffer
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
-	"encoding/json"
-	"fmt"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
-	"go.etcd.io/bbolt"
-	"golang.org/x/sync/semaphore"
 )
 
-// TODO Refactor this to not directly use the DB
+var _ Buffer = (*MemoryBuffer)(nil)
 
 // MemoryBufferConfig holds the configuration for a memory buffer
 type MemoryBufferConfig struct {
@@ -40,255 +32,33 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 // Build builds a MemoryBufferConfig into a Buffer, loading any entries that were previously unflushed
 // back into memory
 func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
-	mb := &MemoryBuffer{
-		// db:            context.Database,
-		pluginID:      pluginID,
-		buf:           make(chan *entry.Entry, c.MaxEntries),
-		sem:           semaphore.NewWeighted(int64(c.MaxEntries)),
-		inFlight:      make(map[uint64]*entry.Entry, c.MaxEntries),
-		maxChunkDelay: c.MaxChunkDelay.Raw(),
-		maxChunkSize:  c.MaxChunkSize,
-	}
-	if err := mb.loadFromDB(); err != nil {
-		return nil, err
-	}
-
-	return mb, nil
+	return &MemoryBuffer{}, nil
 }
 
 // MemoryBuffer is a buffer that holds all entries in memory until Close() is called,
 // at which point it saves the entries into a database. It provides no guarantees about
 // lost entries if shut down uncleanly.
 type MemoryBuffer struct {
-	entryID uint64
-	// db            database.Database
-	pluginID      string
-	buf           chan *entry.Entry
-	inFlight      map[uint64]*entry.Entry
-	inFlightMux   sync.Mutex
-	sem           *semaphore.Weighted
-	maxChunkDelay time.Duration
-	maxChunkSize  uint
-	reconfigMutex sync.RWMutex
 }
 
-// Add inserts an entry into the memory database, blocking until there is space
+// Add adds an entry onto the buffer.
+// Is a blocking call if the buffer is full
 func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
-	if err := m.sem.Acquire(ctx, 1); err != nil {
-		return err
-	}
-
-	m.buf <- e
 	return nil
 }
 
-// Read reads entries until either there are no entries left in the buffer
-// or the destination slice is full. The returned function must be called
-// once the entries are flushed to remove them from the memory buffer.
-func (m *MemoryBuffer) Read(dst []*entry.Entry) (Clearer, int, error) {
-	inFlight := make([]uint64, len(dst))
-	i := 0
-	for ; i < len(dst); i++ {
-		select {
-		case e := <-m.buf:
-			dst[i] = e
-			id := atomic.AddUint64(&m.entryID, 1)
-			m.inFlightMux.Lock()
-			m.inFlight[id] = e
-			m.inFlightMux.Unlock()
-			inFlight[i] = id
-		default:
-			return m.newClearer(inFlight[:i]), i, nil
-		}
-	}
-
-	return m.newClearer(inFlight[:i]), i, nil
+// Read reads from the buffer.
+// Read will block until the there are MaxChunkSize entries or we have block as long as MachChunkDelay.
+func (m *MemoryBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
+	return nil, nil
 }
 
-// ReadChunk is a thin wrapper around ReadWait that simplifies the call at the expense of an extra allocation
-func (m *MemoryBuffer) ReadChunk(ctx context.Context) ([]*entry.Entry, Clearer, error) {
-	entries := make([]*entry.Entry, m.MaxChunkSize())
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, nil, ctx.Err()
-		default:
-		}
-
-		ctx, cancel := context.WithTimeout(ctx, m.MaxChunkDelay())
-		defer cancel()
-		flushFunc, n, err := m.ReadWait(ctx, entries)
-		if n > 0 {
-			return entries[:n], flushFunc, err
-		}
-	}
+// Drain drains all contents currently in the buffer to the returned entry
+func (m *MemoryBuffer) Drain(ctx context.Context) ([]*entry.Entry, error) {
+	return nil, nil
 }
 
-// ReadWait reads entries until either the destination slice is full, or the context passed to it
-// is cancelled. The returned function must be called once the entries are flushed to remove them
-// from the memory buffer
-func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Clearer, int, error) {
-	inFlightIDs := make([]uint64, len(dst))
-	i := 0
-	for ; i < len(dst); i++ {
-		select {
-		case e := <-m.buf:
-			dst[i] = e
-			id := atomic.AddUint64(&m.entryID, 1)
-			m.inFlightMux.Lock()
-			m.inFlight[id] = e
-			m.inFlightMux.Unlock()
-			inFlightIDs[i] = id
-		case <-ctx.Done():
-			return m.newClearer(inFlightIDs[:i]), i, nil
-		}
-	}
-
-	return m.newClearer(inFlightIDs[:i]), i, nil
-}
-
-func (m *MemoryBuffer) MaxChunkSize() uint {
-	m.reconfigMutex.RLock()
-	defer m.reconfigMutex.RUnlock()
-	return m.maxChunkSize
-}
-
-func (m *MemoryBuffer) MaxChunkDelay() time.Duration {
-	m.reconfigMutex.RLock()
-	defer m.reconfigMutex.RUnlock()
-	return m.maxChunkDelay
-}
-
-func (m *MemoryBuffer) SetMaxChunkSize(size uint) {
-	m.reconfigMutex.Lock()
-	m.maxChunkSize = size
-	m.reconfigMutex.Unlock()
-}
-
-func (m *MemoryBuffer) SetMaxChunkDelay(delay time.Duration) {
-	m.reconfigMutex.Lock()
-	m.maxChunkDelay = delay
-	m.reconfigMutex.Unlock()
-}
-
-type memoryClearer struct {
-	buffer *MemoryBuffer
-	ids    []uint64
-}
-
-func (mc *memoryClearer) MarkAllAsFlushed() error {
-	mc.buffer.inFlightMux.Lock()
-	for _, id := range mc.ids {
-		delete(mc.buffer.inFlight, id)
-	}
-	mc.buffer.inFlightMux.Unlock()
-	mc.buffer.sem.Release(int64(len(mc.ids)))
-	return nil
-}
-
-func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
-	if int(end) > len(mc.ids) || int(start) > len(mc.ids) {
-		return fmt.Errorf("invalid range")
-	}
-
-	mc.buffer.inFlightMux.Lock()
-	for _, id := range mc.ids[start:end] {
-		delete(mc.buffer.inFlight, id)
-	}
-	mc.buffer.inFlightMux.Unlock()
-	mc.buffer.sem.Release(int64(end - start))
-	return nil
-}
-
-// newFlushFunc returns a function that will remove the entries identified by `ids` from the buffer
-func (m *MemoryBuffer) newClearer(ids []uint64) Clearer {
-	return &memoryClearer{
-		buffer: m,
-		ids:    ids,
-	}
-}
-
-// Close closes the memory buffer, saving all entries currently in the memory buffer to the
-// agent's database.
+// Close runs cleanup code for buffer
 func (m *MemoryBuffer) Close() error {
-	m.inFlightMux.Lock()
-	defer m.inFlightMux.Unlock()
-	// return m.db.Update(func(tx *bbolt.Tx) error {
-	// 	memBufBucket, err := tx.CreateBucketIfNotExists([]byte("memory_buffer"))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	b, err := memBufBucket.CreateBucketIfNotExists([]byte(m.pluginID))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	for k, v := range m.inFlight {
-	// 		if err := putKeyValue(b, k, v); err != nil {
-	// 			return err
-	// 		}
-	// 	}
-
-	// 	for {
-	// 		select {
-	// 		case e := <-m.buf:
-	// 			m.entryID++
-	// 			if err := putKeyValue(b, m.entryID, e); err != nil {
-	// 				return err
-	// 			}
-	// 		default:
-	// 			return nil
-	// 		}
-	// 	}
-	// })
-	return nil
-}
-
-func putKeyValue(b *bbolt.Bucket, k uint64, v *entry.Entry) error {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	key := [8]byte{}
-
-	binary.LittleEndian.PutUint64(key[:], k)
-	if err := enc.Encode(v); err != nil {
-		return err
-	}
-	return b.Put(key[:], buf.Bytes())
-}
-
-// loadFromDB loads any entries saved to the database previously into the memory buffer,
-// allowing them to be flushed
-func (m *MemoryBuffer) loadFromDB() error {
-	// return m.db.Update(func(tx *bbolt.Tx) error {
-	// 	memBufBucket := tx.Bucket([]byte("memory_buffer"))
-	// 	if memBufBucket == nil {
-	// 		return nil
-	// 	}
-
-	// 	b := memBufBucket.Bucket([]byte(m.pluginID))
-	// 	if b == nil {
-	// 		return nil
-	// 	}
-
-	// 	return b.ForEach(func(k, v []byte) error {
-	// 		if ok := m.sem.TryAcquire(1); !ok {
-	// 			return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
-	// 		}
-
-	// 		dec := json.NewDecoder(bytes.NewReader(v))
-	// 		var e entry.Entry
-	// 		if err := dec.Decode(&e); err != nil {
-	// 			return err
-	// 		}
-
-	// 		select {
-	// 		case m.buf <- &e:
-	// 			return nil
-	// 		default:
-	// 			return fmt.Errorf("max_entries is smaller than the number of entries stored in the database")
-	// 		}
-	// 	})
-	// })
 	return nil
 }

@@ -879,12 +879,10 @@ func TestSplittingSender(t *testing.T) {
 			mock := mockSender{maxSize: 100}
 			split := splittingSender{&mock}
 
-			clearer := newMockClearer(len(tc.entries))
-			err := split.Send(context.Background(), clearer, tc.entries, 0)
+			err := split.Send(context.Background(), tc.entries, 0)
 
 			require.NoError(t, err, "unexpected error")
 			require.Equal(t, tc.expectedSplits, mock.splits, "unexpected number of splits")
-			require.True(t, clearer.fullyCleared(), "should be fully cleared")
 		})
 	}
 }
@@ -911,11 +909,9 @@ func TestSplittingSenderRandomly(t *testing.T) {
 			mock := mockSender{maxSize: 100}
 			split := splittingSender{&mock}
 
-			clearer := newMockClearer(len(tc))
-			err := split.Send(context.Background(), clearer, tc, 0)
+			err := split.Send(context.Background(), tc, 0)
 
 			require.NoError(t, err, "unexpected error")
-			require.True(t, clearer.fullyCleared(), "should be fully cleared")
 		})
 	}
 }
@@ -969,49 +965,4 @@ func (s *mockSender) Send(_ context.Context, entries []*entry.Entry) error {
 
 func (s *mockSender) IsTooLargeError(err error) bool {
 	return err.Error() == "too big"
-}
-
-type mockClearer struct {
-	cleared []bool
-}
-
-func newMockClearer(l int) mockClearer {
-	return mockClearer{make([]bool, l)}
-}
-
-func (c mockClearer) MarkAllAsFlushed() error {
-	for i := 0; i < len(c.cleared); i++ {
-		if c.cleared[i] {
-			return fmt.Errorf("already cleared: %d", i)
-		}
-		c.cleared[i] = true
-	}
-	return nil
-}
-
-func (c mockClearer) MarkRangeAsFlushed(start, end uint) error {
-	if start < uint(0) {
-		return fmt.Errorf("Clearer index out of bounds: %d", start)
-	}
-
-	if end > uint(len(c.cleared)) {
-		return fmt.Errorf("Clearer index out of bounds: %d", end)
-	}
-
-	for i := start; i < end; i++ {
-		if c.cleared[i] {
-			return fmt.Errorf("already cleared: %d", i)
-		}
-		c.cleared[i] = true
-	}
-	return nil
-}
-
-func (c mockClearer) fullyCleared() bool {
-	for i := 0; i < len(c.cleared); i++ {
-		if !c.cleared[i] {
-			return false
-		}
-	}
-	return true
 }
