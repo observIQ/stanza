@@ -145,6 +145,7 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.cancel()
 	nro.wg.Wait()
 	nro.flusher.Stop()
+	// TODO deal with buffer Drain
 	return nro.buffer.Close()
 }
 
@@ -172,7 +173,7 @@ func (nro *NewRelicOutput) testConnection() error {
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := nro.buffer.ReadChunk(ctx)
+		entries, err := nro.buffer.Read(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -183,11 +184,8 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 		nro.flusher.Do(func(ctx context.Context) error {
 			req, err := nro.newRequest(ctx, entries)
 			if err != nil {
-				nro.Errorw("Failed to create request from payload", zap.Error(err))
 				// drop these logs because we couldn't creat a request and a retry won't help
-				if err := clearer.MarkAllAsFlushed(); err != nil {
-					nro.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
-				}
+				nro.Errorw("Failed to create request from payload", zap.Error(err))
 				return nil
 			}
 
@@ -200,9 +198,6 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 				return err
 			}
 
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				nro.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
 			return nil
 		})
 	}
