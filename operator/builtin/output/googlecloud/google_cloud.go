@@ -196,6 +196,7 @@ func (g *GoogleCloudOutput) Stop() error {
 	g.cancel()
 	g.wg.Wait()
 	g.flusher.Stop()
+	// TODO handle buffer Drain
 	if err := g.buffer.Close(); err != nil {
 		return err
 	}
@@ -226,7 +227,7 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 
 func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := g.buffer.ReadChunk(ctx)
+		entries, err := g.buffer.Read(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -236,7 +237,7 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 
 		g.Debugf("processing %d entries", len(entries))
 		g.flusher.Do(func(ctx context.Context) error {
-			return (&splittingSender{g}).Send(ctx, clearer, entries, 0)
+			return (&splittingSender{g}).Send(ctx, entries, 0)
 		})
 	}
 }
@@ -268,13 +269,10 @@ type splittingSender struct {
 	bruteSender
 }
 
-func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entries []*entry.Entry, offset uint) error {
+func (s splittingSender) Send(ctx context.Context, entries []*entry.Entry, offset uint) error {
 	numEnts := len(entries)
 
 	err := s.bruteSender.Send(ctx, entries)
-	if err == nil {
-		return clearer.MarkRangeAsFlushed(offset, offset+uint(numEnts))
-	}
 	if !s.IsTooLargeError(err) {
 		return err
 	}
@@ -282,14 +280,14 @@ func (s splittingSender) Send(ctx context.Context, clearer buffer.Clearer, entri
 	if numEnts == 1 {
 		s.Debugw("single entry too large: %s", entries[0], zap.Any("error", err))
 		entries[0].Body = err.Error()
-		return s.Send(ctx, clearer, entries, offset)
+		return s.Send(ctx, entries, offset)
 	}
 
 	s.Debugf("entries too large, attempting to split them: %s", err)
 
 	mid := numEnts / 2
-	errLeft := s.Send(ctx, clearer, entries[0:mid], offset)
-	errRight := s.Send(ctx, clearer, entries[mid:numEnts], offset+uint(mid))
+	errLeft := s.Send(ctx, entries[0:mid], offset)
+	errRight := s.Send(ctx, entries[mid:numEnts], offset+uint(mid))
 	return multierr.Combine(errLeft, errRight)
 }
 
