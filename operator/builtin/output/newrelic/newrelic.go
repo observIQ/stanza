@@ -146,7 +146,7 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.cancel()
 	nro.wg.Wait()
 	nro.flusher.Stop()
-	// TODO handle buffer close entries
+	// TODO deal with buffer Drain
 	_, err := nro.buffer.Close()
 	return err
 }
