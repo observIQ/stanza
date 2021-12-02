@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
@@ -12,15 +11,19 @@ import (
 
 // Buffer is an interface for an entry buffer
 type Buffer interface {
+	// Add adds an entry onto the buffer.
+	// Is a blocking call if the buffer is full
 	Add(context.Context, *entry.Entry) error
-	Read([]*entry.Entry) (Clearer, int, error)
-	ReadWait(context.Context, []*entry.Entry) (Clearer, int, error)
-	ReadChunk(context.Context) ([]*entry.Entry, Clearer, error)
+
+	// Read reads from the buffer.
+	// Read can be a blocking call depending on the underlying implementation.
+	Read(context.Context) ([]*entry.Entry, error)
+
+	// Drain drains all contents currently in the buffer to the returned entry
+	Drain(context.Context) ([]*entry.Entry, error)
+
+	// Close runs cleanup code for buffer
 	Close() error
-	MaxChunkDelay() time.Duration
-	MaxChunkSize() uint
-	SetMaxChunkDelay(time.Duration)
-	SetMaxChunkSize(uint)
 }
 
 // Config is a struct that wraps a Builder
@@ -79,10 +82,4 @@ func (bc Config) MarshalYAML() (interface{}, error) {
 // MarshalJSON marshals JSON
 func (bc Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(bc.Builder)
-}
-
-// Clearer is an interface that is responsible for clearing entries from a buffer
-type Clearer interface {
-	MarkAllAsFlushed() error
-	MarkRangeAsFlushed(uint, uint) error
 }
