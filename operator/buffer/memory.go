@@ -42,7 +42,6 @@ func (c MemoryBufferConfig) Build(operatorID string) (Buffer, error) {
 }
 
 // MemoryBuffer is a buffer that holds all entries in memory until Close() is called.
-// Once close is called all entries will be lost it is reccommended to call Drain before Close.
 type MemoryBuffer struct {
 	operatorID    string
 	buf           chan *entry.Entry
