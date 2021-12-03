@@ -30,8 +30,7 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 	}
 }
 
-// Build builds a MemoryBufferConfig into a Buffer, loading any entries that were previously unflushed
-// back into memory
+// Build builds a MemoryBufferConfig into a Buffer
 func (c MemoryBufferConfig) Build(operatorID string) (Buffer, error) {
 	return &MemoryBuffer{
 		operatorID:    operatorID,
