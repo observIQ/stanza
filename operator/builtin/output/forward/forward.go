@@ -45,7 +45,7 @@ func (c ForwardOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build(c.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +101,9 @@ func (f *ForwardOutput) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.flusher.Stop()
-	// TODO handle buffer Drain
-	return f.buffer.Close()
+	// TODO handle buffer close entries
+	_, err := f.buffer.Close()
+	return err
 }
 
 // Process adds an entry to the outputs buffer
