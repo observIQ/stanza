@@ -51,15 +51,18 @@ type MemoryBuffer struct {
 	maxChunkSize  uint
 	closed        bool
 
-	// readLock ensures only one concurrent read/drain can process at a time.
-	// If multiple reads or a drain happen while another is processing it may cause
-	// an indefinite block or longer blocks to maxChunkDelay.
-	readLock sync.Mutex
+	// closeLock ensures that at the time of closing no Add or Read operations are occuring.
+	// Add and Read will use a closeLock.RLock to allow multiple concurrent operations.
+	// Close will use a closeLock.Lock to ensure all Add and Read operations are complete at the time of closing.
+	closeLock sync.RWMutex
 }
 
 // Add adds an entry onto the buffer.
 // Is a blocking call if the buffer is full
 func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
+	m.closeLock.RLock()
+	defer m.closeLock.RUnlock()
+
 	// If buffer is closed don't allow this operation
 	if m.closed {
 		return ErrBufferedClosed
@@ -77,13 +80,13 @@ func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 // Read reads from the buffer.
 // Read will block until the there are MaxChunkSize entries or we have block as long as MachChunkDelay.
 func (m *MemoryBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
+	m.closeLock.RLock()
+	defer m.closeLock.RUnlock()
+
 	// If buffer is closed don't allow this operation
 	if m.closed {
 		return nil, ErrBufferedClosed
 	}
-
-	m.readLock.Lock()
-	defer m.readLock.Unlock()
 
 	entries := make([]*entry.Entry, 0, m.maxChunkSize)
 
@@ -115,10 +118,10 @@ LOOP:
 
 // Close runs cleanup code for buffer
 func (m *MemoryBuffer) Close() ([]*entry.Entry, error) {
-	// Acquire lock so we can't close while Read or Drain is occuring.
+	// Acquire lock so we can't close while Add or Read is occuring.
 	// It will also protect against multiple Close being called at once
-	m.readLock.Lock()
-	defer m.readLock.Unlock()
+	m.closeLock.Lock()
+	defer m.closeLock.Unlock()
 
 	entries := make([]*entry.Entry, 0)
 
@@ -130,9 +133,10 @@ func (m *MemoryBuffer) Close() ([]*entry.Entry, error) {
 	// Mark as closed so any operations after this point won't execute
 	m.closed = true
 
-	// Close the buffer channel then drain it
+	// Close the buffer channel then drain it and return entries
 	close(m.buf)
-	for range m.buf {
+	for e := range m.buf {
+		entries = append(entries, e)
 	}
 
 	return entries, nil

@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -122,7 +123,7 @@ func TestMemoryBufferRead(t *testing.T) {
 				_, err = buffer.Close()
 				require.NoError(t, err)
 
-				// Attempt to add to buffer
+				// Attempt to read from buffer
 				_, err = buffer.Read(context.Background())
 				assert.ErrorIs(t, err, ErrBufferedClosed)
 			},
@@ -238,6 +239,66 @@ func TestMemoryBufferRead(t *testing.T) {
 				case <-timer.C:
 					assert.Fail(t, "test timed out")
 				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
+	}
+}
+
+func TestMemoryBufferClose(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Valid close",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+
+				cfg := NewMemoryBufferConfig()
+				// Max entries 0 for a non buffered channel
+				buffer, err := cfg.Build("operatorID")
+				require.NoError(t, err)
+
+				// Add to buffer to ensure it is drained
+				err = buffer.Add(context.Background(), &entry.Entry{})
+				require.NoError(t, err)
+
+				entries, err := buffer.Close()
+				require.NoError(t, err)
+				assert.Len(t, entries, 1)
+
+				memBuffer := buffer.(*MemoryBuffer)
+				assert.True(t, memBuffer.closed)
+				assert.Len(t, memBuffer.buf, 0)
+			},
+		},
+		{
+			desc: "Multiple Closes Don't Error",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+
+				cfg := NewMemoryBufferConfig()
+				// Max entries 0 for a non buffered channel
+				buffer, err := cfg.Build("operatorID")
+				require.NoError(t, err)
+
+				var wg sync.WaitGroup
+				wg.Add(2)
+
+				// One close will actually close the other should just early exit with no error
+				for i := 0; i < 2; i++ {
+					go func(wg *sync.WaitGroup) {
+						defer wg.Done()
+						_, err = buffer.Close()
+						require.NoError(t, err)
+					}(&wg)
+				}
+
+				wg.Wait()
 			},
 		},
 	}
