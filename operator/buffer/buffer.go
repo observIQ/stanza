@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 )
 
 // Buffer is an interface for an entry buffer
@@ -19,11 +18,9 @@ type Buffer interface {
 	// Read can be a blocking call depending on the underlying implementation.
 	Read(context.Context) ([]*entry.Entry, error)
 
-	// Drain drains all contents currently in the buffer to the returned entry
-	Drain(context.Context) ([]*entry.Entry, error)
-
-	// Close runs cleanup code for buffer
-	Close() error
+	// Close runs cleanup code for buffer and may return entries left in the buffer
+	// depending on the underlying implementation
+	Close() ([]*entry.Entry, error)
 }
 
 // Config is a struct that wraps a Builder
@@ -40,7 +37,7 @@ func NewConfig() Config {
 
 // Builder builds a Buffer given build context
 type Builder interface {
-	Build(context operator.BuildContext, pluginID string) (Buffer, error)
+	Build(operatorID string) (Buffer, error)
 }
 
 // UnmarshalJSON unmarshals JSON

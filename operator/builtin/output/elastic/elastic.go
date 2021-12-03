@@ -71,7 +71,7 @@ func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		)
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build(c.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +125,9 @@ func (e *ElasticOutput) Stop() error {
 	e.cancel()
 	e.wg.Wait()
 	e.flusher.Stop()
-	// TODO handle buffer drain
-	return e.buffer.Close()
+	// TODO handle buffer close entries
+	_, err := e.buffer.Close()
+	return err
 }
 
 // Process adds an entry to the outputs buffer

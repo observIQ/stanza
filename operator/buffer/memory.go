@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
@@ -31,7 +30,7 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 
 // Build builds a MemoryBufferConfig into a Buffer, loading any entries that were previously unflushed
 // back into memory
-func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
+func (c MemoryBufferConfig) Build(operatorID string) (Buffer, error) {
 	return &MemoryBuffer{}, nil
 }
 
@@ -50,15 +49,10 @@ func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 // Read reads from the buffer.
 // Read will block until the there are MaxChunkSize entries or we have block as long as MachChunkDelay.
 func (m *MemoryBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
-	return nil, nil
-}
-
-// Drain drains all contents currently in the buffer to the returned entry
-func (m *MemoryBuffer) Drain(ctx context.Context) ([]*entry.Entry, error) {
-	return nil, nil
+	return []*entry.Entry{}, nil
 }
 
 // Close runs cleanup code for buffer
-func (m *MemoryBuffer) Close() error {
-	return nil
+func (m *MemoryBuffer) Close() ([]*entry.Entry, error) {
+	return []*entry.Entry{}, nil
 }
