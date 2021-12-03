@@ -99,7 +99,7 @@ func TestBufferFailure(t *testing.T) {
 	buffer.On("Add", mock.Anything, mock.Anything).Return(nil, nil)
 	buffer.On("Read", mock.Anything).Run(bufferFunc).Return(nil, errors.New("first failure")).Once()
 	buffer.On("Read", mock.Anything).Return(nil, errors.New("continued failures"))
-	buffer.On("Close").Return(nil)
+	buffer.On("Close").Return([]*entry.Entry{}, nil)
 
 	client := &MockClient{}
 	client.On("WriteLogEntries", mock.Anything, mock.Anything).Return(nil, nil).Once()
@@ -144,7 +144,7 @@ func TestStopClientFailure(t *testing.T) {
 
 func TestStopBufferFailure(t *testing.T) {
 	buffer := &MockBuffer{}
-	buffer.On("Close").Return(errors.New("failure"))
+	buffer.On("Close").Return(nil, errors.New("failure"))
 
 	operator := createTestOperator(t)
 	operator.buffer = buffer
@@ -223,26 +223,12 @@ func (_m *MockBuffer) Add(_a0 context.Context, _a1 *entry.Entry) error {
 }
 
 // Close provides a mock function with given fields:
-func (_m *MockBuffer) Close() error {
+func (_m *MockBuffer) Close() ([]*entry.Entry, error) {
 	ret := _m.Called()
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Drain provides a mock function with given fields: _a0
-func (_m *MockBuffer) Drain(_a0 context.Context) ([]*entry.Entry, error) {
-	ret := _m.Called(_a0)
-
 	var r0 []*entry.Entry
-	if rf, ok := ret.Get(0).(func(context.Context) []*entry.Entry); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func() []*entry.Entry); ok {
+		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*entry.Entry)
@@ -250,8 +236,8 @@ func (_m *MockBuffer) Drain(_a0 context.Context) ([]*entry.Entry, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
