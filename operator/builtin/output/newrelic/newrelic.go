@@ -62,7 +62,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build(c.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +145,9 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.cancel()
 	nro.wg.Wait()
 	nro.flusher.Stop()
-	// TODO deal with buffer Drain
-	return nro.buffer.Close()
+	// TODO handle buffer close entries
+	_, err := nro.buffer.Close()
+	return err
 }
 
 // Process adds an entry to the output's buffer
