@@ -73,7 +73,8 @@ func (g *GoogleCloudOutput) Stop() error {
 	g.flusher.Stop()
 	g.Debug("Stopped flusher")
 
-	if err := g.buffer.Close(); err != nil {
+	// TODO handle buffer close entries
+	if _, err := g.buffer.Close(); err != nil {
 		return fmt.Errorf("failed to close buffer: %w", err)
 	}
 	g.Debug("Closed buffer")
