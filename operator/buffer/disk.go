@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
@@ -42,7 +41,7 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 }
 
 // Build creates a new Buffer from a DiskBufferConfig
-func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
+func (c DiskBufferConfig) Build(operatorID string) (Buffer, error) {
 	return &DiskBuffer{}, nil
 }
 
@@ -62,12 +61,7 @@ func (m *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	return nil, nil
 }
 
-// Drain drains all contents currently in the buffer to the returned entry
-func (m *DiskBuffer) Drain(ctx context.Context) ([]*entry.Entry, error) {
-	return nil, nil
-}
-
 // Close runs cleanup code for buffer
-func (m *DiskBuffer) Close() error {
-	return nil
+func (m *DiskBuffer) Close() ([]*entry.Entry, error) {
+	return nil, nil
 }
