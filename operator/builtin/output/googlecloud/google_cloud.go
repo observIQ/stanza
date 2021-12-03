@@ -66,7 +66,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 		return nil, err
 	}
 
-	newBuffer, err := c.BufferConfig.Build(bc, c.ID())
+	newBuffer, err := c.BufferConfig.Build(c.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -196,8 +196,9 @@ func (g *GoogleCloudOutput) Stop() error {
 	g.cancel()
 	g.wg.Wait()
 	g.flusher.Stop()
-	// TODO handle buffer Drain
-	if err := g.buffer.Close(); err != nil {
+	// TODO handle buffer close entries
+	_, err := g.buffer.Close()
+	if err != nil {
 		return err
 	}
 	if g.client != nil {
