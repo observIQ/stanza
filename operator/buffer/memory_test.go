@@ -45,7 +45,7 @@ func TestMemoryBufferAdd(t *testing.T) {
 
 				// Attempt to add to buffer
 				err = buffer.Add(context.Background(), &entry.Entry{})
-				assert.ErrorIs(t, err, ErrBufferedClosed)
+				assert.ErrorIs(t, err, ErrBufferClosed)
 			},
 		},
 		{
@@ -124,7 +124,7 @@ func TestMemoryBufferRead(t *testing.T) {
 
 				// Attempt to read from buffer
 				_, err = buffer.Read(context.Background())
-				assert.ErrorIs(t, err, ErrBufferedClosed)
+				assert.ErrorIs(t, err, ErrBufferClosed)
 			},
 		},
 		{

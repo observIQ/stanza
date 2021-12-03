@@ -64,7 +64,7 @@ func (m *MemoryBuffer) Add(ctx context.Context, e *entry.Entry) error {
 
 	// If buffer is closed don't allow this operation
 	if m.closed {
-		return ErrBufferedClosed
+		return ErrBufferClosed
 	}
 
 	// Insert into buffer or error if context finishes before we can
@@ -84,7 +84,7 @@ func (m *MemoryBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 
 	// If buffer is closed don't allow this operation
 	if m.closed {
-		return nil, ErrBufferedClosed
+		return nil, ErrBufferClosed
 	}
 
 	entries := make([]*entry.Entry, 0, m.maxChunkSize)

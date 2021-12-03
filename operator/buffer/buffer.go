@@ -9,8 +9,8 @@ import (
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
-// ErrBufferedClosed is an error to indicate an operation was attempt on a buffer after it was closed
-var ErrBufferedClosed = errors.New("buffer is closed")
+// ErrBufferClosed is an error to indicate an operation was attempt on a buffer after it was closed
+var ErrBufferClosed = errors.New("buffer is closed")
 
 // Buffer is an interface for an entry buffer
 type Buffer interface {
