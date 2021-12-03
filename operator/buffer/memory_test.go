@@ -2,7 +2,6 @@ package buffer
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -282,23 +281,14 @@ func TestMemoryBufferClose(t *testing.T) {
 				t.Parallel()
 
 				cfg := NewMemoryBufferConfig()
-				// Max entries 0 for a non buffered channel
 				buffer, err := cfg.Build("operatorID")
 				require.NoError(t, err)
 
-				var wg sync.WaitGroup
-				wg.Add(2)
+				_, err = buffer.Close()
+				require.NoError(t, err)
 
-				// One close will actually close the other should just early exit with no error
-				for i := 0; i < 2; i++ {
-					go func(wg *sync.WaitGroup) {
-						defer wg.Done()
-						_, err = buffer.Close()
-						require.NoError(t, err)
-					}(&wg)
-				}
-
-				wg.Wait()
+				_, err = buffer.Close()
+				require.NoError(t, err)
 			},
 		},
 	}
