@@ -63,7 +63,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
