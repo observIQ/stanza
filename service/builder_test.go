@@ -1,9 +1,13 @@
 package service
 
 import (
+	"io/ioutil"
+	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -80,5 +84,65 @@ func TestBuilder(t *testing.T) {
 			tc.buildFunc(builder)
 			assert.Equal(t, tc.expected, builder)
 		})
+	}
+}
+
+func TestBuilder_validateNonGlobConfig(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Nil configFile pointer",
+			testFunc: func(t *testing.T) {
+				builder := NewBuilder()
+				err := builder.validateNonGlobConfig()
+				assert.NoError(t, err)
+			},
+		},
+		{
+			desc: "configFile bad pattern",
+			testFunc: func(t *testing.T) {
+				builder := NewBuilder().WithConfigFile(`[`)
+				err := builder.validateNonGlobConfig()
+				assert.ErrorIs(t, err, filepath.ErrBadPattern)
+			},
+		},
+		{
+			desc: "configFile glob pattern",
+			testFunc: func(t *testing.T) {
+				// Create mock up file system
+				tmpDir := t.TempDir()
+				for i := 0; i < 3; i++ {
+					tmpFile, err := ioutil.TempFile(tmpDir, "config")
+					require.NoError(t, err)
+					// Close the file right away as we don't need it open
+					tmpFile.Close()
+				}
+
+				builder := NewBuilder().WithConfigFile(path.Join(tmpDir, "config*"))
+				err := builder.validateNonGlobConfig()
+				assert.Error(t, err)
+			},
+		},
+		{
+			desc: "configFile single file",
+			testFunc: func(t *testing.T) {
+				// Create mock up file system
+				tmpDir := t.TempDir()
+				tmpFile, err := ioutil.TempFile(tmpDir, "config")
+				require.NoError(t, err)
+				// Close the file right away as we don't need it open
+				tmpFile.Close()
+
+				builder := NewBuilder().WithConfigFile(path.Join(tmpDir, tmpFile.Name()))
+				err = builder.validateNonGlobConfig()
+				assert.NoError(t, err)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
 	}
 }
