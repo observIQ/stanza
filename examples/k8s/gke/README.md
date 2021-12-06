@@ -1,6 +1,6 @@
-# Kubernetes Logs and Events w/ Google Cloud Logging
+# Google Kubernetes Engine Logs and Events w/ Google Cloud Logging
 
-Stanza can be deployed to Kubernetes for log and event collection
+Stanza can be deployed to Google Kubernetes Engine for log and event collection
 
 ## Architecture
 
