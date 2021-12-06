@@ -31,9 +31,8 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 }
 
 // Build builds a MemoryBufferConfig into a Buffer
-func (c MemoryBufferConfig) Build(operatorID string) (Buffer, error) {
+func (c MemoryBufferConfig) Build() (Buffer, error) {
 	return &MemoryBuffer{
-		operatorID:    operatorID,
 		buf:           make(chan *entry.Entry, c.MaxEntries),
 		maxChunkDelay: c.MaxChunkDelay.Raw(),
 		maxChunkSize:  c.MaxChunkSize,
@@ -43,7 +42,6 @@ func (c MemoryBufferConfig) Build(operatorID string) (Buffer, error) {
 
 // MemoryBuffer is a buffer that holds all entries in memory until Close() is called.
 type MemoryBuffer struct {
-	operatorID    string
 	buf           chan *entry.Entry
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
