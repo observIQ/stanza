@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	otelerrors "github.com/open-telemetry/opentelemetry-log-collection/errors"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
@@ -69,7 +70,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 
 	url, err := url.Parse(c.BaseURI)
 	if err != nil {
-		return nil, errors.Wrap(err, "'base_uri' is not a valid URL")
+		return nil, otelerrors.Wrap(err, "'base_uri' is not a valid URL")
 	}
 
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
@@ -175,9 +176,10 @@ func (nro *NewRelicOutput) testConnection() error {
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
 		entries, err := nro.buffer.Read(ctx)
-		if err != nil && err == context.Canceled {
+		switch {
+		case errors.Is(err, context.Canceled):
 			return
-		} else if err != nil {
+		case err != nil:
 			nro.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
@@ -212,7 +214,7 @@ func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entr
 	wr := gzip.NewWriter(&buf)
 	enc := json.NewEncoder(wr)
 	if err := enc.Encode(payload); err != nil {
-		return nil, errors.Wrap(err, "encode payload")
+		return nil, otelerrors.Wrap(err, "encode payload")
 	}
 	if err := wr.Close(); err != nil {
 		return nil, err
@@ -237,9 +239,9 @@ func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return errors.NewError("unexpected status code", "", "status", res.Status)
+			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
 		}
-		return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
+		return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 	}
 	return nil
 }
