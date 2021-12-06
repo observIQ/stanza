@@ -13,14 +13,12 @@ import (
 
 func TestMemoryBufferBuild(t *testing.T) {
 	cfg := NewMemoryBufferConfig()
-	operatorID := "operator"
 
-	buffer, err := cfg.Build(operatorID)
+	buffer, err := cfg.Build()
 	require.NoError(t, err)
 	require.IsType(t, &MemoryBuffer{}, buffer)
 
 	memBuffer := buffer.(*MemoryBuffer)
-	assert.Equal(t, operatorID, memBuffer.operatorID)
 	assert.Equal(t, cfg.MaxChunkDelay.Raw(), memBuffer.maxChunkDelay)
 	assert.Equal(t, cfg.MaxChunkSize, memBuffer.maxChunkSize)
 	assert.False(t, memBuffer.closed)
@@ -36,7 +34,7 @@ func TestMemoryBufferAdd(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewMemoryBufferConfig()
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Close buffer
@@ -55,7 +53,7 @@ func TestMemoryBufferAdd(t *testing.T) {
 				cfg := NewMemoryBufferConfig()
 				// Max entries 0 for a non buffered channel
 				cfg.MaxEntries = 0
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Create a context with a deadline
@@ -88,7 +86,7 @@ func TestMemoryBufferAdd(t *testing.T) {
 				t.Parallel()
 				cfg := NewMemoryBufferConfig()
 				// Max entries 0 for a non buffered channel
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				err = buffer.Add(context.Background(), &entry.Entry{})
@@ -115,7 +113,7 @@ func TestMemoryBufferRead(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewMemoryBufferConfig()
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Close buffer
@@ -134,7 +132,7 @@ func TestMemoryBufferRead(t *testing.T) {
 				cfg := NewMemoryBufferConfig()
 				// Create a large duration to ensure we never hit it
 				cfg.MaxChunkDelay = helper.NewDuration(20 * time.Minute)
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Create a context with a deadline
@@ -170,7 +168,7 @@ func TestMemoryBufferRead(t *testing.T) {
 				cfg.MaxChunkDelay = helper.NewDuration(20 * time.Minute)
 				// Ensure max chunk size is large enough we won't hit it
 				cfg.MaxChunkSize = 2
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Add two entries to buffer
@@ -211,7 +209,7 @@ func TestMemoryBufferRead(t *testing.T) {
 				cfg.MaxChunkDelay = helper.NewDuration(1 * time.Second)
 				// Ensure max chunk size is large enough we won't hit it
 				cfg.MaxChunkSize = 20
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Add single entry to buffer
@@ -259,7 +257,7 @@ func TestMemoryBufferClose(t *testing.T) {
 
 				cfg := NewMemoryBufferConfig()
 				// Max entries 0 for a non buffered channel
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				// Add to buffer to ensure it is drained
@@ -281,7 +279,7 @@ func TestMemoryBufferClose(t *testing.T) {
 				t.Parallel()
 
 				cfg := NewMemoryBufferConfig()
-				buffer, err := cfg.Build("operatorID")
+				buffer, err := cfg.Build()
 				require.NoError(t, err)
 
 				_, err = buffer.Close()

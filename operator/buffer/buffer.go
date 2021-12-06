@@ -41,7 +41,7 @@ func NewConfig() Config {
 
 // Builder builds a Buffer given build context
 type Builder interface {
-	Build(operatorID string) (Buffer, error)
+	Build() (Buffer, error)
 }
 
 // UnmarshalJSON unmarshals JSON
