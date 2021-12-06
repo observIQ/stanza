@@ -71,7 +71,7 @@ func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		)
 	}
 
-	buffer, err := c.BufferConfig.Build(c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
