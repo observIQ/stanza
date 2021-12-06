@@ -15,9 +15,10 @@ import (
 	"github.com/observiq/stanza/v2/operator/flusher"
 	"github.com/observiq/stanza/v2/version"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	otelerrors "github.com/open-telemetry/opentelemetry-log-collection/errors"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
@@ -125,7 +126,7 @@ func (g *GoogleCloudOutput) Start(_ operator.Persister) error {
 	scope := "https://www.googleapis.com/auth/logging.write"
 	switch {
 	case g.credentials != "" && g.credentialsFile != "":
-		return errors.NewError("at most one of credentials or credentials_file can be configured", "")
+		return otelerrors.NewError("at most one of credentials or credentials_file can be configured", "")
 	case g.credentials != "":
 		credentials, err = google.CredentialsFromJSON(context.Background(), []byte(g.credentials), scope)
 		if err != nil {
@@ -229,9 +230,10 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 	for {
 		entries, err := g.buffer.Read(ctx)
-		if err != nil && err == context.Canceled {
+		switch {
+		case errors.Is(err, context.Canceled):
 			return
-		} else if err != nil {
+		case err != nil:
 			g.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
@@ -274,6 +276,11 @@ func (s splittingSender) Send(ctx context.Context, entries []*entry.Entry, offse
 	numEnts := len(entries)
 
 	err := s.bruteSender.Send(ctx, entries)
+	// successful send
+	if err == nil {
+		return nil
+	}
+	// We do have an error check to see if it's due to being to large a request.
 	if !s.IsTooLargeError(err) {
 		return err
 	}
