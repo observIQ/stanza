@@ -41,7 +41,7 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 }
 
 // Build creates a new Buffer from a DiskBufferConfig
-func (c DiskBufferConfig) Build(operatorID string) (Buffer, error) {
+func (c DiskBufferConfig) Build() (Buffer, error) {
 	return &DiskBuffer{}, nil
 }
 
