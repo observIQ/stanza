@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/kardianos/service"
 	"github.com/observiq/stanza/v2/operator/helper/persist"
@@ -43,6 +45,11 @@ func (b *AgentServiceBuilder) WithDatabaseFile(datbaseFile string) *AgentService
 }
 
 func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, context.Context, error) {
+	// Check to ensure glob file path is not passed in. We want a single file
+	if err := b.validateNonGlobConfig(); err != nil {
+		return nil, context.TODO(), err
+	}
+
 	logAgent, err := b.buildAgent()
 	if err != nil {
 		return nil, context.TODO(), err
@@ -54,6 +61,24 @@ func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, conte
 	}
 
 	return newAgentService(ctx, logAgent, persister, persisterShutdownFunc)
+}
+
+// validateNonGlobConfig returns an error if the configFile pointer is a glob.
+// Return nil if the configFile pointer is nil or not a single file path
+func (b *AgentServiceBuilder) validateNonGlobConfig() error {
+	if b.configFile == nil {
+		return nil
+	}
+
+	matches, err := filepath.Glob(*b.configFile)
+	switch {
+	case err != nil:
+		return err
+	case len(matches) > 1:
+		return errors.New("glob config paths not supported")
+	default:
+		return nil
+	}
 }
 
 func (b *AgentServiceBuilder) buildAgent() (*agent.LogAgent, error) {
