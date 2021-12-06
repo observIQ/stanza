@@ -114,8 +114,10 @@ func TestBuilder_validateNonGlobConfig(t *testing.T) {
 				// Create mock up file system
 				tmpDir := t.TempDir()
 				for i := 0; i < 3; i++ {
-					_, err := ioutil.TempFile(tmpDir, "config")
+					tmpFile, err := ioutil.TempFile(tmpDir, "config")
 					require.NoError(t, err)
+					// Close the file right away as we don't need it open
+					tmpFile.Close()
 				}
 
 				builder := NewBuilder().WithConfigFile(path.Join(tmpDir, "config*"))
@@ -130,6 +132,8 @@ func TestBuilder_validateNonGlobConfig(t *testing.T) {
 				tmpDir := t.TempDir()
 				tmpFile, err := ioutil.TempFile(tmpDir, "config")
 				require.NoError(t, err)
+				// Close the file right away as we don't need it open
+				tmpFile.Close()
 
 				builder := NewBuilder().WithConfigFile(path.Join(tmpDir, tmpFile.Name()))
 				err = builder.validateNonGlobConfig()
