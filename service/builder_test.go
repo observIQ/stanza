@@ -103,7 +103,7 @@ func TestBuilder_validateNonGlobConfig(t *testing.T) {
 		{
 			desc: "configFile bad pattern",
 			testFunc: func(t *testing.T) {
-				builder := NewBuilder().WithConfigFile(`\/';*13vas`)
+				builder := NewBuilder().WithConfigFile(`[`)
 				err := builder.validateNonGlobConfig()
 				assert.ErrorIs(t, err, filepath.ErrBadPattern)
 			},
