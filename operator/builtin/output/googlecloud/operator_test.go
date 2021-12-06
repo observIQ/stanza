@@ -60,7 +60,6 @@ func TestStartSuccess(t *testing.T) {
 }
 
 func TestFlusher(t *testing.T) {
-	t.Skip("skipping test until buffer is ready")
 	writeChan := make(chan interface{})
 	writeFunc := func(args mock.Arguments) { writeChan <- args[1] }
 
