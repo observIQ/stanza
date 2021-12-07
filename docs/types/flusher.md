@@ -1,6 +1,6 @@
 # Flushers
 
-Flushers handle flushing entries to their final destination, and retrying on failure.
+Flushers handles flushing entries to their final destination, and retrying on failure.
 
 In most cases, the default options will work well, but they may be need tuning for optimal performance or for reducing load
 on the destination API.
@@ -22,4 +22,4 @@ Flushers are configured with the `flusher` block on output plugins.
 | ---                 | ---     | ---                                                                                                                                           |
 | `max_concurrent`    | `16`    | The maximum number of goroutines flushing entries concurrently                                                                                |
 | `max_retry_time`    | `1h`    | The maximum amount of time to retry flushing for                                                                                |
-| `max_retry_interval`    | `1m`    | Retry attempts us exponential backoffs. This value is the maximum internval reached during backoff retry.                                                                             |
+| `max_retry_interval`    | `1m`    | Retry attempts us exponential backoffs. This value is the maximum interval reached during backoff retry.                                                                             |
