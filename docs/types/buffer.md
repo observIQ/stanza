@@ -6,9 +6,7 @@ There are two types of buffers: `memory` buffers and `disk` buffers.
 
 ## Memory Buffers
 
-Memory buffers keep log entries in memory until they are flushed, which makes them very fast. However, because
-entries are only stored in memory, they will be lost if the agent is shut down uncleanly. If the agent is shut down
-cleanly, they will be saved to the agent's database.
+Memory buffers store log entries in memory, which makes them very fast. On a clean shutdown, the buffer will dump any remaining entries to the operator to finish processing.
 
 ### Memory Buffer Configuration
 
