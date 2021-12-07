@@ -6,7 +6,7 @@ There are two types of buffers: `memory` buffers and `disk` buffers.
 
 ## Memory Buffers
 
-Memory buffers keep log entries in memory, which makes them very fast. Upon a clean shutdown the buffer will dump any remaining entries to the operator using it for the operator to finish processing.
+Memory buffers keep log entries in memory, which makes them very fast. Upon a clean shutdown, the buffer will dump any remaining entries to the operator to finish processing.
 
 ### Memory Buffer Configuration
 
