@@ -184,8 +184,8 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		nro.flusher.Do(func(ctx context.Context) error {
-			req, err := nro.newRequest(ctx, entries)
+		nro.flusher.Do(ctx, func(flushCtx context.Context) error {
+			req, err := nro.newRequest(flushCtx, entries)
 			if err != nil {
 				// drop these logs because we couldn't creat a request and a retry won't help
 				nro.Errorw("Failed to create request from payload", zap.Error(err))

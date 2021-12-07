@@ -239,8 +239,8 @@ func (g *GoogleCloudOutput) feedFlusher(ctx context.Context) {
 		}
 
 		g.Debugf("processing %d entries", len(entries))
-		g.flusher.Do(func(ctx context.Context) error {
-			return (&splittingSender{g}).Send(ctx, entries, 0)
+		g.flusher.Do(ctx, func(flushCtx context.Context) error {
+			return (&splittingSender{g}).Send(flushCtx, entries, 0)
 		})
 	}
 }

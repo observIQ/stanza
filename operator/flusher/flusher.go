@@ -3,7 +3,6 @@ package flusher
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
@@ -11,9 +10,16 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-// These are vars so they can be overridden in tests
-var maxRetryInterval = time.Minute
-var maxElapsedTime = time.Hour
+const (
+	// maxConcurrency is the default maximum amount of concurrent flush operatorations
+	maxConcurrency = 16
+
+	// maxRetryInterval is the default maximum retry interval duration
+	maxRetryInterval = time.Minute
+
+	// maxElapsedTime is the default maximum duration to attempt retries
+	maxElapsedTime = time.Hour
+)
 
 // Config holds the configuration to build a new flusher
 type Config struct {
@@ -21,51 +27,72 @@ type Config struct {
 	// Defaults to 16.
 	MaxConcurrent int `json:"max_concurrent" yaml:"max_concurrent"`
 
-	// TODO configurable retry
+	// Retry Config
+
+	// MaxRetryTime maximum duration to continue retrying for
+	// Defaults to 1 Hour
+	MaxRetryTime time.Duration `json:"max_retry_time" yaml:"max_retry_time"`
+
+	// MaxRetryInterval the maximum retry interval duration.
+	// Defaults to 1 Minute
+	MaxRetryInterval time.Duration `json:"max_retry_interval" yaml:"max_retry_interval"`
 }
 
 // NewConfig creates a new default flusher config
 func NewConfig() Config {
 	return Config{
-		MaxConcurrent: 16,
+		MaxConcurrent:    maxConcurrency,
+		MaxRetryTime:     maxElapsedTime,
+		MaxRetryInterval: maxRetryInterval,
 	}
 }
 
 // Build uses a Config to build a new Flusher
-func (c *Config) Build(logger *zap.SugaredLogger) *Flusher {
-	maxConcurrent := c.MaxConcurrent
-	if maxConcurrent == 0 {
-		maxConcurrent = 16
+func (c Config) Build(logger *zap.SugaredLogger) *Flusher {
+	concurrency := c.MaxConcurrent
+	if concurrency == 0 || concurrency > maxConcurrency {
+		concurrency = maxConcurrency
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	elapsedMax := c.MaxRetryTime
+	if elapsedMax == 0 || elapsedMax > maxElapsedTime {
+		elapsedMax = maxElapsedTime
+	}
+
+	retryIntervalMax := c.MaxRetryInterval
+	if retryIntervalMax == 0 || retryIntervalMax > maxRetryInterval {
+		retryIntervalMax = maxRetryInterval
+	}
 
 	return &Flusher{
-		ctx:           ctx,
-		cancel:        cancel,
-		sem:           semaphore.NewWeighted(int64(maxConcurrent)),
-		SugaredLogger: logger,
+		sem:              semaphore.NewWeighted(int64(concurrency)),
+		doneChan:         make(chan struct{}),
+		SugaredLogger:    logger,
+		maxElapsedTime:   elapsedMax,
+		maxRetryInterval: retryIntervalMax,
 	}
 }
 
 // Flusher is used to flush entries from a buffer concurrently. It handles max concurrency,
 // retry behavior, and cancellation.
 type Flusher struct {
-	chunkIDCounter uint64
-	ctx            context.Context
-	cancel         context.CancelFunc
-	sem            *semaphore.Weighted
-	wg             sync.WaitGroup
+	doneChan chan struct{}
+	sem      *semaphore.Weighted
+	wg       sync.WaitGroup
 	*zap.SugaredLogger
+
+	// Retry maximums
+	maxElapsedTime   time.Duration
+	maxRetryInterval time.Duration
 }
 
 // FlushFunc is any function that flushes
 type FlushFunc func(context.Context) error
 
 // Do executes the flusher function in a goroutine
-func (f *Flusher) Do(flush FlushFunc) {
+func (f *Flusher) Do(ctx context.Context, flush FlushFunc) {
 	// Wait until we have free flusher goroutines
-	if err := f.sem.Acquire(f.ctx, 1); err != nil {
+	if err := f.sem.Acquire(ctx, 1); err != nil {
 		// Context cancelled
 		return
 	}
@@ -73,66 +100,63 @@ func (f *Flusher) Do(flush FlushFunc) {
 	// Start a new flusher goroutine
 	f.wg.Add(1)
 	go func() {
-		defer f.wg.Done()
 		defer f.sem.Release(1)
-		f.flushWithRetry(f.ctx, flush)
+		defer f.wg.Done()
+		f.flushWithRetry(ctx, flush)
 	}()
 }
 
 // Stop cancels all the in-progress flushers and waits until they have returned
 func (f *Flusher) Stop() {
-	f.cancel()
+	close(f.doneChan)
 	f.wg.Wait()
 }
 
-// flushWithRetry will continue trying to call flushFunc with the entries passed
-// in until either flushFunc returns no error or the context is cancelled. It will only
-// return an error in the case that the context was cancelled. If no error was returned,
-// it is safe to mark the entries in the buffer as flushed.
+// flushWithRetry will run flush with a backoff until one of the following occurs:
+//   - flush exits without an error
+//   - Backoff hits maximumRetryTime
+//   - passed in context cancels
+//   - flusher is stopped
 func (f *Flusher) flushWithRetry(ctx context.Context, flush FlushFunc) {
-	chunkID := f.nextChunkID()
-	b := newExponentialBackoff()
+	b := f.newExponentialBackoff()
+
+	// Initialize wait time with no duration so first wait immediately executes
+	waitTime := time.Duration(0)
 	for {
-		err := flush(ctx)
-		if err == nil {
-			return
-		}
-
-		waitTime := b.NextBackOff()
-		if waitTime == b.Stop {
-			f.Errorw("Reached max backoff time during chunk flush retry. Dropping logs in chunk", "chunk_id", chunkID)
-			return
-		}
-
-		// Only log the error if the context hasn't been canceled
-		// This protects from flooding the logs with "context canceled" messages on clean shutdown
 		select {
 		case <-ctx.Done():
+			f.Debugw("flushWithRetry context has canceled", zap.Error(ctx.Err()))
 			return
-		default:
-			f.Warnw("Failed flushing chunk. Waiting before retry", "error", err, "wait_time", waitTime)
-		}
-
-		select {
-		case <-ctx.Done():
+		case <-f.doneChan:
+			f.Debug("flusher has stopped, ending retry")
 			return
 		case <-time.After(waitTime):
+			// Attempt to flush, return if successful
+			err := flush(ctx)
+			if err == nil {
+				return
+			}
+
+			waitTime = b.NextBackOff()
+			// Maximum wait time reached
+			if waitTime == b.Stop {
+				f.Debug("flusherWithRetry has reached maximum retry")
+				return
+			}
+
+			f.Warnw("Failed flushing. Waiting before retry", zap.Error(err), "wait_time", waitTime)
 		}
 	}
 }
 
-func (f *Flusher) nextChunkID() uint64 {
-	return atomic.AddUint64(&f.chunkIDCounter, 1)
-}
-
 // newExponentialBackoff returns a default ExponentialBackOff
-func newExponentialBackoff() *backoff.ExponentialBackOff {
+func (f *Flusher) newExponentialBackoff() *backoff.ExponentialBackOff {
 	b := &backoff.ExponentialBackOff{
 		InitialInterval:     50 * time.Millisecond,
 		RandomizationFactor: backoff.DefaultRandomizationFactor,
 		Multiplier:          backoff.DefaultMultiplier,
-		MaxInterval:         maxRetryInterval,
-		MaxElapsedTime:      maxElapsedTime,
+		MaxInterval:         f.maxRetryInterval,
+		MaxElapsedTime:      f.maxElapsedTime,
 		Stop:                backoff.Stop,
 		Clock:               backoff.SystemClock,
 	}
