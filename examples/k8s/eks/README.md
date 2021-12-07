@@ -1,6 +1,8 @@
 # Elastic Kubernetes Service Logs and Events w/ Google Cloud Logging
 
-Stanza can be deployed to Elastic Kubernetes Service for log and event collection
+Stanza can be deployed to Elastic Kubernetes Service for log and event collection. Container logs
+are gathered from each Kubernetes Node's filesystem. Events are collected from the Kubernetes
+API Server.
 
 ## Architecture
 
