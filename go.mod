@@ -27,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.11.0
 	go.etcd.io/bbolt v1.3.6
-	go.uber.org/multierr v1.7.0
+	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.17.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -45,7 +45,11 @@ require (
 	k8s.io/client-go v0.22.2
 )
 
-require gopkg.in/natefinch/lumberjack.v2 v2.0.0
+require (
+	github.com/google/uuid v1.2.0
+	github.com/googleapis/gax-go/v2 v2.0.5
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+)
 
 require (
 	cloud.google.com/go v0.88.0 // indirect
@@ -81,8 +85,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.2.0 // indirect
-	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
