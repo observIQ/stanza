@@ -3,6 +3,7 @@ package googlecloud
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/observiq/stanza/operator"
@@ -93,14 +94,12 @@ func TestInvalidCredentialsFromFile(t *testing.T) {
 }
 
 func TestCredentialsFromMissingFile(t *testing.T) {
-	file, err := ioutil.TempFile("", "credentials.json")
+	dir, err := ioutil.TempDir("", "config")
 	require.NoError(t, err)
-
-	err = os.Remove(file.Name())
-	require.NoError(t, err)
+	defer os.Remove(dir)
 
 	config := GoogleCloudOutputConfig{
-		CredentialsFile: file.Name(),
+		CredentialsFile: path.Join(dir, "config.json"),
 	}
 
 	credentials, err := config.getCredentials()
