@@ -44,6 +44,25 @@ func TestBuildRequest(t *testing.T) {
 	require.Equal(t, requests[1].Entries, []*logging.LogEntry{resultTwo, resultFour})
 }
 
+func TestImpossibleEntry(t *testing.T) {
+	entryOne := &entry.Entry{Record: "Test Request"}
+	resultOne := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "Test Request"}}
+
+	entryBuilder := &MockEntryBuilder{}
+	entryBuilder.On("Build", entryOne).Return(resultOne, nil)
+
+	entries := []*entry.Entry{entryOne}
+	requestBuilder := GoogleRequestBuilder{
+		MaxRequestSize: 1,
+		ProjectID:      "test_project",
+		EntryBuilder:   entryBuilder,
+		SugaredLogger:  zap.NewNop().Sugar(),
+	}
+
+	requests := requestBuilder.Build(entries)
+	require.Len(t, requests, 0)
+}
+
 // MockEntryBuilder is a mock for the EntryBuilder interface
 type MockEntryBuilder struct {
 	mock.Mock
