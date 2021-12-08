@@ -408,7 +408,7 @@ func TestDiskBufferCompact(t *testing.T) {
 
 				fLen, err := db.(*DiskBuffer).f.Seek(0, io.SeekEnd)
 				require.NoError(t, err)
-				require.Equal(t, int(fLen), DiskBufferMetadataBinarySize+len(buf))
+				require.Equal(t, DiskBufferMetadataBinarySize+len(buf), int(fLen))
 
 				rEntries, err = db.Read(context.Background())
 				require.NoError(t, err)
@@ -466,7 +466,7 @@ func TestDiskBufferClose(t *testing.T) {
 		testFunc func(*testing.T)
 	}{
 		{
-			desc: "Cannot Add, Read, or Close after Close",
+			desc: "Cannot Add or Read after Close",
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
@@ -485,9 +485,24 @@ func TestDiskBufferClose(t *testing.T) {
 
 				_, err = db.Read(context.Background())
 				require.ErrorIs(t, err, ErrBufferClosed)
+			},
+		},
+		{
+			desc: "Multiple Closes Return No Error",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.Path = randomFilePath("close-after-close")
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
 
 				_, err = db.Close()
-				require.ErrorIs(t, err, ErrBufferClosed)
+				require.NoError(t, err)
+
+				_, err = db.Close()
+				require.NoError(t, err)
 			},
 		},
 		{
