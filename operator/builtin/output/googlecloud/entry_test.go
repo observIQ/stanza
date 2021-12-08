@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/genproto/googleapis/logging/v2"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -207,7 +206,7 @@ func TestBuildEntry(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			entry, size, err := tc.builder.Build(tc.stanzaEntry)
+			entry, err := tc.builder.Build(tc.stanzaEntry)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
@@ -215,7 +214,6 @@ func TestBuildEntry(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, proto.Size(entry), size)
 			require.Equal(t, tc.expectedEntry.String(), entry.String())
 		})
 	}

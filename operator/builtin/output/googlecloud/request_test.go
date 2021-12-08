@@ -12,24 +12,24 @@ import (
 )
 
 func TestBuildRequest(t *testing.T) {
-	entryOne := &entry.Entry{Record: "2 bytes"}
-	entryTwo := &entry.Entry{Record: "3 bytes"}
-	entryThree := &entry.Entry{Record: "error"}
-	entryFour := &entry.Entry{Record: "5 bytes"}
+	entryOne := &entry.Entry{Record: "request 1"}
+	entryTwo := &entry.Entry{Record: "request 2"}
+	entryThree := &entry.Entry{Record: "request 3"}
+	entryFour := &entry.Entry{Record: "request 4"}
 
-	resultOne := &logging.LogEntry{InsertId: "2 bytes"}
-	resultTwo := &logging.LogEntry{InsertId: "3 bytes"}
-	resultFour := &logging.LogEntry{InsertId: "5 bytes"}
+	resultOne := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 1"}}
+	resultTwo := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 2"}}
+	resultFour := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 3"}}
 
 	entryBuilder := &MockEntryBuilder{}
-	entryBuilder.On("Build", entryOne).Return(resultOne, 2, nil)
-	entryBuilder.On("Build", entryTwo).Return(resultTwo, 3, nil)
-	entryBuilder.On("Build", entryThree).Return(nil, 0, errors.New("error"))
-	entryBuilder.On("Build", entryFour).Return(resultFour, 5, nil)
+	entryBuilder.On("Build", entryOne).Return(resultOne, nil)
+	entryBuilder.On("Build", entryTwo).Return(resultTwo, nil)
+	entryBuilder.On("Build", entryThree).Return(nil, errors.New("error"))
+	entryBuilder.On("Build", entryFour).Return(resultFour, nil)
 
 	entries := []*entry.Entry{entryOne, entryTwo, entryThree, entryFour}
 	requestBuilder := GoogleRequestBuilder{
-		MaxRequestSize: 5,
+		MaxRequestSize: 100,
 		ProjectID:      "test_project",
 		EntryBuilder:   entryBuilder,
 		SugaredLogger:  zap.NewNop().Sugar(),
@@ -38,9 +38,10 @@ func TestBuildRequest(t *testing.T) {
 	requests := requestBuilder.Build(entries)
 	require.Len(t, requests, 2)
 
-	require.Len(t, requests[0].Entries, 2)
-	require.Equal(t, requests[0].Entries, []*logging.LogEntry{resultOne, resultTwo})
-	require.Equal(t, requests[1].Entries, []*logging.LogEntry{resultFour})
+	require.Len(t, requests[0].Entries, 1)
+	require.Len(t, requests[1].Entries, 2)
+	require.Equal(t, requests[0].Entries, []*logging.LogEntry{resultOne})
+	require.Equal(t, requests[1].Entries, []*logging.LogEntry{resultTwo, resultFour})
 }
 
 // MockEntryBuilder is a mock for the EntryBuilder interface
@@ -48,8 +49,8 @@ type MockEntryBuilder struct {
 	mock.Mock
 }
 
-// Build mocks the build function
-func (_m *MockEntryBuilder) Build(_a0 *entry.Entry) (*logging.LogEntry, int, error) {
+// Build provides a mock function with given fields: _a0
+func (_m *MockEntryBuilder) Build(_a0 *entry.Entry) (*logging.LogEntry, error) {
 	ret := _m.Called(_a0)
 
 	var r0 *logging.LogEntry
@@ -61,19 +62,12 @@ func (_m *MockEntryBuilder) Build(_a0 *entry.Entry) (*logging.LogEntry, int, err
 		}
 	}
 
-	var r1 int
-	if rf, ok := ret.Get(1).(func(*entry.Entry) int); ok {
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*entry.Entry) error); ok {
 		r1 = rf(_a0)
 	} else {
-		r1 = ret.Get(1).(int)
+		r1 = ret.Error(1)
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(*entry.Entry) error); ok {
-		r2 = rf(_a0)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0, r1
 }

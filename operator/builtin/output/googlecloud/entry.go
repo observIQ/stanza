@@ -16,7 +16,7 @@ import (
 
 // EntryBuilder is an interface for building google cloud logging entries
 type EntryBuilder interface {
-	Build(entry *entry.Entry) (*logging.LogEntry, int, error)
+	Build(entry *entry.Entry) (*logging.LogEntry, error)
 }
 
 // GoogleEntryBuilder is used to build google cloud logging entries
@@ -31,7 +31,7 @@ type GoogleEntryBuilder struct {
 
 // Build builds a google cloud logging entry from a stanza entry.
 // The size of the resulting entry is also returned.
-func (g *GoogleEntryBuilder) Build(entry *entry.Entry) (*logging.LogEntry, int, error) {
+func (g *GoogleEntryBuilder) Build(entry *entry.Entry) (*logging.LogEntry, error) {
 	logEntry := &logging.LogEntry{
 		Timestamp: timestamppb.New(entry.Timestamp),
 		Resource:  createResource(entry),
@@ -39,35 +39,35 @@ func (g *GoogleEntryBuilder) Build(entry *entry.Entry) (*logging.LogEntry, int, 
 	}
 
 	if err := g.setLogName(entry, logEntry); err != nil {
-		return nil, 0, fmt.Errorf("failed to set log name: %w", err)
+		return nil, fmt.Errorf("failed to set log name: %w", err)
 	}
 
 	if err := g.setTrace(entry, logEntry); err != nil {
-		return nil, 0, fmt.Errorf("failed to set trace: %w", err)
+		return nil, fmt.Errorf("failed to set trace: %w", err)
 	}
 
 	if err := g.setSpanID(entry, logEntry); err != nil {
-		return nil, 0, fmt.Errorf("failed to set span id: %w", err)
+		return nil, fmt.Errorf("failed to set span id: %w", err)
 	}
 
 	if err := g.setLocation(entry, logEntry); err != nil {
-		return nil, 0, fmt.Errorf("failed to set location: %w", err)
+		return nil, fmt.Errorf("failed to set location: %w", err)
 	}
 
 	if err := g.setLabels(entry, logEntry); err != nil {
-		return nil, 0, fmt.Errorf("failed to set labels: %w", err)
+		return nil, fmt.Errorf("failed to set labels: %w", err)
 	}
 
 	if err := g.setPayload(entry, logEntry); err != nil {
-		return nil, 0, fmt.Errorf("failed to set payload: %w", err)
+		return nil, fmt.Errorf("failed to set payload: %w", err)
 	}
 
 	protoSize := proto.Size(logEntry)
 	if protoSize > g.MaxEntrySize {
-		return nil, 0, fmt.Errorf("exceeds max entry size: %d", protoSize)
+		return nil, fmt.Errorf("exceeds max entry size: %d", protoSize)
 	}
 
-	return logEntry, protoSize, nil
+	return logEntry, nil
 }
 
 // setLogName sets the log name of the google log entry using a field on the stanza entry

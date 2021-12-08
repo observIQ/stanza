@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/genproto/googleapis/logging/v2"
+	"google.golang.org/protobuf/proto"
 )
 
 // RequestBuilder is an interface for creating requests to the google logging API
@@ -23,34 +24,42 @@ type GoogleRequestBuilder struct {
 
 // Build builds a series of write requests from stanza entries
 func (g *GoogleRequestBuilder) Build(entries []*entry.Entry) []*logging.WriteLogEntriesRequest {
-	currentSize := 0
 	protoEntries := []*logging.LogEntry{}
-	requests := []*logging.WriteLogEntriesRequest{}
-
 	for _, entry := range entries {
-		protoEntry, protoSize, err := g.EntryBuilder.Build(entry)
+		protoEntry, err := g.EntryBuilder.Build(entry)
 		if err != nil {
 			g.Errorw("Failed to create protobuf entry. Dropping entry", zap.Any("error", err))
 			continue
 		}
-
-		if currentSize+protoSize > g.MaxRequestSize {
-			g.Debugw("Reached request size limit. Creating request.", "size", currentSize)
-			requests = append(requests, g.buildRequest(protoEntries))
-			protoEntries = []*logging.LogEntry{}
-			currentSize = 0
-		}
-
 		protoEntries = append(protoEntries, protoEntry)
-		currentSize += protoSize
 	}
 
-	if len(protoEntries) > 0 {
-		g.Debugw("Creating request from remaining entries", "size", currentSize)
-		requests = append(requests, g.buildRequest(protoEntries))
+	return g.buildRequests(protoEntries)
+}
+
+// buildRequests builds a series of requests from the supplied protobuf entries.
+// The number of requests created cooresponds to the max request size of the builder.
+func (g *GoogleRequestBuilder) buildRequests(entries []*logging.LogEntry) []*logging.WriteLogEntriesRequest {
+	request := g.buildRequest(entries)
+	size := proto.Size(request)
+	if size <= g.MaxRequestSize {
+		g.Debugw("Created write request", "size", size, "entries", len(entries))
+		return []*logging.WriteLogEntriesRequest{request}
 	}
 
-	return requests
+	if len(request.Entries) == 1 {
+		g.Errorw("Single entry exceeds max request size. Dropping entry", "size", size)
+		return []*logging.WriteLogEntriesRequest{}
+	}
+
+	totalEntries := len(request.Entries)
+	midPoint := totalEntries / 2
+	leftEntries := request.Entries[0:midPoint]
+	rightEntries := request.Entries[midPoint:totalEntries]
+
+	leftRequests := g.buildRequests(leftEntries)
+	rightRequests := g.buildRequests(rightEntries)
+	return append(leftRequests, rightRequests...)
 }
 
 // buildRequest builds a request from the supplied entries
