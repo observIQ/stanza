@@ -118,6 +118,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 		requestBuilder: requestBuilder,
 		clientOptions:  clientOptions,
 		buildClient:    newClient,
+		projectID:      projectID,
 		ctx:            ctx,
 		cancel:         cancel,
 	}

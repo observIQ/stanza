@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
+	"google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/genproto/googleapis/logging/v2"
 )
 
@@ -27,6 +28,7 @@ type GoogleCloudOutput struct {
 	clientOptions  []option.ClientOption
 	buildClient    ClientBuilder
 	requestBuilder RequestBuilder
+	projectID      string
 
 	timeout time.Duration
 	ctx     context.Context
@@ -36,7 +38,6 @@ type GoogleCloudOutput struct {
 
 // Start will start the google cloud operator
 func (g *GoogleCloudOutput) Start() error {
-	g.Debug("Starting operator")
 	ctx, cancel := context.WithTimeout(context.Background(), g.timeout)
 	defer cancel()
 
@@ -45,7 +46,7 @@ func (g *GoogleCloudOutput) Start() error {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 	g.client = client
-	g.Debug("Created client", "options", g.clientOptions)
+	g.Debugw("Created client", "options", g.clientOptions)
 
 	err = g.testConnection(ctx)
 	if err != nil {
@@ -56,7 +57,6 @@ func (g *GoogleCloudOutput) Start() error {
 	g.startFlusher()
 	g.Debug("Started flusher")
 
-	g.Debug("Started operator")
 	return nil
 }
 
@@ -96,20 +96,32 @@ func (g *GoogleCloudOutput) Process(ctx context.Context, e *entry.Entry) error {
 
 // testConnection will attempt to send an entry to google cloud logging
 func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
-	entry := &logging.LogEntry{}
-	entry.Payload = &logging.LogEntry_TextPayload{TextPayload: "Test Connection"}
-
-	request := &logging.WriteLogEntriesRequest{
-		Entries: []*logging.LogEntry{entry},
-		DryRun:  true,
-	}
-
+	request := g.createTestRequest()
 	g.Debugw("Sending test connection request", "request", request)
 	if _, err := g.client.WriteLogEntries(ctx, request); err != nil {
 		return fmt.Errorf("test connection failed: %w", err)
 	}
 
 	return nil
+}
+
+// createTestRequest creates a test request for testing permissions
+func (g *GoogleCloudOutput) createTestRequest() *logging.WriteLogEntriesRequest {
+	entry := &logging.LogEntry{}
+	entry.Payload = &logging.LogEntry_TextPayload{TextPayload: "Test Connection"}
+	resource := &monitoredres.MonitoredResource{
+		Type: "global",
+		Labels: map[string]string{
+			"project_id": g.projectID,
+		},
+	}
+
+	return &logging.WriteLogEntriesRequest{
+		LogName:  createLogName(g.projectID, "default"),
+		Entries:  []*logging.LogEntry{entry},
+		Resource: resource,
+		DryRun:   true,
+	}
 }
 
 // startFlusher will start flushing entries in a separate goroutine
@@ -119,7 +131,7 @@ func (g *GoogleCloudOutput) startFlusher() {
 
 	go func() {
 		defer g.wg.Done()
-		g.Debug("Flusher stopped")
+		defer g.Debug("Flusher stopped")
 
 		for {
 			select {
@@ -131,7 +143,7 @@ func (g *GoogleCloudOutput) startFlusher() {
 
 			err := g.flushChunk(g.ctx)
 			if err != nil {
-				g.Errorf("Failed to flush from buffer", zap.Error(err))
+				g.Errorw("Failed to flush from buffer", zap.Error(err))
 			}
 		}
 	}()
@@ -153,7 +165,7 @@ func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
 	flushFunc := func(ctx context.Context) error {
 		err := g.send(ctx, requests)
 		if err != nil {
-			g.Debug("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
+			g.Debugw("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
 			return err
 		}
 
@@ -162,15 +174,15 @@ func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
 	}
 
 	g.flusher.Do(flushFunc)
-	g.Debug("Submitted requests to the flusher", "requests", len(requests))
+	g.Debugw("Submitted requests to the flusher", "requests", len(requests))
 
 	return nil
 }
 
 // send will send requests with the operator's client
 func (g *GoogleCloudOutput) send(ctx context.Context, requests []*logging.WriteLogEntriesRequest) error {
-	for i, request := range requests {
-		g.Debugw("Sending write request", "request_number", i+1, "total", len(requests))
+	for _, request := range requests {
+		g.Debugw("Sending write request", "total_entries", len(request.Entries))
 		_, err := g.client.WriteLogEntries(ctx, request)
 		if err != nil {
 			return fmt.Errorf("failed to send write request: %w", err)
