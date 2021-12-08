@@ -12,7 +12,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	json := `{"type": "service_account"}`
-	credentials, err := google.CredentialsFromJSON(context.Background(), []byte(json), credentialScope)
+	credentials, err := google.CredentialsFromJSON(context.Background(), []byte(json), loggingScope)
 	require.NoError(t, err)
 
 	options := option.WithCredentials(credentials)

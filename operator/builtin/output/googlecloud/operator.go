@@ -16,6 +16,7 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/genproto/googleapis/logging/v2"
+	"google.golang.org/protobuf/proto"
 )
 
 // GoogleCloudOutput is an operator that sends logs to google cloud logging.
@@ -182,7 +183,7 @@ func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
 // send will send requests with the operator's client
 func (g *GoogleCloudOutput) send(ctx context.Context, requests []*logging.WriteLogEntriesRequest) error {
 	for _, request := range requests {
-		g.Debugw("Sending write request", "total_entries", len(request.Entries))
+		g.Debugw("Sending write request", "total_entries", len(request.Entries), "request_size", proto.Size(request))
 		_, err := g.client.WriteLogEntries(ctx, request)
 		if err != nil {
 			return fmt.Errorf("failed to send write request: %w", err)

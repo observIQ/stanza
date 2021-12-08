@@ -21,7 +21,7 @@ import (
 
 const (
 	operatorType          = "google_cloud_output"
-	credentialScope       = "https://www.googleapis.com/auth/logging.write"
+	loggingScope          = "https://www.googleapis.com/auth/logging.write"
 	defaultTimeout        = 30 * time.Second
 	defaultUseCompression = true
 	defaultMaxEntrySize   = 200000
@@ -132,7 +132,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 func (c GoogleCloudOutputConfig) getCredentials() (*google.Credentials, error) {
 	switch {
 	case c.Credentials != "":
-		credentials, err := google.CredentialsFromJSON(context.Background(), []byte(c.Credentials), credentialScope)
+		credentials, err := google.CredentialsFromJSON(context.Background(), []byte(c.Credentials), loggingScope)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse credentials field: %w", err)
 		}
@@ -144,14 +144,14 @@ func (c GoogleCloudOutputConfig) getCredentials() (*google.Credentials, error) {
 			return nil, fmt.Errorf("failed to read credentials file: %w", err)
 		}
 
-		credentials, err := google.CredentialsFromJSON(context.Background(), bytes, credentialScope)
+		credentials, err := google.CredentialsFromJSON(context.Background(), bytes, loggingScope)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse credentials in credentials file: %w", err)
 		}
 
 		return credentials, nil
 	default:
-		credentials, err := google.FindDefaultCredentials(context.Background(), credentialScope)
+		credentials, err := google.FindDefaultCredentials(context.Background(), loggingScope)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find default credentials: %w", err)
 		}

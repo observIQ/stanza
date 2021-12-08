@@ -45,7 +45,7 @@ func (g *GoogleRequestBuilder) Build(entries []*entry.Entry) []*logging.WriteLog
 		currentSize += protoSize
 	}
 
-	if len(entries) > 0 {
+	if len(protoEntries) > 0 {
 		g.Debugw("Creating request from remaining entries", "size", currentSize)
 		requests = append(requests, g.buildRequest(protoEntries))
 	}
