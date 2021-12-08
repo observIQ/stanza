@@ -1,6 +1,6 @@
 # Flushers
 
-Flushers handles flushing entries to their final destination, and retrying on failure.
+Flushers handle flushing entries to their final destination, and retrying on failure.
 
 In most cases, the default options will work well, but they may be need tuning for optimal performance or for reducing load
 on the destination API.
