@@ -198,9 +198,9 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		e.flusher.Do(func(ctx context.Context) error {
+		e.flusher.Do(ctx, func(flushCtx context.Context) error {
 			req := e.createRequest(entries)
-			res, err := req.Do(ctx, e.client)
+			res, err := req.Do(flushCtx, e.client)
 			if err != nil {
 				return errors.NewError(
 					"Client failed to submit request to elasticsearch.",

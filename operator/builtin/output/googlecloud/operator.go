@@ -165,15 +165,15 @@ func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
 	requests := g.requestBuilder.Build(entries)
 	g.Debugw("Created write requests", "requests", len(requests), "chunk_id", chunkID)
 
-	flushFunc := func(ctx context.Context) error {
-		err := g.send(ctx, requests)
+	flushFunc := func(flushCtx context.Context) error {
+		err := g.send(flushCtx, requests)
 		if err != nil {
 			g.Debugw("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
 		}
 		return err
 	}
 
-	g.flusher.Do(flushFunc)
+	g.flusher.Do(ctx, flushFunc)
 	g.Debugw("Submitted requests to the flusher", "requests", len(requests))
 
 	return nil
