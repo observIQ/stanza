@@ -140,7 +140,7 @@ func (g *GoogleEntryBuilder) setLocation(entry *entry.Entry, logEntry *logging.L
 	return nil
 }
 
-// setLocation sets the labels of the protobuf entry based on the supplied stanza entry
+// setLabels sets the labels of the protobuf entry based on the supplied stanza entry
 func (g *GoogleEntryBuilder) setLabels(entry *entry.Entry, logEntry *logging.LogEntry) error {
 	labels := entry.Labels
 	if labels == nil {
