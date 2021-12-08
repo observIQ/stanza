@@ -20,9 +20,6 @@ func TestReadDiskBufferMetadata(t *testing.T) {
 		StartOffset: 65281,
 	}, dmd)
 
-	rws := mockReadWriteSeeker{}
-	rws.On("Read", mock.Anything).Return(0, io.EOF)
-
 	_, err = ReadDiskBufferMetadata(buf)
 	require.ErrorIs(nil, err, io.EOF)
 }
@@ -37,7 +34,7 @@ func TestDiskBufferMetadataWrite(t *testing.T) {
 	dmd.Write(buf)
 	assert.Equal(t, []byte("\x01\x00\x00\x00\x00\x00\x00\xFF\x01"), buf.Bytes())
 
-	rws := mockReadWriteSeeker{}
+	rws := &mockReadWriteSeeker{}
 	rws.On("Write", mock.Anything).Return(0, io.EOF)
 
 	err := dmd.Write(rws)
@@ -47,7 +44,7 @@ func TestDiskBufferMetadataWrite(t *testing.T) {
 func TestDiskBufferMetadataSync(t *testing.T) {
 	buf := &bytes.Buffer{}
 
-	rws := mockReadWriteSeeker{}
+	rws := &mockReadWriteSeeker{}
 	rws.On("Seek", int64(0), io.SeekStart).Return(int64(0), nil)
 	rws.On("Write", mock.Anything).Run(func(args mock.Arguments) {
 		buf.Write([]byte("\x01\x00\x00\x00\x00\x00\x00\xFF\x01"))
@@ -61,7 +58,7 @@ func TestDiskBufferMetadataSync(t *testing.T) {
 	dmd.Sync(rws)
 	assert.Equal(t, []byte("\x01\x00\x00\x00\x00\x00\x00\xFF\x01"), buf.Bytes())
 
-	rwsSeekFail := mockReadWriteSeeker{}
+	rwsSeekFail := &mockReadWriteSeeker{}
 	rwsSeekFail.On("Seek", int64(0), io.SeekStart).Return(int64(0), io.ErrClosedPipe)
 
 	err := dmd.Sync(rwsSeekFail)
@@ -72,17 +69,17 @@ type mockReadWriteSeeker struct {
 	mock.Mock
 }
 
-func (s mockReadWriteSeeker) Read(buf []byte) (int, error) {
+func (s *mockReadWriteSeeker) Read(buf []byte) (int, error) {
 	args := s.Called(buf)
 	return args.Int(0), args.Error(1)
 }
 
-func (s mockReadWriteSeeker) Write(buf []byte) (int, error) {
+func (s *mockReadWriteSeeker) Write(buf []byte) (int, error) {
 	args := s.Called(buf)
 	return args.Int(0), args.Error(1)
 }
 
-func (s mockReadWriteSeeker) Seek(offset int64, whence int) (int64, error) {
+func (s *mockReadWriteSeeker) Seek(offset int64, whence int) (int64, error) {
 	args := s.Called(offset, whence)
 	return args.Get(0).(int64), args.Error(1)
 }
