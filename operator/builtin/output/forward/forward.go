@@ -135,8 +135,8 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		f.flusher.Do(func(ctx context.Context) error {
-			req, err := f.createRequest(ctx, entries)
+		f.flusher.Do(ctx, func(flushCtx context.Context) error {
+			req, err := f.createRequest(flushCtx, entries)
 			if err != nil {
 				f.Errorf("Failed to create request", zap.Error(err))
 				return nil
