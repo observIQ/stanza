@@ -49,11 +49,10 @@ pipeline:
 
   - id: json_parser
     type: json_parser
-    output: google_cloud
+    output: stdout
 
-  - id: google_cloud
-    project_id: testproject
-    type: google_cloud_output
+  - id: stdout
+    type: stdout
 `
 
 	expected := `
@@ -61,10 +60,10 @@ pipeline:
       // Node definitions.
       "$.json_parser";
       "$.generate";
-      "$.google_cloud";
+      "$.stdout";
 
       // Edge definitions.
-      "$.json_parser" -> "$.google_cloud";
+      "$.json_parser" -> "$.stdout";
       "$.generate" -> "$.json_parser";
     }`
 
@@ -81,21 +80,20 @@ pipeline:
         test: value
 
   - type: json_parser
-    output: google_cloud_output
+    output: stdout
 
-  - project_id: testproject
-    type: google_cloud_output
+  - type: stdout
 `
 
 	expected := `
     strict digraph G {
       // Node definitions.
       "$.json_parser";
-      "$.google_cloud_output";
+      "$.stdout";
       "$.generate_input";
 
       // Edge definitions.
-      "$.json_parser" -> "$.google_cloud_output";
+      "$.json_parser" -> "$.stdout";
       "$.generate_input" -> "$.json_parser";
     }`
 
@@ -114,9 +112,8 @@ pipeline:
   - id: json_parser
     type: json_parser
 
-  - id: google_cloud
-    project_id: testproject
-    type: google_cloud_output
+  - id: stdout
+    type: stdout
 `
 
 	expected := `
@@ -124,10 +121,10 @@ pipeline:
       // Node definitions.
       "$.json_parser";
       "$.generate";
-      "$.google_cloud";
+      "$.stdout";
 
       // Edge definitions.
-      "$.json_parser" -> "$.google_cloud";
+      "$.json_parser" -> "$.stdout";
       "$.generate" -> "$.json_parser";
     }`
 
@@ -144,19 +141,18 @@ pipeline:
 
   - type: json_parser
 
-  - project_id: testproject
-    type: google_cloud_output
+  - type: stdout
 `
 
 	expected := `
     strict digraph G {
       // Node definitions.
       "$.json_parser";
-      "$.google_cloud_output";
+      "$.stdout";
       "$.generate_input";
 
       // Edge definitions.
-      "$.json_parser" -> "$.google_cloud_output";
+      "$.json_parser" -> "$.stdout";
       "$.generate_input" -> "$.json_parser";
     }`
 
@@ -174,8 +170,7 @@ pipeline:
   - type: json_parser
     output: my_stdout
 
-  - project_id: testproject
-    type: google_cloud_output
+  - type: drop_output
 
   - id: my_stdout
     type: stdout
@@ -185,7 +180,7 @@ pipeline:
     strict digraph G {
       // Node definitions.
       "$.json_parser";
-      "$.google_cloud_output";
+      "$.drop_output";
       "$.my_stdout";
       "$.generate_input";
 
