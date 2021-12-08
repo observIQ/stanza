@@ -89,8 +89,8 @@ pipeline:
     strict digraph G {
       // Node definitions.
       "$.json_parser";
-      "$.stdout";
       "$.generate_input";
+      "$.stdout";
 
       // Edge definitions.
       "$.json_parser" -> "$.stdout";
@@ -148,8 +148,8 @@ pipeline:
     strict digraph G {
       // Node definitions.
       "$.json_parser";
-      "$.stdout";
       "$.generate_input";
+      "$.stdout";
 
       // Edge definitions.
       "$.json_parser" -> "$.stdout";
@@ -180,9 +180,9 @@ pipeline:
     strict digraph G {
       // Node definitions.
       "$.json_parser";
-      "$.drop_output";
       "$.my_stdout";
       "$.generate_input";
+      "$.drop_output";
 
       // Edge definitions.
       "$.json_parser" -> "$.my_stdout";
