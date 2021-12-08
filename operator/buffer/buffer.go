@@ -12,6 +12,10 @@ import (
 // ErrBufferClosed is an error to indicate an operation was attempt on a buffer after it was closed
 var ErrBufferClosed = errors.New("buffer is closed")
 
+// ErrEntryTooLarge is an error to indicate an entry is too large to ever fit into the buffer.
+// That is, the serialized entry is larger than the maximum size of the buffer
+var ErrEntryTooLarge = errors.New("entry is too large to fit in buffer")
+
 // Buffer is an interface for an entry buffer
 type Buffer interface {
 	// Add adds an entry onto the buffer.

@@ -150,7 +150,7 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	}
 
 	if len(bufBytes) > int(d.maxSize) {
-		return errors.New("entry is too large to fit on disk")
+		return ErrEntryTooLarge
 	}
 
 	for !d.canFitInBuffer(len(bufBytes)) {

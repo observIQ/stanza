@@ -114,7 +114,7 @@ func TestDiskBufferAdd(t *testing.T) {
 
 				entry := entry.New()
 				err = db.Add(context.Background(), entry)
-				require.Error(t, err)
+				require.ErrorIs(t, err, ErrEntryTooLarge)
 
 				db.Close()
 			},
