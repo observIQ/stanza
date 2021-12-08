@@ -107,27 +107,34 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 // This buffer persists between application restarts.
 type DiskBuffer struct {
 	metadata *DiskBufferMetadata
-	// end is an integer indicating the offset into the buffer (not including metadata) where the end of buffer is
+	// end is an integer indicating the offset into the buffer (not including metadata) where the end of buffer is.
 	end int64
-	// f is the underlying file that holds the buffer data
+	// f is the underlying file that holds the buffer data.
 	f *os.File
-	// mux is a mutex that protects read/write operations to the file
+	// mux is a mutex that protects read/write operations to the file.
 	mux *sync.Mutex
-	// maxSize is the maximum number of entry bytes that can be written to the file
-	// The max size of the file is actually maxSize + dataOffset
+	// maxSize is the maximum number of entry bytes that can be written to the file.
+	// The max size of the file is actually maxSize + DiskBufferMetadataBinarySize.
 	maxSize uint64
+	// readReady is a condition variable that is signalled when a reader can read.
+	// It may also be signalled by the buffer closing, or by a timeout or context cancellation.
+	readReady *sync.Cond
+	// writeReady is a condition variable that is signalled when a writer may be able to write again.
+	// It may also be signalled by the buffer closing, or by a context cancellation.
+	writeReady *sync.Cond
+	// closed is a bool indicating if the buffer is closed
+	closed bool
 
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
-	readReady     *sync.Cond
-	writeReady    *sync.Cond
-	closed        bool
 }
 
+// entryBufInitialSize is the initial size of the internal buffer that an entry
+// is written to
 const entryBufInitialSize = 1 << 10
 
 // Add adds an entry onto the buffer.
-// Will block if the buffer is full.
+// Will block if the buffer is full
 func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	d.mux.Lock()
 	defer d.mux.Unlock()
@@ -175,9 +182,9 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 		return err
 	}
 
-	// Assert for sanity
+	// Assert for sanity; This should never occur
 	if curEnd != int64(d.end) {
-		return fmt.Errorf("the current eof(%d) was not equal to the expected eof(%d)", curEnd, d.end)
+		return fmt.Errorf("the current EOF (%d) was not equal to the expected EOF (%d)", curEnd, d.end)
 	}
 
 	_, err = d.f.Write(bufBytes)
@@ -258,13 +265,13 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	return entries, nil
 }
 
-// Close runs cleanup code for buffer
+// Close runs cleanup code for buffer.
 func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 	d.mux.Lock()
 	defer d.mux.Unlock()
 
 	if d.closed {
-		return nil, ErrBufferClosed
+		return nil, nil
 	}
 
 	err := d.f.Close()
@@ -274,76 +281,67 @@ func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 
 	d.closed = true
 
-	// Tell all the readers/writers to wake up so they don't block while the buffer is closed
+	// Wake up readers/writers so they don't block while the buffer is closed
 	d.readReady.Broadcast()
 	d.writeReady.Broadcast()
 
 	return nil, nil
 }
 
-// endDiskOffset gives the end offset on disk, taking into account the prologue size.
-// func (d *DiskBuffer) endDiskOffset() int64 {
-// 	return int64(d.end + filePrologueSize)
-// }
+// compactBufferSize is the size of the internal buffer used when reading/writing during compaction.
+var compactBufferSize int64 = 1 << 12 // 4KiB
 
-// Compact buffer size = 4 Kib
-var compactBufferSize int64 = 2 << 12
-
-// compact compacts the file by moving all data backwards to the start of file, then truncating the file such that
-// no data is lost.
+// compact compacts the file by moving all data backwards to the start of file, then truncating the file
+// to the new buffer length.
 func (d *DiskBuffer) compact() error {
 	if d.metadata.StartOffset <= DiskBufferMetadataBinarySize {
-		// StartOffset is at the beginning of the buffer; Nothing to compact
+		// StartOffset is already at the beginning of the buffer; Nothing to compact
 		return nil
 	}
 
 	buffer := make([]byte, compactBufferSize)
 	var writeOffset int64 = DiskBufferMetadataBinarySize
 	var readOffset int64 = int64(d.metadata.StartOffset)
-	for {
-		n, err := d.f.ReadAt(buffer, readOffset)
-		if errors.Is(err, io.EOF) {
-			_, err = d.f.WriteAt(buffer[:n], writeOffset)
-			if err != nil {
-				return err
-			}
-
-			err = d.f.Truncate(writeOffset + int64(n))
-			if err != nil {
-				return err
-			}
-
-			d.end = writeOffset + int64(n)
-
-			break
-		} else if err != nil {
-			return err
+	var n int = int(compactBufferSize)
+	for n == int(compactBufferSize) {
+		var err error
+		n, err = d.f.ReadAt(buffer, readOffset)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("failed to read file during compaction: %w", err)
 		}
 
-		_, err = d.f.WriteAt(buffer, writeOffset)
+		_, err = d.f.WriteAt(buffer[:n], writeOffset)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to write file during compaction: %w", err)
 		}
 
-		writeOffset += compactBufferSize
-		readOffset += compactBufferSize
+		writeOffset += int64(n)
+		readOffset += int64(n)
 	}
 
-	d.metadata.StartOffset = DiskBufferMetadataBinarySize
-	err := d.metadata.Sync(d.f)
+	err := d.f.Truncate(writeOffset)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to truncate file during compaction: %w", err)
+	}
+
+	d.end = writeOffset
+
+	d.metadata.StartOffset = DiskBufferMetadataBinarySize
+	err = d.metadata.Sync(d.f)
+	if err != nil {
+		return fmt.Errorf("failed to sync metadata to disk buffer: %w", err)
 	}
 
 	return nil
 }
 
+// canFitInBuffer returns true if a buffer of the given size can currently fit into the buffer.
 func (d *DiskBuffer) canFitInBuffer(bufLen int) bool {
 	return uint64(d.end)+uint64(bufLen)-DiskBufferMetadataBinarySize <= d.maxSize
 }
 
 // waitCondWithCtx waits on the given sync.Cond. It can be awakened normally (cond.Signal or cond.Broadcast),
-// but it may also be awakened by the context finishing
+// but it may also be awakened by the context finishing.
 func waitCondWithCtx(ctx context.Context, cond *sync.Cond) {
 	doneChan := make(chan struct{})
 	go func() {
@@ -384,6 +382,8 @@ func waitCondWithCtxAndTimer(ctx context.Context, cond *sync.Cond, timer *time.T
 	return <-wasTimer
 }
 
+// marshalEntry marshals the given entry into the given byte slice.
+// It returns the buffer (which may be reallocated).
 func marshalEntry(b []byte, e *entry.Entry) ([]byte, error) {
 	buf := bytes.NewBuffer(b)
 	enc := json.NewEncoder(buf)
