@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	// maxConcurrency is the default maximum amount of concurrent flush operatorations
+	// maxConcurrency is the default maximum amount of concurrent flush operations
 	maxConcurrency = 16
 
 	// maxRetryInterval is the default maximum retry interval duration
