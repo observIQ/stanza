@@ -2,7 +2,6 @@ package buffer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -32,7 +31,7 @@ func TestDiskBufferBuild(t *testing.T) {
 				cfg := NewDiskBufferConfig()
 				_, err := cfg.Build()
 
-				require.True(t, errors.Is(err, os.ErrNotExist), "did not get ErrNotExist for empty file path")
+				require.ErrorIs(t, err, os.ErrNotExist)
 			},
 		},
 		{
@@ -147,7 +146,7 @@ func TestDiskBufferAdd(t *testing.T) {
 
 				go func() {
 					err = db.Add(ctx, entry)
-					assert.True(t, errors.Is(err, context.Canceled), "Did not get context cancelled as error from add")
+					assert.ErrorIs(t, err, context.Canceled)
 					done <- struct{}{}
 				}()
 
@@ -298,7 +297,7 @@ func TestDiskBufferRead(t *testing.T) {
 
 				go func() {
 					_, err = db.Read(ctx)
-					assert.True(t, errors.Is(err, context.Canceled), "Did not get context cancelled as error from Read")
+					assert.ErrorIs(t, err, context.Canceled)
 					done <- struct{}{}
 				}()
 
