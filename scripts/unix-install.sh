@@ -262,7 +262,7 @@ set_os_arch()
 {
   os_arch=$(uname -m)
   case "$os_arch" in 
-    arm64e)
+    arm64)
       os_arch="arm64"
       ;;
     x86_64)
@@ -400,7 +400,7 @@ os_arch_check()
   info "Checking for valid operating system architecture..."
   arch=$(uname -m)
   case "$arch" in 
-    x86_64|arm64e)
+    x86_64|arm64)
       succeeded
       ;;
     *)
