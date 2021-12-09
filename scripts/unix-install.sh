@@ -224,6 +224,7 @@ setup_installation()
 
     # Installation variables
     set_os
+    set_os_arch
     set_download_urls
     set_install_dir
     set_agent_home
@@ -256,6 +257,23 @@ set_os()
   esac
 }
 
+
+set_os_arch()
+{
+  os_arch=$(uname -m)
+  case "$os_arch" in 
+    arm64e)
+      os_arch="arm64"
+      ;;
+    x86_64)
+      os_arch="amd64"
+      ;;
+    *)
+      error "Unsupported os arch: $os_arch"
+      ;;
+  esac
+}   
+
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or STANZA_VERSION env variable.
 # If not specified, the version defaults to "latest".
@@ -272,11 +290,15 @@ set_download_urls()
     url=$DOWNLOAD_BASE
   fi
 
+  if [ -z "$arch" ] ; then 
+    os_arch=$arch
+  fi
+
   if [ -z "$version" ] ; then
-    agent_download_url="$url/latest/download/${BINARY_NAME}_${os}_amd64"
+    agent_download_url="$url/latest/download/${BINARY_NAME}_${os}_${os_arch}"
     plugins_download_url="$url/latest/download/${PLUGINS_PACKAGE}"
   else
-    agent_download_url="$url/download/v$version/${BINARY_NAME}_${os}_amd64"
+    agent_download_url="$url/download/v$version/${BINARY_NAME}_${os}_${os_arch}"
     plugins_download_url="$url/download/v$version/${PLUGINS_PACKAGE}"
   fi
 }
@@ -376,13 +398,16 @@ os_check()
 os_arch_check()
 {
   info "Checking for valid operating system architecture..."
-  os_arch=$(uname -m)
-  if [ "$os_arch" = 'x86_64' ]; then
-    succeeded
-  else
-    failed
-    error_exit "The operating system architecture $(fg_yellow "$os_arch") is not supported by this script."
-  fi
+  arch=$(uname -m)
+  case "$arch" in 
+    x86_64|arm64e)
+      succeeded
+      ;;
+    *)
+      failed
+      error_exit "The operating system architecture $(fg_yellow "$arch") is not supported by this script."
+      ;;
+  esac
 }
 
 # This will check if the current environment has
@@ -1005,7 +1030,7 @@ request_service_replacement()
 # Set file permissiosn
 set_permissions()
 {
-    chown -R $service_user:$service_user $agent_home
+    chown -R $service_user $agent_home
 }
 
 # This will display the results of an installation
