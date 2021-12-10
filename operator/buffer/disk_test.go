@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -696,4 +697,104 @@ func randomEntry() *entry.Entry {
 	}
 
 	return e
+}
+
+func BenchmarkDiskBuffer2(b *testing.B) {
+	b.Run("NoSync", func(b *testing.B) {
+		cfg := NewDiskBufferConfig()
+		path, err := os.MkdirTemp("", "concurrency-benchmark-no-sync")
+		require.NoError(b, err)
+		cfg.MaxChunkDelay = helper.Duration{
+			Duration: 50 * time.Millisecond,
+		}
+		cfg.Path = path
+		cfg.Sync = false
+		buffer, err := cfg.Build()
+		require.NoError(b, err)
+
+		b.Cleanup(func() {
+			buffer.Close()
+		})
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fmt.Printf("Benchmark: %d\n", b.N)
+			e := entry.New()
+			e.Body = "test log"
+			ctx := context.Background()
+			for i := 0; i < b.N; i++ {
+				err := buffer.Add(ctx, e)
+				if err != nil {
+					panic(err.Error())
+				}
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ctx := context.Background()
+			for i := 0; i < b.N; {
+				c, err := buffer.Read(ctx)
+				if err != nil {
+					panic(err.Error())
+				}
+				i += len(c)
+			}
+		}()
+
+		wg.Wait()
+	})
+
+	b.Run("Sync", func(b *testing.B) {
+		cfg := NewDiskBufferConfig()
+		path, err := os.MkdirTemp("", "concurrency-benchmark-sync")
+		require.NoError(b, err)
+		cfg.MaxChunkDelay = helper.Duration{
+			Duration: 50 * time.Millisecond,
+		}
+		cfg.Path = path
+		cfg.Sync = true
+		buffer, err := cfg.Build()
+		require.NoError(b, err)
+
+		b.Cleanup(func() {
+			buffer.Close()
+		})
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fmt.Printf("Benchmark: %d\n", b.N)
+			e := entry.New()
+			e.Body = "test log"
+			ctx := context.Background()
+			for i := 0; i < b.N; i++ {
+				err := buffer.Add(ctx, e)
+				if err != nil {
+					panic(err.Error())
+				}
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ctx := context.Background()
+			for i := 0; i < b.N; {
+				c, err := buffer.Read(ctx)
+				if err != nil {
+					panic(err.Error())
+				}
+				i += len(c)
+			}
+		}()
+
+		wg.Wait()
+	})
 }
