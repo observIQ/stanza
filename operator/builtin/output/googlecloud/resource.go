@@ -2,144 +2,167 @@ package googlecloud
 
 import (
 	"github.com/observiq/stanza/entry"
-	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
+	"google.golang.org/genproto/googleapis/api/monitoredres"
 )
 
-// For more about monitored resources, see:
-// https://cloud.google.com/logging/docs/api/v2/resource-list#resource-types
+// ResourceType is a monitored resource type
+type ResourceType = string
 
-func getResource(e *entry.Entry) *mrpb.MonitoredResource {
-	rt := detectResourceType(e)
-	if rt == "" {
+const (
+	k8sPod       ResourceType = "k8s_pod"
+	k8sContainer ResourceType = "k8s_container"
+	k8sNode      ResourceType = "k8s_node"
+	k8sCluster   ResourceType = "k8s_cluster"
+	genericNode  ResourceType = "generic_node"
+)
+
+// ResourceKey is a key used to distinguish a resource
+type ResourceKey = string
+
+const (
+	containerName    ResourceKey = "container.name"
+	k8sContainerName ResourceKey = "k8s.container.name"
+	k8sPodName       ResourceKey = "k8s.pod.name"
+	k8sClusterName   ResourceKey = "k8s.cluster.name"
+	k8sNamespace     ResourceKey = "k8s.namespace.name"
+	hostName         ResourceKey = "host.name"
+)
+
+// createResource creates a monitored resource from the supplied entry.
+// For more about monitored resources, see:
+// https://cloud.googlentry.com/logging/docs/api/v2/resource-list#resource-types
+func createResource(entry *entry.Entry) *monitoredres.MonitoredResource {
+	switch getResourceType(entry) {
+	case k8sPod:
+		return createPodResource(entry)
+	case k8sContainer:
+		return createContainerResource(entry)
+	case k8sNode:
+		return createNodeResource(entry)
+	case k8sCluster:
+		return createClusterResource(entry)
+	case genericNode:
+		return createGenericResource(entry)
+	default:
 		return nil
 	}
-
-	switch rt {
-	case "k8s_pod":
-		return k8sPodResource(e)
-	case "k8s_container":
-		return k8sContainerResource(e)
-	case "k8s_node":
-		return k8sNodeResource(e)
-	case "k8s_cluster":
-		return k8sClusterResource(e)
-	case "generic_node":
-		return genericNodeResource(e)
-	}
-
-	return nil
 }
 
-func detectResourceType(e *entry.Entry) string {
-	if hasResource("k8s.pod.name", e) {
-		if hasResource("container.name", e) {
-			return "k8s_container"
+// getResourceType returns the first resource type that matches the entry
+func getResourceType(e *entry.Entry) ResourceType {
+	switch {
+	case hasResourceKeys(e, k8sPodName, containerName):
+		return k8sContainer
+	case hasResourceKeys(e, k8sPodName, k8sContainerName):
+		return k8sContainer
+	case hasResourceKeys(e, k8sPodName):
+		return k8sPod
+	case hasResourceKeys(e, k8sClusterName, hostName):
+		return k8sNode
+	case hasResourceKeys(e, k8sClusterName):
+		return k8sCluster
+	case hasResourceKeys(e, hostName):
+		return genericNode
+	default:
+		return ""
+	}
+}
+
+// hasResourceKeys returns true if an entry posesses all resource keys
+func hasResourceKeys(entry *entry.Entry, keys ...string) bool {
+	for _, key := range keys {
+		if _, ok := entry.Resource[key]; !ok {
+			return false
 		}
-		if hasResource("k8s.container.name", e) {
-			e.Resource["container.name"] = e.Resource["k8s.container.name"]
-			delete(e.Resource, "k8s.container.name")
-			return "k8s_container"
-		}
-		return "k8s_pod"
 	}
 
-	if hasResource("k8s.cluster.name", e) {
-		if hasResource("host.name", e) {
-			return "k8s_node"
-		}
-		return "k8s_cluster"
-	}
-
-	if hasResource("host.name", e) {
-		return "generic_node"
-	}
-
-	return ""
+	return true
 }
 
-func hasResource(key string, e *entry.Entry) bool {
-	_, ok := e.Resource[key]
-	return ok
-}
-
-func k8sPodResource(e *entry.Entry) *mrpb.MonitoredResource {
-	m := &mrpb.MonitoredResource{
-		Type: "k8s_pod",
+// createPodResource creates a pod resource from the entry
+func createPodResource(entry *entry.Entry) *monitoredres.MonitoredResource {
+	resource := &monitoredres.MonitoredResource{
+		Type: k8sPod,
 		Labels: map[string]string{
-			"pod_name":       e.Resource["k8s.pod.name"],
-			"namespace_name": e.Resource["k8s.namespace.name"],
-			"cluster_name":   e.Resource["k8s.cluster.name"],
-			// TODO project id
+			"pod_name":       entry.Resource[k8sPodName],
+			"namespace_name": entry.Resource[k8sNamespace],
+			"cluster_name":   entry.Resource[k8sClusterName],
 		},
 	}
 
-	delete(e.Resource, "k8s.pod.name")
-	delete(e.Resource, "k8s.namespace.name")
-	delete(e.Resource, "k8s.cluster.name")
+	delete(entry.Resource, k8sPodName)
+	delete(entry.Resource, k8sNamespace)
+	delete(entry.Resource, k8sClusterName)
 
-	return m
+	return resource
 }
 
-func k8sContainerResource(e *entry.Entry) *mrpb.MonitoredResource {
-	m := &mrpb.MonitoredResource{
-		Type: "k8s_container",
+// createContainerResource creates a container resource from the entry
+func createContainerResource(entry *entry.Entry) *monitoredres.MonitoredResource {
+	containerName := entry.Resource[containerName]
+	if containerName == "" {
+		containerName = entry.Resource[k8sContainerName]
+	}
+
+	resource := &monitoredres.MonitoredResource{
+		Type: k8sContainer,
 		Labels: map[string]string{
-			"container_name": e.Resource["container.name"],
-			"pod_name":       e.Resource["k8s.pod.name"],
-			"namespace_name": e.Resource["k8s.namespace.name"],
-			"cluster_name":   e.Resource["k8s.cluster.name"],
-			// TODO project id
+			"container_name": containerName,
+			"pod_name":       entry.Resource[k8sPodName],
+			"namespace_name": entry.Resource[k8sNamespace],
+			"cluster_name":   entry.Resource[k8sClusterName],
 		},
 	}
 
-	delete(e.Resource, "container.name")
-	delete(e.Resource, "k8s.pod.name")
-	delete(e.Resource, "k8s.namespace.name")
-	delete(e.Resource, "k8s.cluster.name")
+	delete(entry.Resource, containerName)
+	delete(entry.Resource, k8sContainerName)
+	delete(entry.Resource, k8sPodName)
+	delete(entry.Resource, k8sNamespace)
+	delete(entry.Resource, k8sClusterName)
 
-	return m
+	return resource
 }
 
-func k8sNodeResource(e *entry.Entry) *mrpb.MonitoredResource {
-	m := &mrpb.MonitoredResource{
-		Type: "k8s_node",
+// createNodeResource creates a node resource from the entry
+func createNodeResource(entry *entry.Entry) *monitoredres.MonitoredResource {
+	resource := &monitoredres.MonitoredResource{
+		Type: k8sNode,
 		Labels: map[string]string{
-			"cluster_name": e.Resource["k8s.cluster.name"],
-			"node_name":    e.Resource["host.name"],
-			// TODO project id
+			"cluster_name": entry.Resource[k8sClusterName],
+			"node_name":    entry.Resource[hostName],
 		},
 	}
 
-	delete(e.Resource, "k8s.cluster.name")
-	delete(e.Resource, "host.name")
+	delete(entry.Resource, k8sClusterName)
+	delete(entry.Resource, hostName)
 
-	return m
+	return resource
 }
 
-func k8sClusterResource(e *entry.Entry) *mrpb.MonitoredResource {
-	m := &mrpb.MonitoredResource{
-		Type: "k8s_cluster",
+// createClusterResource creates a cluster resource from the entry
+func createClusterResource(entry *entry.Entry) *monitoredres.MonitoredResource {
+	resource := &monitoredres.MonitoredResource{
+		Type: k8sCluster,
 		Labels: map[string]string{
-			"cluster_name": e.Resource["k8s.cluster.name"],
-			// TODO project id
+			"cluster_name": entry.Resource[k8sClusterName],
 		},
 	}
 
-	delete(e.Resource, "k8s.cluster.name")
+	delete(entry.Resource, k8sClusterName)
 
-	return m
+	return resource
 }
 
-func genericNodeResource(e *entry.Entry) *mrpb.MonitoredResource {
-	m := &mrpb.MonitoredResource{
-		Type: "generic_node",
+// createGenericResource creates a generic resource from the entry
+func createGenericResource(entry *entry.Entry) *monitoredres.MonitoredResource {
+	resource := &monitoredres.MonitoredResource{
+		Type: genericNode,
 		Labels: map[string]string{
-			"node_id": e.Resource["host.name"],
-			// TODO project id
+			"node_id": entry.Resource[hostName],
 		},
 	}
 
-	delete(e.Resource, "host.name")
+	delete(entry.Resource, hostName)
 
-	return m
+	return resource
 }

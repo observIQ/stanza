@@ -19,6 +19,8 @@ The `google_cloud_output` operator will send entries to Google Cloud Logging.
 | `timeout`          | 10s                   | A [duration](/docs/types/duration.md) indicating how long to wait for the API to respond before timing out |
 | `buffer`           |                       | A [buffer](/docs/types/buffer.md) block indicating how to buffer entries before flushing                   |
 | `flusher`          |                       | A [flusher](/docs/types/flusher.md) block configuring flushing behavior                                    |
+| `max_entry_size`   | 200kb                 | Entries that exceed this value are dropped. See [ByteSize](/docs/types/bytesize.md) for details on allowed values. |
+| `max_request_size` | 5mb                   | Constrains requests to this size limit. See [ByteSize](/docs/types/bytesize.md) for details on allowed values. |
 
 If both `credentials` and `credentials_file` are left empty, the agent will attempt to find
 [Application Default Credentials](https://cloud.google.com/docs/authentication/production) from the environment.
