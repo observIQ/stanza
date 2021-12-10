@@ -5,14 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"golang.org/x/sync/semaphore"
 )
 
 var _ Buffer = (*DiskBuffer)(nil)
@@ -49,57 +49,45 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 
 // Build creates a new Buffer from a DiskBufferConfig
 func (c DiskBufferConfig) Build() (Buffer, error) {
-	fileFlags := os.O_CREATE | os.O_RDWR
-	if c.Sync {
-		fileFlags |= os.O_SYNC
+	if c.Path == "" {
+		return nil, os.ErrNotExist
 	}
 
-	f, err := os.OpenFile(c.Path, fileFlags, 0660)
+	bufferFilePath := filepath.Join(c.Path, "buffer")
+	metadataFilePath := filepath.Join(c.Path, "metadata.json")
+
+	metadata, err := OpenDiskBufferMetadata(metadataFilePath, c.Sync)
 	if err != nil {
 		return nil, err
 	}
 
-	fi, err := f.Stat()
+	rb, err := OpenCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
-		f.Close()
+		metadata.Close()
 		return nil, err
 	}
 
-	var metadata *DiskBufferMetadata
+	rb.Start = metadata.StartOffset
+	rb.ReadPtr = metadata.StartOffset
+	rb.End = metadata.EndOffset
+	rb.Full = metadata.Full
 
-	if fi.Size() >= DiskBufferMetadataBinarySize {
-		metadata, err = ReadDiskBufferMetadata(f)
-		if err != nil {
-			f.Close()
-			return nil, err
-		}
-	} else {
-		metadata = NewDiskBufferMetadata()
-		err := metadata.Sync(f)
-		if err != nil {
-			f.Close()
-			return nil, err
-		}
+	sem := semaphore.NewWeighted(int64(c.MaxSize))
+	acquired := sem.TryAcquire(rb.Len())
+	if !acquired {
+		return nil, errors.New("failed to acquire buffer length for semaphore")
 	}
-
-	endPos, err := f.Seek(0, io.SeekEnd)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-
-	mux := &sync.Mutex{}
 
 	return &DiskBuffer{
 		metadata:      metadata,
-		end:           endPos,
-		f:             f,
-		mux:           mux,
-		maxSize:       uint64(c.MaxSize),
+		cf:            rb,
+		cfMux:         &sync.Mutex{},
+		writerSem:     sem,
+		readerSem:     NewCountingSemaphore(metadata.Entries),
+		maxSize:       int64(c.MaxSize),
 		maxChunkDelay: c.MaxChunkDelay.Duration,
 		maxChunkSize:  c.MaxChunkSize,
-		readReady:     sync.NewCond(mux),
-		writeReady:    sync.NewCond(mux),
+		closedMux:     &sync.RWMutex{},
 	}, nil
 }
 
@@ -107,23 +95,16 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 // This buffer persists between application restarts.
 type DiskBuffer struct {
 	metadata *DiskBufferMetadata
-	// end is an integer indicating the offset into the buffer (not including metadata) where the end of buffer is.
-	end int64
-	// f is the underlying file that holds the buffer data.
-	f *os.File
-	// mux is a mutex that protects read/write operations to the file.
-	mux *sync.Mutex
-	// maxSize is the maximum number of entry bytes that can be written to the file.
-	// The max size of the file is actually maxSize + DiskBufferMetadataBinarySize.
-	maxSize uint64
-	// readReady is a condition variable that is signalled when a reader can read.
-	// It may also be signalled by the buffer closing, or by a timeout or context cancellation.
-	readReady *sync.Cond
-	// writeReady is a condition variable that is signalled when a writer may be able to write again.
-	// It may also be signalled by the buffer closing, or by a context cancellation.
-	writeReady *sync.Cond
+	// f is the underlying byte buffer for the disk buffer
+	cf        *CircularFile
+	cfMux     *sync.Mutex
+	writerSem *semaphore.Weighted
+	readerSem *CountingSemaphore
+	// maxSize is the maximum number of entry bytes that can be written to the buffer file.
+	maxSize int64
 	// closed is a bool indicating if the buffer is closed
-	closed bool
+	closed    bool
+	closedMux *sync.RWMutex
 
 	maxChunkDelay time.Duration
 	maxChunkSize  uint
@@ -136,8 +117,8 @@ const entryBufInitialSize = 1 << 10
 // Add adds an entry onto the buffer.
 // Will block if the buffer is full
 func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
-	d.mux.Lock()
-	defer d.mux.Unlock()
+	d.closedMux.RLock()
+	defer d.closedMux.RUnlock()
 
 	if d.closed {
 		return ErrBufferClosed
@@ -153,49 +134,28 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 		return ErrEntryTooLarge
 	}
 
-	for !d.canFitInBuffer(len(bufBytes)) {
-		err := d.compact()
-		if err != nil {
-			return err
-		}
-
-		if d.canFitInBuffer(len(bufBytes)) {
-			break
-		}
-
-		// Wait for a reader to tell us we can (maybe) write!
-		waitCondWithCtx(ctx, d.writeReady)
-
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("got context done: %w", ctx.Err())
-		default:
-		}
-
-		if d.closed {
-			return ErrBufferClosed
-		}
-	}
-
-	curEnd, err := d.f.Seek(0, io.SeekEnd)
+	err = d.writerSem.Acquire(ctx, int64(len(bufBytes)))
 	if err != nil {
 		return err
 	}
 
-	// Assert for sanity; This should never occur
-	if curEnd != int64(d.end) {
-		return fmt.Errorf("the current EOF (%d) was not equal to the expected EOF (%d)", curEnd, d.end)
-	}
+	d.cfMux.Lock()
+	defer d.cfMux.Unlock()
 
-	_, err = d.f.Write(bufBytes)
+	_, err = d.cf.Write(bufBytes)
 	if err != nil {
 		return err
 	}
 
-	d.end += int64(len(bufBytes))
+	d.metadata.EndOffset = d.cf.End
+	d.metadata.Full = d.cf.Full
+	d.metadata.Entries += 1
+	err = d.metadata.Sync()
+	if err != nil {
+		return err
+	}
 
-	// Signal to a potentially waiting reader that there is an entry to read
-	d.readReady.Signal()
+	d.readerSem.Increment()
 
 	return nil
 }
@@ -203,63 +163,57 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 // Read reads from the buffer.
 // Read will block until the there are maxChunkSize entries or the duration maxChunkDelay has passed.
 func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
-	entries := make([]*entry.Entry, 0)
-	timer := time.NewTimer(d.maxChunkDelay)
-	defer timer.Stop()
+	d.closedMux.RLock()
+	defer d.closedMux.RUnlock()
 
-	d.mux.Lock()
-	defer d.mux.Unlock()
+	entries := make([]*entry.Entry, 0)
+	childCtx, cancel := context.WithTimeout(ctx, d.maxChunkDelay)
+	defer cancel()
 
 	if d.closed {
 		return nil, ErrBufferClosed
 	}
 
 	for len(entries) < int(d.maxChunkSize) {
-		for d.end <= int64(d.metadata.StartOffset) {
-			// No entries to read
-			timerDone := waitCondWithCtxAndTimer(ctx, d.readReady, timer)
-			if timerDone {
-				return entries, nil
-			}
+		childCtxErr := d.readerSem.Acquire(childCtx)
 
-			select {
-			case <-ctx.Done():
-				return nil, fmt.Errorf("got context done: %w", ctx.Err())
-			default:
-			}
-
-			if d.closed {
-				return nil, ErrBufferClosed
-			}
+		ctxErr := ctx.Err()
+		if ctxErr != nil {
+			// Parent context was cancelled
+			return entries, ctxErr
+		} else if errors.Is(childCtxErr, context.DeadlineExceeded) {
+			// Batch timeout; Don't return error here!
+			return entries, nil
 		}
 
-		// Seek to the start position of the file
-		_, err := d.f.Seek(int64(d.metadata.StartOffset), io.SeekStart)
-		if err != nil {
-			return nil, err
-		}
+		// TODO: Pull this into it's own function? Would make locking/critical section clearer.
+		d.cfMux.Lock()
 
 		var entry entry.Entry
-		dec := json.NewDecoder(d.f)
+		dec := json.NewDecoder(d.cf)
 
-		err = dec.Decode(&entry)
+		err := dec.Decode(&entry)
 		if err != nil {
+			d.cfMux.Unlock()
 			return nil, err
 		}
 
 		entries = append(entries, &entry)
 
 		decoderOffset := dec.InputOffset()
+		d.cf.Discard(decoderOffset)
+		d.writerSem.Release(decoderOffset)
 
 		// Update start pointer to current position
-		d.metadata.StartOffset += uint64(decoderOffset) + 1
-		err = d.metadata.Sync(d.f)
+		d.metadata.StartOffset = d.cf.Start
+		d.metadata.Full = d.cf.Full
+		d.metadata.Entries -= 1
+		err = d.metadata.Sync()
 		if err != nil {
+			d.cfMux.Unlock()
 			return nil, err
 		}
-
-		// Signal to the writers that they may be able to write again, since we freed up some space
-		d.writeReady.Broadcast()
+		d.cfMux.Unlock()
 	}
 
 	return entries, nil
@@ -267,119 +221,27 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 
 // Close runs cleanup code for buffer.
 func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
-	d.mux.Lock()
-	defer d.mux.Unlock()
+	d.closedMux.Lock()
+	defer d.closedMux.Unlock()
 
 	if d.closed {
 		return nil, nil
 	}
 
-	err := d.f.Close()
+	d.closed = true
+
+	err := d.cf.Close()
+	if err != nil {
+		d.metadata.Close()
+		return nil, err
+	}
+
+	err = d.metadata.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	d.closed = true
-
-	// Wake up readers/writers so they don't block while the buffer is closed
-	d.readReady.Broadcast()
-	d.writeReady.Broadcast()
-
 	return nil, nil
-}
-
-// compactBufferSize is the size of the internal buffer used when reading/writing during compaction.
-var compactBufferSize int64 = 1 << 12 // 4KiB
-
-// compact compacts the file by moving all data backwards to the start of file, then truncating the file
-// to the new buffer length.
-func (d *DiskBuffer) compact() error {
-	if d.metadata.StartOffset <= DiskBufferMetadataBinarySize {
-		// StartOffset is already at the beginning of the buffer; Nothing to compact
-		return nil
-	}
-
-	buffer := make([]byte, compactBufferSize)
-	var writeOffset int64 = DiskBufferMetadataBinarySize
-	var readOffset int64 = int64(d.metadata.StartOffset)
-	var n int = int(compactBufferSize)
-	for n == int(compactBufferSize) {
-		var err error
-		n, err = d.f.ReadAt(buffer, readOffset)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return fmt.Errorf("failed to read file during compaction: %w", err)
-		}
-
-		_, err = d.f.WriteAt(buffer[:n], writeOffset)
-		if err != nil {
-			return fmt.Errorf("failed to write file during compaction: %w", err)
-		}
-
-		writeOffset += int64(n)
-		readOffset += int64(n)
-	}
-
-	err := d.f.Truncate(writeOffset)
-	if err != nil {
-		return fmt.Errorf("failed to truncate file during compaction: %w", err)
-	}
-
-	d.end = writeOffset
-
-	d.metadata.StartOffset = DiskBufferMetadataBinarySize
-	err = d.metadata.Sync(d.f)
-	if err != nil {
-		return fmt.Errorf("failed to sync metadata to disk buffer: %w", err)
-	}
-
-	return nil
-}
-
-// canFitInBuffer returns true if a buffer of the given size can currently fit into the buffer.
-func (d *DiskBuffer) canFitInBuffer(bufLen int) bool {
-	return uint64(d.end)+uint64(bufLen)-DiskBufferMetadataBinarySize <= d.maxSize
-}
-
-// waitCondWithCtx waits on the given sync.Cond. It can be awakened normally (cond.Signal or cond.Broadcast),
-// but it may also be awakened by the context finishing.
-func waitCondWithCtx(ctx context.Context, cond *sync.Cond) {
-	doneChan := make(chan struct{})
-	go func() {
-		select {
-		case <-ctx.Done():
-			cond.Broadcast()
-		case <-doneChan:
-		}
-	}()
-
-	cond.Wait()
-	close(doneChan)
-}
-
-// waitCondWithCtxAndTimer waits on the given sync.Cond. It can be awakened normally (cond.Signal or cond.Broadcast),
-// but it may also be awakened by the context finishing, or the timer firing.
-// Returns true if the timer fired, false otherwise.
-func waitCondWithCtxAndTimer(ctx context.Context, cond *sync.Cond, timer *time.Timer) bool {
-	doneChan := make(chan struct{})
-	wasTimer := make(chan bool)
-	go func() {
-		timerTriggered := false
-		select {
-		case <-timer.C:
-			cond.Broadcast()
-			timerTriggered = true
-		case <-ctx.Done():
-			cond.Broadcast()
-		case <-doneChan:
-		}
-		wasTimer <- timerTriggered
-	}()
-
-	cond.Wait()
-
-	close(doneChan)
-
-	return <-wasTimer
 }
 
 // marshalEntry marshals the given entry into the given byte slice.
