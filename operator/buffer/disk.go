@@ -166,57 +166,40 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	d.closedMux.RLock()
 	defer d.closedMux.RUnlock()
 
-	entries := make([]*entry.Entry, 0)
-	childCtx, cancel := context.WithTimeout(ctx, d.maxChunkDelay)
-	defer cancel()
+	entries := make([]*entry.Entry, 0, d.maxChunkSize)
 
 	if d.closed {
 		return nil, ErrBufferClosed
 	}
 
-	for len(entries) < int(d.maxChunkSize) {
-		childCtxErr := d.readerSem.Acquire(childCtx)
+	n := d.readerSem.AcquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
 
-		ctxErr := ctx.Err()
-		if ctxErr != nil {
-			// Parent context was cancelled
-			return entries, ctxErr
-		} else if errors.Is(childCtxErr, context.DeadlineExceeded) {
-			// Batch timeout; Don't return error here!
-			return entries, nil
-		}
+	d.cfMux.Lock()
+	defer d.cfMux.Unlock()
 
-		// TODO: Pull this into it's own function? Would make locking/critical section clearer.
-		d.cfMux.Lock()
+	dec := json.NewDecoder(d.cf)
+	var entry entry.Entry
 
-		var entry entry.Entry
-		dec := json.NewDecoder(d.cf)
-
+	for i := int64(0); i < n; i++ {
 		err := dec.Decode(&entry)
 		if err != nil {
 			d.cfMux.Unlock()
-			return nil, err
+			return entries, err
 		}
 
 		entries = append(entries, &entry)
-
-		decoderOffset := dec.InputOffset()
-		d.cf.Discard(decoderOffset)
-		d.writerSem.Release(decoderOffset)
-
-		// Update start pointer to current position
-		d.metadata.StartOffset = d.cf.Start
-		d.metadata.Full = d.cf.Full
-		d.metadata.Entries -= 1
-		err = d.metadata.Sync()
-		if err != nil {
-			d.cfMux.Unlock()
-			return nil, err
-		}
-		d.cfMux.Unlock()
 	}
 
-	return entries, nil
+	decoderOffset := dec.InputOffset()
+	d.cf.Discard(decoderOffset)
+	d.writerSem.Release(decoderOffset)
+	// Update start pointer to current position
+	d.metadata.StartOffset = d.cf.Start
+	d.metadata.Full = d.cf.Full
+	d.metadata.Entries -= n
+	err := d.metadata.Sync()
+
+	return entries, err
 }
 
 // Close runs cleanup code for buffer.

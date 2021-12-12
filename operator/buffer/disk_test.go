@@ -707,6 +707,7 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 		cfg.MaxChunkDelay = helper.Duration{
 			Duration: 50 * time.Millisecond,
 		}
+		cfg.MaxChunkSize = uint(1 << 13)
 		cfg.Path = path
 		cfg.Sync = false
 		buffer, err := cfg.Build()
@@ -721,7 +722,6 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			fmt.Printf("Benchmark: %d\n", b.N)
 			e := entry.New()
 			e.Body = "test log"
 			ctx := context.Background()
@@ -756,6 +756,7 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 		cfg.MaxChunkDelay = helper.Duration{
 			Duration: 50 * time.Millisecond,
 		}
+		cfg.MaxChunkSize = uint(1 << 13)
 		cfg.Path = path
 		cfg.Sync = true
 		buffer, err := cfg.Build()
@@ -770,7 +771,6 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			fmt.Printf("Benchmark: %d\n", b.N)
 			e := entry.New()
 			e.Body = "test log"
 			ctx := context.Background()

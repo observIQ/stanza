@@ -1,148 +1,139 @@
 package buffer
 
-import (
-	"context"
-	"testing"
-	"time"
+// func TestResourceSemaphoreIncrement(t *testing.T) {
+// 	testCases := []struct {
+// 		desc     string
+// 		testFunc func(*testing.T)
+// 	}{
+// 		{
+// 			desc: "Test increment no readers",
+// 			testFunc: func(t *testing.T) {
+// 				t.Parallel()
+// 				rs := NewCountingSemaphore(0)
+// 				rs.Increment()
+// 				require.Equal(t, int64(1), rs.val)
+// 			},
+// 		},
+// 		{
+// 			desc: "Test increment waiting readers",
+// 			testFunc: func(t *testing.T) {
+// 				t.Parallel()
+// 				timeout := 250 * time.Millisecond
+// 				rs := NewCountingSemaphore(0)
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
+// 				ctx, cancel := context.WithCancel(context.Background())
+// 				defer cancel()
 
-func TestResourceSemaphoreIncrement(t *testing.T) {
-	testCases := []struct {
-		desc     string
-		testFunc func(*testing.T)
-	}{
-		{
-			desc: "Test increment no readers",
-			testFunc: func(t *testing.T) {
-				t.Parallel()
-				rs := NewCountingSemaphore(0)
-				rs.Increment()
-				require.Equal(t, int64(1), rs.val)
-			},
-		},
-		{
-			desc: "Test increment waiting readers",
-			testFunc: func(t *testing.T) {
-				t.Parallel()
-				timeout := 250 * time.Millisecond
-				rs := NewCountingSemaphore(0)
+// 				doneChan := make(chan struct{})
+// 				go func() {
+// 					err := rs.Acquire(ctx)
+// 					assert.NoError(t, err)
+// 					close(doneChan)
+// 				}()
 
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+// 				<-time.After(50 * time.Millisecond)
 
-				doneChan := make(chan struct{})
-				go func() {
-					err := rs.Acquire(ctx)
-					assert.NoError(t, err)
-					close(doneChan)
-				}()
+// 				rs.Increment()
+// 				require.Equal(t, int64(0), rs.val)
+// 				select {
+// 				case <-doneChan:
+// 				case <-time.After(timeout):
+// 					require.Fail(t, "timed out waiting for acquire")
+// 				}
+// 			},
+// 		},
+// 	}
 
-				<-time.After(50 * time.Millisecond)
+// 	for _, tc := range testCases {
+// 		t.Run(tc.desc, tc.testFunc)
+// 	}
+// }
 
-				rs.Increment()
-				require.Equal(t, int64(0), rs.val)
-				select {
-				case <-doneChan:
-				case <-time.After(timeout):
-					require.Fail(t, "timed out waiting for acquire")
-				}
-			},
-		},
-	}
+// func TestResourceSemaphoreAcquire(t *testing.T) {
+// 	testCases := []struct {
+// 		desc     string
+// 		testFunc func(*testing.T)
+// 	}{
+// 		{
+// 			desc: "Acquire blocks when 0",
+// 			testFunc: func(t *testing.T) {
+// 				t.Parallel()
+// 				timeout := 250 * time.Millisecond
+// 				rs := NewCountingSemaphore(0)
 
-	for _, tc := range testCases {
-		t.Run(tc.desc, tc.testFunc)
-	}
-}
+// 				ctx, cancel := context.WithCancel(context.Background())
+// 				defer cancel()
 
-func TestResourceSemaphoreAcquire(t *testing.T) {
-	testCases := []struct {
-		desc     string
-		testFunc func(*testing.T)
-	}{
-		{
-			desc: "Acquire blocks when 0",
-			testFunc: func(t *testing.T) {
-				t.Parallel()
-				timeout := 250 * time.Millisecond
-				rs := NewCountingSemaphore(0)
+// 				doneChan := make(chan struct{})
+// 				go func() {
+// 					err := rs.Acquire(ctx)
+// 					assert.NoError(t, err)
+// 					close(doneChan)
+// 				}()
 
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+// 				<-time.After(50 * time.Millisecond)
 
-				doneChan := make(chan struct{})
-				go func() {
-					err := rs.Acquire(ctx)
-					assert.NoError(t, err)
-					close(doneChan)
-				}()
+// 				select {
+// 				case <-doneChan:
+// 					require.Fail(t, "Somehow acquired semaphore despite not incrementing")
+// 				case <-time.After(timeout):
+// 				}
+// 			},
+// 		},
+// 		{
+// 			desc: "Acquire works when semaphore val is 1",
+// 			testFunc: func(t *testing.T) {
+// 				t.Parallel()
+// 				timeout := 250 * time.Millisecond
+// 				rs := NewCountingSemaphore(1)
 
-				<-time.After(50 * time.Millisecond)
+// 				ctx, cancel := context.WithCancel(context.Background())
+// 				defer cancel()
 
-				select {
-				case <-doneChan:
-					require.Fail(t, "Somehow acquired semaphore despite not incrementing")
-				case <-time.After(timeout):
-				}
-			},
-		},
-		{
-			desc: "Acquire works when semaphore val is 1",
-			testFunc: func(t *testing.T) {
-				t.Parallel()
-				timeout := 250 * time.Millisecond
-				rs := NewCountingSemaphore(1)
+// 				doneChan := make(chan struct{})
+// 				go func() {
+// 					err := rs.Acquire(ctx)
+// 					assert.NoError(t, err)
+// 					close(doneChan)
+// 				}()
 
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+// 				select {
+// 				case <-doneChan:
+// 				case <-time.After(timeout):
+// 					require.Fail(t, "timed out acquiring semaphore")
+// 				}
+// 			},
+// 		},
+// 		{
+// 			desc: "Acquire returns when blocked and context cancelled",
+// 			testFunc: func(t *testing.T) {
+// 				t.Parallel()
+// 				timeout := 250 * time.Millisecond
+// 				rs := NewCountingSemaphore(0)
 
-				doneChan := make(chan struct{})
-				go func() {
-					err := rs.Acquire(ctx)
-					assert.NoError(t, err)
-					close(doneChan)
-				}()
+// 				ctx, cancel := context.WithCancel(context.Background())
 
-				select {
-				case <-doneChan:
-				case <-time.After(timeout):
-					require.Fail(t, "timed out acquiring semaphore")
-				}
-			},
-		},
-		{
-			desc: "Acquire returns when blocked and context cancelled",
-			testFunc: func(t *testing.T) {
-				t.Parallel()
-				timeout := 250 * time.Millisecond
-				rs := NewCountingSemaphore(0)
+// 				doneChan := make(chan struct{})
+// 				go func() {
+// 					err := rs.Acquire(ctx)
+// 					assert.ErrorIs(t, err, context.Canceled)
+// 					close(doneChan)
+// 				}()
 
-				ctx, cancel := context.WithCancel(context.Background())
+// 				<-time.After(50 * time.Millisecond)
 
-				doneChan := make(chan struct{})
-				go func() {
-					err := rs.Acquire(ctx)
-					assert.ErrorIs(t, err, context.Canceled)
-					close(doneChan)
-				}()
+// 				cancel()
 
-				<-time.After(50 * time.Millisecond)
+// 				select {
+// 				case <-doneChan:
+// 				case <-time.After(timeout):
+// 					require.Fail(t, "timed out acquiring semaphore")
+// 				}
+// 			},
+// 		},
+// 	}
 
-				cancel()
-
-				select {
-				case <-doneChan:
-				case <-time.After(timeout):
-					require.Fail(t, "timed out acquiring semaphore")
-				}
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.desc, tc.testFunc)
-	}
-}
+// 	for _, tc := range testCases {
+// 		t.Run(tc.desc, tc.testFunc)
+// 	}
+// }
