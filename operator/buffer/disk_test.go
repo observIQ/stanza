@@ -715,6 +715,7 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 
 		b.Cleanup(func() {
 			buffer.Close()
+			os.RemoveAll(path)
 		})
 
 		var wg sync.WaitGroup
@@ -764,6 +765,7 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 
 		b.Cleanup(func() {
 			buffer.Close()
+			os.RemoveAll(path)
 		})
 
 		var wg sync.WaitGroup

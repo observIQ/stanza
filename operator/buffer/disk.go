@@ -112,7 +112,7 @@ type DiskBuffer struct {
 
 // entryBufInitialSize is the initial size of the internal buffer that an entry
 // is written to
-const entryBufInitialSize = 1 << 10
+const entryBufInitialSize = 0
 
 // Add adds an entry onto the buffer.
 // Will block if the buffer is full
@@ -166,24 +166,27 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	d.closedMux.RLock()
 	defer d.closedMux.RUnlock()
 
-	entries := make([]*entry.Entry, 0, d.maxChunkSize)
-
 	if d.closed {
 		return nil, ErrBufferClosed
 	}
 
 	n := d.readerSem.AcquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
 
+	if n == 0 {
+		return nil, nil
+	}
+
+	entries := make([]*entry.Entry, 0, n)
+
 	d.cfMux.Lock()
 	defer d.cfMux.Unlock()
 
 	dec := json.NewDecoder(d.cf)
-	var entry entry.Entry
 
 	for i := int64(0); i < n; i++ {
+		var entry entry.Entry
 		err := dec.Decode(&entry)
 		if err != nil {
-			d.cfMux.Unlock()
 			return entries, err
 		}
 

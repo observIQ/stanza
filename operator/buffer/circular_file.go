@@ -28,7 +28,7 @@ func OpenCircularFile(filePath string, sync bool, size int64) (*CircularFile, er
 		fileFlags |= os.O_SYNC
 	}
 
-	f, err := os.OpenFile(filePath, fileFlags, 0660)
+	f, err := os.OpenFile(filePath, fileFlags, 0600)
 	if err != nil {
 		return nil, err
 	}

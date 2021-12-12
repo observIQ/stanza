@@ -31,6 +31,8 @@ type DiskBufferMetadata struct {
 	f FileLike
 	// closed indicates whether the DiskBufferMetadata is closed
 	closed bool
+	// buf is the buffer used to write
+	buf *bytes.Buffer
 }
 
 func OpenDiskBufferMetadata(filePath string, sync bool) (*DiskBufferMetadata, error) {
@@ -39,16 +41,18 @@ func OpenDiskBufferMetadata(filePath string, sync bool) (*DiskBufferMetadata, er
 		fileFlags |= os.O_SYNC
 	}
 
-	f, err := os.OpenFile(filePath, fileFlags, 0660)
+	f, err := os.OpenFile(filePath, fileFlags, 0600)
 	if err != nil {
 		return nil, err
 	}
 
+	bufBytes := make([]byte, 0, metadataBufferSize)
 	dbm := &DiskBufferMetadata{
 		Version:     0,
 		StartOffset: 0,
 		EndOffset:   0,
 		f:           f,
+		buf:         bytes.NewBuffer(bufBytes),
 	}
 
 	fi, err := f.Stat()
@@ -84,21 +88,18 @@ func (d *DiskBufferMetadata) Sync() error {
 		return err
 	}
 
-	bufBytes := make([]byte, 0, metadataBufferSize)
-
-	buf := bytes.NewBuffer(bufBytes)
-	enc := json.NewEncoder(buf)
+	d.buf.Reset()
+	enc := json.NewEncoder(d.buf)
 	err = enc.Encode(d)
 	if err != nil {
 		return err
 	}
 
-	_, err = d.f.Write(buf.Bytes())
+	_, err = d.f.Write(d.buf.Bytes())
 	if err != nil {
 		return err
 	}
-
-	return d.f.Truncate(int64(buf.Len()))
+	return nil
 }
 
 func (d *DiskBufferMetadata) ReadFromDisk() error {
