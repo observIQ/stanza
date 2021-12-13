@@ -15,10 +15,9 @@ import (
 )
 
 func TestUserAgentVar(t *testing.T) {
-	// cfg := NewGoogleCloudOutputConfig("test")
 	require.Equal(t, getUserAgent(), "StanzaLogAgent/"+version.GetVersion())
-	userAgent = "StanzaLogAgent/UserAgent"
-	require.Equal(t, getUserAgent(), "StanzaLogAgent/UserAgent/"+version.GetVersion())
+	userAgent = "TestAgent"
+	require.Equal(t, getUserAgent(), "TestAgent/"+version.GetVersion())
 }
 
 func TestInitHook(t *testing.T) {
