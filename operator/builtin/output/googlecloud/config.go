@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
+var userAgent = "unknown"
+
 const (
 	operatorType          = "google_cloud_output"
 	loggingScope          = "https://www.googleapis.com/auth/logging.write"
@@ -164,7 +166,8 @@ func (c GoogleCloudOutputConfig) getCredentials() (*google.Credentials, error) {
 func (c GoogleCloudOutputConfig) createClientOptions(credentials *google.Credentials, useCompression bool) []option.ClientOption {
 	options := make([]option.ClientOption, 0, 2)
 	options = append(options, option.WithCredentials(credentials))
-	options = append(options, option.WithUserAgent("StanzaLogAgent/"+version.GetVersion()))
+	options = append(options, option.WithUserAgent("StanzaLogAgent/"+userAgent+version.GetVersion()))
+	fmt.Println(options)
 	if useCompression {
 		compressOption := option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 		options = append(options, compressOption)
