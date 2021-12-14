@@ -30,8 +30,6 @@ const (
 	defaultMaxRequestSize = 10000000
 )
 
-var userAgent = "StanzaLogAgent"
-
 func init() {
 	operator.Register(operatorType, func() operator.Builder { return NewGoogleCloudOutputConfig("") })
 }
