@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
+var userAgent = "StanzaLogAgent"
+
 const (
 	operatorType          = "google_cloud_output"
 	loggingScope          = "https://www.googleapis.com/auth/logging.write"
