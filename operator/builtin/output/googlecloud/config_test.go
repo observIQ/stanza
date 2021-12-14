@@ -10,8 +10,15 @@ import (
 	"github.com/observiq/stanza/operator/buffer"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/version"
 	"github.com/stretchr/testify/require"
 )
+
+func TestUserAgentVar(t *testing.T) {
+	require.Equal(t, getUserAgent(), "StanzaLogAgent/"+version.GetVersion())
+	userAgent = "TestAgent"
+	require.Equal(t, getUserAgent(), "TestAgent/"+version.GetVersion())
+}
 
 func TestInitHook(t *testing.T) {
 	builderFunc, ok := operator.DefaultRegistry.Lookup(operatorType)
