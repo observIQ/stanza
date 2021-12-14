@@ -24,8 +24,8 @@ const (
 	loggingScope          = "https://www.googleapis.com/auth/logging.write"
 	defaultTimeout        = 30 * time.Second
 	defaultUseCompression = true
-	defaultMaxEntrySize   = 200000
-	defaultMaxRequestSize = 5000000
+	defaultMaxEntrySize   = 256000
+	defaultMaxRequestSize = 10000000
 )
 
 func init() {
