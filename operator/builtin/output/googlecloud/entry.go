@@ -10,7 +10,6 @@ import (
 	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -168,7 +167,7 @@ func (g *GoogleEntryBuilder) setPayload(entry *entry.Entry, logEntry *logging.Lo
 		logEntry.Payload = &logging.LogEntry_TextPayload{TextPayload: string(value)}
 		return nil
 	case map[string]interface{}:
-		structValue, err := structpb.NewValue(value)
+		structValue, err := toProto(value)
 		if err != nil {
 			return fmt.Errorf("failed to convert record of type map[string]interface: %w", err)
 		}
