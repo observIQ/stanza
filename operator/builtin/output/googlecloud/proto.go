@@ -58,6 +58,20 @@ func toProto(v interface{}) (*structpb.Value, error) {
 		return structpb.NewStructValue(&structpb.Struct{
 			Fields: fields,
 		}), nil
+	case map[string]map[string]string:
+		fields := map[string]*structpb.Value{}
+		for key, value := range v {
+			proto, err := toProto(value)
+			if err != nil {
+				return nil, err
+			}
+
+			fields[key] = proto
+		}
+
+		return structpb.NewStructValue(&structpb.Struct{
+			Fields: fields,
+		}), nil
 	case []interface{}:
 		v2, err := toProtoList(v)
 		if err != nil {
