@@ -64,6 +64,23 @@ func TestToProto(t *testing.T) {
 			}),
 		},
 		{
+			name: "map[string]map[string]string",
+			value: map[string]map[string]string{
+				"test": {
+					"key": "value",
+				},
+			},
+			expectedValue: structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"test": structpb.NewStructValue(&structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"key": structpb.NewStringValue("value"),
+						},
+					}),
+				},
+			}),
+		},
+		{
 			name:  "interface list",
 			value: []interface{}{"value", 1},
 			expectedValue: structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
