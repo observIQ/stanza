@@ -40,10 +40,7 @@ func toProto(v interface{}) (*structpb.Value, error) {
 	case float64:
 		return structpb.NewNumberValue(v), nil
 	case string:
-		if !utf8.ValidString(v) {
-			return nil, fmt.Errorf("invalid UTF-8 in string: %q", v)
-		}
-		return structpb.NewStringValue(v), nil
+		return toProtoString(v)
 	case []byte:
 		s := base64.StdEncoding.EncodeToString(v)
 		return structpb.NewStringValue(s), nil
@@ -54,17 +51,28 @@ func toProto(v interface{}) (*structpb.Value, error) {
 		}
 		return structpb.NewStructValue(v2), nil
 	case map[string]string:
-		interfaceMap := map[string]interface{}{}
+		fields := map[string]*structpb.Value{}
 		for key, value := range v {
-			interfaceMap[key] = value
+			fields[key] = structpb.NewStringValue(value)
 		}
-		return toProto(interfaceMap)
+		return structpb.NewStructValue(&structpb.Struct{
+			Fields: fields,
+		}), nil
 	case []interface{}:
 		v2, err := toProtoList(v)
 		if err != nil {
 			return nil, err
 		}
 		return structpb.NewListValue(v2), nil
+	case []string:
+		values := []*structpb.Value{}
+		for _, str := range v {
+			values = append(values, structpb.NewStringValue(str))
+		}
+
+		return structpb.NewListValue(&structpb.ListValue{
+			Values: values,
+		}), nil
 	default:
 		return nil, fmt.Errorf("invalid type: %T", v)
 	}
@@ -97,4 +105,12 @@ func toProtoList(v []interface{}) (*structpb.ListValue, error) {
 		}
 	}
 	return x, nil
+}
+
+// toProtoString converts a string to a proto string
+func toProtoString(v string) (*structpb.Value, error) {
+	if !utf8.ValidString(v) {
+		return nil, fmt.Errorf("invalid UTF-8 in string: %q", v)
+	}
+	return structpb.NewStringValue(v), nil
 }
