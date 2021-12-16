@@ -8,8 +8,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// toProto converts a value to a protobuf equivalent
-func toProto(v interface{}) (*structpb.Value, error) {
+// convertToProto converts a value to a protobuf equivalent
+func convertToProto(v interface{}) (*structpb.Value, error) {
 	switch v := v.(type) {
 	case nil:
 		return structpb.NewNullValue(), nil
@@ -40,91 +40,131 @@ func toProto(v interface{}) (*structpb.Value, error) {
 	case float64:
 		return structpb.NewNumberValue(v), nil
 	case string:
-		return toProtoString(v)
+		return convertStringToProto(v)
 	case []byte:
-		s := base64.StdEncoding.EncodeToString(v)
-		return structpb.NewStringValue(s), nil
+		return convertBytesToProto(v), nil
 	case map[string]interface{}:
-		v2, err := toProtoStruct(v)
-		if err != nil {
-			return nil, err
-		}
-		return structpb.NewStructValue(v2), nil
+		return convertMapToProto(v)
 	case map[string]string:
-		fields := map[string]*structpb.Value{}
-		for key, value := range v {
-			fields[key] = structpb.NewStringValue(value)
-		}
-		return structpb.NewStructValue(&structpb.Struct{
-			Fields: fields,
-		}), nil
+		return convertStringMapToProto(v)
 	case map[string]map[string]string:
-		fields := map[string]*structpb.Value{}
-		for key, value := range v {
-			proto, err := toProto(value)
-			if err != nil {
-				return nil, err
-			}
-
-			fields[key] = proto
-		}
-
-		return structpb.NewStructValue(&structpb.Struct{
-			Fields: fields,
-		}), nil
+		return convertEmbeddedMapToProto(v)
 	case []interface{}:
-		v2, err := toProtoList(v)
-		if err != nil {
-			return nil, err
-		}
-		return structpb.NewListValue(v2), nil
+		return convertListToProto(v)
 	case []string:
-		values := []*structpb.Value{}
-		for _, str := range v {
-			values = append(values, structpb.NewStringValue(str))
-		}
-
-		return structpb.NewListValue(&structpb.ListValue{
-			Values: values,
-		}), nil
+		return convertStringListToProto(v)
 	default:
-		return nil, fmt.Errorf("invalid type: %T", v)
+		return nil, fmt.Errorf("invalid type for proto conversion: %T", v)
 	}
 }
 
-// toProtoStruct converts a map to a protobuf equivalent
-func toProtoStruct(v map[string]interface{}) (*structpb.Struct, error) {
-	x := &structpb.Struct{Fields: make(map[string]*structpb.Value, len(v))}
-	for k, v := range v {
-		if !utf8.ValidString(k) {
-			return nil, fmt.Errorf("invalid UTF-8 in string: %q", k)
+// convertStringToProto converts a string to a proto string
+func convertStringToProto(value string) (*structpb.Value, error) {
+	if !utf8.ValidString(value) {
+		return nil, fmt.Errorf("invalid UTF-8 in string: %q", value)
+	}
+	return structpb.NewStringValue(value), nil
+}
+
+// convertBytesToProto converts a byte array to a protobuf equivalent
+func convertBytesToProto(bytes []byte) *structpb.Value {
+	s := base64.StdEncoding.EncodeToString(bytes)
+	return structpb.NewStringValue(s)
+}
+
+// convertMapToProto converts a map to a protobuf equivalent
+func convertMapToProto(mapValue map[string]interface{}) (*structpb.Value, error) {
+	fields := make(map[string]*structpb.Value, len(mapValue))
+
+	for key, value := range mapValue {
+		if !utf8.ValidString(key) {
+			return nil, fmt.Errorf("invalid UTF-8 in key: %q", key)
 		}
-		var err error
-		x.Fields[k], err = toProto(v)
+
+		protoValue, err := convertToProto(value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to convert value for key %s to proto: %w", key, err)
 		}
+
+		fields[key] = protoValue
 	}
-	return x, nil
+
+	protoStruct := &structpb.Struct{Fields: fields}
+	return structpb.NewStructValue(protoStruct), nil
 }
 
-// toProtoList converts a slice of interface a protobuf equivalent
-func toProtoList(v []interface{}) (*structpb.ListValue, error) {
-	x := &structpb.ListValue{Values: make([]*structpb.Value, len(v))}
-	for i, v := range v {
-		var err error
-		x.Values[i], err = toProto(v)
+// convertStringMapToProto converts a string map to a protobuf equivalent
+func convertStringMapToProto(mapValue map[string]string) (*structpb.Value, error) {
+	fields := make(map[string]*structpb.Value, len(mapValue))
+
+	for key, value := range mapValue {
+		if !utf8.ValidString(key) {
+			return nil, fmt.Errorf("invalid UTF-8 in key: %q", key)
+		}
+
+		protoValue, err := convertStringToProto(value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to convert value for key %s to proto: %w", key, err)
 		}
+
+		fields[key] = protoValue
 	}
-	return x, nil
+
+	protoStruct := &structpb.Struct{Fields: fields}
+	return structpb.NewStructValue(protoStruct), nil
 }
 
-// toProtoString converts a string to a proto string
-func toProtoString(v string) (*structpb.Value, error) {
-	if !utf8.ValidString(v) {
-		return nil, fmt.Errorf("invalid UTF-8 in string: %q", v)
+// convertEmbeddedMapToProto converts an embedded string map to a protobuf equivalent
+func convertEmbeddedMapToProto(mapValue map[string]map[string]string) (*structpb.Value, error) {
+	fields := make(map[string]*structpb.Value, len(mapValue))
+
+	for key, value := range mapValue {
+		if !utf8.ValidString(key) {
+			return nil, fmt.Errorf("invalid UTF-8 in key: %q", key)
+		}
+
+		protoValue, err := convertToProto(value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert embedded value for key %s to proto: %w", key, err)
+		}
+
+		fields[key] = protoValue
 	}
-	return structpb.NewStringValue(v), nil
+
+	protoStruct := &structpb.Struct{Fields: fields}
+	return structpb.NewStructValue(protoStruct), nil
+}
+
+// convertListToProto converts a generic list to a protobuf equivalent
+func convertListToProto(list []interface{}) (*structpb.Value, error) {
+	values := make([]*structpb.Value, len(list))
+
+	for i, value := range list {
+		protoValue, err := convertToProto(value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert index %d of list to proto: %w", i, err)
+		}
+
+		values[i] = protoValue
+	}
+
+	protoList := &structpb.ListValue{Values: values}
+	return structpb.NewListValue(protoList), nil
+}
+
+// convertStringListToProto converts a string list to a protobuf equivalent
+func convertStringListToProto(list []string) (*structpb.Value, error) {
+	values := make([]*structpb.Value, len(list))
+
+	for i, value := range list {
+		protoValue, err := convertStringToProto(value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert index %d to proto: %w", i, err)
+		}
+
+		values[i] = protoValue
+	}
+
+	protoList := &structpb.ListValue{Values: values}
+	return structpb.NewListValue(protoList), nil
 }

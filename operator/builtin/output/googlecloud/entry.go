@@ -167,7 +167,7 @@ func (g *GoogleEntryBuilder) setPayload(entry *entry.Entry, logEntry *logging.Lo
 		logEntry.Payload = &logging.LogEntry_TextPayload{TextPayload: string(value)}
 		return nil
 	case map[string]interface{}:
-		structValue, err := toProto(value)
+		structValue, err := convertToProto(value)
 		if err != nil {
 			return fmt.Errorf("failed to convert record of type map[string]interface: %w", err)
 		}
