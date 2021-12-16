@@ -27,7 +27,7 @@ Outputs:
 - [Google Cloud Logging](/docs/operators/google_cloud_output.md)
 - [Elasticsearch](/docs/operators/elastic_output.md)
 - [Stdout](/docs/operators/stdout.md)
-- [File](docs/operators/file_output.md)
+- [File](/docs/operators/file_output.md)
 
 General purpose:
 - [Rate Limit](/docs/operators/rate_limit.md)
