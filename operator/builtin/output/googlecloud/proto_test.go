@@ -7,6 +7,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+const invalidUTF8 = "\xa0\xa1"
+
 func TestToProto(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -15,12 +17,12 @@ func TestToProto(t *testing.T) {
 		expectedErr   string
 	}{
 		{
-			name:          "nil",
+			name:          "nil value",
 			value:         nil,
 			expectedValue: structpb.NewNullValue(),
 		},
 		{
-			name: "numbers",
+			name: "valid numbers",
 			value: map[string]interface{}{
 				"int":     int(1),
 				"int8":    int8(1),
@@ -53,7 +55,32 @@ func TestToProto(t *testing.T) {
 			}),
 		},
 		{
-			name: "map[string]string",
+			name: "valid map[string]interface{}",
+			value: map[string]interface{}{
+				"test": "value",
+			},
+			expectedValue: structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"test": structpb.NewStringValue("value"),
+				},
+			}),
+		},
+		{
+			name: "map[string]interface with invalid key",
+			value: map[string]interface{}{
+				invalidUTF8: "value",
+			},
+			expectedErr: "invalid UTF-8 in key",
+		},
+		{
+			name: "map[string]interface with invalid value",
+			value: map[string]interface{}{
+				"test_key": make(chan int),
+			},
+			expectedErr: "failed to convert value for key test_key to proto",
+		},
+		{
+			name: "valid map[string]string",
 			value: map[string]string{
 				"test": "value",
 			},
@@ -64,7 +91,21 @@ func TestToProto(t *testing.T) {
 			}),
 		},
 		{
-			name: "map[string]map[string]string",
+			name: "map[string]string with invalid key",
+			value: map[string]string{
+				invalidUTF8: "value",
+			},
+			expectedErr: "invalid UTF-8 in key",
+		},
+		{
+			name: "map[string]string with invalid value",
+			value: map[string]string{
+				"test_key": invalidUTF8,
+			},
+			expectedErr: "failed to convert value for key test_key to proto",
+		},
+		{
+			name: "valid map[string]map[string]string",
 			value: map[string]map[string]string{
 				"test": {
 					"key": "value",
@@ -81,7 +122,25 @@ func TestToProto(t *testing.T) {
 			}),
 		},
 		{
-			name:  "interface list",
+			name: "map[string]map[string]string with invalid key",
+			value: map[string]map[string]string{
+				invalidUTF8: {
+					"key": "value",
+				},
+			},
+			expectedErr: "invalid UTF-8 in key",
+		},
+		{
+			name: "map[string]map[string]string with invalid value",
+			value: map[string]map[string]string{
+				"test_key": {
+					"key": invalidUTF8,
+				},
+			},
+			expectedErr: "failed to convert embedded value for key test_key to proto",
+		},
+		{
+			name:  "valid list",
 			value: []interface{}{"value", 1},
 			expectedValue: structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
 				structpb.NewStringValue("value"),
@@ -89,21 +148,36 @@ func TestToProto(t *testing.T) {
 			}}),
 		},
 		{
-			name:  "string list",
+			name:        "list with invalid value",
+			value:       []interface{}{make(chan int)},
+			expectedErr: "failed to convert index 0 of list to proto",
+		},
+		{
+			name:  "valid string list",
 			value: []string{"value", "test"},
 			expectedValue: structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
 				structpb.NewStringValue("value"),
 				structpb.NewStringValue("test"),
 			}}),
 		},
+		{
+			name:        "string list with invalid utf-8",
+			value:       []string{invalidUTF8},
+			expectedErr: "failed to convert index 0 to proto",
+		},
+		{
+			name:          "valid byte array",
+			value:         []byte("test"),
+			expectedValue: structpb.NewStringValue("dGVzdA=="),
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			proto, err := toProto(tc.value)
+			proto, err := convertToProto(tc.value)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
-				require.Contains(t, err, tc.expectedErr)
+				require.Contains(t, err.Error(), tc.expectedErr)
 				return
 			}
 
