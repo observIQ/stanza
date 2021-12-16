@@ -42,7 +42,7 @@ func convertToProto(v interface{}) (*structpb.Value, error) {
 	case string:
 		return convertStringToProto(v)
 	case []byte:
-		return convertBytesToProto(v)
+		return convertBytesToProto(v), nil
 	case map[string]interface{}:
 		return convertMapToProto(v)
 	case map[string]string:
@@ -67,9 +67,9 @@ func convertStringToProto(value string) (*structpb.Value, error) {
 }
 
 // convertBytesToProto converts a byte array to a protobuf equivalent
-func convertBytesToProto(bytes []byte) (*structpb.Value, error) {
+func convertBytesToProto(bytes []byte) *structpb.Value {
 	s := base64.StdEncoding.EncodeToString(bytes)
-	return structpb.NewStringValue(s), nil
+	return structpb.NewStringValue(s)
 }
 
 // convertMapToProto converts a map to a protobuf equivalent
