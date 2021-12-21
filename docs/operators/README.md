@@ -24,7 +24,7 @@ Inputs:
 - [Windows Event Log](/docs/operators/windows_eventlog_input.md)
 
 Parsers:
-- [CSV](/docs/operators/csv_parser.md)
+- [CSV](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/csv_parser.md)
 - [JSON](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/json_parser.md)
 - [Key Value](/docs/operators/key_value_parser.md)
 - [Regex](https://github.com/open-telemetry/opentelemetry-log-collection/blob/main/docs/operators/regex_parser.md)
