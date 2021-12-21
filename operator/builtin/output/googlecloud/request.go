@@ -53,13 +53,26 @@ func (g *GoogleRequestBuilder) buildRequests(entries []*logging.LogEntry) []*log
 	}
 
 	totalEntries := len(request.Entries)
-	midPoint := totalEntries / 2
-	leftEntries := request.Entries[0:midPoint]
-	rightEntries := request.Entries[midPoint:totalEntries]
+	firstRequest := g.buildRequest([]*logging.LogEntry{})
+	firstSize := 0
+	index := 0
 
-	leftRequests := g.buildRequests(leftEntries)
-	rightRequests := g.buildRequests(rightEntries)
-	return append(leftRequests, rightRequests...)
+	for i, entry := range request.Entries {
+
+		firstRequest.Entries = append(firstRequest.Entries, entry)
+		firstSize = proto.Size(firstRequest)
+
+		if firstSize > g.MaxRequestSize {
+			index = i
+			firstRequest.Entries = firstRequest.Entries[0:index]
+			break
+		}
+	}
+
+	secondEntries := request.Entries[index:totalEntries]
+	secondRequests := g.buildRequests(secondEntries)
+
+	return append([]*logging.WriteLogEntriesRequest{firstRequest}, secondRequests...)
 }
 
 // buildRequest builds a request from the supplied entries

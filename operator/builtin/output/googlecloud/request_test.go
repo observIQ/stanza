@@ -2,6 +2,7 @@ package googlecloud
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/observiq/stanza/entry"
@@ -10,6 +11,27 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/logging/v2"
 )
+
+func BenchmarkBuildRequest(b *testing.B) {
+	entryBuilder := &MockEntryBuilder{}
+	entries := []*entry.Entry{}
+
+	for i := 0; i < 1000; i++ {
+		entry, result := createEntry(i)
+		entryBuilder.On("Build", entry).Return(result, nil)
+		entries = append(entries, entry)
+	}
+
+	requestBuilder := GoogleRequestBuilder{
+		MaxRequestSize: 10000,
+		ProjectID:      "test_project",
+		EntryBuilder:   entryBuilder,
+		SugaredLogger:  zap.NewNop().Sugar(),
+	}
+
+	requests := requestBuilder.Build(entries)
+	require.Len(b, requests, 2)
+}
 
 func TestBuildRequest(t *testing.T) {
 	entryOne := &entry.Entry{Record: "request 1"}
@@ -89,4 +111,10 @@ func (_m *MockEntryBuilder) Build(_a0 *entry.Entry) (*logging.LogEntry, error) {
 	}
 
 	return r0, r1
+}
+
+func createEntry(num int) (*entry.Entry, *logging.LogEntry) {
+	entry := &entry.Entry{Record: fmt.Sprintf("request %d", num)}
+	result := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: fmt.Sprintf("request %d", num)}}
+	return entry, result
 }
