@@ -152,6 +152,10 @@ Usage:
       If not provided, this will default to Stanza\'s GitHub releases.
       Example: '-l http://my.domain.org/stanza' will download from there.
 
+  $(fg_yellow '-x, --proxy')
+      Defines the proxy server to be used for communication by the install script.
+      Example: $(fg_blue -x) $(fg_magenta http\(s\)://server-ip:port/).
+
 EOF
   )
   info "$USAGE"
@@ -228,6 +232,7 @@ setup_installation()
     set_download_urls
     set_install_dir
     set_agent_home
+    set_proxy
 
     # Service variables
     set_service_user
@@ -451,8 +456,20 @@ install_package()
   stop_service
   succeeded
 
+  proxy_args=""
+  if [ -n "$proxy" ]; then
+    proxy_args="-x $proxy"
+    if [ -n "$proxy_user" ]; then
+      proxy_args="$proxy_args -U $proxy_user:$proxy_password"
+    fi
+  fi
+
+  if [ -n "$proxy" ]; then
+    info "Downloading package using proxy..."
+  fi 
+
   info "Downloading binary..."
-  curl -L "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+  curl -L "${proxy_args}" "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
   succeeded
 
   info "Setting permissions..."
@@ -533,6 +550,40 @@ pipeline:
   #     - http://my_node_address:9200
   #   api_key: my_api_key
 EOF
+}
+
+set_proxy()
+{
+      if [ -n "$proxy" ]; then
+    info "Using proxy from arguments: $proxy"
+      if [ -n "$proxy_user" ]; then
+        while [ -z "$proxy_password" ] && [ ! "$accept_defaults" = "yes" ]; do
+          increase_indent
+          command printf "${indent}$(fg_blue "$proxy_user@$proxy")'s password: "
+          stty -echo
+          read -r proxy_password
+          stty echo
+          info
+          if [ -z "$proxy_password" ]; then
+            warn "The password must be provided!"
+          fi
+          decrease_indent
+        done
+        protocol="$(echo "$proxy" | cut -d'/' -f1)"
+        host="$(echo "$proxy" | cut -d'/' -f3)"
+        full_proxy="$protocol//$proxy_user:$proxy_password@$host"
+      fi
+    elif [ -n "$http_proxy" ]; then
+      info "Using proxy from profile: $http_proxy"
+      proxy="$http_proxy"
+    elif [ -n "$https_proxy" ]; then
+      info "Using proxy from profile: $https_proxy"
+      proxy="$https_proxy"
+    fi
+
+    if [ -z "$full_proxy" ]; then
+      full_proxy="$proxy"
+    fi
 }
 
 # This will install the service by detecting the init system
@@ -1071,6 +1122,12 @@ main()
           service_user=$2 ; shift 2 ;;
         -l|--url)
           url=$2 ; shift 2 ;;
+        -x|--proxy)
+          proxy=$2 ; shift 2 ;;
+        -U|--proxy-user)
+          proxy_user=$2 ; shift 2 ;;
+        -P|--proxy-password)
+          proxy_password=$2 ; shift 2 ;;
         -h|--help)
           usage
           force_exit
