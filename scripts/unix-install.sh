@@ -156,6 +156,13 @@ Usage:
       Defines the proxy server to be used for communication by the install script.
       Example: $(fg_blue -x) $(fg_magenta http\(s\)://server-ip:port/).
 
+  $(fg_yellow '-U, --proxy-user')
+      Defines the proxy user to be used for communication by the install script.
+
+  $(fg_yellow '-P, --proxy-password')
+      Defines the proxy password to be used for communication by the install script.
+
+
 EOF
   )
   info "$USAGE"
