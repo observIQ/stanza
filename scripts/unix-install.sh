@@ -476,7 +476,7 @@ install_package()
   fi 
 
   info "Downloading binary..."
-  curl -L "$proxy_args" "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+  eval curl -L "$proxy_args" "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
   succeeded
 
   info "Setting permissions..."
