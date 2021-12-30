@@ -476,7 +476,7 @@ install_package()
   fi 
 
   info "Downloading binary..."
-  curl -L "${proxy_args}" "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+  curl -L "$proxy_args" "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
   succeeded
 
   info "Setting permissions..."
@@ -561,36 +561,37 @@ EOF
 
 set_proxy()
 {
-      if [ -n "$proxy" ]; then
+  if [ -n "$proxy" ]; then
     info "Using proxy from arguments: $proxy"
-      if [ -n "$proxy_user" ]; then
-        while [ -z "$proxy_password" ] && [ ! "$accept_defaults" = "yes" ]; do
-          increase_indent
-          command printf "${indent}$(fg_blue "$proxy_user@$proxy")'s password: "
-          stty -echo
-          read -r proxy_password
-          stty echo
-          info
-          if [ -z "$proxy_password" ]; then
-            warn "The password must be provided!"
-          fi
-          decrease_indent
-        done
-        protocol="$(echo "$proxy" | cut -d'/' -f1)"
-        host="$(echo "$proxy" | cut -d'/' -f3)"
-        full_proxy="$protocol//$proxy_user:$proxy_password@$host"
-      fi
-    elif [ -n "$http_proxy" ]; then
-      info "Using proxy from profile: $http_proxy"
-      proxy="$http_proxy"
-    elif [ -n "$https_proxy" ]; then
-      info "Using proxy from profile: $https_proxy"
-      proxy="$https_proxy"
+    if [ -n "$proxy_user" ]; then
+      while [ -z "$proxy_password" ] && [ ! "$accept_defaults" = "yes" ]; do
+        increase_indent
+        command printf "${indent}$(fg_blue "$proxy_user@$proxy")'s password: "
+        stty -echo
+        read -r proxy_password
+        stty echo
+        info
+        if [ -z "$proxy_password" ]; then
+          warn "The password must be provided!"
+        fi
+        decrease_indent
+      done
+      protocol="$(echo "$proxy" | cut -d'/' -f1)"
+      host="$(echo "$proxy" | cut -d'/' -f3)"
+      full_proxy="$protocol//$proxy_user:$proxy_password@$host"
     fi
 
-    if [ -z "$full_proxy" ]; then
-      full_proxy="$proxy"
-    fi
+  elif [ -n "$http_proxy" ]; then
+    info "Using proxy from profile: $http_proxy"
+    proxy="$http_proxy"
+  elif [ -n "$https_proxy" ]; then
+    info "Using proxy from profile: $https_proxy"
+    proxy="$https_proxy"
+  fi
+
+  if [ -z "$full_proxy" ]; then
+    full_proxy="$proxy"
+  fi
 }
 
 # This will install the service by detecting the init system
