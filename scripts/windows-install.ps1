@@ -116,6 +116,27 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'If not provided, this will default to the current user.' DarkCyan
     Remove-Indent
 
+    Show-ColorText ''
+    Show-ColorText '-p, -proxy'
+    Add-Indent
+    Show-ColorText 'Defines the proxy server to be used for communication by the install script and used in the configuration for the agent being installed' DarkCyan
+    Show-ColorText 'If not provided, no proxy will be used' DarkCyan
+    Remove-Indent
+
+    Show-ColorText ''
+    Show-ColorText '-pu, -proxy_user'
+    Add-Indent
+    Show-ColorText 'Defines the proxy user to be used for communication by the install script and used in the configuration for the agent being installed.' DarkCyan
+    Show-ColorText 'Requires ' '' '-proxy' Magenta
+    Remove-Indent
+
+    Show-ColorText ''
+    Show-ColorText '-pp, -proxy_password'
+    Add-Indent
+    Show-ColorText 'Defines the proxy password to be used for communication by the install script and used in the configuration for the agent being installed.' DarkCyan
+    Show-ColorText 'Requires ' '' '-proxy' Magenta ' and ' '' '-proxy_user' Magenta
+    Remove-Indent
+
     Remove-Indent
     Remove-Indent
   }
@@ -252,6 +273,149 @@ new-module -name LogAgentInstall -scriptblock {
         }
       }
     }
+  }
+
+    # This will set the proxy of the agent. If not provided as a flag,
+  # it detects if proxy is in environment.
+  function Set-Proxy {
+    Show-Header "Configuring Proxy"
+    Add-Indent
+
+    # Check proxy was provided as argument. If not then see if we can detect one in the environment
+    if($script:proxy){
+      if ($script:proxy -ilike  "http*://*:*@*:*") {
+        $masked_proxy = Get-MaskedProxy $script:proxy
+      } else {
+        $masked_proxy = $script:proxy
+      }
+      Show-ColorText 'Using proxy from arguments: ' '' "$masked_proxy" DarkCyan
+    } else {
+      Get-Proxy
+    }
+
+    # If a proxy is present then check is proxy_user was provided as an argument.
+    # If proxy_user exists then proxy_password is required as an argument. Build a URI with user and pass.
+    if($script:proxy)
+    {
+      # Check if proxy contains username and password then parse.
+      # This will handle username names with email, but it will still fail due to agent download
+      # using System.Net.WebProxy which doesn't seem to handle that case.
+      if ($script:proxy -ilike  "http*://*:*@*:*") {
+        $script:full_proxy = $script:proxy
+        $protocol, $proxy_user_pass_host = $script:proxy -split "://"
+        $p_user, $pass_host, $port = $proxy_user_pass_host -split ":"
+        $p_pass, $p_host = $pass_host -split "@"
+        # Ensure $script:proxy is a full_proxy uri. 
+        # We don't want username and password in URI when we build System.Net.WebProxy for Get-AgentArchive.
+        $script:proxy = "${protocol}://${p_host}:$port"
+        # If proxy_user argument wasn't used then use uri username
+        if (-not ($script:proxy_user)) {
+          $script:proxy_user = $p_user
+        }
+        # If proxy_password argument wasn't used then use uri password
+        if (-not ($script:proxy_password)) {
+          $script:proxy_password = $p_pass
+        }
+      } elseif ($script:proxy -notlike  "http*://*") {
+        $message = "Argument 'proxy' must include protocol (http:// or https://) in URI."
+        Exit-Error $MyInvocation.ScriptLineNumber $message
+      }
+
+      if ([string]::IsNullOrWhiteSpace($script:full_proxy)) {
+        if (-not ([string]::IsNullOrWhiteSpace($script:proxy_user))) {
+          $protocol, $proxy_host = $script:proxy -split "://"
+          $script:full_proxy = "${protocol}://$script:proxy_user`:$script:proxy_password@$proxy_host"
+        } else {
+          $script:full_proxy = $script:proxy
+        }
+      }
+
+      # Get $script:http_proxy from environment variable if it exist
+      if ([string]::IsNullOrWhiteSpace($script:http_proxy)) {
+        Get-HttpProxy
+      }
+      # Get $script:https_proxy from environment variable if it exist
+      if ( [string]::IsNullOrWhiteSpace($script:https_proxy)) {
+        Get-HttpsProxy
+      }
+    } else {
+      Show-ColorText "${indent}No existing proxy configuration detected."
+    }
+    Remove-Indent
+  }
+
+
+# Check if $script:http_proxy has a value if not attempt to fill from existing environment variable
+  function Get-HttpProxy {
+    if ([string]::IsNullOrWhiteSpace($script:http_proxy)) {
+      if ((-not ([string]::IsNullOrWhiteSpace([System.Environment]::GetEnvironmentVariable('HTTP_PROXY','machine')))) -or (-not ([string]::IsNullOrWhiteSpace([System.Environment]::GetEnvironmentVariable('HTTP_PROXY','user'))))) {
+          $script:http_proxy = [System.Environment]::GetEnvironmentVariable('HTTP_PROXY','user')
+        if ([string]::IsNullOrWhiteSpace($script:http_proxy)) {
+          $script:http_proxy = [System.Environment]::GetEnvironmentVariable('HTTP_PROXY','machine')
+        }
+      }
+    }
+  }
+
+  # Check if $script:https_proxy has a value if not attempt to fill from existing environment variable
+  function Get-HttpsProxy {
+    if ([string]::IsNullOrWhiteSpace($script:https_proxy)) {
+      if ((-not ([string]::IsNullOrWhiteSpace([System.Environment]::GetEnvironmentVariable('HTTPS_PROXY','machine')))) -or (-not ([string]::IsNullOrWhiteSpace([System.Environment]::GetEnvironmentVariable('HTTPS_PROXY','user'))))) {
+          $script:https_proxy = [System.Environment]::GetEnvironmentVariable('HTTPS_PROXY','user')
+        if ([string]::IsNullOrWhiteSpace($script:https_proxy)) {
+            $script:https_proxy = [System.Environment]::GetEnvironmentVariable('HTTPS_PROXY','machine')
+        }
+      }
+    }
+  }
+
+  # Check system for an existing proxy configuration.
+  function Get-Proxy {
+    Show-ColorText "Searching for existing proxy configuration..."
+    $proxies = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings').proxyServer
+
+    if ($proxies)
+    {
+        if ($proxies -ilike "*=*")
+        {
+            $proxies -replace "=","://" -split(';') | Select-Object -First 1
+        }
+
+        else
+        {
+            $proxy = "http://" + $proxies
+        }
+    }
+
+    if(!$proxies) {
+      Get-HttpProxy
+      Get-HttpsProxy
+      if ($script:http_proxy) {
+        $proxy = $script:http_proxy
+      }
+      if (($script:https_proxy) -ne ($script:http_proxy)) {
+        $proxy = $script:https_proxy
+      }
+    }
+
+    if($proxy -ne $script:proxy)
+    {
+      $script:proxy = $proxy
+      if ($script:proxy -ilike  "http*://*:*@*:*") {
+        $masked_proxy = Get-MaskedProxy $script:proxy
+      } else {
+        $masked_proxy = $script:proxy
+      }
+      Show-ColorText 'Using detected proxy: ' '' "${masked_proxy}" DarkCyan
+    }
+  }
+
+  # Removes masks username and password out of full proxy string
+  function Get-MaskedProxy($proxy_to_mask) {
+    $protocol, $proxy_user_pass_host = $proxy_to_mask -split "://"
+    $p_user, $pass_host, $port = $proxy_user_pass_host -split ":"
+    $p_pass, $p_host = $pass_host -split "@"
+    "${protocol}://<masked_user>:<masked_pass>@${p_host}:${port}"
   }
 
   # This will set the install path of the agent. If not provided as a flag,
@@ -409,10 +573,30 @@ new-module -name LogAgentInstall -scriptblock {
   function Get-StanzaBinary {
     Show-Header "Downloading Stanza Binary"
     Add-Indent
-    Show-ColorText 'Downloading binary. Please wait...'
+    if ($script:proxy) {
+      Show-ColorText "Downloading binary using proxy. Please wait..."
+    } else {
+      Show-ColorText 'Downloading binary. Please wait...'
+    }
+
     Show-ColorText "$INDENT_WIDTH$script:agent_download_url" DarkCyan ' -> ' '' "$script:binary_location" DarkCyan
     try {
       $WebClient = New-Object System.Net.WebClient
+      if ($script:proxy) {
+        $WebProxy = New-Object System.Net.WebProxy($script:proxy)
+      
+        if ($script:proxy_user) {
+          if(-not ($script:proxy_password)) {
+            $message = "Argument 'p' or 'proxy_password' is required when 'proxy_user' argument is specified"
+            throw [System.ArgumentException]$message
+          }
+          $Credentials = New-Object System.Net.NetworkCredential($script:proxy_user, $script:proxy_password)
+          $Credentials = $Credentials.GetCredential($script:proxy, "Basic");
+          $WebProxy.Credentials = $Credentials
+        }
+
+        $WebClient.Proxy = $WebProxy
+      }
       $WebClient.DownloadFile($script:agent_download_url, $script:binary_location)
       Complete
     }
@@ -578,6 +762,7 @@ pipeline:
     Show-Header "Creating Service"
     Add-Indent
     Install-AgentService
+    Set-ServiceProxyEnv
     Start-AgentService
     Complete
     Remove-Indent
@@ -607,6 +792,29 @@ pipeline:
     $script:shutdown_cmd = "net stop `"$SERVICE_NAME`""
     $script:autostart = "Yes"
   }
+
+
+  # This will set service specific environment variables.
+  function Set-ServiceProxyEnv {
+    if (([string]::IsNullOrWhiteSpace($script:full_proxy)) -or ([string]::IsNullOrWhiteSpace($SERVICE_NAME))) {
+      return
+    }
+    else {
+    $script:registry_path = "HKLM:\SYSTEM\CurrentControlSet\Services\$SERVICE_NAME"
+      try {
+        if (Test-Path $script:registry_path) {
+          New-ItemProperty -Path "$script:registry_path" -Name 'Environment' -PropertyType 'MultiString' -Force | Out-Null
+          $item_prop_env = (Get-ItemProperty -Path "$script:registry_path").Environment
+          $item_prop_env += "HTTP_PROXY=$script:full_proxy"
+          $item_prop_env += "HTTPS_PROXY=$script:full_proxy"
+          Set-ItemProperty -Path "$script:registry_path" -Name 'Environment' -Value $item_prop_env -Type 'Multistring'
+        }
+      }
+      catch {
+        Exit-Error $MyInvocation.ScriptLineNumber "Failed to set Environment property for the $SERVICE_NAME service."
+      }
+    }
+  }  
 
   # This will start the agent service.
   function Start-AgentService {
