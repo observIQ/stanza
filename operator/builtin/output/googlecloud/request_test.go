@@ -13,12 +13,14 @@ import (
 )
 
 func BenchmarkBuildRequest(b *testing.B) {
-	entryBuilder := &MockEntryBuilder{}
+	entryBuilder := &GoogleEntryBuilder{
+		MaxEntrySize: defaultMaxEntrySize,
+		ProjectID:    "project",
+	}
 	entries := []*entry.Entry{}
 
 	for i := 0; i < 1000; i++ {
-		entry, result := createEntry(i)
-		entryBuilder.On("Build", entry).Return(result, nil)
+		entry, _ := createEntry(i)
 		entries = append(entries, entry)
 	}
 
@@ -30,7 +32,7 @@ func BenchmarkBuildRequest(b *testing.B) {
 	}
 
 	requests := requestBuilder.Build(entries)
-	require.Len(b, requests, 2)
+	require.Len(b, requests, 3)
 }
 
 func TestBuildRequest(t *testing.T) {
