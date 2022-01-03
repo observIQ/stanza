@@ -64,7 +64,7 @@ func (g *GoogleRequestBuilder) buildRequests(entries []*logging.LogEntry) []*log
 
 		if firstSize > g.MaxRequestSize {
 			index = i
-			firstRequest.Entries = firstRequest.Entries[0:index]
+			firstRequest.Entries = firstRequest.Entries[:index]
 			break
 		}
 	}
