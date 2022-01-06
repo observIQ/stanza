@@ -1,6 +1,13 @@
 
 # Quick Start Guide
 
+### Contents
+
+1. [Installation](https://github.com/observIQ/stanza/blob/master/docs/README.md#installation)
+2. [Running Stanza](https://github.com/observIQ/stanza/blob/master/docs/README.md#running-stanza)
+3. [Configuration](https://github.com/observIQ/stanza/blob/master/docs/README.md#configuration)
+4. [Next Steps](https://github.com/observIQ/stanza/blob/master/docs/README.md#next-steps)
+
 ## Installation
 
 We recommend using our single-line installer provided with each release:
