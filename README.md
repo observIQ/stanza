@@ -1,6 +1,6 @@
-<center>
+<p align="center"><img src="https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true"></p>
 
-# ![logo](https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true)
+<center>
 
 | Status       |              |
 | ------------ | ------------ |
