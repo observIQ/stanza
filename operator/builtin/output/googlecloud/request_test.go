@@ -43,7 +43,7 @@ func TestBuildRequest(t *testing.T) {
 
 	resultOne := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 1"}}
 	resultTwo := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 2"}}
-	resultFour := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 3"}}
+	resultFour := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 4"}}
 
 	entryBuilder := &MockEntryBuilder{}
 	entryBuilder.On("Build", entryOne).Return(resultOne, nil)
@@ -62,10 +62,10 @@ func TestBuildRequest(t *testing.T) {
 	requests := requestBuilder.Build(entries)
 	require.Len(t, requests, 2)
 
-	require.Len(t, requests[0].Entries, 1)
-	require.Len(t, requests[1].Entries, 2)
-	require.Equal(t, requests[0].Entries, []*logging.LogEntry{resultOne})
-	require.Equal(t, requests[1].Entries, []*logging.LogEntry{resultTwo, resultFour})
+	require.Len(t, requests[0].Entries, 2)
+	require.Len(t, requests[1].Entries, 1)
+	require.Equal(t, requests[0].Entries, []*logging.LogEntry{resultOne, resultTwo})
+	require.Equal(t, requests[1].Entries, []*logging.LogEntry{resultFour})
 }
 
 func TestImpossibleEntry(t *testing.T) {
