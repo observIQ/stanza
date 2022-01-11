@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/observIQ/stanza/blob/master/docs/images/logo_small.png?raw=true"></p>
+<p align="center"><img src="docs/images/logo_small.png?raw=true"></p>
 
 <center>
 
