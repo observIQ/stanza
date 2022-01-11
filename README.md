@@ -12,11 +12,7 @@
 
 # About Stanza
 
-Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash. Stanza can run as a standalone agent on all major operating systems, or it can be embedded directly into any Golang application.
-
-## Roadmap
-
-Stanza uses GitHub [projects](https://github.com/observIQ/stanza/projects) to organize future work. There's a lot to do, and more use cases are identified almost daily. We'll keep it organized and moving forward the best we can, but we're always looking for great ideas and contributions of all sizes.
+Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash. Stanza can run as a standalone agent on all major operating systems, or it can be embedded directly into any Golang application. Stanza is also highly integrated to perform seamlessly with the applications in Google Cloud Platform (GCP) based production environments.
 
 ## OpenTelemetry
 
@@ -25,14 +21,20 @@ Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) pr
 # Features
 
 - Flexible
-    - Stanza can support many different input types such as file, journald, windows events, tcp / udp, and external APIs (cloudwatch, azure log analytics) as well as parsing with json and regex.
-    - Stanza can be easily extended by writing an "operator" or "plugin" which is just a unit of code that performs a task such as reading data from a source, parsing data, or shipping data.
+    - Supports many different input types such as file, journald, windows events, tcp / udp, and external APIs (cloudwatch, azure log analytics) as well as parsing with json and regex.
+    - Easily extended by writing an "operator" or "plugin" which is just a unit of code that performs a task such as reading data from a source, parsing data, or shipping data.
 - Lightweight with low resource consumption
-    - Stanza uses next to no resource while idling. It does not pollute the system with tons of clutter, it exists strictly in /opt/observiq/stanza with just a few files.
-- Written in pure Go
+    - Uses next to no resource while idling. It does not pollute the system with tons of clutter, it exists strictly in /opt/observiq/stanza with just a few files.
+- Written in Go
     - Everything is self contained into a single binary / file. There are no external dependency libraries that need to exist on the system, unlike dynamically linked applications (C, C++, C#, Java, Python, Ruby, NodeJS)
 - High Performance
     - Stanza is proven to be significantly faster than fluentd and more stable at high throughput than fluentbit.
+
+## Supported Plugins
+
+Utilize Plugins to get up and running quickly. These are some of the different plugins supported by Stanza, with more being developed all the time.
+
+<p align="center"><img src="docs/images/stanza_plugins.png?raw=true"></p>
 
 # Documentation
 
