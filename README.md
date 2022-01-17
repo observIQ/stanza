@@ -12,7 +12,7 @@
 
 # About Stanza
 
-Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash and can run as a standalone agent on all major operating systems, or be embedded directly into any Golang application. Stanza is also highly integrated to perform seamlessly with the applications in Google Cloud Platform (GCP) based production environments.
+Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash and can run as a standalone agent on all major operating systems. Stanza is also highly integrated to perform seamlessly with the applications in Google Cloud Platform (GCP) based production environments.
 
 ## OpenTelemetry
 
