@@ -12,7 +12,7 @@
 
 # About Stanza
 
-Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash. Stanza can run as a standalone agent on all major operating systems, or it can be embedded directly into any Golang application. Stanza is also highly integrated to perform seamlessly with the applications in Google Cloud Platform (GCP) based production environments.
+Stanza is a fast and lightweight log transport and processing agent. It's designed as a modern replacement for Fluentd, Fluent Bit, and Logstash and can run as a standalone agent on all major operating systems, or be embedded directly into any Golang application. Stanza is also highly integrated to perform seamlessly with the applications in Google Cloud Platform (GCP) based production environments.
 
 ## OpenTelemetry
 
@@ -23,16 +23,30 @@ Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) pr
 - Flexible
     - Supports many different input types such as file, journald, windows events, tcp / udp, and external APIs (cloudwatch, azure log analytics) as well as parsing with json and regex.
     - Easily extended by writing an "operator" or "plugin" which is just a unit of code that performs a task such as reading data from a source, parsing data, or shipping data.
+- Pre-built Plugins
+    - Over 80 Plugins have been pre-built and are ready to be configured.
 - Lightweight with low resource consumption
     - Uses next to no resource while idling. It does not pollute the system with tons of clutter, it exists strictly in /opt/observiq/stanza with just a few files.
-- Written in Go
-    - Everything is self contained into a single binary / file. There are no external dependency libraries that need to exist on the system, unlike dynamically linked applications (C, C++, C#, Java, Python, Ruby, NodeJS)
+- Written in pure Go
+    - Everything is self contained into a single binary, there are no external dependencies.
 - High Performance
     - Stanza is proven to be significantly faster than fluentd and more stable at high throughput than fluentbit.
 
 ## Supported Plugins
 
-Utilize Plugins to get up and running quickly. These are some of the different plugins supported by Stanza, with more being developed all the time.
+Utilize Plugins to get up and running quickly. Some of our top Plugins include:
+- Kubernetes
+- NGINX
+- Apache
+- Windows Events
+- Syslog
+- MySQL
+- SQL Server
+- PostgreSQL
+- VMWare ESXI
+- Redis
+
+ Here are many of the Plugins supported by Stanza, with more being developed all the time.
 
 <p align="center"><img src="docs/images/stanza_plugins.png?raw=true"></p>
 

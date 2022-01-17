@@ -3,10 +3,10 @@
 
 ### Contents
 
-1. [Installation](https://github.com/observIQ/stanza/blob/master/docs/README.md#installation)
-2. [Running Stanza](https://github.com/observIQ/stanza/blob/master/docs/README.md#running-stanza)
-3. [Configuration](https://github.com/observIQ/stanza/blob/master/docs/README.md#configuration)
-4. [Next Steps](https://github.com/observIQ/stanza/blob/master/docs/README.md#next-steps)
+1. [Installation](#installation)
+2. [Running Stanza](#running-stanza)
+3. [Configuration](#configuration)
+4. [Next Steps](#next-steps)
 
 ## Installation
 
