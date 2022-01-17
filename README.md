@@ -32,23 +32,13 @@ Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) pr
 - High Performance
     - Stanza is proven to be significantly faster than fluentd and more stable at high throughput than fluentbit.
 
-## Supported Plugins
+## Supported [Plugins](https://github.com/observIQ/stanza-plugins)
 
-Utilize Plugins to get up and running quickly. Some of our top Plugins include:
-- Kubernetes
-- NGINX
-- Apache
-- Windows Events
-- Syslog
-- MySQL
-- SQL Server
-- PostgreSQL
-- VMWare ESXI
-- Redis
-
- Here are many of the Plugins supported by Stanza, with more being developed all the time.
+Utilize Plugins to get up and running quickly. Here are some of our top Plugins:
 
 <p align="center"><img src="docs/images/stanza_plugins.png?raw=true"></p>
+
+ These are many of the Plugins supported by Stanza, with more being developed all the time. View a full list of Plugins [here](https://github.com/observIQ/stanza-plugins/tree/master/plugins).
 
 # Documentation
 
