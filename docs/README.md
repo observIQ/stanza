@@ -1,6 +1,13 @@
 
 # Quick Start Guide
 
+### Contents
+
+1. [Installation](#installation)
+2. [Running Stanza](#running-stanza)
+3. [Configuration](#configuration)
+4. [Next Steps](#next-steps)
+
 ## Installation
 
 We recommend using our single-line installer provided with each release:
