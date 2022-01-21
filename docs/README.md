@@ -1,5 +1,5 @@
 
-# Quick Start Guide
+# Install Guide
 
 ### Contents
 
@@ -8,7 +8,7 @@
 3. [Configuration](#configuration)
 4. [Next Steps](#next-steps)
 
-## Installation
+# Installation
 
 We recommend using our single-line installer provided with each release:
 
@@ -21,14 +21,83 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
-#### Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
+## Manual Installation
+
+Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
+
+### Linux
+
+1. Downlaod Stanza from the releases page
+```shell
+VERSION=v1.5.0
+curl -L -o stanza "https://github.com/observIQ/stanza/releases/download/${VERSION}/stanza_linux_amd64"
+```
+2. Configure file permissions
+```shell
+chmod +x stanza
+sudo chown root:root stanza
+```
+3. Configure install directory
+```shell
+sudo mkdir -p /opt/observiq/stanza
+sudo mv stanza /opt/observiq/stanza/stanza
+```
+4. Create Systemd service file with the following content 
+```shell
+sudo vim /etc/systemd/system/stanza.service
+```
+```shell
+[Unit]
+Description=Stanza Log Agent
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+[Service]
+Type=simple
+PIDFile=/tmp/log-agent.pid
+User=root
+Group=root
+Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+WorkingDirectory=/opt/observiq/stanza
+ExecStart=/opt/observiq/stanza/stanza --log_file /opt/observiq/stanza/stanza.log --database /opt/observiq/stanza/stanza.db
+SuccessExitStatus=143
+TimeoutSec=120
+StandardOutput=null
+Restart=on-failure
+RestartSec=5s
+[Install]
+WantedBy=multi-user.target
+```
+5. Bootstrap config file
+```shell
+sudo vim /opt/observiq/stanza/config.yaml
+```
+```shell
+pipeline:
+- type: file_input
+  include:
+  - /var/log/messages
+- type: stdout
+```
+6. Reload Systemd, Enable Stanza, Start Stanza
+```shell
+sudo systemctl daemon-reload
+sudo systemctl enable stanza
+sudo systemctl start stanza
+```
+7. Install plugins (optional)
+```shell
+curl -L -o stanza-plugins.tar.gz https://github.com/observIQ/stanza/releases/download/v1.5.0/stanza-plugins.tar.gz
+sudo tar -xf stanza-plugins.tar.gz -C /opt/observiq/stanza
+```
+### Questions:
+1. **Why does Stanza run as root?** Running as root gives Stanza the ability to listen on privileged network ports and read any log file on the system. Using a non root user is supported by updating the systemd service.
 
 ## Local File System Stanza Mirrior
 For Linux and macOS it is possible to run the script from a local mirror,  
 passing in the URL. See the [Local Mirror](MIRRORS.md) documentation.
 
-
-## Running Stanza
+# Running Stanza
 
 If you installed the agent using the single-line installer above, it's already running as a service! If you'd like to start or stop the agent, here's how:
 
@@ -73,7 +142,7 @@ stanza
 ```
 
 
-## Configuration
+# Configuration
 A simple configuration file (config.yaml) is included in the installation. By default it doesn't do much, but is an easy way to get started. By default, it generates a single log entry and sends it to STDOUT every time the agent is restarted.
 
 ```yaml
@@ -133,7 +202,7 @@ pipeline:
 That's it! You should have logs streaming to Elasticsearch. From here you can explore all the options available within stanza! You can use existing plugins from our plugin repository or build your own custom pipelines.
 
 
-## Next Steps
+# Next Steps
 
 - Read up on how to write a stanza [pipeline](/docs/pipeline.md).
 - Check out stanza's list of [operators](/docs/operators/README.md).

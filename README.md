@@ -42,7 +42,7 @@ Utilize Plugins to get up and running quickly. Here are some of our top Plugins:
 
 # Documentation
 
-## [Quick Start](./docs/README.md)
+## Quick Start
 
 ### Installation
 
@@ -57,7 +57,33 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
-For more details on installation and configuration, check out our full [Quick Start Guide](./docs/README.md)!
+### Configuration
+
+To configure Stanza, navigate to the `config.yaml` file located in the Stanza install directory. There are a number of [plugins](https://github.com/observIQ/stanza-plugins/tree/master/plugins) and [operators](./docs/operators/README.md) available to configure in Stanza, but as an example we'll configure a simple [TCP operator](./docs/operators/tcp_input.md).
+
+Stanza also offers several outputs to be configured for sending data, including [Google Cloud Logging](./docs/operators/google_cloud_output.md) and [Elasticsearch](./docs/operators/elastic_output.md). For this example, we'll send the output to Google Cloud Logging.
+
+```yaml
+...
+pipeline:
+...
+  # An example input that monitors the TCP traffic.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/tcp_input.md
+  - type: tcp_input
+    listen_address: "0.0.0.0:54525"
+  ...
+
+  # An example output that sends captured logs to Google Cloud.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
+  - type: google_cloud_output
+    project_id: sample_project
+    credentials_file: /tmp/credentials.json
+...
+```
+
+That's it! TCP traffic should be streaming to Google Cloud Logging.
+
+For more details on installation and configuration, check out our full [Install Guide](./docs/README.md)!
 
 # Community
 
