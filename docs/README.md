@@ -21,6 +21,9 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
+### Kubernetes
+For Kubernetes, there are several guides to install and configure Stanza found [here](./examples/k8s).
+
 ## Manual Installation
 
 Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
@@ -99,17 +102,19 @@ passing in the URL. See the [Local Mirror](MIRRORS.md) documentation.
 
 # Running Stanza
 
-If you installed the agent using the single-line installer above, it's already running as a service! If you'd like to start or stop the agent, here's how:
+If you installed the agent using the single-line installer above, it's already running as a service! If you'd like to start or stop the agent or check its status, here's how:
 
 ### Linux
 ```shell
 # systemd
 systemctl start stanza
 systemctl stop stanza
+systemctl status stanza
 
 # sysv
 service stanza start
 service stanza stop
+service stanza status
 ```
 ### macOS
 ```shell
@@ -120,6 +125,7 @@ launchctl stop com.observiq.stanza
 ```pwsh
 Start-Service -Name "stanza"
 Stop-Service -Name "stanza"
+Get-Service -Name "stanza"
 ```
 
 ### Manual
@@ -188,6 +194,28 @@ pipeline:
   - type: file_input
     include:
        - /sample/file/path
+  ...
+
+  # An example output that sends captured logs to elasticsearch.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/elastic_output.md
+  - type: elastic_output
+    addresses:
+      - http://my_node_address:9200
+    api_key: my_api_key
+...
+```
+
+ALternatively, you can use a plugin for log monitoring. This `config.yaml` collects logs from MySQL via a plugin and sends them to Elasticsearch. By default, MySQL plugin collects general, slow query, and error logs but can be configured to collect MariaDB Audit logs as well by adding `enable_mariadb_audit_log: true` to the config file. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml).
+
+```yaml
+...
+pipeline:
+...
+  # An example input that configures a MySQL plugin.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/plugins.md
+  - type: mysql
+    enable_general_log: true
+    general_log_path: "/var/log/mysql/general.log"
   ...
 
   # An example output that sends captured logs to elasticsearch.

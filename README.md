@@ -40,37 +40,64 @@ Utilize Plugins to get up and running quickly. Here are some of our top Plugins:
 
  These are many of the Plugins supported by Stanza, with more being developed all the time. View a full list of Plugins [here](https://github.com/observIQ/stanza-plugins/tree/master/plugins).
 
-# Documentation
+# Quick Start
 
-## Quick Start
-
-### Installation
+## Installation
 
 To install Stanza, we recommend using our single-line installer provided with each release. Stanza will automatically be running as a service upon completion. 
 
-#### Linux/macOS
+### Linux/macOS
 ```shell
 sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
-#### Windows
+### Windows
 ```pwsh
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
-### Configuration
+### Kubernetes
+For Kubernetes, there are several guides to install and configure Stanza found [here](./examples/k8s).
 
-To configure Stanza, navigate to the `config.yaml` file located in the Stanza install directory. There are a number of [plugins](https://github.com/observIQ/stanza-plugins/tree/master/plugins) and [operators](./docs/operators/README.md) available to configure in Stanza, but as an example we'll configure a simple [TCP operator](./docs/operators/tcp_input.md).
+## Configuration
 
-Stanza also offers several outputs to be configured for sending data, including [Google Cloud Logging](./docs/operators/google_cloud_output.md) and [Elasticsearch](./docs/operators/elastic_output.md). For this example, we'll send the output to Google Cloud Logging.
+To configure Stanza, navigate to the `config.yaml` file located in the Stanza install directory. There are a number of [plugins](./docs/plugins.md) and [operators](./docs/operators/README.md) available to configure in Stanza, but as an example we'll configure a MySQL plugin and a file operator.
+
+Stanza also offers several outputs to be configured for sending data, including [Google Cloud Logging](./docs/operators/google_cloud_output.md) and [Elasticsearch](./docs/operators/elastic_output.md). For this example, we'll send the output to Google Cloud Logging. In addition to the `config.yaml` file, we'll need to add a `credentials.json`. To generate this credentials file, follow Google's documentation [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+
+### Plugins
+This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs but can be configured to collect MariaDB Audit logs as well by adding `enable_mariadb_audit_log: true` to the config file. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml). A full list of available plugins can be found [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/).
 
 ```yaml
 ...
 pipeline:
 ...
-  # An example input that monitors the TCP traffic.
-  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/tcp_input.md
-  - type: tcp_input
-    listen_address: "0.0.0.0:54525"
+  # An example input that configures a MySQL plugin.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/plugins.md
+  - type: mysql
+    enable_general_log: true
+    general_log_path: "/var/log/mysql/general.log"
+  ...
+
+  # An example output that sends captured logs to Google Cloud.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
+  - type: google_cloud_output
+    project_id: sample_project
+    credentials_file: "/tmp/credentials.json"
+...
+```
+
+### Operators
+This `config.yaml` collects logs from a file and sends them to Google Cloud. A full list of available operators can be found [here](./docs/operators/README.md).
+
+```yaml
+...
+pipeline:
+...
+  # An example input that monitors the contents of a file.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/file_input.md
+  - type: file_input
+    include:
+    - /sample/file/path.log
   ...
 
   # An example output that sends captured logs to Google Cloud.
@@ -81,7 +108,7 @@ pipeline:
 ...
 ```
 
-That's it! TCP traffic should be streaming to Google Cloud Logging.
+That's it! Logs should be streaming to Google Cloud.
 
 For more details on installation and configuration, check out our full [Install Guide](./docs/README.md)!
 
