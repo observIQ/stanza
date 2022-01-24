@@ -60,52 +60,48 @@ For Kubernetes, there are several guides to install and configure Stanza found [
 
 ## Configuration
 
-To configure Stanza, navigate to the `config.yaml` file located in the Stanza install directory. There are a number of [plugins](./docs/plugins.md) and [operators](./docs/operators/README.md) available to configure in Stanza, but as an example we'll configure a MySQL plugin and a file operator.
+To configure Stanza, navigate to the `config.yaml` file located in the Stanza install directory, located at the following locations:  
+Linux: `/opt/observiq/stanza`  
+MacOS: `/Users/<user>/observiq/stanza`  
+Windows: `C:\observiq\stanza`  
+There are a number of [plugins](./docs/plugins.md) and [operators](./docs/operators/README.md) available to configure in Stanza, but as an example we will configure a MySQL plugin and a file operator.
 
-Stanza also offers several outputs to be configured for sending data, including [Google Cloud Logging](./docs/operators/google_cloud_output.md) and [Elasticsearch](./docs/operators/elastic_output.md). For this example, we'll send the output to Google Cloud Logging. In addition to the `config.yaml` file, we'll need to add a `credentials.json`. To generate this credentials file, follow Google's documentation [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+Stanza also offers several outputs to be configured for sending data, including [stdout](./docs/operators/stdout), [file](./docs/operators/file_output), and [Google Cloud Logging](./docs/operators/google_cloud_output.md). For this example, we'll send the output to Google Cloud Logging. In addition to the `config.yaml` file, we'll need to add a `credentials.json`. To generate this credentials file, follow Google's documentation [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 ### Plugins
-This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs but can be configured to collect MariaDB Audit logs as well by adding `enable_mariadb_audit_log: true` to the config file. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml). A full list of available plugins can be found [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/).
+This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml). A full list of available plugins can be found [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/).
 
 ```yaml
-...
 pipeline:
-...
   # An example input that configures a MySQL plugin.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/plugins.md
   - type: mysql
     enable_general_log: true
     general_log_path: "/var/log/mysql/general.log"
-  ...
 
   # An example output that sends captured logs to Google Cloud.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
   - type: google_cloud_output
     project_id: sample_project
     credentials_file: "/tmp/credentials.json"
-...
 ```
 
 ### Operators
 This `config.yaml` collects logs from a file and sends them to Google Cloud. A full list of available operators can be found [here](./docs/operators/README.md).
 
 ```yaml
-...
 pipeline:
-...
   # An example input that monitors the contents of a file.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/file_input.md
   - type: file_input
     include:
     - /sample/file/path.log
-  ...
 
   # An example output that sends captured logs to Google Cloud.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
   - type: google_cloud_output
     project_id: sample_project
     credentials_file: /tmp/credentials.json
-...
 ```
 
 That's it! Logs should be streaming to Google Cloud.
