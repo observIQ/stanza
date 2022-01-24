@@ -82,7 +82,6 @@ pipeline:
   # An example output that sends captured logs to Google Cloud.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
   - type: google_cloud_output
-    project_id: sample_project
     credentials_file: "/tmp/credentials.json"
 ```
 
@@ -100,7 +99,6 @@ pipeline:
   # An example output that sends captured logs to Google Cloud.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
   - type: google_cloud_output
-    project_id: sample_project
     credentials_file: /tmp/credentials.json
 ```
 

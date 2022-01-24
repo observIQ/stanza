@@ -163,7 +163,7 @@ pipeline:
   - type: stdout
 ```
 
-The first step in configuring stanza is to setup your output. The sample configuration provides examples for sending data to Google Cloud Monitoring. Add in your own credentials and project, and restart the agent to generate another log line.
+The first step in configuring stanza is to setup your output. The sample configuration provides examples for sending data to Google Cloud Monitoring. Add in your own credentials and restart the agent to generate another log line. The `project_id` field is optional as the credentials file will include the project ID by default.
 
 ```yaml
 pipeline:
