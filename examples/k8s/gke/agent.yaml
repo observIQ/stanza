@@ -14,14 +14,12 @@ data:
       - /var/log/containers/stanza-*_*-*.log
       start_at: end
 
-    - credentials_file: /stanza_home/log_destinations/google_cloud/log_credentials.json
-      type: google_cloud_output
+    - type: google_cloud_output
   events.yaml: |2-
     pipeline:
     - type: kubernetes_events
       cluster_name: CHANGE_ME
-    - credentials_file: /stanza_home/log_destinations/google_cloud/log_credentials.json
-      type: google_cloud_output
+    - type: google_cloud_output
 ---
 kind: ServiceAccount
 apiVersion: v1
