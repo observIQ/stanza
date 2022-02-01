@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/logging v1.4.2
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.13
 	github.com/antonmedv/expr v1.9.0
-	github.com/aws/aws-sdk-go v1.40.26
+	github.com/aws/aws-sdk-go v1.42.44
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/cenkalti/backoff/v4 v4.1.1
@@ -112,7 +112,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
+	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/appengine v1.6.7 // indirect
