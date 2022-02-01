@@ -114,7 +114,7 @@ That's it! Logs should be streaming to Google Cloud.
 
 For more details on installation and configuration, check out our full [Install Guide](./docs/README.md)!
 
-### Scenarios
+### Common Scenarios
 
 To see specific examples of Stanza configuration, check out the [scenarios](./examples/scenarios). Below are some of our more popular scenarios:
 
