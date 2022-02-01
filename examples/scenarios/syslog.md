@@ -4,17 +4,32 @@ Once you have Stanza installed and running from the [quickstart guide](./README.
 
 ## Prerequisites
 
-It may be necessary to add an inbound firewall rule on Windows. To do this:
- * Navigate to Windows Firewall Advanced Settings, and then Inbound Rules
- * Create a new rule and set the Rule Type to "Port"
- * For Protocol and Ports, select "UDP" and a specific local port of 514
- * For Action, select "Allow the connection"
- * For Profile, apply to "Domain", "Private", and "Public"
- * Set a name to easily identify rule, such as "Allow Syslog Inbound Connections to 514 UDP"
+It may be necessary to add an inbound firewall rule.
+
+### Windows
+
+- Navigate to Windows Firewall Advanced Settings, and then Inbound Rules
+- Create a new rule and set the Rule Type to "Port"
+- For Protocol and Ports, select "UDP" and a specific local port of 514
+- For Action, select "Allow the connection"
+- For Profile, apply to "Domain", "Private", and "Public"
+- Set a name to easily identify rule, such as "Allow Syslog Inbound Connections to 514 UDP"
+
+ ### Linux
+
+- Using Firewalld:
+```shell
+firewall-cmd --permanent --add-port=514/udp
+firewall-cmd --reload
+```
+- Using UFW:
+```shell
+ufw allow 514
+```
 
 ## Configuration
 
-This is an example config file that can be used in the Stanza install directory. The Syslog plugin supports UDP and TCP logs, using UDP by default.
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. The Syslog plugin supports UDP and TCP logs, using UDP by default.
 
 ```yaml
 pipeline:
@@ -23,7 +38,7 @@ pipeline:
     listen_port: 514
     listen_ip: "0.0.0.0"
     connection_type: udp
-    protocol: rfc5424
+    protocol: rfc5424 (IETF)
     location: UTC
 
   # For more info on Google Cloud output, go to: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md

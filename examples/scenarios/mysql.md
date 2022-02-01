@@ -26,7 +26,7 @@ For more details, see the slow query log documentation [here](https://dev.mysql.
 
 ## Configuration
 
-This is an example config file that can be used in the Stanza install directory. The MySQL plugin supports general, error, and slow query logs by default, but can also support MariaDB audit logs if those have been enabled.
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. The MySQL plugin supports general, error, and slow query logs by default, but can also support MariaDB audit logs if those have been enabled.
 
 ```yaml
 pipeline:

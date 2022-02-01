@@ -10,7 +10,7 @@ The Windows Events plugin can monitor custom channels in addition to the three c
 
 ## Configuration
 
-This is an example config file that can be used in the Stanza install directory. The Windows Events plugin supports system, application, and security events by default, but can also support custom channels if those have been configured.
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. The Windows Events plugin supports system, application, and security events by default, but can also support custom channels if those have been configured.
 
 ```yaml
 pipeline:
@@ -19,7 +19,6 @@ pipeline:
     enable_system_events: true
     enable_application_events: true
     enable_security_events: true
-    enable_custom_channels: false
 
   # For more info on Google Cloud output, go to: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
   - type: google_cloud_output

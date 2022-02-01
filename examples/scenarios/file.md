@@ -4,11 +4,11 @@ Once you have Stanza installed and running from the [quickstart guide](./README.
 
 ## Prerequisites
 
-On the host that will be sending logs to Stanza, make sure you know the location of the file you wish to gather logs from.
+On the host that Stanza will read logs from, make sure you know the location of the file you wish to gather logs.
 
 ## Configuration
 
-This is an example config file that can be used in the Stanza install directory. It uses a simple [file operator](/docs/operators/file_input.md) to send logs to Google Cloud utilizing a credentials file that can be generated following Google's documentation [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. It uses a simple [file operator](/docs/operators/file_input.md) to send logs to Google Cloud utilizing a credentials file that can be generated following Google's documentation [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 ```yaml
 pipeline:
@@ -35,6 +35,8 @@ pipeline:
   - type: google_cloud_output
     credentials_file: /tmp/credentials.json
 ```
+
+More examples for multiline logs can be found in at the [file operator](/docs/operators/file_input.md#multiline-file-input) page.
 
 ## Next Steps
 
