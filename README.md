@@ -56,7 +56,7 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 ```
 
 ### Kubernetes
-For Kubernetes, there are several guides to install and configure Stanza found [here](./examples/k8s).
+To deploy Stanza to Kubernetes, AKS, EKS, GKE or Openshift check out the installation guides [here](./examples/k8s).
 
 ## Configuration
 
@@ -114,6 +114,16 @@ That's it! Logs should be streaming to Google Cloud.
 
 For more details on installation and configuration, check out our full [Install Guide](./docs/README.md)!
 
+### Common Scenarios
+
+To see specific examples of Stanza configuration, check out the [scenarios](./examples/scenarios). Below are some of our more popular scenarios:
+
+- [Syslog](./examples/scenarios/syslog.md)
+- [MySQL](./examples/scenarios/mysql.md)
+- [Windows Events](./examples/scenarios/windows_events.md)
+- [File](./examples/scenarios/file.md)
+- [Custom Parsing](./examples/scenarios/custom_parsing.md)
+
 # Community
 
 Stanza is an open source project. If you'd like to contribute, take a look at our [contribution guidelines](./CONTRIBUTING.md) and [developer guide](./docs/development.md). We look forward to building with you.
@@ -125,4 +135,4 @@ Stanza follows the [CNCF Code of Conduct](https://github.com/cncf/foundation/blo
 
 # Other questions?
 
-Check out our [FAQ](/docs/faq.md), or open an issue with your question. We'd love to hear from you.
+Check out our [FAQ](/docs/faq.md), send us an [email](mailto:support.stanza@observiq.com), or open an issue with your question. We'd love to hear from you!
