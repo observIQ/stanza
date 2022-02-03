@@ -1,0 +1,115 @@
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: stanza-metadata
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stanza-metadata
+  namespace: default
+rules:
+  - apiGroups: ["", "apps", "batch"]
+    resources:
+      - pods
+      - namespaces
+      - replicasets
+      - jobs
+    verbs: ["get", "list"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stanza-metadata
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: stanza-metadata
+subjects:
+  - kind: ServiceAccount
+    name: stanza-metadata
+    namespace: default
+---
+kind: ConfigMap
+metadata:
+  name: stanza-config
+  namespace: default
+apiVersion: v1
+data:
+  config.yaml: |2-
+    pipeline:
+      - type: kubernetes_container
+        cluster_name: stanza_example
+        # avoid parsing stanza's log output
+        exclude:
+          - /var/log/containers/stanza-*_*-*.log
+        start_at: end
+
+      # watch stanza's output with 'kubectl logs -f <pod name> | jq .'
+      - type: stdout
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: stanza
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      name: stanza
+  template:
+    metadata:
+      labels:
+        name: stanza
+    spec:
+      serviceAccountName: stanza-metadata
+      containers:
+        - name: stanza
+          # Production deployments should use an image tag other than latest
+          image: observiq/stanza:latest
+          imagePullPolicy: Always
+          # Override entrypoint args in order to set database location
+          # to the database hostPath volume
+          command: ["/stanza_home/stanza"]
+          args:
+            - --config
+            - /stanza_home/config.yaml
+            - --database
+            - /stanza_home/database/stanza.db
+            - --plugin_dir
+            - /stanza_home/plugins
+          resources:
+            limits:
+              memory: "250Mi"
+              cpu: 100m
+            requests:
+              memory: "250Mi"
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /stanza_home/config.yaml
+              name: config
+              subPath: config.yaml
+            - mountPath: /var/log
+              name: varlog
+            - mountPath: /var/lib/docker/containers
+              name: dockerlogs
+            - mountPath: /stanza_home/database/
+              name: database
+              readOnly: false
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 5
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: dockerlogs
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: config
+          configMap:
+            name: stanza-config
+        - name: database
+          hostPath:
+            path: /var/observiq-agent/database

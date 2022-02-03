@@ -1,0 +1,181 @@
+---
+kind: ConfigMap
+metadata:
+  name: stanza-config
+  namespace: default
+apiVersion: v1
+data:
+  logs.yaml: |2-
+    pipeline:
+    - type: kubernetes_container
+      cluster_name: CHANGE_ME
+      # avoid parsing stanza's log output
+      exclude:
+      - /var/log/containers/stanza-*_*-*.log
+      start_at: end
+
+    - type: google_cloud_output
+  events.yaml: |2-
+    pipeline:
+    - type: kubernetes_events
+      cluster_name: CHANGE_ME
+    - type: google_cloud_output
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: stanza-agent
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stanza-agent
+rules:
+  - apiGroups: ["", "apps", "batch"]
+    resources:
+      - pods
+      - namespaces
+      - replicasets
+      - jobs
+      - events
+    verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stanza-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: stanza-agent
+subjects:
+  - kind: ServiceAccount
+    name: stanza-agent
+    namespace: default
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: stanza
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      name: stanza
+  template:
+    metadata:
+      labels:
+        name: stanza
+    spec:
+      serviceAccountName: stanza-agent
+      containers:
+        - name: stanza
+          image: observiq/stanza:1.2.13
+          imagePullPolicy: Always
+          command: ["/stanza_home/stanza"]
+          args:
+            - --config
+            - /stanza_home/config.yaml
+            - --database
+            - /stanza_home/database/stanza.db
+            - --plugin_dir
+            - /stanza_home/plugins
+          resources:
+            limits:
+              memory: "250Mi"
+              cpu: 100m
+            requests:
+              memory: "250Mi"
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /stanza_home/config.yaml
+              subPath: logs.yaml
+              name: stanza-config
+            - mountPath: /var/log
+              name: varlog
+            - mountPath: /var/lib/docker/containers
+              name: dockerlogs
+            - mountPath: /stanza_home/database/
+              name: database
+              readOnly: false
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: dockerlogs
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: stanza-config
+          configMap:
+            name: stanza-config
+        - name: database
+          hostPath:
+            path: /var/observiq-agent/database
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+   name: stanza-agent-events-persistent-volume
+   namespace: default
+spec:
+   accessModes:
+      - ReadWriteOnce
+   resources:
+      requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stanza-agent-cluster-events
+  namespace: default
+spec:
+  serviceName: stanza-agent-cluster-events
+  replicas: 1
+  selector:
+    matchLabels:
+      name: stanza-agent-cluster-events
+  template:
+    metadata:
+      labels:
+        name: stanza-agent-cluster-events
+    spec:
+      serviceAccountName: stanza-agent
+      containers:
+        - image: observiq/stanza:1.2.13
+          imagePullPolicy: Always
+          name: stanza-agent
+          command:
+            - /stanza_home/stanza
+          args:
+            - --config
+            - /stanza_home/config.yaml
+            - --database
+            - /stanza_home/database/stanza.db
+            - --plugin_dir
+            - /stanza_home/plugins
+          resources:
+            limits:
+              memory: "250Mi"
+              cpu: 250m
+            requests:
+              memory: "250Mi"
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /stanza_home/config.yaml
+              subPath: events.yaml
+              name: stanza-config
+            - mountPath: /stanza_home/database
+              name: stanza-agent-events-persistent-volume
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: stanza-config
+          configMap:
+            name: stanza-config
+        - name: stanza-agent-events-persistent-volume
+          persistentVolumeClaim:
+            claimName: stanza-agent-events-persistent-volume

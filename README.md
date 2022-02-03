@@ -116,13 +116,13 @@ For more details on installation and configuration, check out our full [Install 
 
 ### Common Scenarios
 
-To see specific examples of Stanza configuration, check out the [scenarios](./examples/scenarios). Below are some of our more popular scenarios:
+To see specific examples of Stanza configuration, check out the [scenarios](./docs/examples/scenarios). Below are some of our more popular scenarios:
 
-- [Syslog](./examples/scenarios/syslog.md)
-- [MySQL](./examples/scenarios/mysql.md)
-- [Windows Events](./examples/scenarios/windows_events.md)
-- [File](./examples/scenarios/file.md)
-- [Custom Parsing](./examples/scenarios/custom_parsing.md)
+- [Syslog](./docs/examples/scenarios/syslog.md)
+- [MySQL](./docs/examples/scenarios/mysql.md)
+- [Windows Events](./docs/examples/scenarios/windows_events.md)
+- [File](./docs/examples/scenarios/file.md)
+- [Custom Parsing](./docs/examples/scenarios/custom_parsing.md)
 
 # Community
 
