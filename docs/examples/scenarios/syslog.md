@@ -1,6 +1,6 @@
 # Syslog
 
-Once you have Stanza installed and running from the [quickstart guide](./README.md#quick-start), you can follow these steps to configure Syslog monitoring.
+Once you have Stanza installed and running from the [quickstart guide](/README.md#quick-start), you can follow these steps to configure Syslog monitoring.
 
 ## Prerequisites
 
@@ -41,7 +41,7 @@ ufw allow 514
 | `tls_private_key`  |                  | Path to x509 PEM encoded TLS private key file |
 | `tls_min_version`  | `"1.2"`          | Minimum TLS version to support (string)       |
 
-This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. The Syslog plugin supports UDP and TCP logs, using UDP by default.
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](/README.md#Configuration) section of the quickstart guide. The Syslog plugin supports UDP and TCP logs, using UDP by default.
 
 ```yaml
 pipeline:

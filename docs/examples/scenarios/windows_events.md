@@ -1,6 +1,6 @@
 # Windows Events
 
-Once you have Stanza installed and running from the [quickstart guide](./README.md#quick-start), you can follow these steps to configure Windows Event monitoring via Stanza.
+Once you have Stanza installed and running from the [quickstart guide](/README.md#quick-start), you can follow these steps to configure Windows Event monitoring via Stanza.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ The Windows Events plugin can monitor custom channels in addition to the three c
 | `poll_interval` | `1` | The interval, in seconds, at which the channel is checked for new log entries. This check begins again after all new records have been read |
 | `start_at` | `end` | Start reading file from 'beginning' or 'end' |
 
-This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. The Windows Events plugin supports system, application, and security events by default, but can also support custom channels if those have been configured.
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](/README.md#Configuration) section of the quickstart guide. The Windows Events plugin supports system, application, and security events by default, but can also support custom channels if those have been configured.
 
 ```yaml
 pipeline:

@@ -1,6 +1,6 @@
 # MySQL
 
-Once you have Stanza installed and running from the [quickstart guide](./README.md#quick-start), you can follow these steps to configure MySQL monitoring via Linux.
+Once you have Stanza installed and running from the [quickstart guide](/README.md#quick-start), you can follow these steps to configure MySQL monitoring via Linux.
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ For more details, see the slow query log documentation [here](https://dev.mysql.
 | `mariadb_audit_log_path` | `"/var/log/mysql/audit.log"` | Path to audit log file created by MariaDB plugin |
 | `start_at` | `end` | Start reading file from 'beginning' or 'end' |
 
-This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](./README.md#Configuration) section of the quickstart guide. The MySQL plugin supports general, error, and slow query logs by default, but can also support MariaDB audit logs if those have been enabled.
+This is an example config file that can be used in the Stanza install directory, noted in the [Configuration](/README.md#Configuration) section of the quickstart guide. The MySQL plugin supports general, error, and slow query logs by default, but can also support MariaDB audit logs if those have been enabled.
 
 ```yaml
 pipeline:
