@@ -1,7 +1,14 @@
 
-# Quick Start Guide
+# Install Guide
 
-## Installation
+### Contents
+
+1. [Installation](#installation)
+2. [Running Stanza](#running-stanza)
+3. [Configuration](#configuration)
+4. [Next Steps](#next-steps)
+
+# Installation
 
 We recommend using our single-line installer provided with each release:
 
@@ -14,26 +21,101 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
-#### Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
+### Kubernetes
+For Kubernetes, there are several guides to install and configure Stanza found [here](./examples/k8s).
 
-## Local File System Stanza Mirrior
+## Manual Installation
+
+Alternately, feel free to download the [latest release](https://github.com/observIQ/stanza/releases) directly.
+
+### Linux
+
+1. Downlaod Stanza from the releases page
+```shell
+VERSION=v1.5.0
+curl -L -o stanza "https://github.com/observIQ/stanza/releases/download/${VERSION}/stanza_linux_amd64"
+```
+2. Configure file permissions
+```shell
+chmod +x stanza
+sudo chown root:root stanza
+```
+3. Configure install directory
+```shell
+sudo mkdir -p /opt/observiq/stanza
+sudo mv stanza /opt/observiq/stanza/stanza
+```
+4. Create Systemd service file with the following content 
+```shell
+sudo vim /etc/systemd/system/stanza.service
+```
+```shell
+[Unit]
+Description=Stanza Log Agent
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+[Service]
+Type=simple
+PIDFile=/tmp/log-agent.pid
+User=root
+Group=root
+Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+WorkingDirectory=/opt/observiq/stanza
+ExecStart=/opt/observiq/stanza/stanza --log_file /opt/observiq/stanza/stanza.log --database /opt/observiq/stanza/stanza.db
+SuccessExitStatus=143
+TimeoutSec=120
+StandardOutput=null
+Restart=on-failure
+RestartSec=5s
+[Install]
+WantedBy=multi-user.target
+```
+5. Bootstrap config file
+```shell
+sudo vim /opt/observiq/stanza/config.yaml
+```
+```shell
+pipeline:
+- type: file_input
+  include:
+  - /var/log/messages
+- type: stdout
+```
+6. Reload Systemd, Enable Stanza, Start Stanza
+```shell
+sudo systemctl daemon-reload
+sudo systemctl enable stanza
+sudo systemctl start stanza
+```
+7. Install plugins (optional)
+```shell
+curl -L -o stanza-plugins.tar.gz https://github.com/observIQ/stanza/releases/download/v1.5.0/stanza-plugins.tar.gz
+sudo tar -xf stanza-plugins.tar.gz -C /opt/observiq/stanza
+```
+
+#### Questions:
+1. **Why does Stanza run as root?** Running as root gives Stanza the ability to listen on privileged network ports and read any log file on the system. Using a non root user is supported by updating the systemd service.
+
+## Local File System Stanza Mirror
 For Linux and macOS it is possible to run the script from a local mirror,  
 passing in the URL. See the [Local Mirror](MIRRORS.md) documentation.
 
+# Running Stanza
 
-## Running Stanza
-
-If you installed the agent using the single-line installer above, it's already running as a service! If you'd like to start or stop the agent, here's how:
+If you installed the agent using the single-line installer above, it's already running as a service! If you'd like to start or stop the agent or check its status, here's how:
 
 ### Linux
 ```shell
 # systemd
 systemctl start stanza
 systemctl stop stanza
+systemctl status stanza
 
 # sysv
 service stanza start
 service stanza stop
+service stanza status
 ```
 ### macOS
 ```shell
@@ -44,6 +126,7 @@ launchctl stop com.observiq.stanza
 ```pwsh
 Start-Service -Name "stanza"
 Stop-Service -Name "stanza"
+Get-Service -Name "stanza"
 ```
 
 ### Manual
@@ -66,7 +149,7 @@ stanza
 ```
 
 
-## Configuration
+# Configuration
 A simple configuration file (config.yaml) is included in the installation. By default it doesn't do much, but is an easy way to get started. By default, it generates a single log entry and sends it to STDOUT every time the agent is restarted.
 
 ```yaml
@@ -79,13 +162,11 @@ pipeline:
 ...
   # An example output that sends captured logs to stdout.
   - type: stdout
-...
 ```
 
-The first step in configuring stanza is to setup your output. The sample configuration provides examples for sending data to the Elastic stack or Google Cloud Monitoring. Uncomment the destination of your choice and add in your own credentials and host. Restart the agent to generate another log line.
+The first step in configuring stanza is to setup your output. The sample configuration provides examples for sending data to Google Cloud Monitoring. Add in your own credentials and restart the agent to generate another log line. The `project_id` field is optional as the credentials file will include the project ID by default.
 
 ```yaml
-...
 pipeline:
   # An example input that generates a single log entry when Stanza starts up.
   - type: generate_input
@@ -93,40 +174,51 @@ pipeline:
     entry:
       body: This is a sample log generated by Stanza
 
-  # An example output that sends captured logs to elasticsearch.
-  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/elastic_output.md
-  - type: elastic_output
-    addresses:
-      - http://my_node_address:9200
-    api_key: my_api_key
-...
+  # An example output that sends captured logs to Google Cloud.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
+  - type: google_cloud_output
+    project_id: sample_project
+    credentials_file: /tmp/credentials.json
 ```
 
 Once you've confirmed you're able to send a log entry, you'll want to connect stanza to a log file you're interested in monitoring. We've included a sample `file_input` configuration in the config file to use (stanza also provide options for UDP, TCP, syslog, and other input streams. They're available [here](/docs/operators/README.md)).
+
 ```yaml
-...
 pipeline:
-...
   # An example input that monitors the contents of a file.
   # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/file_input.md
   - type: file_input
     include:
        - /sample/file/path
-  ...
 
-  # An example output that sends captured logs to elasticsearch.
-  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/elastic_output.md
-  - type: elastic_output
-    addresses:
-      - http://my_node_address:9200
-    api_key: my_api_key
-...
+  # An example output that sends captured logs to Google Cloud.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
+  - type: google_cloud_output
+    project_id: sample_project
+    credentials_file: /tmp/credentials.json
 ```
 
-That's it! You should have logs streaming to Elasticsearch. From here you can explore all the options available within stanza! You can use existing plugins from our plugin repository or build your own custom pipelines.
+ALternatively, you can use a plugin for log monitoring. This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml).
+
+```yaml
+pipeline:
+  # An example input that configures a MySQL plugin.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/plugins.md
+  - type: mysql
+    enable_general_log: true
+    general_log_path: "/var/log/mysql/general.log"
+
+  # An example output that sends captured logs to Google Cloud.
+  # For more info: https://github.com/observIQ/stanza/blob/master/docs/operators/google_cloud_output.md
+  - type: google_cloud_output
+    project_id: sample_project
+    credentials_file: /tmp/credentials.json
+```
+
+That's it! You should have logs streaming to Google Cloud. From here you can explore all the options available within stanza! You can use existing plugins from our plugin repository or build your own custom pipelines.
 
 
-## Next Steps
+# Next Steps
 
 - Read up on how to write a stanza [pipeline](/docs/pipeline.md).
 - Check out stanza's list of [operators](/docs/operators/README.md).

@@ -29,16 +29,10 @@ func convertSeverity(s entry.Severity) sev.LogSeverity {
 		return sev.LogSeverity_EMERGENCY
 	case s >= entry.Error3:
 		return sev.LogSeverity_ALERT
-	case s >= entry.Error2:
-		return sev.LogSeverity_CRITICAL
-	case s >= entry.Error:
-		return sev.LogSeverity_ERROR
 	case s >= entry.Warn:
 		return sev.LogSeverity_WARNING
 	case s >= entry.Info2:
 		return sev.LogSeverity_NOTICE
-	case s >= entry.Info:
-		return sev.LogSeverity_INFO
 	case s > entry.Default:
 		return sev.LogSeverity_DEBUG
 	default:

@@ -27,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.11.0
 	go.etcd.io/bbolt v1.3.6
-	go.uber.org/multierr v1.7.0
+	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -37,7 +37,7 @@ require (
 	google.golang.org/api v0.52.0
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/grpc v1.42.0
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 	// k8s.io modules should be the same version
 	k8s.io/api v0.22.2 // indirect
@@ -50,7 +50,11 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
-require go.opentelemetry.io/collector v0.41.0
+require (
+	github.com/google/uuid v1.3.0
+	github.com/googleapis/gax-go/v2 v2.0.5
+	go.opentelemetry.io/collector v0.41.0
+)
 
 require (
 	cloud.google.com/go v0.88.0 // indirect
@@ -85,8 +89,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect

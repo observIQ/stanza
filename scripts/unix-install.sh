@@ -152,6 +152,17 @@ Usage:
       If not provided, this will default to Stanza\'s GitHub releases.
       Example: '-l http://my.domain.org/stanza' will download from there.
 
+  $(fg_yellow '-x, --proxy')
+      Defines the proxy server to be used for communication by the install script.
+      Example: $(fg_blue -x) $(fg_magenta http\(s\)://server-ip:port/).
+
+  $(fg_yellow '-U, --proxy-user')
+      Defines the proxy user to be used for communication by the install script.
+
+  $(fg_yellow '-P, --proxy-password')
+      Defines the proxy password to be used for communication by the install script.
+
+
 EOF
   )
   info "$USAGE"
@@ -224,9 +235,11 @@ setup_installation()
 
     # Installation variables
     set_os
+    set_os_arch
     set_download_urls
     set_install_dir
     set_agent_home
+    set_proxy
 
     # Service variables
     set_service_user
@@ -256,6 +269,23 @@ set_os()
   esac
 }
 
+
+set_os_arch()
+{
+  os_arch=$(uname -m)
+  case "$os_arch" in 
+    arm64)
+      os_arch="arm64"
+      ;;
+    x86_64)
+      os_arch="amd64"
+      ;;
+    *)
+      error "Unsupported os arch: $os_arch"
+      ;;
+  esac
+}   
+
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or STANZA_VERSION env variable.
 # If not specified, the version defaults to "latest".
@@ -272,11 +302,15 @@ set_download_urls()
     url=$DOWNLOAD_BASE
   fi
 
+  if [ -z "$arch" ] ; then 
+    os_arch=$arch
+  fi
+
   if [ -z "$version" ] ; then
-    agent_download_url="$url/latest/download/${BINARY_NAME}_${os}_amd64"
+    agent_download_url="$url/latest/download/${BINARY_NAME}_${os}_${os_arch}"
     plugins_download_url="$url/latest/download/${PLUGINS_PACKAGE}"
   else
-    agent_download_url="$url/download/v$version/${BINARY_NAME}_${os}_amd64"
+    agent_download_url="$url/download/v$version/${BINARY_NAME}_${os}_${os_arch}"
     plugins_download_url="$url/download/v$version/${PLUGINS_PACKAGE}"
   fi
 }
@@ -376,13 +410,16 @@ os_check()
 os_arch_check()
 {
   info "Checking for valid operating system architecture..."
-  os_arch=$(uname -m)
-  if [ "$os_arch" = 'x86_64' ]; then
-    succeeded
-  else
-    failed
-    error_exit "The operating system architecture $(fg_yellow "$os_arch") is not supported by this script."
-  fi
+  arch=$(uname -m)
+  case "$arch" in 
+    x86_64|arm64)
+      succeeded
+      ;;
+    *)
+      failed
+      error_exit "The operating system architecture $(fg_yellow "$arch") is not supported by this script."
+      ;;
+  esac
 }
 
 # This will check if the current environment has
@@ -426,8 +463,20 @@ install_package()
   stop_service
   succeeded
 
+  proxy_args=""
+  if [ -n "$proxy" ]; then
+    proxy_args="-x $proxy"
+    if [ -n "$proxy_user" ]; then
+      proxy_args="$proxy_args -U $proxy_user:$proxy_password"
+    fi
+  fi
+
+  if [ -n "$proxy" ]; then
+    info "Downloading package using proxy..."
+  fi 
+
   info "Downloading binary..."
-  curl -L "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+  eval curl -L "$proxy_args" "$agent_download_url" -o "$agent_binary" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
   succeeded
 
   info "Setting permissions..."
@@ -508,6 +557,41 @@ pipeline:
   #     - http://my_node_address:9200
   #   api_key: my_api_key
 EOF
+}
+
+set_proxy()
+{
+  if [ -n "$proxy" ]; then
+    info "Using proxy from arguments: $proxy"
+    if [ -n "$proxy_user" ]; then
+      while [ -z "$proxy_password" ] && [ ! "$accept_defaults" = "yes" ]; do
+        increase_indent
+        command printf "${indent}$(fg_blue "$proxy_user@$proxy")'s password: "
+        stty -echo
+        read -r proxy_password
+        stty echo
+        info
+        if [ -z "$proxy_password" ]; then
+          warn "The password must be provided!"
+        fi
+        decrease_indent
+      done
+      protocol="$(echo "$proxy" | cut -d'/' -f1)"
+      host="$(echo "$proxy" | cut -d'/' -f3)"
+      full_proxy="$protocol//$proxy_user:$proxy_password@$host"
+    fi
+
+  elif [ -n "$http_proxy" ]; then
+    info "Using proxy from profile: $http_proxy"
+    proxy="$http_proxy"
+  elif [ -n "$https_proxy" ]; then
+    info "Using proxy from profile: $https_proxy"
+    proxy="$https_proxy"
+  fi
+
+  if [ -z "$full_proxy" ]; then
+    full_proxy="$proxy"
+  fi
 }
 
 # This will install the service by detecting the init system
@@ -1005,7 +1089,7 @@ request_service_replacement()
 # Set file permissiosn
 set_permissions()
 {
-    chown -R $service_user:$service_user $agent_home
+    chown -R $service_user $agent_home
 }
 
 # This will display the results of an installation
@@ -1046,6 +1130,12 @@ main()
           service_user=$2 ; shift 2 ;;
         -l|--url)
           url=$2 ; shift 2 ;;
+        -x|--proxy)
+          proxy=$2 ; shift 2 ;;
+        -U|--proxy-user)
+          proxy_user=$2 ; shift 2 ;;
+        -P|--proxy-password)
+          proxy_password=$2 ; shift 2 ;;
         -h|--help)
           usage
           force_exit

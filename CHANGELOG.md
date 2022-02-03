@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Added Native compiled artifact for Darwin amd64 [PR505]
+
 ### Added
 
 - Added agent log file rotation [PR488](https://github.com/observIQ/stanza/pull/488)
