@@ -21,7 +21,7 @@ type waitListItem struct {
 	n      int64
 }
 
-// NewCountingSemaphore returns
+// NewCountingSemaphore returns new counting semephore, with it's internal value set to initialVal
 func NewCountingSemaphore(initialVal int64) *CountingSemaphore {
 	return &CountingSemaphore{
 		val: initialVal,
@@ -105,7 +105,7 @@ func (rs *CountingSemaphore) Increment() {
 
 // AcquireAtMost acquires at most n resource.
 // If it cannot acquire at n resource, it will block until the context cancels, or a timeout occurs.
-// If n resource cannot be acquired, then as much as possible will attempt to be acquired.
+// If n resource cannot be acquired, then as much as possible will be acquired.
 // Returns the amount of resource acquired.
 func (cs *CountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
 	cs.mux.Lock()

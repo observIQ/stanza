@@ -186,6 +186,10 @@ func (rb *CircularFile) Write(p []byte) (int, error) {
 		return int(totalBytesToWrite), io.EOF
 	}
 
+	if rb.Start == rb.End {
+		rb.Full = true
+	}
+
 	return int(totalBytesToWrite), nil
 }
 

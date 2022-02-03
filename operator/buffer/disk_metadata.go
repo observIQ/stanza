@@ -35,13 +35,13 @@ type DiskBufferMetadata struct {
 	buf *bytes.Buffer
 }
 
-func OpenDiskBufferMetadata(filePath string, sync bool) (*DiskBufferMetadata, error) {
+func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*DiskBufferMetadata, error) {
 	fileFlags := os.O_CREATE | os.O_RDWR
 	if sync {
 		fileFlags |= os.O_SYNC
 	}
 
-	f, err := os.OpenFile(filePath, fileFlags, 0600)
+	f, err := os.OpenFile(baseFilePath, fileFlags, 0600)
 	if err != nil {
 		return nil, err
 	}

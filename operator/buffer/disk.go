@@ -173,7 +173,7 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	n := d.readerSem.AcquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
 
 	if n == 0 {
-		return nil, nil
+		return nil, ctx.Err()
 	}
 
 	entries := make([]*entry.Entry, 0, n)
