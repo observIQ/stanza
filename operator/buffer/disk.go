@@ -12,6 +12,7 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"go.uber.org/multierr"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -63,8 +64,11 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 
 	rb, err := OpenCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
-		metadata.Close()
-		return nil, err
+		metadataCloseErr := metadata.Close()
+		return nil, multierr.Combine(
+			err,
+			metadataCloseErr,
+		)
 	}
 
 	rb.Start = metadata.StartOffset
@@ -75,7 +79,13 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 	sem := semaphore.NewWeighted(int64(c.MaxSize))
 	acquired := sem.TryAcquire(rb.Len())
 	if !acquired {
-		return nil, errors.New("failed to acquire buffer length for semaphore")
+		metadataCloseErr := metadata.Close()
+		rbCloseErr := rb.Close()
+		return nil, multierr.Combine(
+			errors.New("failed to acquire buffer length for semaphore"),
+			metadataCloseErr,
+			rbCloseErr,
+		)
 	}
 
 	return &DiskBuffer{
@@ -83,7 +93,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 		cf:            rb,
 		cfMux:         &sync.Mutex{},
 		writerSem:     sem,
-		readerSem:     NewCountingSemaphore(metadata.Entries),
+		readerSem:     NewGreedyCountingSemaphore(metadata.Entries),
 		maxSize:       int64(c.MaxSize),
 		maxChunkDelay: c.MaxChunkDelay.Duration,
 		maxChunkSize:  c.MaxChunkSize,
@@ -99,7 +109,7 @@ type DiskBuffer struct {
 	cf        *CircularFile
 	cfMux     *sync.Mutex
 	writerSem *semaphore.Weighted
-	readerSem *CountingSemaphore
+	readerSem *GreedyCountingSemaphore
 	// maxSize is the maximum number of entry bytes that can be written to the buffer file.
 	maxSize int64
 	// closed is a bool indicating if the buffer is closed
@@ -216,18 +226,12 @@ func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 
 	d.closed = true
 
-	err := d.cf.Close()
-	if err != nil {
-		d.metadata.Close()
-		return nil, err
-	}
-
-	err = d.metadata.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
+	fileCloseErr := d.cf.Close()
+	metaCloseErr := d.metadata.Close()
+	return nil, multierr.Combine(
+		fileCloseErr,
+		metaCloseErr,
+	)
 }
 
 // marshalEntry marshals the given entry into the given byte slice.

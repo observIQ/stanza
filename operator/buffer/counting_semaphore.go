@@ -7,10 +7,9 @@ import (
 	"time"
 )
 
-// CountingSemaphore is a classical counting semaphore; It holds a value that may be incremented and decremented.
-// Waiting on the semaphore blocks until the value is greater than 0, and then decrements that count by one before returning.
-// Incrementing the value will either increment the internal value, or release a waiting thread.
-type CountingSemaphore struct {
+// GreedyCountingSemaphore is a classical counting semaphore, where waiting threads will greedily acquire up to n of the internal value.
+// This code is based off the WeightedSemaphore implementation (https://cs.opensource.google/go/x/sync/+/036812b2:semaphore/semaphore.go)
+type GreedyCountingSemaphore struct {
 	val      int64
 	mux      *sync.Mutex
 	waitList list.List
@@ -21,17 +20,18 @@ type waitListItem struct {
 	n      int64
 }
 
-// NewCountingSemaphore returns new counting semephore, with it's internal value set to initialVal
-func NewCountingSemaphore(initialVal int64) *CountingSemaphore {
-	return &CountingSemaphore{
+// NewGreedyCountingSemaphore returns new counting semephore, with it's internal value set to initialVal
+func NewGreedyCountingSemaphore(initialVal int64) *GreedyCountingSemaphore {
+	return &GreedyCountingSemaphore{
 		val: initialVal,
 		mux: &sync.Mutex{},
 	}
 }
 
-// Increment will attempt to wake a thread waiting on the ResourceSemaphore;
-// If there is no such waiter, it will increment the amount of the resource available.
-func (rs *CountingSemaphore) Increment() {
+// Increment will increment the internal value of the semephore.
+// If the first waiting thread can be released (acquire all n of its requested resource), then it will be released,
+// and the internal value will be decremented accordingly.
+func (rs *GreedyCountingSemaphore) Increment() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
@@ -52,62 +52,15 @@ func (rs *CountingSemaphore) Increment() {
 
 	rs.val -= item.n
 	rs.waitList.Remove(next)
+	// signal the waiting thread that they are clear to take n resource(s)
 	close(item.signal)
 }
 
-// // Acquire waits for a resource to be available, and decrements the amount of the resource available.
-// // It is possible for the resource to be acquired, even if the context is already cancelled.
-// func (rs *CountingSemaphore) Acquire(ctx context.Context) error {
-// 	rs.mux.Lock()
-
-// 	if rs.val > 0 {
-// 		rs.val -= 1
-// 		rs.mux.Unlock()
-// 		return nil
-// 	}
-
-// 	signal := make(chan struct{})
-// 	elem := rs.waitList.PushBack(signal)
-
-// 	rs.mux.Unlock()
-
-// 	select {
-// 	case <-ctx.Done():
-// 		err := ctx.Err()
-// 		rs.mux.Lock()
-// 		select {
-// 		case <-signal:
-// 			// We were already signalled, so we must ignore context cancellation
-// 			// (pretend we didn't see it)
-// 			err = nil
-// 		default:
-// 			rs.waitList.Remove(elem)
-// 		}
-// 		rs.mux.Unlock()
-// 		return err
-// 	case <-signal:
-// 		return nil
-// 	}
-// }
-
-// // TryAcquire attempts to decrement the value; If it succeeds, returns true.
-// func (rs *CountingSemaphore) TryAcquire() bool {
-// 	rs.mux.Lock()
-// 	defer rs.mux.Unlock()
-
-// 	if rs.val > 0 {
-// 		rs.val -= 1
-// 		return true
-// 	}
-
-// 	return false
-// }
-
 // AcquireAtMost acquires at most n resource.
-// If it cannot acquire at n resource, it will block until the context cancels, or a timeout occurs.
-// If n resource cannot be acquired, then as much as possible will be acquired.
+// If it cannot acquire n resource, it will block until the context cancels, or a timeout occurs.
+// If n resource cannot be acquired by context cancellation or timeout, then as much resource as possible will be acquired.
 // Returns the amount of resource acquired.
-func (cs *CountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
+func (cs *GreedyCountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
 	cs.mux.Lock()
 
 	if cs.val >= n {
@@ -139,7 +92,7 @@ func (cs *CountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Dur
 	}
 }
 
-func (cs *CountingSemaphore) doAcquire(n int64, elem *list.Element) int64 {
+func (cs *GreedyCountingSemaphore) doAcquire(n int64, elem *list.Element) int64 {
 	var amountToTake int64
 	signal := elem.Value.(waitListItem).signal
 	cs.mux.Lock()
@@ -147,11 +100,10 @@ func (cs *CountingSemaphore) doAcquire(n int64, elem *list.Element) int64 {
 
 	select {
 	case <-signal:
-		// We were already signalled, so we must ignore context cancellation
-		// (pretend we didn't see it)
+		// We were already signalled, so n resource was already allocated to this thread
 		amountToTake = n
 	default:
-		if cs.val > n {
+		if cs.val >= n {
 			amountToTake = n
 			cs.val -= n
 		} else {

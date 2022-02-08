@@ -29,6 +29,7 @@ func TestDiskBufferBuild(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				_, err := cfg.Build()
 
 				require.ErrorIs(t, err, os.ErrNotExist)
@@ -39,6 +40,7 @@ func TestDiskBufferBuild(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "uncreated-file")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -55,6 +57,7 @@ func TestDiskBufferBuild(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "builds-twice")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -88,6 +91,7 @@ func TestDiskBufferAdd(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "add-entry")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -109,6 +113,7 @@ func TestDiskBufferAdd(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "zero-max-disk-size")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -131,6 +136,7 @@ func TestDiskBufferAdd(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "block-if-full")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -187,6 +193,7 @@ func TestDiskBufferRead(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "read-entry")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -216,6 +223,7 @@ func TestDiskBufferRead(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "read-multiple-entries")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -257,6 +265,7 @@ func TestDiskBufferRead(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "write-after-read")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -295,6 +304,7 @@ func TestDiskBufferRead(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "read-context-cancelled")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -334,6 +344,7 @@ func TestDiskBufferRead(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "read-multiple-entries-persistence")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -394,6 +405,7 @@ func TestDiskBufferClose(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "operate-after-close")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -418,6 +430,7 @@ func TestDiskBufferClose(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
 				path, err := os.MkdirTemp("", "close-after-close")
 				require.NoError(t, err)
 				cfg.Path = path
@@ -484,7 +497,7 @@ func TestDiskBufferConcurrency(t *testing.T) {
 		t.Run(fmt.Sprintf("%d-Readers-%d-Writers", testCase.readers, testCase.writers), func(t *testing.T) {
 			t.Parallel()
 			cfg := NewDiskBufferConfig()
-			path, err := os.MkdirTemp("", "concurrency-test")
+			path, err := os.MkdirTemp("", fmt.Sprintf("concurrency-test-%d-%d", testCase.readers, testCase.writers))
 			require.NoError(t, err)
 			cfg.Path = path
 			cfg.MaxSize = 1 << 20 // 1 meg
@@ -546,160 +559,6 @@ func TestDiskBufferConcurrency(t *testing.T) {
 }
 
 func BenchmarkDiskBuffer(b *testing.B) {
-	var (
-		numEntries    = 1000
-		maxSize       = 1 << 11 // 2 Kb file
-		maxChunkDelay = 25 * time.Millisecond
-	)
-
-	testCases := []struct {
-		writers int
-		readers int
-	}{
-		{
-			readers: 1,
-			writers: 1,
-		},
-		{
-			readers: 3,
-			writers: 1,
-		},
-		{
-			readers: 1,
-			writers: 3,
-		},
-		{
-			readers: 3,
-			writers: 3,
-		},
-		{
-			readers: 12,
-			writers: 1,
-		},
-		{
-			readers: 1,
-			writers: 12,
-		},
-		{
-			readers: 12,
-			writers: 12,
-		},
-	}
-
-	for _, testCase := range testCases {
-		b.Run(fmt.Sprintf("Benchmark1KEntries-%d-Readers-%d-Writers", testCase.readers, testCase.writers), func(b *testing.B) {
-			cfg := NewDiskBufferConfig()
-			path, err := os.MkdirTemp("", "concurrency-benchmark")
-			require.NoError(b, err)
-			cfg.Path = path
-			cfg.MaxSize = helper.ByteSize(maxSize)
-			cfg.MaxChunkDelay.Duration = maxChunkDelay
-			defer func() { _ = os.RemoveAll(cfg.Path) }()
-
-			buf, err := cfg.Build()
-			require.NoError(b, err)
-
-			entrySets := make([][]*entry.Entry, testCase.writers)
-			entriesPerWriter := numEntries / testCase.writers
-			for i := 0; i < testCase.writers; i++ {
-				if i == testCase.writers-1 {
-					entriesPerWriter = entriesPerWriter + (numEntries % testCase.writers)
-				}
-
-				entrySets[i] = randomEntries(entriesPerWriter)
-			}
-
-			b.ResetTimer()
-			b.StopTimer()
-			for i := 0; i < b.N; i++ {
-				errGrp, ctx := errgroup.WithContext(context.Background())
-				var readCnt int64 = 0
-
-				// Spin off readers
-				for i := 0; i < testCase.readers; i++ {
-					errGrp.Go(
-						func() error {
-							for {
-								entries, err := buf.Read(ctx)
-								if err != nil {
-									return err
-								}
-
-								updatedCnt := atomic.AddInt64(&readCnt, int64(len(entries)))
-								if updatedCnt == int64(numEntries) {
-									return nil
-								}
-							}
-						},
-					)
-				}
-
-				b.StartTimer()
-				// Spin off writers
-
-				for i := 0; i < testCase.writers; i++ {
-					writer := i
-					errGrp.Go(
-						func() error {
-							for _, e := range entrySets[writer] {
-								err := buf.Add(ctx, e)
-								if err != nil {
-									return err
-								}
-							}
-							return nil
-						},
-					)
-				}
-
-				err = errGrp.Wait()
-				b.StopTimer()
-				require.NoError(b, err)
-			}
-		})
-	}
-}
-
-func randomFilePath(prefix string) string {
-	return filepath.Join(os.TempDir(), prefix+randomString(16))
-}
-
-const alphabet = "abcdefghijklmnopqrstuvwxyz"
-
-func randomString(l int) string {
-	b := strings.Builder{}
-	b.Grow(int(l))
-
-	for i := 0; i < l; i++ {
-		c := rand.Int() % len(alphabet)
-		b.Write([]byte{alphabet[c]})
-	}
-
-	return b.String()
-}
-
-func randomEntries(n int) []*entry.Entry {
-	entries := make([]*entry.Entry, 0, n)
-	for i := 0; i < n; i++ {
-		entries = append(entries, randomEntry())
-	}
-	return entries
-}
-
-func randomEntry() *entry.Entry {
-	e := entry.New()
-	e.Timestamp = time.Unix(rand.Int63n(1638884759), rand.Int63n(1e9)).UTC()
-	e.Body = map[string]interface{}{
-		"msg": randomString(16),
-	}
-	e.Attributes = map[string]string{
-		"file": randomString(19),
-	}
-
-	return e
-}
-
-func BenchmarkDiskBuffer2(b *testing.B) {
 	b.Run("NoSync", func(b *testing.B) {
 		cfg := NewDiskBufferConfig()
 		path, err := os.MkdirTemp("", "concurrency-benchmark-no-sync")
@@ -799,4 +658,43 @@ func BenchmarkDiskBuffer2(b *testing.B) {
 
 		wg.Wait()
 	})
+}
+
+func randomFilePath(prefix string) string {
+	return filepath.Join(os.TempDir(), prefix+randomString(16))
+}
+
+const alphabet = "abcdefghijklmnopqrstuvwxyz"
+
+func randomString(l int) string {
+	b := strings.Builder{}
+	b.Grow(int(l))
+
+	for i := 0; i < l; i++ {
+		c := rand.Int() % len(alphabet)
+		b.Write([]byte{alphabet[c]})
+	}
+
+	return b.String()
+}
+
+func randomEntries(n int) []*entry.Entry {
+	entries := make([]*entry.Entry, 0, n)
+	for i := 0; i < n; i++ {
+		entries = append(entries, randomEntry())
+	}
+	return entries
+}
+
+func randomEntry() *entry.Entry {
+	e := entry.New()
+	e.Timestamp = time.Unix(rand.Int63n(1638884759), rand.Int63n(1e9)).UTC()
+	e.Body = map[string]interface{}{
+		"msg": randomString(16),
+	}
+	e.Attributes = map[string]string{
+		"file": randomString(19),
+	}
+
+	return e
 }

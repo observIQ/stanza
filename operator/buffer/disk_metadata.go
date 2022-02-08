@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+
+	"go.uber.org/multierr"
 )
 
 type FileLike interface {
@@ -117,5 +119,13 @@ func (d *DiskBufferMetadata) Close() error {
 		return nil
 	}
 
-	return d.f.Close()
+	d.closed = true
+
+	syncErr := d.Sync()
+	closeErr := d.f.Close()
+
+	return multierr.Combine(
+		syncErr,
+		closeErr,
+	)
 }

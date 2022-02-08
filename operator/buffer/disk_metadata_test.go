@@ -1,15 +1,5 @@
 package buffer
 
-// import (
-// 	"bytes"
-// 	"io"
-// 	"testing"
-
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// 	"github.com/stretchr/testify/require"
-// )
-
 // func TestReadDiskBufferMetadata(t *testing.T) {
 // 	buf := bytes.NewBufferString("\x01\x00\x00\x00\x00\x00\x00\xFF\x01")
 // 	dmd, err := ReadDiskBufferMetadata(buf)
@@ -63,23 +53,4 @@ package buffer
 
 // 	err := dmd.Sync(rwsSeekFail)
 // 	assert.ErrorIs(t, err, io.ErrClosedPipe)
-// }
-
-// type mockReadWriteSeeker struct {
-// 	mock.Mock
-// }
-
-// func (s *mockReadWriteSeeker) Read(buf []byte) (int, error) {
-// 	args := s.Called(buf)
-// 	return args.Int(0), args.Error(1)
-// }
-
-// func (s *mockReadWriteSeeker) Write(buf []byte) (int, error) {
-// 	args := s.Called(buf)
-// 	return args.Int(0), args.Error(1)
-// }
-
-// func (s *mockReadWriteSeeker) Seek(offset int64, whence int) (int64, error) {
-// 	args := s.Called(offset, whence)
-// 	return args.Get(0).(int64), args.Error(1)
 // }

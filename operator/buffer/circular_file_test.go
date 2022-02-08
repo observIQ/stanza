@@ -54,6 +54,24 @@ func TestOpen(t *testing.T) {
 				require.Nil(t, rb)
 			},
 		},
+		{
+			desc: "Test open with new size gives error",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				path := randomFilePath("ring-buffer-open-sync")
+
+				rb, err := OpenCircularFile(path, true, 1000)
+				require.NoError(t, err)
+
+				err = rb.Close()
+				require.NoError(t, err)
+
+				rb, err = OpenCircularFile(path, true, 1001)
+				require.Error(t, err)
+				require.Nil(t, rb)
+
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -416,11 +434,12 @@ func TestRead(t *testing.T) {
 				require.Equal(t, int64(len(b)), rb.Len())
 				require.True(t, rb.Full)
 
-				bufOut := make([]byte, 12)
+				bufOut := make([]byte, len(b))
 				n, err = rb.Read(bufOut)
 				require.NoError(t, err)
 				require.Equal(t, len(bufOut), n)
 				require.Equal(t, int64(0), rb.Start)
+				require.Equal(t, int64(0), rb.ReadBytesLeft())
 			},
 		},
 		{

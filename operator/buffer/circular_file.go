@@ -1,11 +1,14 @@
 package buffer
 
 import (
+	"fmt"
 	"io"
 	"os"
+
+	"go.uber.org/multierr"
 )
 
-// CircularFile is a io.ReadWriter that writes to a fixed length file, such that
+// CircularFile is a io.ReadWriteCloser that writes to a fixed length file, such that
 // it wraps around to the beginning when reaching the end.
 // Methods on this struct are not thread-safe and require additional synchronization.
 type CircularFile struct {
@@ -18,9 +21,10 @@ type CircularFile struct {
 	seekedRead bool
 	seekedEnd  bool
 	closed     bool
+	readPtrEnd bool
 }
 
-var _ io.ReadWriter = (*CircularFile)(nil)
+var _ io.ReadWriteCloser = (*CircularFile)(nil)
 
 func OpenCircularFile(filePath string, sync bool, size int64) (*CircularFile, error) {
 	fileFlags := os.O_CREATE | os.O_RDWR
@@ -33,9 +37,33 @@ func OpenCircularFile(filePath string, sync bool, size int64) (*CircularFile, er
 		return nil, err
 	}
 
-	// TODO: Assert file is the given size.
-	// If the file sizes don't match, we need to do something to try and resize
-	// For now, we don't worry about that
+	// Make sure that the file, if it already existed, is actually the correct size.
+	fsize, err := f.Seek(0, io.SeekEnd)
+	if err != nil {
+		fCloseErr := f.Close()
+		return nil, multierr.Combine(
+			err,
+			fCloseErr,
+		)
+	}
+
+	if fsize == 0 {
+		err := f.Truncate(size)
+		if err != nil {
+			fCloseErr := f.Close()
+			return nil, multierr.Combine(
+				err,
+				fCloseErr,
+			)
+		}
+	} else if fsize != size {
+		fCloseErr := f.Close()
+		return nil,
+			multierr.Combine(
+				fmt.Errorf("configured size (%d) does not match current on-disk size (%d)", size, fsize),
+				fCloseErr,
+			)
+	}
 
 	return &CircularFile{
 		Size: size,
@@ -115,6 +143,10 @@ func (rb *CircularFile) Read(p []byte) (int, error) {
 		}
 	}
 
+	if rb.ReadPtr == rb.End && n != 0 {
+		rb.readPtrEnd = true
+	}
+
 	if isEOF {
 		return int(totalBytesToRead), io.EOF
 	}
@@ -164,6 +196,10 @@ func (rb *CircularFile) Write(p []byte) (int, error) {
 		rb.seekedEnd = false
 	}
 
+	if n > 0 {
+		rb.readPtrEnd = false
+	}
+
 	if err != nil {
 		return n, err
 	}
@@ -176,6 +212,11 @@ func (rb *CircularFile) Write(p []byte) (int, error) {
 
 		n2, err := rb.f.Write(p[firstWriteBytes:])
 		rb.End += int64(n2)
+
+		if n2 > 0 {
+			rb.readPtrEnd = false
+		}
+
 		if err != nil {
 			return n + n2, err
 		}
@@ -206,7 +247,10 @@ func (rb *CircularFile) Len() int64 {
 }
 
 func (rb *CircularFile) ReadBytesLeft() int64 {
-	// TODO: This doesn't make sense
+	if rb.readPtrEnd {
+		return 0
+	}
+
 	if rb.Full && rb.ReadPtr == rb.End {
 		return rb.Size
 	}
@@ -229,6 +273,7 @@ func (rb *CircularFile) Discard(n int64) {
 	rb.seekedRead = false
 	if n == 0 {
 		rb.ReadPtr = rb.Start
+		rb.readPtrEnd = !rb.Full && (rb.ReadPtr == rb.End)
 		return
 	}
 
@@ -240,6 +285,7 @@ func (rb *CircularFile) Discard(n int64) {
 
 	rb.ReadPtr = rb.Start
 	rb.Full = false
+	rb.readPtrEnd = rb.ReadPtr == rb.End
 }
 
 // seekReadStart seeks the underlying file to readPtr.
