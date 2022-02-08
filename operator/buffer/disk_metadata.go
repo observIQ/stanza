@@ -59,21 +59,21 @@ func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*DiskBufferMetadata
 
 	fi, err := f.Stat()
 	if err != nil {
-		f.Close()
-		return nil, err
+		closeErr := f.Close()
+		return nil, multierr.Combine(err, closeErr)
 	}
 
 	if fi.Size() > 0 {
 		err = dbm.ReadFromDisk()
 		if err != nil {
-			f.Close()
-			return nil, err
+			closeErr := f.Close()
+			return nil, multierr.Combine(err, closeErr)
 		}
 	} else {
 		err = dbm.Sync()
 		if err != nil {
-			f.Close()
-			return nil, err
+			closeErr := f.Close()
+			return nil, multierr.Combine(err, closeErr)
 		}
 	}
 
