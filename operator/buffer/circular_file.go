@@ -71,14 +71,14 @@ func openCircularFile(filePath string, sync bool, size int64) (*circularFile, er
 	}, nil
 }
 
-func (rb *circularFile) Close() error {
-	if rb.closed {
+func (cf *circularFile) Close() error {
+	if cf.closed {
 		return nil
 	}
 
-	rb.closed = true
+	cf.closed = true
 
-	err := rb.f.Close()
+	err := cf.f.Close()
 	if err != nil {
 		return err
 	}
@@ -86,11 +86,11 @@ func (rb *circularFile) Close() error {
 	return nil
 }
 
-// Read reads from the ring buffer into p, up to len(p) bytes.
+// Read reads from the circular file into p, up to len(p) bytes.
 // The contents read are not discarded from the buffer; An independent read pointer
 // is maintained, which can be reset to the start of the buffer using ResetReadOffset()
-func (rb *circularFile) Read(p []byte) (int, error) {
-	if rb.closed {
+func (cf *circularFile) Read(p []byte) (int, error) {
+	if cf.closed {
 		return 0, ErrBufferClosed
 	}
 
@@ -98,15 +98,15 @@ func (rb *circularFile) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	err := rb.seekReadStart()
+	err := cf.seekReadStart()
 	if err != nil {
 		return 0, err
 	}
 
 	var totalBytesToRead int64
 	var isEOF bool
-	if rb.ReadBytesLeft() < int64(len(p)) {
-		totalBytesToRead = rb.ReadBytesLeft()
+	if cf.ReadBytesLeft() < int64(len(p)) {
+		totalBytesToRead = cf.ReadBytesLeft()
 		isEOF = true
 	} else {
 		totalBytesToRead = int64(len(p))
@@ -114,16 +114,16 @@ func (rb *circularFile) Read(p []byte) (int, error) {
 	}
 
 	var firstReadBytes int64
-	if totalBytesToRead+rb.ReadPtr <= rb.Size {
+	if totalBytesToRead+cf.ReadPtr <= cf.Size {
 		firstReadBytes = totalBytesToRead
 	} else {
-		firstReadBytes = rb.Size - rb.ReadPtr
+		firstReadBytes = cf.Size - cf.ReadPtr
 	}
 
-	n, err := rb.f.Read(p[:firstReadBytes])
-	rb.ReadPtr = (rb.ReadPtr + int64(n)) % rb.Size
-	if rb.ReadPtr == 0 {
-		rb.seekedRead = false
+	n, err := cf.f.Read(p[:firstReadBytes])
+	cf.ReadPtr = (cf.ReadPtr + int64(n)) % cf.Size
+	if cf.ReadPtr == 0 {
+		cf.seekedRead = false
 	}
 
 	if err != nil {
@@ -131,20 +131,20 @@ func (rb *circularFile) Read(p []byte) (int, error) {
 	}
 
 	if firstReadBytes != totalBytesToRead {
-		err = rb.seekReadStart()
+		err = cf.seekReadStart()
 		if err != nil {
 			return n, err
 		}
 
-		n2, err := rb.f.Read(p[firstReadBytes:])
-		rb.ReadPtr += int64(n2)
+		n2, err := cf.f.Read(p[firstReadBytes:])
+		cf.ReadPtr += int64(n2)
 		if err != nil {
 			return n + n2, err
 		}
 	}
 
-	if rb.ReadPtr == rb.End && n != 0 {
-		rb.readPtrEnd = true
+	if cf.ReadPtr == cf.End && n != 0 {
+		cf.readPtrEnd = true
 	}
 
 	if isEOF {
@@ -158,8 +158,8 @@ func (rb *circularFile) Read(p []byte) (int, error) {
 // If the end of the file has been reached and no more bytes may be written,
 // io.EOF is returned as an error, as well as the number of bytes that were successfully
 // written.
-func (rb *circularFile) Write(p []byte) (int, error) {
-	if rb.closed {
+func (cf *circularFile) Write(p []byte) (int, error) {
+	if cf.closed {
 		return 0, ErrBufferClosed
 	}
 
@@ -167,15 +167,15 @@ func (rb *circularFile) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	err := rb.seekEnd()
+	err := cf.seekEnd()
 	if err != nil {
 		return 0, err
 	}
 
 	var totalBytesToWrite int64
 	var isEOF bool
-	if rb.WriteBytesLeft() < int64(len(p)) {
-		totalBytesToWrite = rb.WriteBytesLeft()
+	if cf.writeBytesLeft() < int64(len(p)) {
+		totalBytesToWrite = cf.writeBytesLeft()
 		isEOF = true
 	} else {
 		totalBytesToWrite = int64(len(p))
@@ -183,21 +183,21 @@ func (rb *circularFile) Write(p []byte) (int, error) {
 	}
 
 	var firstWriteBytes int64
-	if totalBytesToWrite+rb.End <= rb.Size {
+	if totalBytesToWrite+cf.End <= cf.Size {
 		firstWriteBytes = totalBytesToWrite
 	} else {
-		firstWriteBytes = rb.Size - rb.End
+		firstWriteBytes = cf.Size - cf.End
 	}
 
-	n, err := rb.f.Write(p[:firstWriteBytes])
+	n, err := cf.f.Write(p[:firstWriteBytes])
 	// Modulus is used here because rb.end may equal rb.size
-	rb.End = (rb.End + int64(n)) % rb.Size
-	if rb.End == 0 {
-		rb.seekedEnd = false
+	cf.End = (cf.End + int64(n)) % cf.Size
+	if cf.End == 0 {
+		cf.seekedEnd = false
 	}
 
 	if n > 0 {
-		rb.readPtrEnd = false
+		cf.readPtrEnd = false
 	}
 
 	if err != nil {
@@ -205,16 +205,16 @@ func (rb *circularFile) Write(p []byte) (int, error) {
 	}
 
 	if firstWriteBytes != totalBytesToWrite {
-		err = rb.seekEnd()
+		err = cf.seekEnd()
 		if err != nil {
 			return n, err
 		}
 
-		n2, err := rb.f.Write(p[firstWriteBytes:])
-		rb.End += int64(n2)
+		n2, err := cf.f.Write(p[firstWriteBytes:])
+		cf.End += int64(n2)
 
 		if n2 > 0 {
-			rb.readPtrEnd = false
+			cf.readPtrEnd = false
 		}
 
 		if err != nil {
@@ -223,105 +223,107 @@ func (rb *circularFile) Write(p []byte) (int, error) {
 	}
 
 	if isEOF {
-		rb.Full = true
+		cf.Full = true
 		return int(totalBytesToWrite), io.EOF
 	}
 
-	if rb.Start == rb.End {
-		rb.Full = true
+	if cf.Start == cf.End {
+		cf.Full = true
 	}
 
 	return int(totalBytesToWrite), nil
 }
 
-func (rb *circularFile) Len() int64 {
-	if rb.Full {
-		return rb.Size
+func (cf *circularFile) len() int64 {
+	if cf.Full {
+		return cf.Size
 	}
 
-	if rb.Start <= rb.End {
-		return rb.End - rb.Start
+	if cf.Start <= cf.End {
+		return cf.End - cf.Start
 	} else {
-		return rb.End + (rb.Size - rb.Start)
+		return cf.End + (cf.Size - cf.Start)
 	}
 }
 
-func (rb *circularFile) ReadBytesLeft() int64 {
-	if rb.readPtrEnd {
+func (cf *circularFile) ReadBytesLeft() int64 {
+	if cf.readPtrEnd {
 		return 0
 	}
 
-	if rb.Full && rb.ReadPtr == rb.End {
-		return rb.Size
+	if cf.Full && cf.ReadPtr == cf.End {
+		return cf.Size
 	}
 
-	if rb.ReadPtr <= rb.End {
-		return rb.End - rb.ReadPtr
+	if cf.ReadPtr <= cf.End {
+		return cf.End - cf.ReadPtr
 	} else {
-		return rb.End + (rb.Size - rb.ReadPtr)
+		return cf.End + (cf.Size - cf.ReadPtr)
 	}
 }
 
-func (rb *circularFile) WriteBytesLeft() int64 {
-	return rb.Size - rb.Len()
+func (cf *circularFile) writeBytesLeft() int64 {
+	return cf.Size - cf.len()
 }
 
-// Discard removes n bytes from the start end of the ring buffer.
+// discard removes n bytes from the start end of the circular file.
 // This resets the internal read pointer to be pointed to start.
 // If n is greater than the length of the buffer, the buffer is truncated to a length of 0.
-func (rb *circularFile) Discard(n int64) {
-	rb.seekedRead = false
+func (cf *circularFile) discard(n int64) {
+	cf.seekedRead = false
 	if n == 0 {
-		rb.ReadPtr = rb.Start
-		rb.readPtrEnd = !rb.Full && (rb.ReadPtr == rb.End)
+		cf.ReadPtr = cf.Start
+		cf.readPtrEnd = !cf.Full && (cf.ReadPtr == cf.End)
 		return
 	}
 
-	if n > rb.Len() {
-		rb.Start = rb.End
+	if n > cf.len() {
+		cf.Start = cf.End
 	} else {
-		rb.Start = (rb.Start + n) % rb.Size
+		cf.Start = (cf.Start + n) % cf.Size
 	}
 
-	rb.ReadPtr = rb.Start
-	rb.Full = false
-	rb.readPtrEnd = rb.ReadPtr == rb.End
+	cf.ReadPtr = cf.Start
+	cf.Full = false
+	cf.readPtrEnd = cf.ReadPtr == cf.End
 }
 
 // seekReadStart seeks the underlying file to readPtr.
 // We reduce sync calls by keeping track of whether we are at the readPtr
 // or at the end pointer.
-func (rb *circularFile) seekReadStart() error {
-	if rb.seekedRead {
+func (cf *circularFile) seekReadStart() error {
+	if cf.seekedRead {
 		return nil
 	}
 
-	_, err := rb.f.Seek(rb.ReadPtr, io.SeekStart)
+	_, err := cf.f.Seek(cf.ReadPtr, io.SeekStart)
 	if err != nil {
-		rb.seekedRead = false
-		rb.seekedEnd = false
+		cf.seekedRead = false
+		cf.seekedEnd = false
 		return err
 	}
 
-	rb.seekedRead = true
-	rb.seekedEnd = false
+	cf.seekedRead = true
+	cf.seekedEnd = false
 	return nil
 }
 
 // seekEnd seeks the underlying file to the end pointer.
-func (rb *circularFile) seekEnd() error {
-	if rb.seekedEnd {
+// We reduce sync calls by keeping track of whether we are at the readPtr
+// or at the end pointer.
+func (cf *circularFile) seekEnd() error {
+	if cf.seekedEnd {
 		return nil
 	}
 
-	_, err := rb.f.Seek(rb.End, io.SeekStart)
+	_, err := cf.f.Seek(cf.End, io.SeekStart)
 	if err != nil {
-		rb.seekedRead = false
-		rb.seekedEnd = false
+		cf.seekedRead = false
+		cf.seekedEnd = false
 		return err
 	}
 
-	rb.seekedRead = false
-	rb.seekedEnd = true
+	cf.seekedRead = false
+	cf.seekedEnd = true
 	return nil
 }

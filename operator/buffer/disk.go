@@ -62,7 +62,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 		return nil, err
 	}
 
-	rb, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
+	cf, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
 		metadataCloseErr := metadata.Close()
 		return nil, multierr.Combine(
@@ -71,16 +71,16 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 		)
 	}
 
-	rb.Start = metadata.StartOffset
-	rb.ReadPtr = metadata.StartOffset
-	rb.End = metadata.EndOffset
-	rb.Full = metadata.Full
+	cf.Start = metadata.StartOffset
+	cf.ReadPtr = metadata.StartOffset
+	cf.End = metadata.EndOffset
+	cf.Full = metadata.Full
 
 	sem := semaphore.NewWeighted(int64(c.MaxSize))
-	acquired := sem.TryAcquire(rb.Len())
+	acquired := sem.TryAcquire(cf.len())
 	if !acquired {
 		metadataCloseErr := metadata.Close()
-		rbCloseErr := rb.Close()
+		rbCloseErr := cf.Close()
 		return nil, multierr.Combine(
 			errors.New("failed to acquire buffer length for semaphore"),
 			metadataCloseErr,
@@ -90,7 +90,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 
 	return &DiskBuffer{
 		metadata:      metadata,
-		cf:            rb,
+		cf:            cf,
 		cfMux:         &sync.Mutex{},
 		writerSem:     sem,
 		readerSem:     newGreedyCountingSemaphore(metadata.Entries),
@@ -204,7 +204,7 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	}
 
 	decoderOffset := dec.InputOffset()
-	d.cf.Discard(decoderOffset)
+	d.cf.discard(decoderOffset)
 	d.writerSem.Release(decoderOffset)
 	// Update start pointer to current position
 	d.metadata.StartOffset = d.cf.Start
