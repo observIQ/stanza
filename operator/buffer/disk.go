@@ -56,14 +56,14 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 	bufferFilePath := filepath.Join(c.Path, "buffer")
 	metadataFilePath := filepath.Join(c.Path, "metadata.json")
 
-	metadata, err := OpenDiskBufferMetadata(metadataFilePath, c.Sync)
+	metadata, err := openDiskBufferMetadata(metadataFilePath, c.Sync)
 	if err != nil {
 		return nil, err
 	}
 
 	cf, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
-		metadata.Close()
+		metadata.close()
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 	sem := semaphore.NewWeighted(int64(c.MaxSize))
 	acquired := sem.TryAcquire(cf.len())
 	if !acquired {
-		metadata.Close()
+		metadata.close()
 		cf.Close()
 		return nil, errors.New("failed to acquire buffer length for semaphore")
 	}
@@ -153,13 +153,13 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	d.metadata.EndOffset = d.cf.End
 	d.metadata.Full = d.cf.Full
 	d.metadata.Entries += 1
-	err = d.metadata.Sync()
+	err = d.metadata.sync()
 	if err != nil {
 		return err
 	}
 
 	// Increment the counting semaphore to signal readers that an entry is available
-	d.readerSem.Increment()
+	d.readerSem.increment()
 
 	return nil
 }
@@ -175,7 +175,7 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	}
 
 	// The reader gains ownership of n entries here.
-	n := d.readerSem.AcquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
+	n := d.readerSem.acquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
 
 	if n == 0 {
 		return nil, ctx.Err()
@@ -205,7 +205,7 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	d.metadata.StartOffset = d.cf.Start
 	d.metadata.Full = d.cf.Full
 	d.metadata.Entries -= n
-	err := d.metadata.Sync()
+	err := d.metadata.sync()
 
 	return entries, err
 }
@@ -223,11 +223,11 @@ func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 
 	err := d.cf.Close()
 	if err != nil {
-		d.metadata.Close()
+		d.metadata.close()
 		return nil, err
 	}
 
-	return nil, d.metadata.Close()
+	return nil, d.metadata.close()
 }
 
 // marshalEntry marshals the given entry into the given byte slice.

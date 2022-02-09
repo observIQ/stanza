@@ -28,10 +28,10 @@ func newGreedyCountingSemaphore(initialVal int64) *greedyCountingSemaphore {
 	}
 }
 
-// Increment will increment the internal value of the semephore.
+// increment will increment the internal value of the semephore.
 // If the first waiting thread can be released (acquire all n of its requested resource), then it will be released,
 // and the internal value will be decremented accordingly.
-func (rs *greedyCountingSemaphore) Increment() {
+func (rs *greedyCountingSemaphore) increment() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
@@ -56,11 +56,11 @@ func (rs *greedyCountingSemaphore) Increment() {
 	close(item.signal)
 }
 
-// AcquireAtMost acquires at most n resource.
+// acquireAtMost acquires at most n resource.
 // If it cannot acquire n resource, it will block until the context cancels, or a timeout occurs.
 // If n resource cannot be acquired by context cancellation or timeout, then as much resource as possible will be acquired.
 // Returns the amount of resource acquired.
-func (cs *greedyCountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
+func (cs *greedyCountingSemaphore) acquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
 	cs.mux.Lock()
 
 	if cs.val >= n {
