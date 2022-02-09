@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-
-	"go.uber.org/multierr"
 )
 
 type fileLike interface {
@@ -15,6 +13,8 @@ type fileLike interface {
 	Truncate(int64) error
 }
 
+// diskBufferMetadata holds metadata relating to the disk buffer,
+// that isn't the entry data itself.
 type diskBufferMetadata struct {
 	// Version is a number indicating the version of the disk buffer file.
 	// Currently, only 0 is valid.
@@ -59,21 +59,21 @@ func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*diskBufferMetadata
 
 	fi, err := f.Stat()
 	if err != nil {
-		closeErr := f.Close()
-		return nil, multierr.Combine(err, closeErr)
+		f.Close()
+		return nil, err
 	}
 
 	if fi.Size() > 0 {
 		err = dbm.ReadFromDisk()
 		if err != nil {
-			closeErr := f.Close()
-			return nil, multierr.Combine(err, closeErr)
+			f.Close()
+			return nil, err
 		}
 	} else {
 		err = dbm.Sync()
 		if err != nil {
-			closeErr := f.Close()
-			return nil, multierr.Combine(err, closeErr)
+			f.Close()
+			return nil, err
 		}
 	}
 
@@ -121,11 +121,12 @@ func (d *diskBufferMetadata) Close() error {
 
 	d.closed = true
 
-	syncErr := d.Sync()
-	closeErr := d.f.Close()
+	err := d.Sync()
+	if err != nil {
+		d.f.Close()
+		return err
+	}
 
-	return multierr.Combine(
-		syncErr,
-		closeErr,
-	)
+	return d.f.Close()
+
 }

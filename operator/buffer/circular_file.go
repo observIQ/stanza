@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"go.uber.org/multierr"
 )
 
 // circularFile is a io.ReadWriteCloser that writes to a fixed length file, such that
@@ -40,29 +38,19 @@ func openCircularFile(filePath string, sync bool, size int64) (*circularFile, er
 	// Make sure that the file, if it already existed, is actually the correct size.
 	fsize, err := f.Seek(0, io.SeekEnd)
 	if err != nil {
-		fCloseErr := f.Close()
-		return nil, multierr.Combine(
-			err,
-			fCloseErr,
-		)
+		f.Close()
+		return nil, err
 	}
 
 	if fsize == 0 {
 		err := f.Truncate(size)
 		if err != nil {
-			fCloseErr := f.Close()
-			return nil, multierr.Combine(
-				err,
-				fCloseErr,
-			)
+			f.Close()
+			return nil, err
 		}
 	} else if fsize != size {
-		fCloseErr := f.Close()
-		return nil,
-			multierr.Combine(
-				fmt.Errorf("configured size (%d) does not match current on-disk size (%d)", size, fsize),
-				fCloseErr,
-			)
+		f.Close()
+		return nil, fmt.Errorf("configured size (%d) does not match current on-disk size (%d)", size, fsize)
 	}
 
 	return &circularFile{

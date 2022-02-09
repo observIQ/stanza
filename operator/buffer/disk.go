@@ -12,7 +12,6 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
-	"go.uber.org/multierr"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -64,11 +63,8 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 
 	cf, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
-		metadataCloseErr := metadata.Close()
-		return nil, multierr.Combine(
-			err,
-			metadataCloseErr,
-		)
+		metadata.Close()
+		return nil, err
 	}
 
 	cf.Start = metadata.StartOffset
@@ -79,13 +75,9 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 	sem := semaphore.NewWeighted(int64(c.MaxSize))
 	acquired := sem.TryAcquire(cf.len())
 	if !acquired {
-		metadataCloseErr := metadata.Close()
-		rbCloseErr := cf.Close()
-		return nil, multierr.Combine(
-			errors.New("failed to acquire buffer length for semaphore"),
-			metadataCloseErr,
-			rbCloseErr,
-		)
+		metadata.Close()
+		cf.Close()
+		return nil, errors.New("failed to acquire buffer length for semaphore")
 	}
 
 	return &DiskBuffer{
@@ -140,6 +132,7 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 		return err
 	}
 
+	// We cannot fit something into the file that exceeds the size of the file
 	if len(bufBytes) > int(d.maxSize) {
 		return ErrEntryTooLarge
 	}
@@ -165,6 +158,7 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 		return err
 	}
 
+	// Increment the counting semaphore to signal readers that an entry is available
 	d.readerSem.Increment()
 
 	return nil
@@ -180,6 +174,7 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 		return nil, ErrBufferClosed
 	}
 
+	// The reader gains ownership of n entries here.
 	n := d.readerSem.AcquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
 
 	if n == 0 {
@@ -226,12 +221,13 @@ func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 
 	d.closed = true
 
-	fileCloseErr := d.cf.Close()
-	metaCloseErr := d.metadata.Close()
-	return nil, multierr.Combine(
-		fileCloseErr,
-		metaCloseErr,
-	)
+	err := d.cf.Close()
+	if err != nil {
+		d.metadata.Close()
+		return nil, err
+	}
+
+	return nil, d.metadata.Close()
 }
 
 // marshalEntry marshals the given entry into the given byte slice.
