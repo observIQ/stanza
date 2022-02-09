@@ -442,7 +442,7 @@ func TestRead(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, len(bufOut), n)
 				require.Equal(t, int64(0), cf.Start)
-				require.Equal(t, int64(0), cf.ReadBytesLeft())
+				require.Equal(t, int64(0), cf.readBytesLeft())
 			},
 		},
 		{

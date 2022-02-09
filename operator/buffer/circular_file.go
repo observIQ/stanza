@@ -105,8 +105,8 @@ func (cf *circularFile) Read(p []byte) (int, error) {
 
 	var totalBytesToRead int64
 	var isEOF bool
-	if cf.ReadBytesLeft() < int64(len(p)) {
-		totalBytesToRead = cf.ReadBytesLeft()
+	if cf.readBytesLeft() < int64(len(p)) {
+		totalBytesToRead = cf.readBytesLeft()
 		isEOF = true
 	} else {
 		totalBytesToRead = int64(len(p))
@@ -246,7 +246,7 @@ func (cf *circularFile) len() int64 {
 	}
 }
 
-func (cf *circularFile) ReadBytesLeft() int64 {
+func (cf *circularFile) readBytesLeft() int64 {
 	if cf.readPtrEnd {
 		return 0
 	}
