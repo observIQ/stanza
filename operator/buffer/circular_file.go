@@ -291,7 +291,6 @@ func (cf *circularFile) discard(n int64) {
 	if n <= 0 {
 		// If n <= 0, we reset the read pointer anyways for consistency
 		cf.ReadPtr = cf.Start
-		cf.seekedRead = false
 		// If the buffer is empty, set readPtrEnd true
 		cf.readPtrEnd = !cf.Full && (cf.ReadPtr == cf.End)
 		return
@@ -306,7 +305,6 @@ func (cf *circularFile) discard(n int64) {
 	}
 
 	cf.ReadPtr = cf.Start
-	cf.seekedRead = false
 	cf.Full = false
 	cf.readPtrEnd = cf.ReadPtr == cf.End
 }
