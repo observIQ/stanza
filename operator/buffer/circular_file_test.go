@@ -2,7 +2,10 @@ package buffer
 
 import (
 	"io"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/observiq/stanza/v2/operator/buffer/mocks"
@@ -22,7 +25,7 @@ func TestOpen(t *testing.T) {
 				path := randomFilePath("ring-buffer-open")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -36,7 +39,7 @@ func TestOpen(t *testing.T) {
 				path := randomFilePath("ring-buffer-open-sync")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, true, 1000)
+				rb, err := openCircularFile(path, true, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -49,7 +52,7 @@ func TestOpen(t *testing.T) {
 				t.Parallel()
 				path := os.TempDir()
 
-				rb, err := OpenCircularFile(path, true, 1000)
+				rb, err := openCircularFile(path, true, 1000)
 				require.Error(t, err)
 				require.Nil(t, rb)
 			},
@@ -60,13 +63,13 @@ func TestOpen(t *testing.T) {
 				t.Parallel()
 				path := randomFilePath("ring-buffer-open-sync")
 
-				rb, err := OpenCircularFile(path, true, 1000)
+				rb, err := openCircularFile(path, true, 1000)
 				require.NoError(t, err)
 
 				err = rb.Close()
 				require.NoError(t, err)
 
-				rb, err = OpenCircularFile(path, true, 1001)
+				rb, err = openCircularFile(path, true, 1001)
 				require.Error(t, err)
 				require.Nil(t, rb)
 
@@ -91,7 +94,7 @@ func TestWrite(t *testing.T) {
 				path := randomFilePath("ring-buffer-write")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -110,7 +113,7 @@ func TestWrite(t *testing.T) {
 				path := randomFilePath("ring-buffer-write-twice")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -137,7 +140,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)))
+				rb, err := openCircularFile(path, false, int64(len(b)))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -159,7 +162,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)))
+				rb, err := openCircularFile(path, false, int64(len(b)))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -187,7 +190,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)))
+				rb, err := openCircularFile(path, false, int64(len(b)))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -213,7 +216,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)-1))
+				rb, err := openCircularFile(path, false, int64(len(b)-1))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -239,7 +242,7 @@ func TestWrite(t *testing.T) {
 				f.On("Seek", mock.Anything, mock.Anything).Return(int64(0), nil)
 				f.On("Write", b).Return(2, io.ErrUnexpectedEOF)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 				}
@@ -269,7 +272,7 @@ func TestWrite(t *testing.T) {
 				f.On("Write", firstWriteSlice).Return(len(firstWriteSlice), nil)
 				f.On("Write", secondWriteSlice).Return(1, io.ErrShortWrite)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 				}
@@ -298,7 +301,7 @@ func TestWrite(t *testing.T) {
 				f := &mocks.FileLike{}
 				f.On("Seek", mock.Anything, mock.Anything).Return(int64(0), io.ErrClosedPipe)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 				}
@@ -329,7 +332,7 @@ func TestWrite(t *testing.T) {
 				f.On("Write", firstWriteSlice).Return(len(firstWriteSlice), nil)
 				f.On("Write", secondWriteSlice).Return(len(secondWriteSlice), nil)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 				}
@@ -365,7 +368,7 @@ func TestRead(t *testing.T) {
 				path := randomFilePath("ring-buffer-read")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -390,7 +393,7 @@ func TestRead(t *testing.T) {
 				path := randomFilePath("ring-buffer-read")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -422,7 +425,7 @@ func TestRead(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)))
+				rb, err := openCircularFile(path, false, int64(len(b)))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -449,7 +452,7 @@ func TestRead(t *testing.T) {
 				path := randomFilePath("ring-buffer-read-empty")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, int64(12))
+				rb, err := openCircularFile(path, false, int64(12))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -471,7 +474,7 @@ func TestRead(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)))
+				rb, err := openCircularFile(path, false, int64(len(b)))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -504,7 +507,7 @@ func TestRead(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				rb, err := OpenCircularFile(path, false, int64(len(b)+1))
+				rb, err := openCircularFile(path, false, int64(len(b)+1))
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -540,7 +543,7 @@ func TestRead(t *testing.T) {
 				f.On("Seek", mock.Anything, mock.Anything).Return(int64(0), nil)
 				f.On("Read", b).Return(2, io.ErrUnexpectedEOF)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 					Full: true,
@@ -571,7 +574,7 @@ func TestRead(t *testing.T) {
 				f.On("Read", firstReadSlice).Return(len(firstReadSlice), nil)
 				f.On("Read", secondReadSlice).Return(1, io.ErrUnexpectedEOF)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 				}
@@ -600,7 +603,7 @@ func TestRead(t *testing.T) {
 				f := &mocks.FileLike{}
 				f.On("Seek", mock.Anything, mock.Anything).Return(int64(0), io.ErrNoProgress)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 					Full: true,
@@ -632,7 +635,7 @@ func TestRead(t *testing.T) {
 				f.On("Read", firstReadSlice).Return(len(firstReadSlice), nil)
 				f.On("Read", secondReadSlice).Return(len(secondReadSlice), nil)
 
-				rb := CircularFile{
+				rb := circularFile{
 					Size: int64(len(b)),
 					f:    f,
 				}
@@ -668,7 +671,7 @@ func TestClose(t *testing.T) {
 				path := randomFilePath("ring-buffer-close")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				require.NotNil(t, rb)
 
@@ -684,7 +687,7 @@ func TestClose(t *testing.T) {
 				fileMock := &mocks.FileLike{}
 				fileMock.On("Close").Once().Return(nil)
 
-				rb := &CircularFile{
+				rb := &circularFile{
 					f: fileMock,
 				}
 
@@ -708,7 +711,7 @@ func TestClose(t *testing.T) {
 				fileMock := &mocks.FileLike{}
 				fileMock.On("Close").Once().Return(nil)
 
-				rb := &CircularFile{
+				rb := &circularFile{
 					f: fileMock,
 				}
 
@@ -729,7 +732,7 @@ func TestClose(t *testing.T) {
 				fileMock := &mocks.FileLike{}
 				fileMock.On("Close").Once().Return(io.ErrNoProgress)
 
-				rb := &CircularFile{
+				rb := &circularFile{
 					f: fileMock,
 				}
 
@@ -760,7 +763,7 @@ func TestDiscard(t *testing.T) {
 				path := randomFilePath("ring-buffer-discard")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -789,7 +792,7 @@ func TestDiscard(t *testing.T) {
 				path := randomFilePath("ring-buffer-discard-5")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -818,7 +821,7 @@ func TestDiscard(t *testing.T) {
 				path := randomFilePath("ring-buffer-discard-all")
 				defer os.RemoveAll(path)
 
-				rb, err := OpenCircularFile(path, false, 1000)
+				rb, err := openCircularFile(path, false, 1000)
 				require.NoError(t, err)
 				defer rb.Close()
 
@@ -839,4 +842,22 @@ func TestDiscard(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, tc.testFunc)
 	}
+}
+
+func randomFilePath(prefix string) string {
+	return filepath.Join(os.TempDir(), prefix+randomString(16))
+}
+
+const alphabet = "abcdefghijklmnopqrstuvwxyz"
+
+func randomString(l int) string {
+	b := strings.Builder{}
+	b.Grow(int(l))
+
+	for i := 0; i < l; i++ {
+		c := rand.Int() % len(alphabet)
+		b.Write([]byte{alphabet[c]})
+	}
+
+	return b.String()
 }

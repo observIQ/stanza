@@ -9,13 +9,13 @@ import (
 	"go.uber.org/multierr"
 )
 
-type FileLike interface {
+type fileLike interface {
 	io.ReadWriteSeeker
 	io.Closer
 	Truncate(int64) error
 }
 
-type DiskBufferMetadata struct {
+type diskBufferMetadata struct {
 	// Version is a number indicating the version of the disk buffer file.
 	// Currently, only 0 is valid.
 	Version uint8 `json:"version"`
@@ -30,14 +30,14 @@ type DiskBufferMetadata struct {
 	// Entries is the number of entries in the buffer
 	Entries int64 `json:"entries"`
 	// f is the internal file for reading and writing
-	f FileLike
+	f fileLike
 	// closed indicates whether the DiskBufferMetadata is closed
 	closed bool
 	// buf is the buffer used to write
 	buf *bytes.Buffer
 }
 
-func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*DiskBufferMetadata, error) {
+func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*diskBufferMetadata, error) {
 	fileFlags := os.O_CREATE | os.O_RDWR
 	if sync {
 		fileFlags |= os.O_SYNC
@@ -49,7 +49,7 @@ func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*DiskBufferMetadata
 	}
 
 	bufBytes := make([]byte, 0, metadataBufferSize)
-	dbm := &DiskBufferMetadata{
+	dbm := &diskBufferMetadata{
 		Version:     0,
 		StartOffset: 0,
 		EndOffset:   0,
@@ -84,7 +84,7 @@ func OpenDiskBufferMetadata(baseFilePath string, sync bool) (*DiskBufferMetadata
 const metadataBufferSize = 1 << 10 // 1KiB
 
 // Sync syncs the DiskBufferMetadata to the given file.
-func (d *DiskBufferMetadata) Sync() error {
+func (d *diskBufferMetadata) Sync() error {
 	_, err := d.f.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (d *DiskBufferMetadata) Sync() error {
 	return nil
 }
 
-func (d *DiskBufferMetadata) ReadFromDisk() error {
+func (d *diskBufferMetadata) ReadFromDisk() error {
 	_, err := d.f.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (d *DiskBufferMetadata) ReadFromDisk() error {
 	return enc.Decode(d)
 }
 
-func (d *DiskBufferMetadata) Close() error {
+func (d *diskBufferMetadata) Close() error {
 	if d.closed {
 		return nil
 	}

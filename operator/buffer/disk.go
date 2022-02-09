@@ -62,7 +62,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 		return nil, err
 	}
 
-	rb, err := OpenCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
+	rb, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
 		metadataCloseErr := metadata.Close()
 		return nil, multierr.Combine(
@@ -93,7 +93,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 		cf:            rb,
 		cfMux:         &sync.Mutex{},
 		writerSem:     sem,
-		readerSem:     NewGreedyCountingSemaphore(metadata.Entries),
+		readerSem:     newGreedyCountingSemaphore(metadata.Entries),
 		maxSize:       int64(c.MaxSize),
 		maxChunkDelay: c.MaxChunkDelay.Duration,
 		maxChunkSize:  c.MaxChunkSize,
@@ -104,12 +104,12 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 // DiskBuffer is a buffer of entries that stores the entries to disk.
 // This buffer persists between application restarts.
 type DiskBuffer struct {
-	metadata *DiskBufferMetadata
+	metadata *diskBufferMetadata
 	// f is the underlying byte buffer for the disk buffer
-	cf        *CircularFile
+	cf        *circularFile
 	cfMux     *sync.Mutex
 	writerSem *semaphore.Weighted
-	readerSem *GreedyCountingSemaphore
+	readerSem *greedyCountingSemaphore
 	// maxSize is the maximum number of entry bytes that can be written to the buffer file.
 	maxSize int64
 	// closed is a bool indicating if the buffer is closed

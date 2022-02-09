@@ -18,7 +18,7 @@ func TestGreedyCountingSemaphoreIncrement(t *testing.T) {
 			desc: "Test increment no readers",
 			testFunc: func(t *testing.T) {
 				t.Parallel()
-				rs := NewGreedyCountingSemaphore(0)
+				rs := newGreedyCountingSemaphore(0)
 				rs.Increment()
 				require.Equal(t, int64(1), rs.val)
 			},
@@ -28,7 +28,7 @@ func TestGreedyCountingSemaphoreIncrement(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(0)
+				rs := newGreedyCountingSemaphore(0)
 
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -68,7 +68,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(0)
+				rs := newGreedyCountingSemaphore(0)
 
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -94,7 +94,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(1)
+				rs := newGreedyCountingSemaphore(1)
 
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -118,7 +118,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(0)
+				rs := newGreedyCountingSemaphore(0)
 
 				ctx, cancel := context.WithCancel(context.Background())
 
@@ -145,7 +145,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(0)
+				rs := newGreedyCountingSemaphore(0)
 
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -169,7 +169,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(25)
+				rs := newGreedyCountingSemaphore(25)
 
 				ctx, cancel := context.WithCancel(context.Background())
 
@@ -196,7 +196,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				timeout := 250 * time.Millisecond
-				rs := NewGreedyCountingSemaphore(25)
+				rs := newGreedyCountingSemaphore(25)
 
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()

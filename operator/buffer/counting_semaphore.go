@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// GreedyCountingSemaphore is a classical counting semaphore, where waiting threads will greedily acquire up to n of the internal value.
+// greedyCountingSemaphore is a classical counting semaphore, where waiting threads will greedily acquire up to n of the internal value.
 // This code is based off the WeightedSemaphore implementation (https://cs.opensource.google/go/x/sync/+/036812b2:semaphore/semaphore.go)
-type GreedyCountingSemaphore struct {
+type greedyCountingSemaphore struct {
 	val      int64
 	mux      *sync.Mutex
 	waitList list.List
@@ -20,9 +20,9 @@ type waitListItem struct {
 	n      int64
 }
 
-// NewGreedyCountingSemaphore returns new counting semephore, with it's internal value set to initialVal
-func NewGreedyCountingSemaphore(initialVal int64) *GreedyCountingSemaphore {
-	return &GreedyCountingSemaphore{
+// newGreedyCountingSemaphore returns new counting semephore, with it's internal value set to initialVal
+func newGreedyCountingSemaphore(initialVal int64) *greedyCountingSemaphore {
+	return &greedyCountingSemaphore{
 		val: initialVal,
 		mux: &sync.Mutex{},
 	}
@@ -31,7 +31,7 @@ func NewGreedyCountingSemaphore(initialVal int64) *GreedyCountingSemaphore {
 // Increment will increment the internal value of the semephore.
 // If the first waiting thread can be released (acquire all n of its requested resource), then it will be released,
 // and the internal value will be decremented accordingly.
-func (rs *GreedyCountingSemaphore) Increment() {
+func (rs *greedyCountingSemaphore) Increment() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
@@ -60,7 +60,7 @@ func (rs *GreedyCountingSemaphore) Increment() {
 // If it cannot acquire n resource, it will block until the context cancels, or a timeout occurs.
 // If n resource cannot be acquired by context cancellation or timeout, then as much resource as possible will be acquired.
 // Returns the amount of resource acquired.
-func (cs *GreedyCountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
+func (cs *greedyCountingSemaphore) AcquireAtMost(ctx context.Context, timeout time.Duration, n int64) int64 {
 	cs.mux.Lock()
 
 	if cs.val >= n {
@@ -92,7 +92,7 @@ func (cs *GreedyCountingSemaphore) AcquireAtMost(ctx context.Context, timeout ti
 	}
 }
 
-func (cs *GreedyCountingSemaphore) doAcquire(n int64, elem *list.Element) int64 {
+func (cs *greedyCountingSemaphore) doAcquire(n int64, elem *list.Element) int64 {
 	var amountToTake int64
 	signal := elem.Value.(waitListItem).signal
 	cs.mux.Lock()

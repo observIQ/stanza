@@ -8,25 +8,25 @@ import (
 	"go.uber.org/multierr"
 )
 
-// CircularFile is a io.ReadWriteCloser that writes to a fixed length file, such that
+// circularFile is a io.ReadWriteCloser that writes to a fixed length file, such that
 // it wraps around to the beginning when reaching the end.
 // Methods on this struct are not thread-safe and require additional synchronization.
-type CircularFile struct {
+type circularFile struct {
 	Start      int64
 	ReadPtr    int64
 	End        int64
 	Size       int64
 	Full       bool
-	f          FileLike
+	f          fileLike
 	seekedRead bool
 	seekedEnd  bool
 	closed     bool
 	readPtrEnd bool
 }
 
-var _ io.ReadWriteCloser = (*CircularFile)(nil)
+var _ io.ReadWriteCloser = (*circularFile)(nil)
 
-func OpenCircularFile(filePath string, sync bool, size int64) (*CircularFile, error) {
+func openCircularFile(filePath string, sync bool, size int64) (*circularFile, error) {
 	fileFlags := os.O_CREATE | os.O_RDWR
 	if sync {
 		fileFlags |= os.O_SYNC
@@ -65,13 +65,13 @@ func OpenCircularFile(filePath string, sync bool, size int64) (*CircularFile, er
 			)
 	}
 
-	return &CircularFile{
+	return &circularFile{
 		Size: size,
 		f:    f,
 	}, nil
 }
 
-func (rb *CircularFile) Close() error {
+func (rb *circularFile) Close() error {
 	if rb.closed {
 		return nil
 	}
@@ -89,7 +89,7 @@ func (rb *CircularFile) Close() error {
 // Read reads from the ring buffer into p, up to len(p) bytes.
 // The contents read are not discarded from the buffer; An independent read pointer
 // is maintained, which can be reset to the start of the buffer using ResetReadOffset()
-func (rb *CircularFile) Read(p []byte) (int, error) {
+func (rb *circularFile) Read(p []byte) (int, error) {
 	if rb.closed {
 		return 0, ErrBufferClosed
 	}
@@ -158,7 +158,7 @@ func (rb *CircularFile) Read(p []byte) (int, error) {
 // If the end of the file has been reached and no more bytes may be written,
 // io.EOF is returned as an error, as well as the number of bytes that were successfully
 // written.
-func (rb *CircularFile) Write(p []byte) (int, error) {
+func (rb *circularFile) Write(p []byte) (int, error) {
 	if rb.closed {
 		return 0, ErrBufferClosed
 	}
@@ -234,7 +234,7 @@ func (rb *CircularFile) Write(p []byte) (int, error) {
 	return int(totalBytesToWrite), nil
 }
 
-func (rb *CircularFile) Len() int64 {
+func (rb *circularFile) Len() int64 {
 	if rb.Full {
 		return rb.Size
 	}
@@ -246,7 +246,7 @@ func (rb *CircularFile) Len() int64 {
 	}
 }
 
-func (rb *CircularFile) ReadBytesLeft() int64 {
+func (rb *circularFile) ReadBytesLeft() int64 {
 	if rb.readPtrEnd {
 		return 0
 	}
@@ -262,14 +262,14 @@ func (rb *CircularFile) ReadBytesLeft() int64 {
 	}
 }
 
-func (rb *CircularFile) WriteBytesLeft() int64 {
+func (rb *circularFile) WriteBytesLeft() int64 {
 	return rb.Size - rb.Len()
 }
 
 // Discard removes n bytes from the start end of the ring buffer.
 // This resets the internal read pointer to be pointed to start.
 // If n is greater than the length of the buffer, the buffer is truncated to a length of 0.
-func (rb *CircularFile) Discard(n int64) {
+func (rb *circularFile) Discard(n int64) {
 	rb.seekedRead = false
 	if n == 0 {
 		rb.ReadPtr = rb.Start
@@ -291,7 +291,7 @@ func (rb *CircularFile) Discard(n int64) {
 // seekReadStart seeks the underlying file to readPtr.
 // We reduce sync calls by keeping track of whether we are at the readPtr
 // or at the end pointer.
-func (rb *CircularFile) seekReadStart() error {
+func (rb *circularFile) seekReadStart() error {
 	if rb.seekedRead {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (rb *CircularFile) seekReadStart() error {
 }
 
 // seekEnd seeks the underlying file to the end pointer.
-func (rb *CircularFile) seekEnd() error {
+func (rb *circularFile) seekEnd() error {
 	if rb.seekedEnd {
 		return nil
 	}

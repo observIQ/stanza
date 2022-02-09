@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -658,24 +656,6 @@ func BenchmarkDiskBuffer(b *testing.B) {
 
 		wg.Wait()
 	})
-}
-
-func randomFilePath(prefix string) string {
-	return filepath.Join(os.TempDir(), prefix+randomString(16))
-}
-
-const alphabet = "abcdefghijklmnopqrstuvwxyz"
-
-func randomString(l int) string {
-	b := strings.Builder{}
-	b.Grow(int(l))
-
-	for i := 0; i < l; i++ {
-		c := rand.Int() % len(alphabet)
-		b.Write([]byte{alphabet[c]})
-	}
-
-	return b.String()
 }
 
 func randomEntries(n int) []*entry.Entry {
