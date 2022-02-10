@@ -19,7 +19,7 @@ func TestGreedyCountingSemaphoreIncrement(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				rs := newGreedyCountingSemaphore(0)
-				rs.increment()
+				rs.Increment()
 				require.Equal(t, int64(1), rs.val)
 			},
 		},
@@ -35,14 +35,14 @@ func TestGreedyCountingSemaphoreIncrement(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, time.Hour, 1)
+					amnt := rs.AcquireAtMost(ctx, time.Hour, 1)
 					assert.Equal(t, int64(1), amnt)
 					close(doneChan)
 				}()
 
 				<-time.After(50 * time.Millisecond)
 
-				rs.increment()
+				rs.Increment()
 				require.Equal(t, int64(0), rs.val)
 				select {
 				case <-doneChan:
@@ -75,7 +75,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, time.Hour, 1)
+					amnt := rs.AcquireAtMost(ctx, time.Hour, 1)
 					assert.Equal(t, int64(0), amnt)
 					close(doneChan)
 				}()
@@ -101,7 +101,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, time.Hour, 1)
+					amnt := rs.AcquireAtMost(ctx, time.Hour, 1)
 					assert.Equal(t, int64(1), amnt)
 					close(doneChan)
 				}()
@@ -124,7 +124,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, time.Hour, 1)
+					amnt := rs.AcquireAtMost(ctx, time.Hour, 1)
 					assert.Equal(t, int64(0), amnt)
 					close(doneChan)
 				}()
@@ -152,7 +152,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, 50*time.Millisecond, 1)
+					amnt := rs.AcquireAtMost(ctx, 50*time.Millisecond, 1)
 					assert.Equal(t, int64(0), amnt)
 					close(doneChan)
 				}()
@@ -175,7 +175,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, time.Hour, 100)
+					amnt := rs.AcquireAtMost(ctx, time.Hour, 100)
 					assert.Equal(t, int64(25), amnt)
 					close(doneChan)
 				}()
@@ -203,7 +203,7 @@ func TestGreedyCountingSemaphoreAcquire(t *testing.T) {
 
 				doneChan := make(chan struct{})
 				go func() {
-					amnt := rs.acquireAtMost(ctx, 50*time.Millisecond, 100)
+					amnt := rs.AcquireAtMost(ctx, 50*time.Millisecond, 100)
 					assert.Equal(t, int64(25), amnt)
 					close(doneChan)
 				}()

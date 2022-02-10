@@ -64,13 +64,13 @@ func openDiskBufferMetadata(baseFilePath string, sync bool) (*diskBufferMetadata
 	}
 
 	if fi.Size() > 0 {
-		err = dbm.readFromDisk()
+		err = dbm.ReadFromDisk()
 		if err != nil {
 			f.Close()
 			return nil, err
 		}
 	} else {
-		err = dbm.sync()
+		err = dbm.Sync()
 		if err != nil {
 			f.Close()
 			return nil, err
@@ -83,8 +83,8 @@ func openDiskBufferMetadata(baseFilePath string, sync bool) (*diskBufferMetadata
 // metadataBufferSize is the initial size of the underlying buffer for disk metadata
 const metadataBufferSize = 1 << 10 // 1KiB
 
-// sync syncs the DiskBufferMetadata to the given file.
-func (d *diskBufferMetadata) sync() error {
+// Sync syncs the DiskBufferMetadata to the given file.
+func (d *diskBufferMetadata) Sync() error {
 	_, err := d.f.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (d *diskBufferMetadata) sync() error {
 	return nil
 }
 
-func (d *diskBufferMetadata) readFromDisk() error {
+func (d *diskBufferMetadata) ReadFromDisk() error {
 	_, err := d.f.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
@@ -114,14 +114,14 @@ func (d *diskBufferMetadata) readFromDisk() error {
 	return enc.Decode(d)
 }
 
-func (d *diskBufferMetadata) close() error {
+func (d *diskBufferMetadata) Close() error {
 	if d.closed {
 		return nil
 	}
 
 	d.closed = true
 
-	err := d.sync()
+	err := d.Sync()
 	if err != nil {
 		d.f.Close()
 		return err

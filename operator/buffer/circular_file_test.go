@@ -773,7 +773,7 @@ func TestDiscard(t *testing.T) {
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
 
-				cf.discard(0)
+				cf.Discard(0)
 				require.False(t, cf.seekedRead)
 				require.Equal(t, int64(len(b)), cf.len())
 
@@ -802,7 +802,7 @@ func TestDiscard(t *testing.T) {
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
 
-				cf.discard(5)
+				cf.Discard(5)
 				require.False(t, cf.seekedRead)
 				require.Equal(t, int64(len(b)-5), cf.len())
 
@@ -831,7 +831,7 @@ func TestDiscard(t *testing.T) {
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
 
-				cf.discard(1000)
+				cf.Discard(1000)
 				require.False(t, cf.seekedRead)
 				require.Equal(t, int64(0), cf.len())
 			},

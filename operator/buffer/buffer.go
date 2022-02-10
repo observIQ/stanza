@@ -9,10 +9,10 @@ import (
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
 
-// ErrBufferClosed is an error to indicate an operation was attempt on a buffer after it was closed
+// ErrBufferClosed is an error to indicate an operation was attempted on a buffer after it was closed
 var ErrBufferClosed = errors.New("buffer is closed")
 
-// ErrEntryTooLarge is an error to indicate an entry is too large to ever fit into the buffer.
+// ErrEntryTooLarge is an error that indicates an entry is too large to ever fit into the buffer.
 // That is, the serialized entry is larger than the maximum size of the buffer
 var ErrEntryTooLarge = errors.New("entry is too large to fit in buffer")
 

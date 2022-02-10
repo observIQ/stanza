@@ -63,7 +63,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 
 	cf, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
 	if err != nil {
-		metadata.close()
+		metadata.Close()
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 	sem := semaphore.NewWeighted(int64(c.MaxSize))
 	acquired := sem.TryAcquire(cf.len())
 	if !acquired {
-		metadata.close()
+		metadata.Close()
 		cf.Close()
 		return nil, errors.New("failed to acquire buffer length for semaphore")
 	}
@@ -148,13 +148,13 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	d.metadata.EndOffset = d.cf.End
 	d.metadata.Full = d.cf.Full
 	d.metadata.Entries += 1
-	err = d.metadata.sync()
+	err = d.metadata.Sync()
 	if err != nil {
 		return err
 	}
 
 	// Increment the counting semaphore to signal readers that an entry is available
-	d.readerSem.increment()
+	d.readerSem.Increment()
 
 	return nil
 }
@@ -170,7 +170,7 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	}
 
 	// The reader gains ownership of n entries here.
-	n := d.readerSem.acquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
+	n := d.readerSem.AcquireAtMost(ctx, d.maxChunkDelay, int64(d.maxChunkSize))
 
 	if n == 0 {
 		return nil, ctx.Err()
@@ -194,13 +194,13 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	}
 
 	decoderOffset := dec.InputOffset()
-	d.cf.discard(decoderOffset)
+	d.cf.Discard(decoderOffset)
 	d.writerSem.Release(decoderOffset)
 	// Update start pointer to current position
 	d.metadata.StartOffset = d.cf.Start
 	d.metadata.Full = d.cf.Full
 	d.metadata.Entries -= n
-	err := d.metadata.sync()
+	err := d.metadata.Sync()
 
 	return entries, err
 }
@@ -218,11 +218,11 @@ func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 
 	err := d.cf.Close()
 	if err != nil {
-		d.metadata.close()
+		d.metadata.Close()
 		return nil, err
 	}
 
-	return nil, d.metadata.close()
+	return nil, d.metadata.Close()
 }
 
 // marshalEntry marshals the given entry into a byte slice.

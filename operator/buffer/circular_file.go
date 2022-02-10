@@ -277,10 +277,10 @@ func (cf *circularFile) writeBytesLeft() int64 {
 	return cf.Size - cf.len()
 }
 
-// discard removes n bytes from the start end of the circular file.
+// Discard removes n bytes from the start end of the circular file.
 // This resets the internal read pointer to be pointed to start.
 // If n is greater than the length of the buffer, the buffer is truncated to a length of 0.
-func (cf *circularFile) discard(n int64) {
+func (cf *circularFile) Discard(n int64) {
 	cf.seekedRead = false
 	if n <= 0 {
 		// If n <= 0, we reset the read pointer anyways for consistency
