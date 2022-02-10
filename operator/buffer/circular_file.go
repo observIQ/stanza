@@ -13,11 +13,11 @@ var errWriteOverflow = errors.New("bytes to write overflows file")
 // it wraps around to the beginning when reaching the end.
 // Methods on this struct are not thread-safe and require additional synchronization.
 type circularFile struct {
-	Start      int64
-	ReadPtr    int64
-	End        int64
-	Size       int64
-	Full       bool
+	start      int64
+	readPtr    int64
+	end        int64
+	size       int64
+	full       bool
 	f          fileLike
 	seekedRead bool
 	seekedEnd  bool
@@ -27,7 +27,7 @@ type circularFile struct {
 
 var _ io.ReadWriteCloser = (*circularFile)(nil)
 
-func openCircularFile(filePath string, sync bool, size int64) (*circularFile, error) {
+func openCircularFile(filePath string, sync bool, size int64, metadata *diskBufferMetadata) (*circularFile, error) {
 	fileFlags := os.O_CREATE | os.O_RDWR
 	if sync {
 		fileFlags |= os.O_SYNC
@@ -57,9 +57,13 @@ func openCircularFile(filePath string, sync bool, size int64) (*circularFile, er
 	}
 
 	return &circularFile{
-		Size:       size,
+		size:       size,
 		f:          f,
 		readPtrEnd: true,
+		start:      metadata.StartOffset,
+		readPtr:    metadata.StartOffset,
+		end:        metadata.EndOffset,
+		full:       metadata.Full,
 	}, nil
 }
 
@@ -76,6 +80,12 @@ func (cf *circularFile) Close() error {
 	}
 
 	return nil
+}
+
+func (cf *circularFile) SyncToMetadata(m *diskBufferMetadata) {
+	m.StartOffset = cf.start
+	m.EndOffset = cf.end
+	m.Full = cf.full
 }
 
 // Read reads from the circular file into p, up to len(p) bytes.
@@ -112,17 +122,17 @@ func (cf *circularFile) Read(p []byte) (int, error) {
 	var firstReadBytes int64
 	// Check if out read will cross the end of the flat file on disk;
 	// if it does, we need to split this read into 2 actual reads of the underlying file.
-	if totalBytesToRead+cf.ReadPtr <= cf.Size {
+	if totalBytesToRead+cf.readPtr <= cf.size {
 		// We do not cross the boundary, we can fill the whole buffer in one read
 		firstReadBytes = totalBytesToRead
 	} else {
 		// Need to split into 2 reads, one to the end, and from the start.
-		firstReadBytes = cf.Size - cf.ReadPtr
+		firstReadBytes = cf.size - cf.readPtr
 	}
 
 	n, err := cf.f.Read(p[:firstReadBytes])
-	cf.ReadPtr = (cf.ReadPtr + int64(n)) % cf.Size
-	if cf.ReadPtr == 0 {
+	cf.readPtr = (cf.readPtr + int64(n)) % cf.size
+	if cf.readPtr == 0 {
 		// We looped back to the start (we read to the end of file),
 		// so we are no longer seeked to the read pointer
 		cf.seekedRead = false
@@ -140,7 +150,7 @@ func (cf *circularFile) Read(p []byte) (int, error) {
 		}
 
 		n2, err := cf.f.Read(p[firstReadBytes:])
-		cf.ReadPtr += int64(n2)
+		cf.readPtr += int64(n2)
 		if err != nil {
 			return n + n2, err
 		}
@@ -149,7 +159,7 @@ func (cf *circularFile) Read(p []byte) (int, error) {
 	// If, after a read, our read pointer is at the end of the file, we
 	// need to flag that we have emptied the buffer; this differentiates
 	// between the "full" case and empty case, since in both cf.ReadPtr == cf.End
-	if cf.ReadPtr == cf.End && n != 0 {
+	if cf.readPtr == cf.end && n != 0 {
 		cf.readPtrEnd = true
 	}
 
@@ -190,18 +200,18 @@ func (cf *circularFile) Write(p []byte) (int, error) {
 	}
 
 	var firstWriteBytes int64
-	if cf.End+totalBytesToWrite <= cf.Size {
+	if cf.end+totalBytesToWrite <= cf.size {
 		// We can write the whole buffer contiguously
 		firstWriteBytes = totalBytesToWrite
 	} else {
 		// We need to wrap around, and lay down the buffer in 2 writes.
-		firstWriteBytes = cf.Size - cf.End
+		firstWriteBytes = cf.size - cf.end
 	}
 
 	n, err := cf.f.Write(p[:firstWriteBytes])
 	// Modulus is used here because rb.end may equal rb.size
-	cf.End = (cf.End + int64(n)) % cf.Size
-	if cf.End == 0 {
+	cf.end = (cf.end + int64(n)) % cf.size
+	if cf.end == 0 {
 		// We wrapped around, and are no longer seeked to the end pointer
 		cf.seekedEnd = false
 	}
@@ -224,7 +234,7 @@ func (cf *circularFile) Write(p []byte) (int, error) {
 		}
 
 		n2, err := cf.f.Write(p[firstWriteBytes:])
-		cf.End += int64(n2)
+		cf.end += int64(n2)
 
 		if n2 > 0 {
 			// If we wrote any bytes, the read pointer would no longer be at the end pointer, since the end has advanced.
@@ -236,9 +246,9 @@ func (cf *circularFile) Write(p []byte) (int, error) {
 		}
 	}
 
-	if cf.Start == cf.End && totalBytesToWrite != 0 {
+	if cf.start == cf.end && totalBytesToWrite != 0 {
 		// The buffer is full, so we need to flag this to differentiate from the empty case
-		cf.Full = true
+		cf.full = true
 	}
 
 	return int(totalBytesToWrite), nil
@@ -246,35 +256,35 @@ func (cf *circularFile) Write(p []byte) (int, error) {
 
 // len gets the current filled size of the buffer.
 func (cf *circularFile) len() int64 {
-	if cf.Full {
-		return cf.Size
+	if cf.full {
+		return cf.size
 	}
 
-	if cf.Start <= cf.End {
-		return cf.End - cf.Start
+	if cf.start <= cf.end {
+		return cf.end - cf.start
 	} else {
-		return cf.End + (cf.Size - cf.Start)
+		return cf.end + (cf.size - cf.start)
 	}
 }
 
 // readBytesLeft returns the number of bytes available to read
 func (cf *circularFile) readBytesLeft() int64 {
-	if !cf.readPtrEnd && cf.ReadPtr == cf.End {
+	if !cf.readPtrEnd && cf.readPtr == cf.end {
 		// The whole buffer is full and unread, in this case
-		return cf.Size
+		return cf.size
 	}
 
-	if cf.ReadPtr <= cf.End {
-		return cf.End - cf.ReadPtr
+	if cf.readPtr <= cf.end {
+		return cf.end - cf.readPtr
 	} else {
 		// Account for wrap around
-		return cf.End + (cf.Size - cf.ReadPtr)
+		return cf.end + (cf.size - cf.readPtr)
 	}
 }
 
 // writeBytesLeft returns the space in bytes that is available for writing
 func (cf *circularFile) writeBytesLeft() int64 {
-	return cf.Size - cf.len()
+	return cf.size - cf.len()
 }
 
 // Discard removes n bytes from the start end of the circular file.
@@ -284,23 +294,23 @@ func (cf *circularFile) Discard(n int64) {
 	cf.seekedRead = false
 	if n <= 0 {
 		// If n <= 0, we reset the read pointer anyways for consistency
-		cf.ReadPtr = cf.Start
+		cf.readPtr = cf.start
 		// If the buffer is empty, set readPtrEnd true
-		cf.readPtrEnd = !cf.Full && (cf.ReadPtr == cf.End)
+		cf.readPtrEnd = !cf.full && (cf.readPtr == cf.end)
 		return
 	}
 
 	// discard the bytes by advancing the start pointer,
 	// accounting for wraparound
 	if n > cf.len() {
-		cf.Start = cf.End
+		cf.start = cf.end
 	} else {
-		cf.Start = (cf.Start + n) % cf.Size
+		cf.start = (cf.start + n) % cf.size
 	}
 
-	cf.ReadPtr = cf.Start
-	cf.Full = false
-	cf.readPtrEnd = cf.ReadPtr == cf.End
+	cf.readPtr = cf.start
+	cf.full = false
+	cf.readPtrEnd = cf.readPtr == cf.end
 }
 
 // seekReadStart seeks the underlying file to readPtr.
@@ -311,7 +321,7 @@ func (cf *circularFile) seekReadStart() error {
 		return nil
 	}
 
-	_, err := cf.f.Seek(cf.ReadPtr, io.SeekStart)
+	_, err := cf.f.Seek(cf.readPtr, io.SeekStart)
 	if err != nil {
 		cf.seekedRead = false
 		cf.seekedEnd = false
@@ -331,7 +341,7 @@ func (cf *circularFile) seekEnd() error {
 		return nil
 	}
 
-	_, err := cf.f.Seek(cf.End, io.SeekStart)
+	_, err := cf.f.Seek(cf.end, io.SeekStart)
 	if err != nil {
 		cf.seekedRead = false
 		cf.seekedEnd = false

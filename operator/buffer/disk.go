@@ -61,16 +61,11 @@ func (c DiskBufferConfig) Build() (Buffer, error) {
 		return nil, err
 	}
 
-	cf, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize))
+	cf, err := openCircularFile(bufferFilePath, c.Sync, int64(c.MaxSize), metadata)
 	if err != nil {
 		metadata.Close()
 		return nil, err
 	}
-
-	cf.Start = metadata.StartOffset
-	cf.ReadPtr = metadata.StartOffset
-	cf.End = metadata.EndOffset
-	cf.Full = metadata.Full
 
 	sem := semaphore.NewWeighted(int64(c.MaxSize))
 	acquired := sem.TryAcquire(cf.len())
@@ -145,10 +140,10 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 		return err
 	}
 
-	d.metadata.EndOffset = d.cf.End
-	d.metadata.Full = d.cf.Full
+	// Update metadata with current buffer state
 	d.metadata.Entries += 1
-	err = d.metadata.Sync()
+	d.cf.SyncToMetadata(d.metadata)
+	err = d.metadata.SyncToDisk()
 	if err != nil {
 		return err
 	}
@@ -196,11 +191,11 @@ func (d *DiskBuffer) Read(ctx context.Context) ([]*entry.Entry, error) {
 	decoderOffset := dec.InputOffset()
 	d.cf.Discard(decoderOffset)
 	d.writerSem.Release(decoderOffset)
-	// Update start pointer to current position
-	d.metadata.StartOffset = d.cf.Start
-	d.metadata.Full = d.cf.Full
+
+	// Update metadata with current buffer state
 	d.metadata.Entries -= n
-	err := d.metadata.Sync()
+	d.cf.SyncToMetadata(d.metadata)
+	err := d.metadata.SyncToDisk()
 
 	return entries, err
 }

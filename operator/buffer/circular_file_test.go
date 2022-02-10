@@ -25,7 +25,7 @@ func TestOpen(t *testing.T) {
 				path := randomFilePath("ring-buffer-open")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -39,7 +39,7 @@ func TestOpen(t *testing.T) {
 				path := randomFilePath("ring-buffer-open-sync")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, true, 1000)
+				cf, err := openCircularFile(path, true, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -52,7 +52,7 @@ func TestOpen(t *testing.T) {
 				t.Parallel()
 				path := os.TempDir()
 
-				cf, err := openCircularFile(path, true, 1000)
+				cf, err := openCircularFile(path, true, 1000, &diskBufferMetadata{})
 				require.Error(t, err)
 				require.Nil(t, cf)
 			},
@@ -63,13 +63,13 @@ func TestOpen(t *testing.T) {
 				t.Parallel()
 				path := randomFilePath("ring-buffer-open-sync")
 
-				cf, err := openCircularFile(path, true, 1000)
+				cf, err := openCircularFile(path, true, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 
 				err = cf.Close()
 				require.NoError(t, err)
 
-				cf, err = openCircularFile(path, true, 1001)
+				cf, err = openCircularFile(path, true, 1001, &diskBufferMetadata{})
 				require.Error(t, err)
 				require.Nil(t, cf)
 
@@ -94,7 +94,7 @@ func TestWrite(t *testing.T) {
 				path := randomFilePath("ring-buffer-write")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -113,7 +113,7 @@ func TestWrite(t *testing.T) {
 				path := randomFilePath("ring-buffer-write-twice")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -140,7 +140,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)))
+				cf, err := openCircularFile(path, false, int64(len(b)), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -150,7 +150,7 @@ func TestWrite(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -162,7 +162,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)))
+				cf, err := openCircularFile(path, false, int64(len(b)), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -172,13 +172,13 @@ func TestWrite(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 
 				n, err = cf.Write(b)
 				require.ErrorIs(t, err, errWriteOverflow)
 				require.Equal(t, 0, n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -190,21 +190,21 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)))
+				cf, err := openCircularFile(path, false, int64(len(b)), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
 				require.NotNil(t, cf)
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
 
 				n, err := cf.Write(b)
 				require.NoError(t, err)
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -216,7 +216,7 @@ func TestWrite(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)-1))
+				cf, err := openCircularFile(path, false, int64(len(b)-1), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -242,7 +242,7 @@ func TestWrite(t *testing.T) {
 				f.On("Write", b).Return(2, io.ErrUnexpectedEOF)
 
 				rb := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
 				}
 
@@ -250,8 +250,8 @@ func TestWrite(t *testing.T) {
 				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 				require.Equal(t, 2, n)
 				require.Equal(t, int64(2), rb.len())
-				require.Equal(t, int64(2), rb.End)
-				require.False(t, rb.Full)
+				require.Equal(t, int64(2), rb.end)
+				require.False(t, rb.full)
 			},
 		},
 		{
@@ -272,20 +272,20 @@ func TestWrite(t *testing.T) {
 				f.On("Write", secondWriteSlice).Return(1, io.ErrShortWrite)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
 				}
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
 
 				n, err := cf.Write(b)
 				require.ErrorIs(t, err, io.ErrShortWrite)
 				require.Equal(t, len(firstWriteSlice)+1, n)
 				require.Equal(t, int64(len(firstWriteSlice))+1, cf.len())
-				require.Equal(t, int64(1), cf.End)
-				require.False(t, cf.Full)
+				require.Equal(t, int64(1), cf.end)
+				require.False(t, cf.full)
 			},
 		},
 		{
@@ -301,7 +301,7 @@ func TestWrite(t *testing.T) {
 				f.On("Seek", mock.Anything, mock.Anything).Return(int64(0), io.ErrClosedPipe)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
 				}
 
@@ -309,8 +309,8 @@ func TestWrite(t *testing.T) {
 				require.ErrorIs(t, err, io.ErrClosedPipe)
 				require.Equal(t, 0, n)
 				require.Equal(t, int64(0), cf.len())
-				require.Equal(t, int64(0), cf.End)
-				require.False(t, cf.Full)
+				require.Equal(t, int64(0), cf.end)
+				require.False(t, cf.full)
 			},
 		},
 		{
@@ -332,20 +332,20 @@ func TestWrite(t *testing.T) {
 				f.On("Write", secondWriteSlice).Return(len(secondWriteSlice), nil)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
 				}
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
 
 				n, err := cf.Write(b)
 				require.ErrorIs(t, err, io.ErrClosedPipe)
 				require.Equal(t, len(firstWriteSlice), n)
 				require.Equal(t, int64(len(firstWriteSlice)), cf.len())
-				require.Equal(t, int64(0), cf.End)
-				require.False(t, cf.Full)
+				require.Equal(t, int64(0), cf.end)
+				require.False(t, cf.full)
 			},
 		},
 	}
@@ -367,7 +367,7 @@ func TestRead(t *testing.T) {
 				path := randomFilePath("ring-buffer-read")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -392,7 +392,7 @@ func TestRead(t *testing.T) {
 				path := randomFilePath("ring-buffer-read")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -424,7 +424,7 @@ func TestRead(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)))
+				cf, err := openCircularFile(path, false, int64(len(b)), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -434,13 +434,13 @@ func TestRead(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 
 				bufOut := make([]byte, len(b))
 				n, err = cf.Read(bufOut)
 				require.NoError(t, err)
 				require.Equal(t, len(bufOut), n)
-				require.Equal(t, int64(0), cf.Start)
+				require.Equal(t, int64(0), cf.start)
 				require.Equal(t, int64(0), cf.readBytesLeft())
 			},
 		},
@@ -451,7 +451,7 @@ func TestRead(t *testing.T) {
 				path := randomFilePath("ring-buffer-read-empty")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, int64(12))
+				cf, err := openCircularFile(path, false, int64(12), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -461,7 +461,7 @@ func TestRead(t *testing.T) {
 				n, err := cf.Read(bufOut)
 				require.ErrorIs(t, err, io.EOF)
 				require.Equal(t, 0, n)
-				require.Equal(t, int64(0), cf.Start)
+				require.Equal(t, int64(0), cf.start)
 			},
 		},
 		{
@@ -473,28 +473,28 @@ func TestRead(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)))
+				cf, err := openCircularFile(path, false, int64(len(b)), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
 				require.NotNil(t, cf)
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
 
 				n, err := cf.Write(b)
 				require.NoError(t, err)
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 
 				bufOut := make([]byte, len(b))
 				n, err = cf.Read(bufOut)
 				require.NoError(t, err)
 				require.Equal(t, len(bufOut), n)
 				require.Equal(t, b, bufOut)
-				require.True(t, cf.Full)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -506,21 +506,21 @@ func TestRead(t *testing.T) {
 
 				b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-				cf, err := openCircularFile(path, false, int64(len(b)+1))
+				cf, err := openCircularFile(path, false, int64(len(b)+1), &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
 				require.NotNil(t, cf)
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
 
 				n, err := cf.Write(b)
 				require.NoError(t, err)
 				require.Equal(t, len(b), n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.False(t, cf.Full)
+				require.False(t, cf.full)
 
 				bufOut := make([]byte, len(b))
 				n, err = cf.Read(bufOut)
@@ -543,17 +543,17 @@ func TestRead(t *testing.T) {
 				f.On("Read", b).Return(2, io.ErrUnexpectedEOF)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
-					Full: true,
+					full: true,
 				}
 
 				n, err := cf.Read(b)
 				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 				require.Equal(t, 2, n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.Equal(t, int64(0), cf.Start)
-				require.True(t, cf.Full)
+				require.Equal(t, int64(0), cf.start)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -574,20 +574,20 @@ func TestRead(t *testing.T) {
 				f.On("Read", secondReadSlice).Return(1, io.ErrUnexpectedEOF)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
 				}
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
-				cf.Full = true
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
+				cf.full = true
 
 				n, err := cf.Read(b)
 				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 				require.Equal(t, len(firstReadSlice)+1, n)
-				require.Equal(t, int64(1), cf.ReadPtr)
-				require.True(t, cf.Full)
+				require.Equal(t, int64(1), cf.readPtr)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -603,17 +603,17 @@ func TestRead(t *testing.T) {
 				f.On("Seek", mock.Anything, mock.Anything).Return(int64(0), io.ErrNoProgress)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
-					Full: true,
+					full: true,
 				}
 
 				n, err := cf.Read(b)
 				require.ErrorIs(t, err, io.ErrNoProgress)
 				require.Equal(t, 0, n)
 				require.Equal(t, int64(len(b)), cf.len())
-				require.Equal(t, int64(0), cf.Start)
-				require.True(t, cf.Full)
+				require.Equal(t, int64(0), cf.start)
+				require.True(t, cf.full)
 			},
 		},
 		{
@@ -635,20 +635,20 @@ func TestRead(t *testing.T) {
 				f.On("Read", secondReadSlice).Return(len(secondReadSlice), nil)
 
 				cf := circularFile{
-					Size: int64(len(b)),
+					size: int64(len(b)),
 					f:    f,
 				}
 
-				cf.Start = int64(len(b) / 2)
-				cf.End = cf.Start
-				cf.ReadPtr = cf.Start
-				cf.Full = true
+				cf.start = int64(len(b) / 2)
+				cf.end = cf.start
+				cf.readPtr = cf.start
+				cf.full = true
 
 				n, err := cf.Read(b)
 				require.ErrorIs(t, err, io.ErrShortBuffer)
 				require.Equal(t, len(firstReadSlice), n)
-				require.Equal(t, int64(0), cf.ReadPtr)
-				require.True(t, cf.Full)
+				require.Equal(t, int64(0), cf.readPtr)
+				require.True(t, cf.full)
 			},
 		},
 	}
@@ -670,7 +670,7 @@ func TestClose(t *testing.T) {
 				path := randomFilePath("ring-buffer-close")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				require.NotNil(t, cf)
 
@@ -762,7 +762,7 @@ func TestDiscard(t *testing.T) {
 				path := randomFilePath("ring-buffer-discard")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -791,7 +791,7 @@ func TestDiscard(t *testing.T) {
 				path := randomFilePath("ring-buffer-discard-5")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
@@ -820,7 +820,7 @@ func TestDiscard(t *testing.T) {
 				path := randomFilePath("ring-buffer-discard-all")
 				defer os.RemoveAll(path)
 
-				cf, err := openCircularFile(path, false, 1000)
+				cf, err := openCircularFile(path, false, 1000, &diskBufferMetadata{})
 				require.NoError(t, err)
 				defer cf.Close()
 
