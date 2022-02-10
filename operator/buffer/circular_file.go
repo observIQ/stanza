@@ -56,15 +56,17 @@ func openCircularFile(filePath string, sync bool, size int64, metadata *diskBuff
 		return nil, fmt.Errorf("configured size (%d) does not match current on-disk size (%d)", size, fsize)
 	}
 
-	return &circularFile{
-		size:       size,
-		f:          f,
-		readPtrEnd: !metadata.Full && metadata.StartOffset == metadata.EndOffset,
-		start:      metadata.StartOffset,
-		readPtr:    metadata.StartOffset,
-		end:        metadata.EndOffset,
-		full:       metadata.Full,
-	}, nil
+	cf := &circularFile{
+		size:    size,
+		f:       f,
+		start:   metadata.StartOffset,
+		readPtr: metadata.StartOffset,
+		end:     metadata.EndOffset,
+		full:    metadata.Full,
+	}
+
+	cf.readPtrEnd = cf.isEmpty()
+	return cf, nil
 }
 
 func (cf *circularFile) Close() error {
@@ -115,6 +117,7 @@ func (cf *circularFile) Read(p []byte) (int, error) {
 	}
 
 	var nTotal = 0
+	// Read until we've read totalBytesToRead bytes
 	for int64(nTotal) < totalBytesToRead {
 		bytesToRead := cf.size - cf.readPtr
 		if bytesToRead > int64(len(p)-nTotal) {
@@ -238,7 +241,7 @@ func (cf *circularFile) len() int64 {
 
 // readBytesLeft returns the number of bytes available to read
 func (cf *circularFile) readBytesLeft() int64 {
-	if !cf.readPtrEnd && cf.readPtr == cf.end {
+	if cf.isFullyUnread() {
 		// The whole buffer is full and unread, in this case
 		return cf.size
 	}
@@ -254,6 +257,16 @@ func (cf *circularFile) readBytesLeft() int64 {
 // writeBytesLeft returns the space in bytes that is available for writing
 func (cf *circularFile) writeBytesLeft() int64 {
 	return cf.size - cf.len()
+}
+
+// isEmpty returns true if there are no bytes currently stored in the buffer
+func (cf *circularFile) isEmpty() bool {
+	return !cf.full && cf.start == cf.end
+}
+
+// isFullyUnread returns true if the buffer is full, and the whole buffer is waiting to be read.
+func (cf *circularFile) isFullyUnread() bool {
+	return !cf.readPtrEnd && cf.readPtr == cf.end
 }
 
 // Discard removes n bytes from the start end of the circular file.
