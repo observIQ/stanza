@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/open-telemetry/opentelemetry-log-collection/agent"
@@ -26,7 +27,17 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 }
 
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
-	logger := newLogger(*flags).Sugar()
+	conf, err := getLoggingConfig(flags)
+	if err != nil {
+		log.Fatalf("Failed to load logging config: %s", err.Error())
+	}
+
+	err = conf.validate()
+	if err != nil {
+		log.Fatalf("Failed to validate logging config: %s", err.Error())
+	}
+
+	logger := newLogger(conf).Sugar()
 	defer func() {
 		_ = logger.Sync()
 	}()
