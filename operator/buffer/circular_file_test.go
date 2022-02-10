@@ -154,7 +154,7 @@ func TestWrite(t *testing.T) {
 			},
 		},
 		{
-			desc: "Writing when full gives EOF",
+			desc: "Writing when full gives error",
 			testFunc: func(t *testing.T) {
 				t.Parallel()
 				path := randomFilePath("ring-buffer-write-full-length")
@@ -175,7 +175,7 @@ func TestWrite(t *testing.T) {
 				require.True(t, cf.Full)
 
 				n, err = cf.Write(b)
-				require.ErrorIs(t, err, io.EOF)
+				require.ErrorIs(t, err, errWriteOverflow)
 				require.Equal(t, 0, n)
 				require.Equal(t, int64(len(b)), cf.len())
 				require.True(t, cf.Full)
@@ -223,10 +223,9 @@ func TestWrite(t *testing.T) {
 				require.NotNil(t, cf)
 
 				n, err := cf.Write(b)
-				require.ErrorIs(t, err, io.EOF)
-				require.Equal(t, len(b)-1, n)
-				require.Equal(t, int64(len(b)-1), cf.len())
-				require.True(t, cf.Full)
+				require.ErrorIs(t, err, errWriteOverflow)
+				require.Equal(t, 0, n)
+				require.Equal(t, int64(0), cf.len())
 			},
 		},
 		{

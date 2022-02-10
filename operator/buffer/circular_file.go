@@ -1,10 +1,13 @@
 package buffer
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 )
+
+var errWriteOverflow = errors.New("bytes to write overflows file")
 
 // circularFile is a io.ReadWriteCloser that writes to a fixed length file, such that
 // it wraps around to the beginning when reaching the end.
@@ -176,17 +179,14 @@ func (cf *circularFile) Write(p []byte) (int, error) {
 	}
 
 	var totalBytesToWrite int64
-	var isEOF bool
 	// Check if we are actually able to fit p in the file.
 	// If we cannot, we make only write what we can and return EOF.
 	if cf.writeBytesLeft() < int64(len(p)) {
-		// Can only partially write p
-		totalBytesToWrite = cf.writeBytesLeft()
-		isEOF = true
+		// p cannot fit into the buffer
+		return 0, fmt.Errorf("%w (len(p) == %d, available space == %d)", errWriteOverflow, len(p), cf.writeBytesLeft())
 	} else {
 		// Whole buffer can fit on disk
 		totalBytesToWrite = int64(len(p))
-		isEOF = false
 	}
 
 	var firstWriteBytes int64
@@ -234,12 +234,6 @@ func (cf *circularFile) Write(p []byte) (int, error) {
 		if err != nil {
 			return n + n2, err
 		}
-	}
-
-	if isEOF {
-		// If we hit EOF writing, this means the buffer is full
-		cf.Full = true
-		return int(totalBytesToWrite), io.EOF
 	}
 
 	if cf.Start == cf.End && totalBytesToWrite != 0 {
