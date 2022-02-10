@@ -217,9 +217,6 @@ pipeline:
 
 That's it! You should have logs streaming to Google Cloud. From here you can explore all the options available within stanza! You can use existing plugins from our plugin repository or build your own custom pipelines.
 
-# Logging configuration
-
-## TODO
 # Next Steps
 
 - Read up on how to write a stanza [pipeline](/docs/pipeline.md).
