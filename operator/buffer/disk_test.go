@@ -142,8 +142,7 @@ func TestDiskBufferAdd(t *testing.T) {
 
 				entry := entry.New()
 
-				buf := make([]byte, 0)
-				buf, err = marshalEntry(buf, entry)
+				buf, err := marshalEntry(entry)
 				require.NoError(t, err)
 
 				cfg.MaxSize = helper.ByteSize(len(buf))

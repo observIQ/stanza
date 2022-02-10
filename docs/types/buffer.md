@@ -47,13 +47,13 @@ be logs that are lost or a corruption of the database.
 
 Disk buffers are configured by setting the `type` field of the `buffer` block on an output to `disk`. Other fields are described below:
 
-| Field            | Default  | Description                                                                                                                       |
-|------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `max_size`       | `4GiB`   | The maximum size of the disk buffer file in bytes. See [ByteSize](/docs/types/bytesize.md) for details on allowed values.         |
-| `max_chunk_size` | 1000     | The maximum number of entries that are read from the buffer by default                                                            |
-| `max_delay`      | 1s       | The maximum amount of time that a reader will wait to batch entries into a chunk                                                  |
-| `path`           | required | The path to the folder which will contain the disk buffer data                                                                    |
-| `sync`           | `true`   | Whether to open the buffer file with O_SYNC flag. Disabling this improves performance, but relaxes guarantees about log delivery. |
+| Field            | Default  | Description                                                                                                                                                                                     |
+|------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `max_size`       | `4GiB`   | The maximum size of the disk buffer file in bytes. See [ByteSize](/docs/types/bytesize.md) for details on allowed values. This value cannot be reconfigured after the disk buffer is allocated. |
+| `max_chunk_size` | 1000     | The maximum number of entries that are read from the buffer by default                                                                                                                          |
+| `max_delay`      | 1s       | The maximum amount of time that a reader will wait to batch entries into a chunk                                                                                                                |
+| `path`           | required | The path to the folder which will contain the disk buffer data                                                                                                                                  |
+| `sync`           | `true`   | Whether to open the buffer file with O_SYNC flag. Disabling this improves performance, but relaxes guarantees about log delivery.                                                               |
 
 Example:
 ```yaml

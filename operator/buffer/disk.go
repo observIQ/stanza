@@ -112,10 +112,6 @@ type DiskBuffer struct {
 	maxChunkSize  uint
 }
 
-// entryBufInitialSize is the initial size of the internal buffer that an entry
-// is written to
-const entryBufInitialSize = 0
-
 // Add adds an entry onto the buffer.
 // Will block if the buffer is full
 func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
@@ -126,8 +122,7 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 		return ErrBufferClosed
 	}
 
-	bufBytes := make([]byte, 0, entryBufInitialSize)
-	bufBytes, err := marshalEntry(bufBytes, e)
+	bufBytes, err := marshalEntry(e)
 	if err != nil {
 		return err
 	}
@@ -230,10 +225,10 @@ func (d *DiskBuffer) Close() ([]*entry.Entry, error) {
 	return nil, d.metadata.close()
 }
 
-// marshalEntry marshals the given entry into the given byte slice.
-// It returns the buffer (which may be reallocated).
-func marshalEntry(b []byte, e *entry.Entry) ([]byte, error) {
-	buf := bytes.NewBuffer(b)
+// marshalEntry marshals the given entry into a byte slice.
+// It returns a byte slice containing the marshalled entry.
+func marshalEntry(e *entry.Entry) ([]byte, error) {
+	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	err := enc.Encode(e)
 	if err != nil {
