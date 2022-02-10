@@ -7,12 +7,12 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/flusher"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/version"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/operator/flusher"
+	"github.com/observiq/stanza/v2/version"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -72,7 +72,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 		return nil, fmt.Errorf("failed to build output operator: %w", err)
 	}
 
-	newBuffer, err := c.BufferConfig.Build(bc, c.ID())
+	newBuffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build buffer: %w", err)
 	}

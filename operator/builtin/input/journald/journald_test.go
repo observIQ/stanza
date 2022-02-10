@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package journald
@@ -10,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +56,10 @@ func TestInputJournald(t *testing.T) {
 		return &fakeJournaldCmd{}
 	}
 
-	err = op.Start()
+	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, mock.Anything).Return(nil, nil)
+	persister.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	err = op.Start(persister)
 	require.NoError(t, err)
 	defer op.Stop()
 
@@ -98,7 +102,7 @@ func TestInputJournald(t *testing.T) {
 
 	select {
 	case e := <-received:
-		require.Equal(t, expected, e.Record)
+		require.Equal(t, expected, e.Body)
 	case <-time.After(time.Second):
 		require.FailNow(t, "Timed out waiting for entry to be read")
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/observiq/stanza/version"
+	"github.com/observiq/stanza/v2/version"
 	"github.com/spf13/cobra"
 )
 

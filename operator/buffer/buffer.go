@@ -3,24 +3,32 @@ package buffer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 )
+
+// ErrBufferClosed is an error to indicate an operation was attempted on a buffer after it was closed
+var ErrBufferClosed = errors.New("buffer is closed")
+
+// ErrEntryTooLarge is an error that indicates an entry is too large to ever fit into the buffer.
+// That is, the serialized entry is larger than the maximum size of the buffer
+var ErrEntryTooLarge = errors.New("entry is too large to fit in buffer")
 
 // Buffer is an interface for an entry buffer
 type Buffer interface {
+	// Add adds an entry onto the buffer.
+	// Is a blocking call if the buffer is full
 	Add(context.Context, *entry.Entry) error
-	Read([]*entry.Entry) (Clearer, int, error)
-	ReadWait(context.Context, []*entry.Entry) (Clearer, int, error)
-	ReadChunk(context.Context) ([]*entry.Entry, Clearer, error)
-	Close() error
-	MaxChunkDelay() time.Duration
-	MaxChunkSize() uint
-	SetMaxChunkDelay(time.Duration)
-	SetMaxChunkSize(uint)
+
+	// Read reads from the buffer.
+	// Read can be a blocking call depending on the underlying implementation.
+	Read(context.Context) ([]*entry.Entry, error)
+
+	// Close runs cleanup code for buffer and may return entries left in the buffer
+	// depending on the underlying implementation
+	Close() ([]*entry.Entry, error)
 }
 
 // Config is a struct that wraps a Builder
@@ -37,7 +45,7 @@ func NewConfig() Config {
 
 // Builder builds a Buffer given build context
 type Builder interface {
-	Build(context operator.BuildContext, pluginID string) (Buffer, error)
+	Build() (Buffer, error)
 }
 
 // UnmarshalJSON unmarshals JSON
@@ -77,9 +85,4 @@ func (bc Config) MarshalYAML() (interface{}, error) {
 
 func (bc Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(bc.Builder)
-}
-
-type Clearer interface {
-	MarkAllAsFlushed() error
-	MarkRangeAsFlushed(uint, uint) error
 }

@@ -6,10 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/flusher"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/operator/flusher"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -38,7 +39,7 @@ type GoogleCloudOutput struct {
 }
 
 // Start will start the google cloud operator
-func (g *GoogleCloudOutput) Start() error {
+func (g *GoogleCloudOutput) Start(_ operator.Persister) error {
 	ctx, cancel := context.WithTimeout(context.Background(), g.timeout)
 	defer cancel()
 
@@ -72,7 +73,8 @@ func (g *GoogleCloudOutput) Stop() error {
 	g.flusher.Stop()
 	g.Debug("Stopped flusher")
 
-	if err := g.buffer.Close(); err != nil {
+	// TODO handle buffer close entries
+	if _, err := g.buffer.Close(); err != nil {
 		return fmt.Errorf("failed to close buffer: %w", err)
 	}
 	g.Debug("Closed buffer")
@@ -152,7 +154,7 @@ func (g *GoogleCloudOutput) startFlusher() {
 
 // flushChunk flushes a chunk of entries from the buffer
 func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
-	entries, clearer, err := g.buffer.ReadChunk(ctx)
+	entries, err := g.buffer.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read entries from buffer: %w", err)
 	}
@@ -163,18 +165,15 @@ func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
 	requests := g.requestBuilder.Build(entries)
 	g.Debugw("Created write requests", "requests", len(requests), "chunk_id", chunkID)
 
-	flushFunc := func(ctx context.Context) error {
-		err := g.send(ctx, requests)
+	flushFunc := func(flushCtx context.Context) error {
+		err := g.send(flushCtx, requests)
 		if err != nil {
 			g.Debugw("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
-			return err
 		}
-
-		g.Debugw("Marking entries as flushed", "chunk_id", chunkID)
-		return clearer.MarkAllAsFlushed()
+		return err
 	}
 
-	g.flusher.Do(flushFunc)
+	g.flusher.Do(ctx, flushFunc)
 	g.Debugw("Submitted requests to the flusher", "requests", len(requests))
 
 	return nil

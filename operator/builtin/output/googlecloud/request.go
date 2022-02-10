@@ -1,9 +1,8 @@
 package googlecloud
 
 import (
-	"github.com/observiq/stanza/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"go.uber.org/zap"
-
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/protobuf/proto"

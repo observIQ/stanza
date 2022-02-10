@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	out "github.com/observiq/stanza/operator/builtin/output/stdout"
+	out "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/output/stdout"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,7 +48,7 @@ func TestTomcatExample(t *testing.T) {
 	buf := muxWriter{}
 	out.Stdout = &buf
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -59,13 +59,13 @@ func TestTomcatExample(t *testing.T) {
 	}()
 	defer func() { <-done }()
 
-	expected := `{"timestamp":"2019-03-13T10:43:00-04:00","severity":60,"severity_text":"404","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"-","http_method":"GET","http_status":"404","remote_host":"10.66.2.46","remote_user":"-","url_path":"/"}}
-{"timestamp":"2019-03-13T10:43:01-04:00","severity":60,"severity_text":"404","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"-","http_method":"GET","http_status":"404","remote_host":"10.66.2.46","remote_user":"-","url_path":"/favicon.ico"}}
-{"timestamp":"2019-03-13T10:43:08-04:00","severity":30,"severity_text":"302","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"-","http_method":"GET","http_status":"302","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager"}}
-{"timestamp":"2019-03-13T10:43:08-04:00","severity":60,"severity_text":"403","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"3420","http_method":"GET","http_status":"403","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager/"}}
-{"timestamp":"2019-03-13T11:00:26-04:00","severity":60,"severity_text":"401","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"2473","http_method":"GET","http_status":"401","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager/html"}}
-{"timestamp":"2019-03-13T11:00:53-04:00","severity":20,"severity_text":"200","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"11936","http_method":"GET","http_status":"200","remote_host":"10.66.2.46","remote_user":"tomcat","url_path":"/manager/html"}}
-{"timestamp":"2019-03-13T11:00:53-04:00","severity":20,"severity_text":"200","labels":{"file_name":"access.log","log_type":"tomcat"},"record":{"bytes_sent":"19698","http_method":"GET","http_status":"200","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager/images/asf-logo.svg"}}
+	expected := `{"timestamp":"2019-03-13T10:43:00-04:00","body":{"bytes_sent":"-","http_method":"GET","http_status":"404","remote_host":"10.66.2.46","remote_user":"-","url_path":"/"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"404","severity":17}
+{"timestamp":"2019-03-13T10:43:01-04:00","body":{"bytes_sent":"-","http_method":"GET","http_status":"404","remote_host":"10.66.2.46","remote_user":"-","url_path":"/favicon.ico"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"404","severity":17}
+{"timestamp":"2019-03-13T10:43:08-04:00","body":{"bytes_sent":"-","http_method":"GET","http_status":"302","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"302","severity":9}
+{"timestamp":"2019-03-13T10:43:08-04:00","body":{"bytes_sent":"3420","http_method":"GET","http_status":"403","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager/"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"403","severity":17}
+{"timestamp":"2019-03-13T11:00:26-04:00","body":{"bytes_sent":"2473","http_method":"GET","http_status":"401","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager/html"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"401","severity":17}
+{"timestamp":"2019-03-13T11:00:53-04:00","body":{"bytes_sent":"11936","http_method":"GET","http_status":"200","remote_host":"10.66.2.46","remote_user":"tomcat","url_path":"/manager/html"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"200","severity":5}
+{"timestamp":"2019-03-13T11:00:53-04:00","body":{"bytes_sent":"19698","http_method":"GET","http_status":"200","remote_host":"10.66.2.46","remote_user":"-","url_path":"/manager/images/asf-logo.svg"},"attributes":{"file_name":"access.log","log_type":"tomcat"},"severity_text":"200","severity":5}
 `
 
 	timeout := time.After(5 * time.Second)
@@ -111,11 +111,11 @@ func TestSimplePluginsExample(t *testing.T) {
 	}()
 	defer func() { <-done }()
 
-	expected := `{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
-{"timestamp":"2006-01-02T15:04:05Z","severity":0,"labels":{"decorated":"my_decorated_value"},"record":"test record"}
+	expected := `{"timestamp":"2006-01-02T15:04:05Z","body":"test body","attributes":{"decorated":"my_decorated_value"},"severity":0}
+{"timestamp":"2006-01-02T15:04:05Z","body":"test body","attributes":{"decorated":"my_decorated_value"},"severity":0}
+{"timestamp":"2006-01-02T15:04:05Z","body":"test body","attributes":{"decorated":"my_decorated_value"},"severity":0}
+{"timestamp":"2006-01-02T15:04:05Z","body":"test body","attributes":{"decorated":"my_decorated_value"},"severity":0}
+{"timestamp":"2006-01-02T15:04:05Z","body":"test body","attributes":{"decorated":"my_decorated_value"},"severity":0}
 `
 
 	timeout := time.After(5 * time.Second)

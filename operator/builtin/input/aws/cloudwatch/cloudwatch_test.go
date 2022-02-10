@@ -7,10 +7,11 @@ import (
 
 	cwLogs "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/operator/helper/persist"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -427,6 +428,14 @@ func TestHandleEvent(t *testing.T) {
 	op := ops[0]
 
 	cwOperator, ok := op.(*CloudwatchInput)
+
+	persister := &testutil.MockPersister{}
+	persister.On("Get", mock.Anything, mock.Anything).Return(nil, nil)
+	persister.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	cwOperator.persist = &Persister{
+		base: persist.NewCachedPersister(persister),
+	}
+
 	require.True(t, ok)
 	logStreamName, eventID, ingestionTime := "logStream", "eventID", int64(10000)
 	ts := int64(1632240412056)
@@ -451,7 +460,7 @@ func TestHandleEvent(t *testing.T) {
 			},
 			expected: &entry.Entry{
 				Timestamp: fromUnixMilli(ts),
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"ingestion_time": ingestionTime,
 					"message":        msg,
 				},
@@ -474,7 +483,7 @@ func TestHandleEvent(t *testing.T) {
 			},
 			expected: &entry.Entry{
 				Timestamp: fromUnixMilli(ts),
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"ingestion_time": ingestionTime,
 				},
 				Resource: map[string]string{

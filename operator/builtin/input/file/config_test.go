@@ -18,11 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/operator/helper/operatortest"
-	"github.com/observiq/stanza/testutil"
+	szhelper "github.com/observiq/stanza/v2/operator/helper"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper/operatortest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -387,7 +388,7 @@ func TestUnmarshal(t *testing.T) {
 			ExpectErr: false,
 			Expect: func() *InputConfig {
 				cfg := defaultCfg()
-				newMulti := helper.MultilineConfig{}
+				newMulti := szhelper.MultilineConfig{}
 				newMulti.LineStartPattern = "Start"
 				cfg.Multiline = newMulti
 				return cfg
@@ -398,7 +399,7 @@ func TestUnmarshal(t *testing.T) {
 			ExpectErr: false,
 			Expect: func() *InputConfig {
 				cfg := defaultCfg()
-				newMulti := helper.MultilineConfig{}
+				newMulti := szhelper.MultilineConfig{}
 				newMulti.LineStartPattern = "%"
 				cfg.Multiline = newMulti
 				return cfg
@@ -409,7 +410,7 @@ func TestUnmarshal(t *testing.T) {
 			ExpectErr: false,
 			Expect: func() *InputConfig {
 				cfg := defaultCfg()
-				newMulti := helper.MultilineConfig{}
+				newMulti := szhelper.MultilineConfig{}
 				newMulti.LineEndPattern = "Start"
 				cfg.Multiline = newMulti
 				return cfg
@@ -420,7 +421,7 @@ func TestUnmarshal(t *testing.T) {
 			ExpectErr: false,
 			Expect: func() *InputConfig {
 				cfg := defaultCfg()
-				newMulti := helper.MultilineConfig{}
+				newMulti := szhelper.MultilineConfig{}
 				newMulti.LineEndPattern = "%"
 				cfg.Multiline = newMulti
 				return cfg
@@ -548,7 +549,7 @@ func TestBuild(t *testing.T) {
 				require.Equal(t, f.OutputOperators[0], fakeOutput)
 				require.Equal(t, f.finder.Include, []string{"/var/log/testpath.*"})
 				require.Equal(t, f.FilePathField, entry.NewNilField())
-				require.Equal(t, f.FileNameField, entry.NewLabelField("file_name"))
+				require.Equal(t, f.FileNameField, entry.NewAttributeField("file_name"))
 				require.Equal(t, f.PollInterval, 10*time.Millisecond)
 			},
 		},
@@ -571,7 +572,7 @@ func TestBuild(t *testing.T) {
 		{
 			"MultilineConfiguredStartAndEndPatterns",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{
+				f.Multiline = szhelper.MultilineConfig{
 					LineEndPattern:   "Exists",
 					LineStartPattern: "Exists",
 				}
@@ -582,7 +583,7 @@ func TestBuild(t *testing.T) {
 		{
 			"MultilineConfiguredStartPattern",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{
+				f.Multiline = szhelper.MultilineConfig{
 					LineStartPattern: "START.*",
 				}
 			},
@@ -592,7 +593,7 @@ func TestBuild(t *testing.T) {
 		{
 			"MultilineConfiguredEndPattern",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{
+				f.Multiline = szhelper.MultilineConfig{
 					LineEndPattern: "END.*",
 				}
 			},
@@ -610,7 +611,7 @@ func TestBuild(t *testing.T) {
 		{
 			"LineStartAndEnd",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{
+				f.Multiline = szhelper.MultilineConfig{
 					LineStartPattern: ".*",
 					LineEndPattern:   ".*",
 				}
@@ -621,7 +622,7 @@ func TestBuild(t *testing.T) {
 		{
 			"NoLineStartOrEnd",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{}
+				f.Multiline = szhelper.MultilineConfig{}
 			},
 			require.NoError,
 			func(t *testing.T, f *InputOperator) {},
@@ -629,7 +630,7 @@ func TestBuild(t *testing.T) {
 		{
 			"InvalidLineStartRegex",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{
+				f.Multiline = szhelper.MultilineConfig{
 					LineStartPattern: "(",
 				}
 			},
@@ -639,7 +640,7 @@ func TestBuild(t *testing.T) {
 		{
 			"InvalidLineEndRegex",
 			func(f *InputConfig) {
-				f.Multiline = helper.MultilineConfig{
+				f.Multiline = szhelper.MultilineConfig{
 					LineEndPattern: "(",
 				}
 			},
@@ -720,7 +721,7 @@ func NewTestInputConfig() *InputConfig {
 	cfg.WriteTo = entry.Field{}
 	cfg.Include = []string{"i1", "i2"}
 	cfg.Exclude = []string{"e1", "e2"}
-	cfg.Multiline = helper.MultilineConfig{
+	cfg.Multiline = szhelper.MultilineConfig{
 		LineStartPattern: "start",
 		LineEndPattern:   "end",
 	}

@@ -3,9 +3,9 @@ package eventhub
 import (
 	"context"
 
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/builtin/input/azure"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/builtin/input/azure"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 const operatorName = "azure_event_hub_input"
@@ -40,9 +40,6 @@ func (c *EventHubInputConfig) Build(buildContext operator.BuildContext) ([]opera
 	eventHubInput := &EventHubInput{
 		EventHub: azure.EventHub{
 			AzureConfig: c.AzureConfig,
-			Persist: &azure.Persister{
-				DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
-			},
 		},
 	}
 	return []operator.Operator{eventHubInput}, nil
@@ -54,9 +51,9 @@ type EventHubInput struct {
 }
 
 // Start will start generating log entries.
-func (e *EventHubInput) Start() error {
+func (e *EventHubInput) Start(persister operator.Persister) error {
 	e.Handler = e.handleEvent
-	return e.StartConsumers(context.Background())
+	return e.StartConsumers(context.Background(), persister)
 }
 
 // Stop will stop generating logs.

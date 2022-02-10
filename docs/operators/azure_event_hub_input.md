@@ -2,7 +2,7 @@
 
 The `azure_event_hub_input` operator reads logs from Azure Event Hub using [Azure's SDK](https://github.com/Azure/azure-event-hubs-go)
 
-The `azure_event_hub_input` operator will use the `EnqueuedTime` field of the event as the parsed entry's timestamp. If `EnqueuedTime` is not set, `azure_event_hub_input` will use `IoTHubEnqueuedTime` if it is set. All other fields are added to the entry's record.
+The `azure_event_hub_input` operator will use the `EnqueuedTime` field of the event as the parsed entry's timestamp. If `EnqueuedTime` is not set, `azure_event_hub_input` will use `IoTHubEnqueuedTime` if it is set. All other fields are added to the entry's body.
 
 ### Configuration Fields
 
@@ -43,7 +43,7 @@ A list of potential keys and their purpose can be found [here](https://github.co
   "resource": {
     "event_id": "fea3c182-00a6-4951-8f6f-9331031f978f"
   },
-  "record": {
+  "body": {
     "message": "hello, world!",
     "system_properties": {
       "x-opt-enqueued-time": "2021-04-19T18:44:34.619Z",

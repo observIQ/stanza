@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/observiq/stanza/agent"
+	"github.com/observiq/stanza/v2/service"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -22,7 +22,7 @@ import (
 // RootFlags are the root level flags that be provided when invoking stanza from the command line
 type RootFlags struct {
 	DatabaseFile       string
-	ConfigFiles        []string
+	ConfigFile         string
 	PluginDir          string
 	PprofPort          int
 	CPUProfile         string
@@ -58,7 +58,7 @@ func NewRootCmd() *cobra.Command {
 	rootFlagSet.IntVar(&rootFlags.MaxLogAge, "max_log_age", 7, "sets the maximum number of days to retain a rotated log file")
 	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging flag - deprecated")
 
-	rootFlagSet.StringSliceVarP(&rootFlags.ConfigFiles, "config", "c", []string{defaultConfig()}, "path to a config file")
+	rootFlagSet.StringVarP(&rootFlags.ConfigFile, "config", "c", defaultConfig(), "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
 	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the stanza offset database")
 
@@ -92,18 +92,13 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	agent, err := agent.NewBuilder(logger).
-		WithConfigFiles(flags.ConfigFiles).
-		WithPluginDir(flags.PluginDir).
+	// Build agent service
+	service, ctx, err := service.NewBuilder().
+		WithConfigFile(flags.ConfigFile).
 		WithDatabaseFile(flags.DatabaseFile).
-		Build()
-	if err != nil {
-		logger.Errorw("Failed to build agent", zap.Any("error", err))
-		os.Exit(1)
-	}
-
-	ctx, cancel := context.WithCancel(command.Context())
-	service, err := newAgentService(ctx, agent, cancel)
+		WithPluginDir(flags.PluginDir).
+		WithLogger(logger).
+		Build(command.Context())
 	if err != nil {
 		logger.Errorf("Failed to create agent service", zap.Any("error", err))
 		os.Exit(1)
@@ -140,9 +135,9 @@ func startProfiling(ctx context.Context, flags *RootFlags, logger *zap.SugaredLo
 		go func() {
 			defer wg.Done()
 			<-ctx.Done()
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			err := srv.Shutdown(ctx)
+			err := srv.Shutdown(shutdownCtx)
 			if err != nil {
 				logger.Warnw("Errored shutting down pprof server", zap.Error(err))
 			}

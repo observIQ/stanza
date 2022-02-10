@@ -3,8 +3,8 @@ package azure
 import (
 	"fmt"
 
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 // AzureConfig is the configuration of a Azure Event Hub input operator.

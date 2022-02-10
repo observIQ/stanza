@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,11 +32,13 @@ func TestForwardInput(t *testing.T) {
 	err = forwardInput.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
-	require.NoError(t, forwardInput.Start())
+	persister := &testutil.MockPersister{}
+
+	require.NoError(t, forwardInput.Start(persister))
 	defer forwardInput.Stop()
 
 	newEntry := entry.New()
-	newEntry.Record = "test"
+	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -53,10 +55,10 @@ func TestForwardInput(t *testing.T) {
 		require.FailNow(t, "Timed out waiting for entry to be received")
 	case e := <-fake.Received:
 		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
-		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
-		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Attributes, e.Attributes)
 		require.Equal(t, newEntry.Resource, e.Resource)
 	}
 }
@@ -80,11 +82,12 @@ func TestForwardInputTLS(t *testing.T) {
 	err = forwardInput.SetOutputs([]operator.Operator{fake})
 	require.NoError(t, err)
 
-	require.NoError(t, forwardInput.Start())
+	persister := &testutil.MockPersister{}
+	require.NoError(t, forwardInput.Start(persister))
 	defer forwardInput.Stop()
 
 	newEntry := entry.New()
-	newEntry.Record = "test"
+	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -112,10 +115,10 @@ func TestForwardInputTLS(t *testing.T) {
 		require.FailNow(t, "Timed out waiting for entry to be received")
 	case e := <-fake.Received:
 		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
-		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
-		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Attributes, e.Attributes)
 		require.Equal(t, newEntry.Resource, e.Resource)
 	}
 }

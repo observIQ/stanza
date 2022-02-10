@@ -2,14 +2,6 @@
 
 If you are new to Go, it is recommended to work through the [How to Write Go Code](https://golang.org/doc/code.html) tutorial, which will ensure your Go environment is configured.
 
-Clone this repo into your Go workspace:
-```
-cd $GOPATH/src
-mkdir -p github.com/observiq && cd github.com/observiq
-git clone git@github.com:observiq/stanza.git
-cd $GOPATH/src/github.com/observiq/stanza
-```
-
 ## Building
 
 To build the agent for another OS, run one of the following: 

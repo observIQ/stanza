@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func graphTest(config, output string) func(t *testing.T) {
 		require.NoError(t, err)
 
 		rootFlags := &RootFlags{
-			ConfigFiles: []string{configPath},
+			ConfigFile: configPath,
 		}
 		graphCmd := NewGraphCommand(rootFlags)
 
@@ -44,7 +44,7 @@ pipeline:
     type: generate_input
     output: json_parser
     entry:
-      record:
+      body:
         test: value
 
   - id: json_parser
@@ -76,7 +76,7 @@ pipeline:
   - type: generate_input
     output: json_parser
     entry:
-      record:
+      body:
         test: value
 
   - type: json_parser
@@ -106,7 +106,7 @@ pipeline:
   - id: generate
     type: generate_input
     entry:
-      record:
+      body:
         test: value
 
   - id: json_parser
@@ -136,7 +136,7 @@ func TestGraphNoOutputsNoIDs(t *testing.T) {
 pipeline:
   - type: generate_input
     entry:
-      record:
+      body:
         test: value
 
   - type: json_parser
@@ -164,7 +164,7 @@ func TestGraphMixed(t *testing.T) {
 pipeline:
   - type: generate_input
     entry:
-      record:
+      body:
         test: value
 
   - type: json_parser

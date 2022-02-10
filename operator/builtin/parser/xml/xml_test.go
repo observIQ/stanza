@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	operator "github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -172,7 +172,7 @@ func TestXMLPaserProcess(t *testing.T) {
 
 	op := ops[0]
 	entry := &entry.Entry{
-		Record: "<test>test value</test>",
+		Body: "<test>test value</test>",
 	}
 
 	err = op.Process(context.Background(), entry)

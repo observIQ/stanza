@@ -2,15 +2,15 @@ package k8smetadata
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
-	"net/url"
-	"net/http"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -112,7 +112,7 @@ func (m *MetadataCache) Store(key string, entry MetadataCacheEntry) {
 }
 
 // Start will start the k8s_metadata_decorator operator
-func (k *K8sMetadataDecorator) Start() error {
+func (k *K8sMetadataDecorator) Start(_ operator.Persister) error {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return errors.NewError(
@@ -121,8 +121,8 @@ func (k *K8sMetadataDecorator) Start() error {
 		)
 	}
 
-	if ! k.allowProxy {
-		config.Proxy = func (*http.Request) (*url.URL, error) {
+	if !k.allowProxy {
+		config.Proxy = func(*http.Request) (*url.URL, error) {
 			return nil, nil
 		}
 	}
@@ -306,16 +306,16 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 }
 
 func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta MetadataCacheEntry, entry *entry.Entry) {
-	if entry.Labels == nil {
-		entry.Labels = make(map[string]string)
+	if entry.Attributes == nil {
+		entry.Attributes = make(map[string]string)
 	}
 
 	for k, v := range nsMeta.Annotations {
-		entry.Labels["k8s-ns-annotation/"+k] = v
+		entry.Attributes["k8s-ns-annotation/"+k] = v
 	}
 
 	for k, v := range nsMeta.Labels {
-		entry.Labels["k8s-ns/"+k] = v
+		entry.Attributes["k8s-ns/"+k] = v
 	}
 
 	entry.Resource["k8s.namespace.uid"] = nsMeta.UID
@@ -325,16 +325,16 @@ func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta Metadat
 }
 
 func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(podMeta MetadataCacheEntry, entry *entry.Entry) {
-	if entry.Labels == nil {
-		entry.Labels = make(map[string]string)
+	if entry.Attributes == nil {
+		entry.Attributes = make(map[string]string)
 	}
 
 	for k, v := range podMeta.Annotations {
-		entry.Labels["k8s-pod-annotation/"+k] = v
+		entry.Attributes["k8s-pod-annotation/"+k] = v
 	}
 
 	for k, v := range podMeta.Labels {
-		entry.Labels["k8s-pod/"+k] = v
+		entry.Attributes["k8s-pod/"+k] = v
 	}
 
 	entry.Resource["k8s.pod.uid"] = podMeta.UID

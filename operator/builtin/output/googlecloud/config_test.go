@@ -6,11 +6,11 @@ import (
 	"path"
 	"testing"
 
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/testutil"
-	"github.com/observiq/stanza/version"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/observiq/stanza/v2/version"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -205,17 +205,6 @@ func TestBuild(t *testing.T) {
 				BufferConfig: buffer.NewConfig(),
 			},
 			err: "failed to build output operator",
-		},
-		{
-			name: "invalid buffer",
-			config: GoogleCloudOutputConfig{
-				OutputConfig: helper.NewOutputConfig("test", operatorType),
-				Credentials:  `{"type": "service_account", "project_id": "test"}`,
-				BufferConfig: buffer.Config{
-					Builder: buffer.DiskBufferConfig{},
-				},
-			},
-			err: "failed to build buffer",
 		},
 		{
 			name: "invalid credentials",

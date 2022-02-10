@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 )
 
 type fileInputBenchmark struct {
@@ -158,8 +158,10 @@ func BenchmarkFileInput(b *testing.B) {
 				}
 			}
 
+			persister := &testutil.MockPersister{}
+
 			b.ResetTimer()
-			err = op.Start()
+			err = op.Start(persister)
 			defer op.Stop()
 			require.NoError(b, err)
 

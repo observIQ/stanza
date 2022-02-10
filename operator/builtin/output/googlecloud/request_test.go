@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/stanza/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -36,10 +36,10 @@ func BenchmarkBuildRequest(b *testing.B) {
 }
 
 func TestBuildRequest(t *testing.T) {
-	entryOne := &entry.Entry{Record: "request 1"}
-	entryTwo := &entry.Entry{Record: "request 2"}
-	entryThree := &entry.Entry{Record: "request 3"}
-	entryFour := &entry.Entry{Record: "request 4"}
+	entryOne := &entry.Entry{Body: "request 1"}
+	entryTwo := &entry.Entry{Body: "request 2"}
+	entryThree := &entry.Entry{Body: "request 3"}
+	entryFour := &entry.Entry{Body: "request 4"}
 
 	resultOne := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 1"}}
 	resultTwo := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "request 2"}}
@@ -69,7 +69,7 @@ func TestBuildRequest(t *testing.T) {
 }
 
 func TestImpossibleEntry(t *testing.T) {
-	entryOne := &entry.Entry{Record: "Test Request"}
+	entryOne := &entry.Entry{Body: "Test Request"}
 	resultOne := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: "Test Request"}}
 
 	entryBuilder := &MockEntryBuilder{}
@@ -116,7 +116,7 @@ func (_m *MockEntryBuilder) Build(_a0 *entry.Entry) (*logging.LogEntry, error) {
 }
 
 func createEntry(num int) (*entry.Entry, *logging.LogEntry) {
-	entry := &entry.Entry{Record: fmt.Sprintf("request %d", num)}
+	entry := &entry.Entry{Body: fmt.Sprintf("request %d", num)}
 	result := &logging.LogEntry{Payload: &logging.LogEntry_TextPayload{TextPayload: fmt.Sprintf("request %d", num)}}
 	return entry, result
 }

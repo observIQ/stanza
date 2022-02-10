@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFindIndex(t *testing.T) {
-	indexField := entry.NewRecordField("bar")
+	indexField := entry.NewBodyField("bar")
 	output := &ElasticOutput{
 		indexField: &indexField,
 	}
@@ -53,7 +53,7 @@ func TestFindIndex(t *testing.T) {
 }
 
 func TestFindID(t *testing.T) {
-	idField := entry.NewRecordField("foo")
+	idField := entry.NewBodyField("foo")
 	output := &ElasticOutput{
 		idField: &idField,
 	}
@@ -108,9 +108,10 @@ func TestElastic(t *testing.T) {
 	require.NoError(t, err)
 	op := ops[0]
 	e := entry.New()
-	e.Record = "test"
+	e.Body = "test"
+	persister := &testutil.MockPersister{}
 
-	require.NoError(t, op.Start())
+	require.NoError(t, op.Start(persister))
 	op.Process(context.Background(), e)
 	select {
 	case <-time.After(5 * time.Second):
@@ -128,6 +129,6 @@ func TestElastic(t *testing.T) {
 
 		require.Equal(t, "default", meta["index"]["_index"])
 		require.Equal(t, float64(0), entry["severity"])
-		require.Equal(t, "test", entry["record"])
+		require.Equal(t, "test", entry["body"])
 	}
 }

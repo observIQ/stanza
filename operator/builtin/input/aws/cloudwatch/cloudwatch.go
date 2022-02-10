@@ -10,8 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/helper/persist"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 const operatorName = "aws_cloudwatch_input"
@@ -107,9 +108,7 @@ func (c *CloudwatchInputConfig) Build(buildContext operator.BuildContext) ([]ope
 		profile:             c.Profile,
 		pollInterval:        c.PollInterval,
 		startAtEnd:          startAtEnd,
-		persist: Persister{
-			DB: helper.NewScopedDBPersister(buildContext.Database, c.ID()),
-		},
+		persist:             nil,
 	}
 	return []operator.Operator{cloudwatchInput}, nil
 }
@@ -130,26 +129,27 @@ type CloudwatchInput struct {
 	profile             string
 	startAtEnd          bool
 	startTime           int64
-	persist             Persister
+	persist             *Persister
 	wg                  sync.WaitGroup
 
 	session *cloudwatchlogs.CloudWatchLogs
 }
 
 // Start will start generating log entries.
-func (c *CloudwatchInput) Start() error {
+func (c *CloudwatchInput) Start(persister operator.Persister) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
+
+	// Create a new persister that is based in a cached persister
+	c.persist = &Persister{
+		base: persist.NewCachedPersister(persister),
+	}
 
 	if err := c.configureSession(); err != nil {
 		return fmt.Errorf("failed to configure AWS SDK: %s", err)
 	}
 
 	c.buildLogGroupList()
-
-	if err := c.persist.DB.Load(); err != nil {
-		return err
-	}
 
 	for _, logGroup := range c.logGroups {
 		c.wg.Add(1)
@@ -234,7 +234,7 @@ func (c *CloudwatchInput) sessionBuilder() (*cloudwatchlogs.CloudWatchLogs, erro
 // getEvents uses a session to get events from AWS Cloudwatch Logs
 func (c *CloudwatchInput) getEvents(ctx context.Context, logGroupName string) error {
 	nextToken := ""
-	st, err := c.persist.Read(logGroupName)
+	st, err := c.persist.Read(ctx, logGroupName)
 	if err != nil {
 		c.Errorf("failed to get persist: %s", err)
 	}
@@ -374,16 +374,15 @@ func (c *CloudwatchInput) handleEvent(ctx context.Context, event *cloudwatchlogs
 	if event.IngestionTime != nil && *event.IngestionTime > c.startTime {
 		c.startTime = *event.IngestionTime
 		c.Debugf("Writing start time %d to database", *event.IngestionTime)
-		c.persist.Write(logGroupName, c.startTime)
+		if err := c.persist.Write(ctx, logGroupName, c.startTime); err != nil {
+			c.Errorf("Failed writing entry: %s", err)
+		}
 	}
 }
 
 func (c *CloudwatchInput) handleEvents(ctx context.Context, events []*cloudwatchlogs.FilteredLogEvent, logGroupName string) {
 	for _, event := range events {
 		c.handleEvent(ctx, event, logGroupName)
-	}
-	if err := c.persist.DB.Sync(); err != nil {
-		c.Errorf("Failed to sync offset database: %s", err)
 	}
 }
 

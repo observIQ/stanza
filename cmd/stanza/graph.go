@@ -3,10 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/observiq/stanza/agent"
-	"github.com/observiq/stanza/database"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/plugin"
+	"github.com/open-telemetry/opentelemetry-log-collection/agent"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -32,7 +31,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := agent.NewConfigFromGlobs(flags.ConfigFiles)
+	cfg, err := agent.NewConfigFromFile(flags.ConfigFile)
 	if err != nil {
 		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
 		os.Exit(1)
@@ -42,7 +41,7 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 		logger.Errorw("Got errors parsing parsing", "errors", err)
 	}
 
-	buildContext := operator.NewBuildContext(database.NewStubDatabase(), logger)
+	buildContext := operator.NewBuildContext(logger)
 	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
 	if err != nil {
 		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))

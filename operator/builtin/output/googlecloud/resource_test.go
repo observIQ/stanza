@@ -3,7 +3,7 @@ package googlecloud
 import (
 	"testing"
 
-	"github.com/observiq/stanza/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 )

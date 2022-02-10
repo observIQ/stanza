@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"github.com/observiq/stanza/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -9,13 +9,13 @@ import (
 func parseEntry(zapEntry zapcore.Entry, fields []zapcore.Field) entry.Entry {
 	return entry.Entry{
 		Timestamp: zapEntry.Time,
-		Record:    parseRecord(zapEntry, fields),
+		Body:      parseBody(zapEntry, fields),
 		Severity:  parseSeverity(zapEntry),
 	}
 }
 
-// parseRecord will parse a record from a zapcore entry.
-func parseRecord(zapEntry zapcore.Entry, fields []zapcore.Field) map[string]interface{} {
+// parseBody will parse a body from a zapcore entry.
+func parseBody(zapEntry zapcore.Entry, fields []zapcore.Field) map[string]interface{} {
 	encoder := zapcore.NewMapObjectEncoder()
 	encoder.AddString("message", zapEntry.Message)
 
@@ -34,13 +34,13 @@ func parseSeverity(zapEntry zapcore.Entry) entry.Severity {
 	case zapcore.InfoLevel:
 		return entry.Info
 	case zapcore.WarnLevel:
-		return entry.Warning
+		return entry.Warn
 	case zapcore.ErrorLevel:
 		return entry.Error
 	case zapcore.PanicLevel:
-		return entry.Critical
+		return entry.Error2
 	case zapcore.FatalLevel:
-		return entry.Catastrophe
+		return entry.Fatal
 	default:
 		return entry.Default
 	}

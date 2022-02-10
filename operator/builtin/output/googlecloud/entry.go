@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/observiq/stanza/entry"
-
 	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -141,7 +140,7 @@ func (g *GoogleEntryBuilder) setLocation(entry *entry.Entry, logEntry *logging.L
 
 // setLabels sets the labels of the protobuf entry based on the supplied stanza entry
 func (g *GoogleEntryBuilder) setLabels(entry *entry.Entry, logEntry *logging.LogEntry) error {
-	labels := entry.Labels
+	labels := entry.Attributes
 	if labels == nil {
 		labels = make(map[string]string)
 	}
@@ -159,7 +158,7 @@ func (g *GoogleEntryBuilder) setLabels(entry *entry.Entry, logEntry *logging.Log
 
 // setPayload sets the payload of the protobuf entry based on the supplied stanza entry
 func (g *GoogleEntryBuilder) setPayload(entry *entry.Entry, logEntry *logging.LogEntry) error {
-	switch value := entry.Record.(type) {
+	switch value := entry.Body.(type) {
 	case string:
 		logEntry.Payload = &logging.LogEntry_TextPayload{TextPayload: value}
 		return nil
@@ -183,7 +182,7 @@ func (g *GoogleEntryBuilder) setPayload(entry *entry.Entry, logEntry *logging.Lo
 		logEntry.Payload = &logging.LogEntry_JsonPayload{JsonPayload: &pstruct.Struct{Fields: fields}}
 		return nil
 	default:
-		return fmt.Errorf("cannot convert record of type %T", entry.Record)
+		return fmt.Errorf("cannot convert record of type %T", entry.Body)
 	}
 }
 

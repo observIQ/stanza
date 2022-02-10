@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/flusher"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/operator/flusher"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	otelerrors "github.com/open-telemetry/opentelemetry-log-collection/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -33,7 +34,7 @@ func NewNewRelicOutputConfig(operatorID string) *NewRelicOutputConfig {
 		FlusherConfig: flusher.NewConfig(),
 		BaseURI:       "https://log-api.newrelic.com/log/v1",
 		Timeout:       helper.NewDuration(10 * time.Second),
-		MessageField:  entry.NewRecordField(),
+		MessageField:  entry.NewBodyField(),
 	}
 }
 
@@ -62,14 +63,14 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	url, err := url.Parse(c.BaseURI)
 	if err != nil {
-		return nil, errors.Wrap(err, "'base_uri' is not a valid URL")
+		return nil, otelerrors.Wrap(err, "'base_uri' is not a valid URL")
 	}
 
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
@@ -126,7 +127,7 @@ type NewRelicOutput struct {
 }
 
 // Start tests the connection to New Relic and begins flushing entries
-func (nro *NewRelicOutput) Start() error {
+func (nro *NewRelicOutput) Start(_ operator.Persister) error {
 	if err := nro.testConnection(); err != nil {
 		return fmt.Errorf("test connection: %s", err)
 	}
@@ -145,7 +146,9 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.cancel()
 	nro.wg.Wait()
 	nro.flusher.Stop()
-	return nro.buffer.Close()
+	// TODO handle buffer close entries
+	_, err := nro.buffer.Close()
+	return err
 }
 
 // Process adds an entry to the output's buffer
@@ -172,22 +175,20 @@ func (nro *NewRelicOutput) testConnection() error {
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := nro.buffer.ReadChunk(ctx)
-		if err != nil && err == context.Canceled {
+		entries, err := nro.buffer.Read(ctx)
+		switch {
+		case errors.Is(err, context.Canceled):
 			return
-		} else if err != nil {
+		case err != nil:
 			nro.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
 
-		nro.flusher.Do(func(ctx context.Context) error {
-			req, err := nro.newRequest(ctx, entries)
+		nro.flusher.Do(ctx, func(flushCtx context.Context) error {
+			req, err := nro.newRequest(flushCtx, entries)
 			if err != nil {
-				nro.Errorw("Failed to create request from payload", zap.Error(err))
 				// drop these logs because we couldn't creat a request and a retry won't help
-				if err := clearer.MarkAllAsFlushed(); err != nil {
-					nro.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
-				}
+				nro.Errorw("Failed to create request from payload", zap.Error(err))
 				return nil
 			}
 
@@ -200,9 +201,6 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 				return err
 			}
 
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				nro.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
 			return nil
 		})
 	}
@@ -216,7 +214,7 @@ func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entr
 	wr := gzip.NewWriter(&buf)
 	enc := json.NewEncoder(wr)
 	if err := enc.Encode(payload); err != nil {
-		return nil, errors.Wrap(err, "encode payload")
+		return nil, otelerrors.Wrap(err, "encode payload")
 	}
 	if err := wr.Close(); err != nil {
 		return nil, err
@@ -235,12 +233,12 @@ func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return errors.NewError("unexpected status code", "", "status", res.Status)
+			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
 		} else {
 			if err := res.Body.Close(); err != nil {
 				nro.Errorf(err.Error())
 			}
-			return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
+			return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
 	}
 	return res.Body.Close()

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/genproto/googleapis/logging/v2"
@@ -67,8 +67,8 @@ func TestBuildEntry(t *testing.T) {
 		{
 			name: "duplicate label keys",
 			stanzaEntry: &entry.Entry{
-				Record: "test record",
-				Labels: map[string]string{
+				Body: "test record",
+				Attributes: map[string]string{
 					"duplicate_key": "value_1",
 				},
 				Resource: map[string]string{
@@ -87,7 +87,7 @@ func TestBuildEntry(t *testing.T) {
 		{
 			name: "exceeds maximum size",
 			stanzaEntry: &entry.Entry{
-				Record: "test record",
+				Body: "test record",
 			},
 			builder: GoogleEntryBuilder{
 				MaxEntrySize: 5,
@@ -97,7 +97,7 @@ func TestBuildEntry(t *testing.T) {
 		{
 			name: "invalid map entry",
 			stanzaEntry: &entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"invalid": make(chan int),
 				},
 			},
@@ -109,7 +109,7 @@ func TestBuildEntry(t *testing.T) {
 		{
 			name: "valid map entry",
 			stanzaEntry: &entry.Entry{
-				Record: map[string]interface{}{
+				Body: map[string]interface{}{
 					"int_value":    5,
 					"string_value": "test",
 					"bool_value":   true,
@@ -122,7 +122,7 @@ func TestBuildEntry(t *testing.T) {
 					"host.name":      "test_host",
 					"resource_label": "resource_value",
 				},
-				Labels: map[string]string{
+				Attributes: map[string]string{
 					"test_label": "test_value",
 				},
 				Timestamp: time.UnixMilli(0),
@@ -165,7 +165,7 @@ func TestBuildEntry(t *testing.T) {
 		{
 			name: "valid bytes entry",
 			stanzaEntry: &entry.Entry{
-				Record:    []byte("test"),
+				Body:      []byte("test"),
 				Timestamp: time.UnixMilli(0),
 			},
 			builder: GoogleEntryBuilder{
@@ -182,7 +182,7 @@ func TestBuildEntry(t *testing.T) {
 		{
 			name: "valid string map entry",
 			stanzaEntry: &entry.Entry{
-				Record: map[string]string{
+				Body: map[string]string{
 					"test": "value",
 				},
 				Timestamp: time.UnixMilli(0),
@@ -221,6 +221,6 @@ func TestBuildEntry(t *testing.T) {
 
 func newRecordField(value string) *entry.Field {
 	return &entry.Field{
-		FieldInterface: entry.NewRecordField(value),
+		FieldInterface: entry.NewBodyField(value),
 	}
 }

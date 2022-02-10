@@ -3,7 +3,7 @@ package googlecloud
 import (
 	"testing"
 
-	"github.com/observiq/stanza/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
 	"github.com/stretchr/testify/require"
 	sev "google.golang.org/genproto/googleapis/logging/type"
 )
@@ -15,45 +15,131 @@ func TestConvertSeverity(t *testing.T) {
 		expectedSeverity sev.LogSeverity
 	}{
 		{
-			name:             "above emergency",
-			severity:         entry.Emergency + 1,
-			expectedSeverity: sev.LogSeverity_EMERGENCY,
+			name:             "Default",
+			severity:         entry.Default,
+			expectedSeverity: sev.LogSeverity_DEFAULT,
 		},
 		{
-			name:             "above alert",
-			severity:         entry.Alert + 1,
-			expectedSeverity: sev.LogSeverity_ALERT,
+			name:             "Trace",
+			severity:         entry.Trace,
+			expectedSeverity: sev.LogSeverity_DEBUG,
 		},
 		{
-			name:             "above critical",
-			severity:         entry.Critical + 1,
-			expectedSeverity: sev.LogSeverity_CRITICAL,
+			name:             "Trace2",
+			severity:         entry.Trace2,
+			expectedSeverity: sev.LogSeverity_DEBUG,
 		},
 		{
-			name:             "above error",
-			severity:         entry.Error + 1,
-			expectedSeverity: sev.LogSeverity_ERROR,
+			name:             "Trace3",
+			severity:         entry.Trace3,
+			expectedSeverity: sev.LogSeverity_DEBUG,
 		},
 		{
-			name:             "above warning",
-			severity:         entry.Warning + 1,
-			expectedSeverity: sev.LogSeverity_WARNING,
+			name:             "Trace4",
+			severity:         entry.Trace4,
+			expectedSeverity: sev.LogSeverity_DEBUG,
 		},
 		{
-			name:             "above notice",
-			severity:         entry.Notice + 1,
-			expectedSeverity: sev.LogSeverity_NOTICE,
+			name:             "Debug",
+			severity:         entry.Debug,
+			expectedSeverity: sev.LogSeverity_DEBUG,
 		},
 		{
-			name:             "above info",
-			severity:         entry.Info + 1,
+			name:             "Debug2",
+			severity:         entry.Debug2,
+			expectedSeverity: sev.LogSeverity_DEBUG,
+		},
+		{
+			name:             "Debug3",
+			severity:         entry.Debug3,
+			expectedSeverity: sev.LogSeverity_DEBUG,
+		},
+		{
+			name:             "Debug4",
+			severity:         entry.Debug4,
+			expectedSeverity: sev.LogSeverity_DEBUG,
+		},
+		{
+			name:             "Info",
+			severity:         entry.Info,
 			expectedSeverity: sev.LogSeverity_INFO,
 		},
 		{
-			name:             "above debug",
-			severity:         entry.Debug + 1,
-			expectedSeverity: sev.LogSeverity_DEBUG,
+			name:             "Info2",
+			severity:         entry.Info2,
+			expectedSeverity: sev.LogSeverity_NOTICE,
 		},
+		{
+			name:             "Info3",
+			severity:         entry.Info3,
+			expectedSeverity: sev.LogSeverity_NOTICE,
+		},
+		{
+			name:             "Info4",
+			severity:         entry.Info4,
+			expectedSeverity: sev.LogSeverity_NOTICE,
+		},
+		{
+			name:             "Warn",
+			severity:         entry.Warn,
+			expectedSeverity: sev.LogSeverity_WARNING,
+		},
+		{
+			name:             "Warn2",
+			severity:         entry.Warn2,
+			expectedSeverity: sev.LogSeverity_WARNING,
+		},
+		{
+			name:             "Warn3",
+			severity:         entry.Warn3,
+			expectedSeverity: sev.LogSeverity_WARNING,
+		},
+		{
+			name:             "Warn4",
+			severity:         entry.Warn4,
+			expectedSeverity: sev.LogSeverity_WARNING,
+		},
+		{
+			name:             "Error",
+			severity:         entry.Error,
+			expectedSeverity: sev.LogSeverity_ERROR,
+		},
+		{
+			name:             "Error2",
+			severity:         entry.Error2,
+			expectedSeverity: sev.LogSeverity_CRITICAL,
+		},
+		{
+			name:             "Error3",
+			severity:         entry.Error3,
+			expectedSeverity: sev.LogSeverity_ALERT,
+		},
+		{
+			name:             "Error4",
+			severity:         entry.Error4,
+			expectedSeverity: sev.LogSeverity_ALERT,
+		},
+		{
+			name:             "Fatal",
+			severity:         entry.Fatal,
+			expectedSeverity: sev.LogSeverity_EMERGENCY,
+		},
+		{
+			name:             "Fatal2",
+			severity:         entry.Fatal2,
+			expectedSeverity: sev.LogSeverity_EMERGENCY,
+		},
+		{
+			name:             "Fatal3",
+			severity:         entry.Fatal3,
+			expectedSeverity: sev.LogSeverity_EMERGENCY,
+		},
+		{
+			name:             "Fatal4",
+			severity:         entry.Fatal4,
+			expectedSeverity: sev.LogSeverity_EMERGENCY,
+		},
+
 		{
 			name:             "unknown",
 			severity:         -1,

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
 
 func init() {
@@ -82,7 +82,7 @@ func (p *RateLimitOperator) Process(ctx context.Context, entry *entry.Entry) err
 }
 
 // Start will start the rate limit operator.
-func (p *RateLimitOperator) Start() error {
+func (p *RateLimitOperator) Start(_ operator.Persister) error {
 	p.isReady = make(chan struct{}, p.burst)
 	ticker := time.NewTicker(p.interval)
 

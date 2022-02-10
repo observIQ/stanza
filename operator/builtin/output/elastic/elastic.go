@@ -10,12 +10,12 @@ import (
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/flusher"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/operator/flusher"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -71,7 +71,7 @@ func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		)
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ type ElasticOutput struct {
 }
 
 // Start signals to the ElasticOutput to begin flushing
-func (e *ElasticOutput) Start() error {
+func (e *ElasticOutput) Start(_ operator.Persister) error {
 	e.wg.Add(1)
 	go func() {
 		defer e.wg.Done()
@@ -125,7 +125,9 @@ func (e *ElasticOutput) Stop() error {
 	e.cancel()
 	e.wg.Wait()
 	e.flusher.Stop()
-	return e.buffer.Close()
+	// TODO handle buffer close entries
+	_, err := e.buffer.Close()
+	return err
 }
 
 // Process adds an entry to the outputs buffer
@@ -188,7 +190,7 @@ func (e *ElasticOutput) createRequest(entries []*entry.Entry) *esapi.BulkRequest
 
 func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := e.buffer.ReadChunk(ctx)
+		entries, err := e.buffer.Read(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -196,9 +198,9 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		e.flusher.Do(func(ctx context.Context) error {
+		e.flusher.Do(ctx, func(flushCtx context.Context) error {
 			req := e.createRequest(entries)
-			res, err := req.Do(ctx, e.client)
+			res, err := req.Do(flushCtx, e.client)
 			if err != nil {
 				return errors.NewError(
 					"Client failed to submit request to elasticsearch.",
@@ -216,9 +218,6 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 				)
 			}
 
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				e.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
 			return nil
 		})
 	}

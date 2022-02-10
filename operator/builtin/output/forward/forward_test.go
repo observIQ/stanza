@@ -9,14 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"github.com/stretchr/testify/require"
 )
 
 func TestForwardOutput(t *testing.T) {
+	persister := &testutil.MockPersister{}
 	received := make(chan []byte, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, _ := ioutil.ReadAll(req.Body)
@@ -36,9 +37,9 @@ func TestForwardOutput(t *testing.T) {
 	forwardOutput := ops[0].(*ForwardOutput)
 
 	newEntry := entry.New()
-	newEntry.Record = "test"
+	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
-	require.NoError(t, forwardOutput.Start())
+	require.NoError(t, forwardOutput.Start(persister))
 	defer forwardOutput.Stop()
 	require.NoError(t, forwardOutput.Process(context.Background(), newEntry))
 
@@ -51,10 +52,10 @@ func TestForwardOutput(t *testing.T) {
 		require.Len(t, entries, 1)
 		e := entries[0]
 		require.True(t, newEntry.Timestamp.Equal(e.Timestamp))
-		require.Equal(t, newEntry.Record, e.Record)
+		require.Equal(t, newEntry.Body, e.Body)
 		require.Equal(t, newEntry.Severity, e.Severity)
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
-		require.Equal(t, newEntry.Labels, e.Labels)
+		require.Equal(t, newEntry.Attributes, e.Attributes)
 		require.Equal(t, newEntry.Resource, e.Resource)
 	}
 }

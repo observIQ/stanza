@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/stanza/operator/builtin/input/tcp"
-	"github.com/observiq/stanza/operator/helper"
-	"github.com/observiq/stanza/testutil"
+	"github.com/observiq/stanza/v2/testutil"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/config/configtls"
 )
 
 func TestNewHTTPInputConfig(t *testing.T) {
@@ -172,10 +172,13 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  key,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile: crt,
+							KeyFile:  key,
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
@@ -193,11 +196,14 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  key,
-					MinVersion:  1.0,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    key,
+							MinVersion: "1.0",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
@@ -215,11 +221,14 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  key,
-					MinVersion:  1.1,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    key,
+							MinVersion: "1.1",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
@@ -237,11 +246,14 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  key,
-					MinVersion:  1.2,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    key,
+							MinVersion: "1.2",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
@@ -259,31 +271,17 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  key,
-					MinVersion:  1.3,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    key,
+							MinVersion: "1.3",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
-			},
-			false,
-			"",
-		},
-		{
-			"tls-disabled-with-config",
-			func() (*HTTPInputConfig, func() error, error) {
-				cfg := NewHTTPInputConfig("test_id")
-				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      false,
-					Certificate: "/tmp/crt",
-					PrivateKey:  "/tmp/key",
-					MinVersion:  1.3,
-				}
-
-				return cfg, nil, nil
 			},
 			false,
 			"",
@@ -298,17 +296,20 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  key,
-					MinVersion:  1.4,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    key,
+							MinVersion: "1.4",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
 			},
 			true,
-			"unsupported tls version",
+			"unsupported TLS version",
 		},
 		{
 			"missing-certificate-file",
@@ -320,17 +321,21 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: "",
-					PrivateKey:  key,
-					MinVersion:  1.2,
+
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   "",
+							KeyFile:    key,
+							MinVersion: "1.2",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
 			},
 			true,
-			"missing required parameter 'certificate', required when TLS is enabled",
+			"for auth via TLS, either both certificate and key must be supplied, or neither",
 		},
 		{
 			"missing-key-file",
@@ -342,17 +347,20 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  "",
-					MinVersion:  1.2,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    "",
+							MinVersion: "1.2",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
 			},
 			true,
-			"missing required parameter 'private_key', required when TLS is enabled",
+			"for auth via TLS, either both certificate and key must be supplied, or neither",
 		},
 		{
 			"wrong-certificate-path",
@@ -364,17 +372,20 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: "/tmp/some-invalid-path",
-					PrivateKey:  key,
-					MinVersion:  1.2,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   "/tmp/some-invalid-path",
+							KeyFile:    key,
+							MinVersion: "1.2",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
 			},
 			true,
-			"failed to load tls certificate",
+			"failed to load TLS cert and key",
 		},
 		{
 			"wrong-private-key-path",
@@ -386,17 +397,20 @@ func TestBuildOperator(t *testing.T) {
 
 				cfg := NewHTTPInputConfig("test_id")
 				cfg.ListenAddress = "localhost:0"
-				cfg.TLS = tcp.TLSConfig{
-					Enable:      true,
-					Certificate: crt,
-					PrivateKey:  "/invalid/path",
-					MinVersion:  1.2,
+				cfg.TLS = &helper.TLSServerConfig{
+					TLSServerSetting: &configtls.TLSServerSetting{
+						TLSSetting: configtls.TLSSetting{
+							CertFile:   crt,
+							KeyFile:    "/invalid/path",
+							MinVersion: "1.2",
+						},
+					},
 				}
 
 				return cfg, cleanup, nil
 			},
 			true,
-			"failed to load tls",
+			"failed to load TLS",
 		},
 		{
 			"read-timeout",
@@ -573,8 +587,14 @@ func TestBuildOperator(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, cfg.ListenAddress, op.server.Addr)
-			require.NotEmpty(t, op.server.TLSConfig.MinVersion)
-			require.NotEmpty(t, op.server.TLSConfig.Certificates)
+
+			// TODO revisit this as it's not a great validation of the TLS config
+			if cfg.TLS != nil {
+				require.NotNil(t, op.server.TLSConfig)
+			} else {
+				require.Nil(t, op.server.TLSConfig)
+			}
+
 			require.Equal(t, cfg.ReadTimeout.Duration, op.server.ReadTimeout)
 			require.Equal(t, cfg.ReadTimeout.Duration, op.server.ReadHeaderTimeout)
 			require.Equal(t, cfg.WriteTimeout.Duration, op.server.WriteTimeout)

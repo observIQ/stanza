@@ -9,9 +9,9 @@ import (
 	"time"
 
 	azhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator/builtin/input/azure"
+	"github.com/observiq/stanza/v2/operator/builtin/input/azure"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/errors"
 	"go.uber.org/zap"
 )
 
@@ -98,7 +98,7 @@ func (l *LogAnalyticsInput) parse(event azhub.Event, records map[string]interfac
 	}
 
 	// Add remaining records to record.<azure_log_analytics_table> map
-	return l.setField(e, e.Labels["azure_log_analytics_table"], records)
+	return l.setField(e, e.Attributes["azure_log_analytics_table"], records)
 }
 
 // setType sets the label 'azure_log_analytics_table'
@@ -148,12 +148,12 @@ func (l *LogAnalyticsInput) setResource(e *entry.Entry, key, value string) {
 }
 
 func (l *LogAnalyticsInput) setLabel(e *entry.Entry, key string, value interface{}) error {
-	r := entry.NewLabelField(key)
+	r := entry.NewAttributeField(key)
 	return r.Set(e, value)
 }
 
 func (l *LogAnalyticsInput) setField(e *entry.Entry, key string, value interface{}) error {
-	r := entry.RecordField{
+	r := entry.BodyField{
 		Keys: []string{key},
 	}
 	return r.Set(e, value)

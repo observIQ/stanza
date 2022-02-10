@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"sync"
 
-	"github.com/observiq/stanza/entry"
-	"github.com/observiq/stanza/errors"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/buffer"
-	"github.com/observiq/stanza/operator/flusher"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/observiq/stanza/v2/operator/buffer"
+	"github.com/observiq/stanza/v2/operator/flusher"
+	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	otelerrors "github.com/open-telemetry/opentelemetry-log-collection/errors"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -45,13 +46,13 @@ func (c ForwardOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	if c.Address == "" {
-		return nil, errors.NewError("missing required parameter 'address'", "")
+		return nil, otelerrors.NewError("missing required parameter 'address'", "")
 	}
 
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
@@ -86,7 +87,7 @@ type ForwardOutput struct {
 }
 
 // Start signals to the ForwardOutput to begin flushing
-func (f *ForwardOutput) Start() error {
+func (f *ForwardOutput) Start(_ operator.Persister) error {
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
@@ -101,7 +102,9 @@ func (f *ForwardOutput) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.flusher.Stop()
-	return f.buffer.Close()
+	// TODO handle buffer close entries
+	_, err := f.buffer.Close()
+	return err
 }
 
 // Process adds an entry to the outputs buffer
@@ -123,37 +126,31 @@ func (f *ForwardOutput) createRequest(ctx context.Context, entries []*entry.Entr
 
 func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := f.buffer.ReadChunk(ctx)
-		if err != nil && err == context.Canceled {
+		entries, err := f.buffer.Read(ctx)
+		switch {
+		case errors.Is(err, context.Canceled):
 			return
-		} else if err != nil {
+		case err != nil:
 			f.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
 
-		f.flusher.Do(func(ctx context.Context) error {
-			req, err := f.createRequest(ctx, entries)
+		f.flusher.Do(ctx, func(flushCtx context.Context) error {
+			req, err := f.createRequest(flushCtx, entries)
 			if err != nil {
 				f.Errorf("Failed to create request", zap.Error(err))
-				// drop these logs because we couldn't creat a request and a retry won't help
-				if err := clearer.MarkAllAsFlushed(); err != nil {
-					f.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
-				}
 				return nil
 			}
 
 			res, err := f.client.Do(req)
 			if err != nil {
-				return errors.Wrap(err, "send request")
+				return otelerrors.Wrap(err, "send request")
 			}
 
 			if err := f.handleResponse(res); err != nil {
 				return err
 			}
 
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				f.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
 			return nil
 		})
 	}
@@ -163,12 +160,12 @@ func (f *ForwardOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return errors.NewError("unexpected status code", "", "status", res.Status)
+			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
 		} else {
 			if err := res.Body.Close(); err != nil {
 				f.Errorf(err.Error())
 			}
-			return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
+			return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
 	}
 	return res.Body.Close()

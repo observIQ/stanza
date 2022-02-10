@@ -10,8 +10,8 @@ import (
 	"github.com/jpillora/backoff"
 	flowmessage "github.com/observiq/goflow/v3/pb"
 	"github.com/observiq/goflow/v3/utils"
-	"github.com/observiq/stanza/operator"
-	"github.com/observiq/stanza/operator/helper"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
 )
 
@@ -106,7 +106,7 @@ type GoflowInput struct {
 }
 
 // Start will start generating log entries.
-func (n *GoflowInput) Start() error {
+func (n *GoflowInput) Start(_ operator.Persister) error {
 	n.ctx, n.cancel = context.WithCancel(context.Background())
 
 	go func() {
