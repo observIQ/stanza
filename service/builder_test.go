@@ -20,15 +20,6 @@ func TestBuilder(t *testing.T) {
 			expected:  &AgentServiceBuilder{},
 		},
 		{
-			desc: "With Pluging Dir",
-			buildFunc: func(b *AgentServiceBuilder) {
-				b.WithPluginDir(pluginDir)
-			},
-			expected: &AgentServiceBuilder{
-				pluginDir: &pluginDir,
-			},
-		},
-		{
 			desc: "With Config File",
 			buildFunc: func(b *AgentServiceBuilder) {
 				b.WithConfigFile(config)
@@ -49,7 +40,6 @@ func TestBuilder(t *testing.T) {
 		{
 			desc: "With All",
 			buildFunc: func(b *AgentServiceBuilder) {
-				b.WithPluginDir(pluginDir)
 				b.WithConfigFile(config)
 				b.WithDatabaseFile(databaseFile)
 			},

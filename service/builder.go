@@ -22,11 +22,6 @@ func NewBuilder() *AgentServiceBuilder {
 	return &AgentServiceBuilder{}
 }
 
-func (b *AgentServiceBuilder) WithPluginDir(pluginDir string) *AgentServiceBuilder {
-	b.pluginDir = &pluginDir
-	return b
-}
-
 func (b *AgentServiceBuilder) WithLogger(logger *zap.SugaredLogger) *AgentServiceBuilder {
 	b.logger = logger
 	return b
@@ -63,10 +58,6 @@ func (b *AgentServiceBuilder) buildAgent() (*agent.LogAgent, error) {
 		agentBuilder = agentBuilder.WithConfig(&agent.Config{
 			Pipeline: b.config.Pipeline,
 		})
-	}
-
-	if b.pluginDir != nil {
-		agentBuilder = agentBuilder.WithPluginDir(*b.pluginDir)
 	}
 
 	logAgent, err := agentBuilder.Build()

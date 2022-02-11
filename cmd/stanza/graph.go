@@ -27,6 +27,14 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 }
 
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
+	if flags.PluginDir != "" {
+		// Plugins MUST be loaded before calling LoadConfig, otherwise stanza will fail to recognize plugin
+		// types, and fail to load any config using plugins
+		if errs := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); len(errs) != 0 {
+			log.Fatalf("Got errors parsing plugins %s", errs)
+		}
+	}
+
 	conf, err := service.LoadConfig(flags.ConfigFile)
 	if err != nil {
 		log.Fatalf("Failed to load config: %s", err)
@@ -41,10 +49,6 @@ func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
 	defer func() {
 		_ = logger.Sync()
 	}()
-
-	if errs := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); len(errs) != 0 {
-		logger.Errorw("Got errors parsing parsing", "errors", err)
-	}
 
 	buildContext := operator.NewBuildContext(logger)
 	pipeline, err := conf.Pipeline.BuildPipeline(buildContext, nil)
