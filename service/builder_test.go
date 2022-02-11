@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestBuilder(t *testing.T) {
+	logger := zap.New(zapcore.NewNopCore()).Sugar()
 	config := &Config{}
 	databaseFile := "database"
 	testCases := []struct {
@@ -18,6 +21,15 @@ func TestBuilder(t *testing.T) {
 			desc:      "No options",
 			buildFunc: func(*AgentServiceBuilder) {},
 			expected:  &AgentServiceBuilder{},
+		},
+		{
+			desc: "With Logger",
+			buildFunc: func(b *AgentServiceBuilder) {
+				b.WithLogger(logger)
+			},
+			expected: &AgentServiceBuilder{
+				logger: logger,
+			},
 		},
 		{
 			desc: "With Config File",
@@ -40,10 +52,12 @@ func TestBuilder(t *testing.T) {
 		{
 			desc: "With All",
 			buildFunc: func(b *AgentServiceBuilder) {
+				b.WithLogger(logger)
 				b.WithConfig(config)
 				b.WithDatabaseFile(databaseFile)
 			},
 			expected: &AgentServiceBuilder{
+				logger:       logger,
 				config:       config,
 				databaseFile: &databaseFile,
 			},
