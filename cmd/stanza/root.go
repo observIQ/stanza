@@ -76,24 +76,19 @@ func NewRootCmd() *cobra.Command {
 }
 
 func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
-	conf, err := getLoggingConfig(flags)
+	conf, err := service.LoadConfig(flags.ConfigFile)
 	if err != nil {
-		log.Fatalf("Failed to load logging config: %s", err.Error())
+		log.Fatalf("Failed to load config: %s", err)
 	}
 
-	err = conf.validate()
-	if err != nil {
-		log.Fatalf("Failed to validate logging config: %s", err.Error())
-	}
-
-	logger := newLogger(conf).Sugar()
+	logger := service.NewLogger(*conf.Logging).Sugar()
 	defer func() {
 		_ = logger.Sync()
 	}()
 
 	// Build agent service
 	service, ctx, err := service.NewBuilder().
-		WithConfigFile(flags.ConfigFile).
+		WithConfigFile(conf).
 		WithDatabaseFile(flags.DatabaseFile).
 		WithPluginDir(flags.PluginDir).
 		WithLogger(logger).

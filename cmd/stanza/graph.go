@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/open-telemetry/opentelemetry-log-collection/agent"
+	"github.com/observiq/stanza/v2/service"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/plugin"
 	"github.com/spf13/cobra"
@@ -27,33 +27,27 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 }
 
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
-	conf, err := getLoggingConfig(flags)
+	conf, err := service.LoadConfig(flags.ConfigFile)
 	if err != nil {
-		log.Fatalf("Failed to load logging config: %s", err.Error())
+		log.Fatalf("Failed to load config: %s", err)
 	}
 
-	err = conf.validate()
+	err = conf.Logging.Validate()
 	if err != nil {
 		log.Fatalf("Failed to validate logging config: %s", err.Error())
 	}
 
-	logger := newLogger(conf).Sugar()
+	logger := service.NewLogger(*conf.Logging).Sugar()
 	defer func() {
 		_ = logger.Sync()
 	}()
-
-	cfg, err := agent.NewConfigFromFile(flags.ConfigFile)
-	if err != nil {
-		logger.Errorw("Failed to read configs from glob", zap.Any("error", err))
-		os.Exit(1)
-	}
 
 	if errs := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); len(errs) != 0 {
 		logger.Errorw("Got errors parsing parsing", "errors", err)
 	}
 
 	buildContext := operator.NewBuildContext(logger)
-	pipeline, err := cfg.Pipeline.BuildPipeline(buildContext, nil)
+	pipeline, err := conf.Pipeline.BuildPipeline(buildContext, nil)
 	if err != nil {
 		logger.Errorw("Failed to build operator pipeline", zap.Any("error", err))
 		os.Exit(1)

@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -16,14 +15,14 @@ const (
 	stdOutput  string = "stdout"
 )
 
-type loggingConfig struct {
+type LoggingConfig struct {
 	Output string             `yaml:"output"`
 	Level  zapcore.Level      `yaml:"level"`
 	File   *lumberjack.Logger `yaml:"file"`
 }
 
-// validate checks that the logging config is valid.
-func (l loggingConfig) validate() error {
+// Validate checks that the logging config is valid.
+func (l LoggingConfig) Validate() error {
 	switch l.Output {
 	case fileOutput:
 		if l.File == nil {
@@ -42,9 +41,9 @@ func (l loggingConfig) validate() error {
 	return nil
 }
 
-// defaultLoggingConfig returns the default logging config
-func defaultLoggingConfig() loggingConfig {
-	return loggingConfig{
+// DefaultLoggingConfig returns the default logging config
+func DefaultLoggingConfig() *LoggingConfig {
+	return &LoggingConfig{
 		Output: stdOutput,
 		Level:  zap.InfoLevel,
 		File: &lumberjack.Logger{
@@ -56,36 +55,9 @@ func defaultLoggingConfig() loggingConfig {
 	}
 }
 
-// getLoggingConfig reads the config file specified by the flags into memory.
-// Fields that aren't filled in the config are initialized to the defaults from
-// defaultLoggingConfig.
-// If no LogConfig is specified in the root flags, then the default config from defaultLoggingConfig is returned.
-func getLoggingConfig(flags *RootFlags) (loggingConfig, error) {
-	conf := defaultLoggingConfig()
-
-	if flags.LogConfig != "" {
-		f, err := os.Open(flags.LogConfig)
-		if err != nil {
-			return conf, err
-		}
-
-		buf, err := io.ReadAll(f)
-		if err != nil {
-			return conf, err
-		}
-
-		err = yaml.UnmarshalStrict(buf, &conf)
-		if err != nil {
-			return conf, err
-		}
-	}
-
-	return conf, nil
-}
-
 // newLogger creates a logger from the supplied flags.
 // If the flags do not specify a log file, the logger will default to stdout.
-func newLogger(c loggingConfig) *zap.Logger {
+func NewLogger(c LoggingConfig) *zap.Logger {
 	if c.Output == stdOutput {
 		return newStdLogger(c)
 	}
@@ -94,14 +66,14 @@ func newLogger(c loggingConfig) *zap.Logger {
 }
 
 // newFileLogger creates a new logger that writes to a file
-func newFileLogger(c loggingConfig) *zap.Logger {
+func newFileLogger(c LoggingConfig) *zap.Logger {
 	writer := c.File
 	core := newWriterCore(writer, c.Level)
 	return zap.New(core)
 }
 
 // newStdLogger creates a new logger that writes to stdout
-func newStdLogger(c loggingConfig) *zap.Logger {
+func newStdLogger(c LoggingConfig) *zap.Logger {
 	core := newStdCore(c.Level)
 	return zap.New(core)
 }
