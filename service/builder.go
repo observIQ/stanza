@@ -26,7 +26,7 @@ func (b *AgentServiceBuilder) WithLogger(logger *zap.SugaredLogger) *AgentServic
 	return b
 }
 
-func (b *AgentServiceBuilder) WithConfigFile(config *Config) *AgentServiceBuilder {
+func (b *AgentServiceBuilder) WithConfig(config *Config) *AgentServiceBuilder {
 	b.config = config
 	return b
 }

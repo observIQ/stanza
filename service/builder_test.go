@@ -22,7 +22,7 @@ func TestBuilder(t *testing.T) {
 		{
 			desc: "With Config File",
 			buildFunc: func(b *AgentServiceBuilder) {
-				b.WithConfigFile(config)
+				b.WithConfig(config)
 			},
 			expected: &AgentServiceBuilder{
 				config: config,
@@ -40,7 +40,7 @@ func TestBuilder(t *testing.T) {
 		{
 			desc: "With All",
 			buildFunc: func(b *AgentServiceBuilder) {
-				b.WithConfigFile(config)
+				b.WithConfig(config)
 				b.WithDatabaseFile(databaseFile)
 			},
 			expected: &AgentServiceBuilder{
