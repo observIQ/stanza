@@ -1,0 +1,42 @@
+builds:
+- id: stanza
+  binary: stanza_{{ .Os }}_{{ .Arch }}
+  main: ./cmd/stanza
+  env:
+  - CGO_ENABLED=0
+  flags:
+    -tags timetzdata
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  goos:
+  - windows
+  - linux
+  - darwin
+  goarch:
+  - amd64
+  - arm64
+  ignore:
+  - goos: windows
+    goarch: arm64
+  ldflags:
+  - -X github.com/observiq/stanza/version.GitTag={{ .Tag }}
+  - -X github.com/observiq/stanza/version.GitCommit={{ .FullCommit }}
+  no_unique_dist_dir: true
+
+archives:
+- builds:
+  - stanza
+  # skip archiving as tar.gz / zip
+  format: binary
+
+checksum:
+  name_template: '{{ .ProjectName }}-v{{ .Version }}-SHA256SUMS'
+  algorithm: sha256
+
+release:
+  disable: true
+
+changelog:
+  skip: false
+  use: github
+
+dist: artifacts
