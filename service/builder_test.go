@@ -8,7 +8,7 @@ import (
 
 func TestBuilder(t *testing.T) {
 	config := &Config{}
-	pluginDir, databaseFile := "plugin", "database"
+	databaseFile := "database"
 	testCases := []struct {
 		desc      string
 		buildFunc func(*AgentServiceBuilder)
@@ -44,7 +44,6 @@ func TestBuilder(t *testing.T) {
 				b.WithDatabaseFile(databaseFile)
 			},
 			expected: &AgentServiceBuilder{
-				pluginDir:    &pluginDir,
 				config:       config,
 				databaseFile: &databaseFile,
 			},

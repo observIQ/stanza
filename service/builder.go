@@ -14,7 +14,6 @@ import (
 type AgentServiceBuilder struct {
 	logger       *zap.SugaredLogger
 	config       *Config
-	pluginDir    *string
 	databaseFile *string
 }
 
