@@ -22,7 +22,7 @@ sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download
 ```
 
 ### Kubernetes
-For Kubernetes, there are several guides to install and configure Stanza found [here](./examples/k8s).
+For Kubernetes, there are several guides to install and configure Stanza found [here](/docs/examples/k8s).
 
 ## Manual Installation
 
@@ -198,7 +198,7 @@ pipeline:
     credentials_file: /tmp/credentials.json
 ```
 
-ALternatively, you can use a plugin for log monitoring. This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml).
+Alternatively, you can use a plugin for log monitoring. This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml).
 
 ```yaml
 pipeline:
@@ -223,4 +223,4 @@ That's it! You should have logs streaming to Google Cloud. From here you can exp
 - Read up on how to write a stanza [pipeline](/docs/pipeline.md).
 - Check out stanza's list of [operators](/docs/operators/README.md).
 - Check out the [FAQ](/docs/faq.md).
-- Let us know what you think! [Email us](mailto:stanza@observiqlabs.com), or open a GitHub issue.
+- Let us know what you think! [Email us](mailto:support.stanza@observiq.com), or open a GitHub issue.

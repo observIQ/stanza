@@ -35,10 +35,10 @@ func TestTomcatExample(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping on windows because of service failures")
 	}
-	err := os.Chdir("../../examples/tomcat")
+	err := os.Chdir("testdata/tomcat")
 	require.NoError(t, err)
 	defer func() {
-		err := os.Chdir("../../cmd/stanza")
+		err := os.Chdir("../../../../cmd/stanza")
 		require.NoError(t, err)
 	}()
 
@@ -87,10 +87,10 @@ func TestSimplePluginsExample(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping on windows because of service failures")
 	}
-	err := os.Chdir("../../examples/simple_plugins")
+	err := os.Chdir("testdata/simple_plugins")
 	require.NoError(t, err)
 	defer func() {
-		err := os.Chdir("../../cmd/stanza")
+		err := os.Chdir("../../../../cmd/stanza")
 		require.NoError(t, err)
 	}()
 

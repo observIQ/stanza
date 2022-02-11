@@ -16,7 +16,6 @@ executors:
       xcode: 11.4.1
 
 jobs:
-
   build:
     executor: golang
     steps:
@@ -201,7 +200,7 @@ jobs:
           name: Run Unit Tests
           command: make test
       - codecov/upload:
-          file: '**/coverage.txt'
+          file: "**/coverage.txt"
 
   #test-linux-arm64:
   #  machine:
@@ -250,10 +249,11 @@ jobs:
 
     steps:
       - checkout
-      - run:
-          name: Upgrade Golang
-          shell: powershell.exe
-          command: choco upgrade golang --version=1.17
+      # Windows boxes now come with Go 1.17.6 installed https://circleci.com/docs/2.0/hello-world-windows/#software-pre-installed-in-the-windows-image
+      # - run:
+      #     name: Upgrade Golang
+      #     shell: powershell.exe
+      #     command: choco upgrade golang --version=1.17
       - run:
           name: Install GCC
           shell: powershell.exe
@@ -343,7 +343,8 @@ jobs:
 
       - run:
           name: Setup VM Workspace
-          command: gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'mkdir -p ~/benchmark/out' &&
+          command:
+            gcloud compute ssh << parameters.instance >> --ssh-key-file=~/.ssh/key --ssh-flag="-o LogLevel=QUIET" -- 'mkdir -p ~/benchmark/out' &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/stanza << parameters.instance >>:~/benchmark/ &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./bin/logbench << parameters.instance >>:~/benchmark/ &&
             gcloud compute scp --ssh-key-file=~/.ssh/key ./.circleci/testdata/benchmark.yaml << parameters.instance >>:~/benchmark/config.yaml &&
