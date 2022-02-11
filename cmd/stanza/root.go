@@ -49,7 +49,6 @@ func NewRootCmd() *cobra.Command {
 
 	rootFlagSet := root.PersistentFlags()
 	rootFlagSet.StringVarP(&rootFlags.ConfigFile, "config", "c", defaultConfig(), "path to a config file")
-	rootFlagSet.StringVar(&rootFlags.LogConfig, "log_config", "", "specifies the config file to use for logging")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
 	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the stanza offset database")
 
