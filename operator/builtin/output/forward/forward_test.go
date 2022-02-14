@@ -59,3 +59,24 @@ func TestForwardOutput(t *testing.T) {
 		require.Equal(t, newEntry.Resource, e.Resource)
 	}
 }
+
+func TestCloseBuffer(t *testing.T) {
+	cfg := NewForwardOutputConfig("test")
+	// persister := &testutil.MockPersister{}
+	received := make(chan []byte, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		body, _ := ioutil.ReadAll(req.Body)
+		received <- body
+	}))
+
+	cfg.Address = srv.URL
+	ops, err := cfg.Build((testutil.NewBuildContext(t)))
+	require.NoError(t, err)
+	forwardOutput := ops[0].(*ForwardOutput)
+	newEntry := entry.New()
+	newEntry.Body = "test"
+	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
+	forwardOutput.Process(forwardOutput.ctx, newEntry)
+	// require.NoError(t, forwardOutput.Start(persister))
+	forwardOutput.Stop()
+}

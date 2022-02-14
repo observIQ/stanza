@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
@@ -103,8 +104,36 @@ func (f *ForwardOutput) Stop() error {
 	f.wg.Wait()
 	f.flusher.Stop()
 	// TODO handle buffer close entries
-	_, err := f.buffer.Close()
+	entries, err := f.buffer.Close()
+	if err != nil {
+		f.Errorf("Failed to retreive entries")
+		return err
+	}
+
+	err = f.handleCloseBuffer(err, entries)
 	return err
+}
+
+func (f *ForwardOutput) handleCloseBuffer(e error, entries []*entry.Entry) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	req, err := f.createRequest(ctx, entries)
+	if err != nil {
+		f.Errorf("Failed to create request", zap.Error(err))
+		return nil
+	}
+
+	res, err := f.client.Do(req)
+	if err != nil {
+		return otelerrors.Wrap(err, "send request")
+	}
+
+	if err := f.handleResponse(res); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Process adds an entry to the outputs buffer
