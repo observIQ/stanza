@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/kardianos/service"
@@ -53,11 +54,13 @@ func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, conte
 func (b *AgentServiceBuilder) buildAgent() (*agent.LogAgent, error) {
 	agentBuilder := agent.NewBuilder(b.logger)
 
-	if b.config != nil {
-		agentBuilder = agentBuilder.WithConfig(&agent.Config{
-			Pipeline: b.config.Pipeline,
-		})
+	if b.config == nil {
+		return nil, errors.New("config cannot be nil")
 	}
+
+	agentBuilder = agentBuilder.WithConfig(&agent.Config{
+		Pipeline: b.config.Pipeline,
+	})
 
 	logAgent, err := agentBuilder.Build()
 	if err != nil {
@@ -78,7 +81,6 @@ func (b *AgentServiceBuilder) buildPersister() (operator.Persister, persist.Pers
 		if err != nil {
 			return nil, nil, fmt.Errorf("error building bbolt persister: %w", err)
 		}
-
 	}
 
 	return persister, shutDownFunc, nil
