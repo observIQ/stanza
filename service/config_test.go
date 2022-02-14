@@ -173,7 +173,7 @@ logging:
 			err = f.Close()
 			require.NoError(t, err)
 
-			conf, err := LoadConfig(f.Name())
+			conf, err := LoadConfig("", f.Name())
 
 			if testCase.expectedErr == "" {
 				require.NoError(t, err)

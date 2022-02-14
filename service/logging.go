@@ -15,6 +15,7 @@ const (
 	stdOutput  string = "stdout"
 )
 
+// LoggingConfig is the config for stanza's internal logging
 type LoggingConfig struct {
 	Output string             `yaml:"output"`
 	Level  zapcore.Level      `yaml:"level"`

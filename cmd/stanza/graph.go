@@ -6,7 +6,6 @@ import (
 
 	"github.com/observiq/stanza/v2/service"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
-	"github.com/open-telemetry/opentelemetry-log-collection/plugin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -27,15 +26,7 @@ func NewGraphCommand(rootFlags *RootFlags) *cobra.Command {
 }
 
 func runGraph(_ *cobra.Command, _ []string, flags *RootFlags) {
-	if flags.PluginDir != "" {
-		// Plugins MUST be loaded before calling LoadConfig, otherwise stanza will fail to recognize plugin
-		// types, and fail to load any config using plugins
-		if errs := plugin.RegisterPlugins(flags.PluginDir, operator.DefaultRegistry); len(errs) != 0 {
-			log.Fatalf("Got errors parsing plugins %s", errs)
-		}
-	}
-
-	conf, err := service.LoadConfig(flags.ConfigFile)
+	conf, err := service.LoadConfig(flags.PluginDir, flags.ConfigFile)
 	if err != nil {
 		log.Fatalf("Failed to load config: %s", err)
 	}
