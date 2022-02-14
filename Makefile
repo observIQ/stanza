@@ -101,6 +101,10 @@ install:
 build-all:
 	goreleaser build --skip-validate --snapshot --rm-dist
 
+.PHONY: release-test
+release-test:
+	goreleaser release --rm-dist --skip-publish --skip-announce
+
 .PHONY: for-all
 for-all:
 	@set -e; for dir in $(ALL_MODULES); do \
