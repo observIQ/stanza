@@ -5,7 +5,7 @@ builds:
   env:
   - CGO_ENABLED=0
   flags:
-    -tags timetzdata
+    -tags=timetzdata
   mod_timestamp: '{{ .CommitTimestamp }}'
   goos:
   - windows
