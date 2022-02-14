@@ -30,12 +30,7 @@ type RootFlags struct {
 	MemProfile         string
 	MemProfileDelay    time.Duration
 
-	LogLevel      string
-	LogFile       string
-	MaxLogSize    int
-	MaxLogBackups int
-	MaxLogAge     int
-	Debug         bool
+	LogConfig string
 }
 
 // NewRootCmd will return a root level command
@@ -51,13 +46,6 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	rootFlagSet := root.PersistentFlags()
-	rootFlagSet.StringVar(&rootFlags.LogLevel, "log_level", "INFO", "sets the agent's log level")
-	rootFlagSet.StringVar(&rootFlags.LogFile, "log_file", "", "writes agent logs to a specified file")
-	rootFlagSet.IntVar(&rootFlags.MaxLogSize, "max_log_size", 10, "sets the maximum size of agent log files in MB before rotating")
-	rootFlagSet.IntVar(&rootFlags.MaxLogBackups, "max_log_backups", 5, "sets the maximum number of rotated log files to retain")
-	rootFlagSet.IntVar(&rootFlags.MaxLogAge, "max_log_age", 7, "sets the maximum number of days to retain a rotated log file")
-	rootFlagSet.BoolVar(&rootFlags.Debug, "debug", false, "debug logging flag - deprecated")
-
 	rootFlagSet.StringVarP(&rootFlags.ConfigFile, "config", "c", defaultConfig(), "path to a config file")
 	rootFlagSet.StringVar(&rootFlags.PluginDir, "plugin_dir", defaultPluginDir(), "path to the plugin directory")
 	rootFlagSet.StringVar(&rootFlags.DatabaseFile, "database", "", "path to the stanza offset database")
@@ -87,16 +75,20 @@ func NewRootCmd() *cobra.Command {
 }
 
 func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
-	logger := newLogger(*flags).Sugar()
+	conf, err := service.LoadConfig(flags.PluginDir, flags.ConfigFile)
+	if err != nil {
+		log.Fatalf("Failed to load config: %s", err)
+	}
+
+	logger := service.NewLogger(*conf.Logging).Sugar()
 	defer func() {
 		_ = logger.Sync()
 	}()
 
 	// Build agent service
 	service, ctx, err := service.NewBuilder().
-		WithConfigFile(flags.ConfigFile).
+		WithConfig(conf).
 		WithDatabaseFile(flags.DatabaseFile).
-		WithPluginDir(flags.PluginDir).
 		WithLogger(logger).
 		Build(command.Context())
 	if err != nil {

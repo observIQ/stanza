@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 
 	"github.com/kardianos/service"
 	"github.com/observiq/stanza/v2/operator/helper/persist"
@@ -15,8 +14,7 @@ import (
 
 type AgentServiceBuilder struct {
 	logger       *zap.SugaredLogger
-	configFile   *string
-	pluginDir    *string
+	config       *Config
 	databaseFile *string
 }
 
@@ -24,18 +22,13 @@ func NewBuilder() *AgentServiceBuilder {
 	return &AgentServiceBuilder{}
 }
 
-func (b *AgentServiceBuilder) WithPluginDir(pluginDir string) *AgentServiceBuilder {
-	b.pluginDir = &pluginDir
-	return b
-}
-
 func (b *AgentServiceBuilder) WithLogger(logger *zap.SugaredLogger) *AgentServiceBuilder {
 	b.logger = logger
 	return b
 }
 
-func (b *AgentServiceBuilder) WithConfigFile(configFile string) *AgentServiceBuilder {
-	b.configFile = &configFile
+func (b *AgentServiceBuilder) WithConfig(config *Config) *AgentServiceBuilder {
+	b.config = config
 	return b
 }
 
@@ -45,11 +38,6 @@ func (b *AgentServiceBuilder) WithDatabaseFile(datbaseFile string) *AgentService
 }
 
 func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, context.Context, error) {
-	// Check to ensure glob file path is not passed in. We want a single file
-	if err := b.validateNonGlobConfig(); err != nil {
-		return nil, context.TODO(), err
-	}
-
 	logAgent, err := b.buildAgent()
 	if err != nil {
 		return nil, context.TODO(), err
@@ -63,34 +51,16 @@ func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, conte
 	return newAgentService(ctx, logAgent, persister, persisterShutdownFunc)
 }
 
-// validateNonGlobConfig returns an error if the configFile pointer is a glob.
-// Return nil if the configFile pointer is nil or not a single file path
-func (b *AgentServiceBuilder) validateNonGlobConfig() error {
-	if b.configFile == nil {
-		return nil
-	}
-
-	matches, err := filepath.Glob(*b.configFile)
-	switch {
-	case err != nil:
-		return err
-	case len(matches) > 1:
-		return errors.New("glob config paths not supported")
-	default:
-		return nil
-	}
-}
-
 func (b *AgentServiceBuilder) buildAgent() (*agent.LogAgent, error) {
 	agentBuilder := agent.NewBuilder(b.logger)
 
-	if b.configFile != nil {
-		agentBuilder = agentBuilder.WithConfigFiles([]string{*b.configFile})
+	if b.config == nil {
+		return nil, errors.New("config cannot be nil")
 	}
 
-	if b.pluginDir != nil {
-		agentBuilder = agentBuilder.WithPluginDir(*b.pluginDir)
-	}
+	agentBuilder = agentBuilder.WithConfig(&agent.Config{
+		Pipeline: b.config.Pipeline,
+	})
 
 	logAgent, err := agentBuilder.Build()
 	if err != nil {
@@ -111,7 +81,6 @@ func (b *AgentServiceBuilder) buildPersister() (operator.Persister, persist.Pers
 		if err != nil {
 			return nil, nil, fmt.Errorf("error building bbolt persister: %w", err)
 		}
-
 	}
 
 	return persister, shutDownFunc, nil
