@@ -22,9 +22,7 @@ builds:
   - -X github.com/observiq/stanza/version.GitCommit={{ .FullCommit }}
   no_unique_dist_dir: true
   hooks:
-    post: | 
-      sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
-      sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/windows-install.ps1 > ./artifacts/windows-install.ps1
+    post: ./build/post.sh
 
 archives:
 - builds:
