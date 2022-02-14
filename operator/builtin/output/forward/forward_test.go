@@ -60,9 +60,8 @@ func TestForwardOutput(t *testing.T) {
 	}
 }
 
-func TestCloseBuffer(t *testing.T) {
+func TestFlushBufferOnClose(t *testing.T) {
 	cfg := NewForwardOutputConfig("test")
-	// persister := &testutil.MockPersister{}
 	received := make(chan []byte, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, _ := ioutil.ReadAll(req.Body)
@@ -72,11 +71,16 @@ func TestCloseBuffer(t *testing.T) {
 	cfg.Address = srv.URL
 	ops, err := cfg.Build((testutil.NewBuildContext(t)))
 	require.NoError(t, err)
-	forwardOutput := ops[0].(*ForwardOutput)
+
+	forwardOutput, ok := ops[0].(*ForwardOutput)
+	require.True(t, ok)
+
 	newEntry := entry.New()
 	newEntry.Body = "test"
 	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
-	forwardOutput.Process(forwardOutput.ctx, newEntry)
-	// require.NoError(t, forwardOutput.Start(persister))
-	forwardOutput.Stop()
+	err = forwardOutput.Process(forwardOutput.ctx, newEntry)
+	require.NoError(t, err)
+
+	err = forwardOutput.Stop()
+	require.NoError(t, err)
 }

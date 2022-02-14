@@ -110,18 +110,19 @@ func (f *ForwardOutput) Stop() error {
 		return err
 	}
 
-	err = f.handleCloseBuffer(err, entries)
-	return err
-}
-
-func (f *ForwardOutput) handleCloseBuffer(e error, entries []*entry.Entry) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
+	err = f.sendEntries(ctx, entries)
+	return err
+}
+
+// sendEntries sends entries using the configured client
+func (f *ForwardOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
 	req, err := f.createRequest(ctx, entries)
 	if err != nil {
 		f.Errorf("Failed to create request", zap.Error(err))
-		return nil
+		return err
 	}
 
 	res, err := f.client.Do(req)
@@ -165,22 +166,7 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 		}
 
 		f.flusher.Do(ctx, func(flushCtx context.Context) error {
-			req, err := f.createRequest(flushCtx, entries)
-			if err != nil {
-				f.Errorf("Failed to create request", zap.Error(err))
-				return nil
-			}
-
-			res, err := f.client.Do(req)
-			if err != nil {
-				return otelerrors.Wrap(err, "send request")
-			}
-
-			if err := f.handleResponse(res); err != nil {
-				return err
-			}
-
-			return nil
+			return f.sendEntries(flushCtx, entries)
 		})
 	}
 }
