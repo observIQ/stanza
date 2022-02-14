@@ -35,7 +35,9 @@ checksum:
   algorithm: sha256
 
 release:
-  disable: true
+  github:
+    owner: observIQ
+    name: stanza
 
 changelog:
   skip: false

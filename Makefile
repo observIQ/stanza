@@ -103,7 +103,7 @@ build-all:
 
 .PHONY: release-test
 release-test:
-	goreleaser release --rm-dist --skip-publish --skip-announce
+	goreleaser release --rm-dist --skip-publish --skip-announce --skip-validate
 
 .PHONY: for-all
 for-all:
