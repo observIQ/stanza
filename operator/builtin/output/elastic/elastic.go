@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
+	"time"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -125,9 +126,42 @@ func (e *ElasticOutput) Stop() error {
 	e.cancel()
 	e.wg.Wait()
 	e.flusher.Stop()
-	// TODO handle buffer close entries
-	_, err := e.buffer.Close()
+
+	entries, err := e.buffer.Close()
+	if err != nil {
+		e.Errorf("Failed to retreive entries")
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	err = e.sendEntries(ctx, entries)
 	return err
+}
+
+// sendEntries sends entries using the configured client
+func (e *ElasticOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
+	req := e.createRequest(entries)
+	res, err := req.Do(ctx, e.client)
+	if err != nil {
+		return errors.NewError(
+			"Client failed to submit request to elasticsearch.",
+			"Review the underlying error message to troubleshoot the issue",
+			"underlying_error", err.Error(),
+		)
+	}
+
+	if res.IsError() {
+		return errors.NewError(
+			"Request to elasticsearch returned a failure code.",
+			"Review status and status code for further details.",
+			"status_code", strconv.Itoa(res.StatusCode),
+			"status", res.Status(),
+		)
+	}
+
+	return nil
 }
 
 // Process adds an entry to the outputs buffer
@@ -199,26 +233,7 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 		}
 
 		e.flusher.Do(ctx, func(flushCtx context.Context) error {
-			req := e.createRequest(entries)
-			res, err := req.Do(flushCtx, e.client)
-			if err != nil {
-				return errors.NewError(
-					"Client failed to submit request to elasticsearch.",
-					"Review the underlying error message to troubleshoot the issue",
-					"underlying_error", err.Error(),
-				)
-			}
-
-			if res.IsError() {
-				return errors.NewError(
-					"Request to elasticsearch returned a failure code.",
-					"Review status and status code for further details.",
-					"status_code", strconv.Itoa(res.StatusCode),
-					"status", res.Status(),
-				)
-			}
-
-			return nil
+			return e.sendEntries(flushCtx, entries)
 		})
 	}
 }
