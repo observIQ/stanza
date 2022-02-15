@@ -16,6 +16,7 @@ package helper
 
 import (
 	"fmt"
+	"golang.org/x/text/encoding/japanese"
 	"strings"
 
 	"golang.org/x/text/encoding"
@@ -74,13 +75,14 @@ func (e *Encoding) Decode(msgBuf []byte) (string, error) {
 }
 
 var encodingOverrides = map[string]encoding.Encoding{
-	"utf-16":   unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
-	"utf16":    unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
-	"utf8":     unicode.UTF8,
-	"ascii":    unicode.UTF8,
-	"us-ascii": unicode.UTF8,
-	"nop":      encoding.Nop,
-	"":         encoding.Nop,
+	"utf-16":    unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
+	"utf16":     unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
+	"utf8":      unicode.UTF8,
+	"ascii":     unicode.UTF8,
+	"us-ascii":  unicode.UTF8,
+	"shift-jis": japanese.ShiftJIS,
+	"nop":       encoding.Nop,
+	"":          encoding.Nop,
 }
 
 func lookupEncoding(enc string) (encoding.Encoding, error) {
