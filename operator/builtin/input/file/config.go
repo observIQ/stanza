@@ -36,7 +36,7 @@ func NewInputConfig(operatorID string) *InputConfig {
 		FingerprintSize:         defaultFingerprintSize,
 		MaxLogSize:              defaultMaxLogSize,
 		MaxConcurrentFiles:      defaultMaxConcurrentFiles,
-		Encoding:                helper.NewEncodingConfig(),
+		Encoding:                szhelper.NewEncodingConfig(),
 		FilenameRecallPeriod:    helper.Duration{Duration: defaultFilenameRecallPeriod},
 	}
 }
@@ -46,20 +46,20 @@ type InputConfig struct {
 	helper.InputConfig `yaml:",inline"`
 	Finder             `mapstructure:",squash" yaml:",inline"`
 
-	PollInterval            helper.Duration          `mapstructure:"poll_interval,omitempty"               json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
-	Multiline               szhelper.MultilineConfig `mapstructure:"multiline,omitempty"                   json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
-	IncludeFileName         bool                     `mapstructure:"include_file_name,omitempty"           json:"include_file_name,omitempty"           yaml:"include_file_name,omitempty"`
-	IncludeFilePath         bool                     `mapstructure:"include_file_path,omitempty"           json:"include_file_path,omitempty"           yaml:"include_file_path,omitempty"`
-	IncludeFileNameResolved bool                     `mapstructure:"include_file_name_resolved,omitempty"  json:"include_file_name_resolved,omitempty"  yaml:"include_file_name_resolved,omitempty"`
-	IncludeFilePathResolved bool                     `mapstructure:"include_file_path_resolved,omitempty"  json:"include_file_path_resolved,omitempty"  yaml:"include_file_path_resolved,omitempty"`
-	StartAt                 string                   `mapstructure:"start_at,omitempty"                    json:"start_at,omitempty"                    yaml:"start_at,omitempty"`
-	FingerprintSize         helper.ByteSize          `mapstructure:"fingerprint_size,omitempty"            json:"fingerprint_size,omitempty"            yaml:"fingerprint_size,omitempty"`
-	MaxLogSize              helper.ByteSize          `mapstructure:"max_log_size,omitempty"                json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
-	MaxConcurrentFiles      int                      `mapstructure:"max_concurrent_files,omitempty"        json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
-	DeleteAfterRead         bool                     `mapstructure:"delete_after_read,omitempty"           json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
-	LabelRegex              string                   `mapstructure:"label_regex,omitempty"                 json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
-	Encoding                helper.EncodingConfig    `mapstructure:",squash,omitempty"                     json:",inline,omitempty"                     yaml:",inline,omitempty"`
-	FilenameRecallPeriod    helper.Duration          `mapstructure:"filename_recall_period,omitempty"      json:"filename_recall_period,omitempty"      yaml:"filename_recall_period,omitempty"`
+	PollInterval            helper.Duration               `mapstructure:"poll_interval,omitempty"               json:"poll_interval,omitempty"               yaml:"poll_interval,omitempty"`
+	Multiline               szhelper.MultilineConfig      `mapstructure:"multiline,omitempty"                   json:"multiline,omitempty"                   yaml:"multiline,omitempty"`
+	IncludeFileName         bool                          `mapstructure:"include_file_name,omitempty"           json:"include_file_name,omitempty"           yaml:"include_file_name,omitempty"`
+	IncludeFilePath         bool                          `mapstructure:"include_file_path,omitempty"           json:"include_file_path,omitempty"           yaml:"include_file_path,omitempty"`
+	IncludeFileNameResolved bool                          `mapstructure:"include_file_name_resolved,omitempty"  json:"include_file_name_resolved,omitempty"  yaml:"include_file_name_resolved,omitempty"`
+	IncludeFilePathResolved bool                          `mapstructure:"include_file_path_resolved,omitempty"  json:"include_file_path_resolved,omitempty"  yaml:"include_file_path_resolved,omitempty"`
+	StartAt                 string                        `mapstructure:"start_at,omitempty"                    json:"start_at,omitempty"                    yaml:"start_at,omitempty"`
+	FingerprintSize         helper.ByteSize               `mapstructure:"fingerprint_size,omitempty"            json:"fingerprint_size,omitempty"            yaml:"fingerprint_size,omitempty"`
+	MaxLogSize              helper.ByteSize               `mapstructure:"max_log_size,omitempty"                json:"max_log_size,omitempty"                yaml:"max_log_size,omitempty"`
+	MaxConcurrentFiles      int                           `mapstructure:"max_concurrent_files,omitempty"        json:"max_concurrent_files,omitempty"        yaml:"max_concurrent_files,omitempty"`
+	DeleteAfterRead         bool                          `mapstructure:"delete_after_read,omitempty"           json:"delete_after_read,omitempty"           yaml:"delete_after_read,omitempty"`
+	LabelRegex              string                        `mapstructure:"label_regex,omitempty"                 json:"label_regex,omitempty"                 yaml:"label_regex,omitempty"`
+	Encoding                szhelper.StanzaEncodingConfig `mapstructure:",squash,omitempty"                     json:",inline,omitempty"                     yaml:",inline,omitempty"`
+	FilenameRecallPeriod    helper.Duration               `mapstructure:"filename_recall_period,omitempty"      json:"filename_recall_period,omitempty"      yaml:"filename_recall_period,omitempty"`
 }
 
 // Build will build a file input operator from the supplied configuration

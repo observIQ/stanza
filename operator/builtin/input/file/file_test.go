@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	szhelper "github.com/observiq/stanza/v2/operator/helper"
 	"github.com/observiq/stanza/v2/operator/helper/persist"
 	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
@@ -970,13 +971,23 @@ func TestEncodings(t *testing.T) {
 			"big5",
 			[][]byte{{230, 138, 152}},
 		},
+		{
+			"JapaneseCharacterShiftJIS",
+			[]byte{144, 220, 130, 232, 10}, // 折り\n
+			"shift-jis",
+			[][]byte{{230, 138, 152, 227, 130, 138}},
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			operator, receivedEntries, tempDir := newTestFileOperator(t, func(cfg *InputConfig) {
-				cfg.Encoding = helper.EncodingConfig{Encoding: tc.encoding}
+				cfg.Encoding = szhelper.StanzaEncodingConfig{
+					EncodingConfig: helper.EncodingConfig{
+						Encoding: tc.encoding,
+					},
+				}
 			}, nil)
 
 			// Popualte the file

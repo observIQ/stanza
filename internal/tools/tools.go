@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build tools
 // +build tools
 
 package tools
@@ -23,6 +24,7 @@ package tools
 
 import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/goreleaser/goreleaser"
 	_ "github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench"
 	_ "github.com/uw-labs/lichen"
 	_ "github.com/vektra/mockery"

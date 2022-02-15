@@ -20,6 +20,7 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
 	cd $(TOOLS_MOD_DIR) && go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench
+	cd $(TOOLS_MOD_DIR) && go install github.com/goreleaser/goreleaser
 	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec@v2.8.1
 
 .PHONY: scan-license
@@ -134,6 +135,10 @@ build-linux-arm64:
 .PHONY: build-windows-amd64
 build-windows-amd64:
 	@GOOS=windows GOARCH=amd64 $(MAKE) build
+
+.PHONY: release-test
+release-test: install-tools
+	goreleaser release --rm-dist --skip-publish --skip-announce --skip-validate
 
 .PHONY: for-all
 for-all:
