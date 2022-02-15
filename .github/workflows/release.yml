@@ -1,0 +1,30 @@
+name: release
+
+on:
+  push:
+      tags:
+        - 'v*'
+
+jobs:
+  release:
+    runs-on: "ubuntu-20.04"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          # Required for goreleaser changelog to work properly
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+          check-latest: true
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          distribution: goreleaser
+          version: "v1.5.0"
+          args: release --rm-dist
+        env:
+          # Default github token should have enough permissions to make a release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
