@@ -19,7 +19,7 @@ pipeline:
   # graph can be connected properly.
   - id: {{ .input }}
     type: metadata
-    labels:
+    attributes:
       # The value parameter comes from the configuration
       # of the plugin in the top-level config
       decorated: {{ .value }}

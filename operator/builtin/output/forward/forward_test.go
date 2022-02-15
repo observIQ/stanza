@@ -23,6 +23,7 @@ func TestForwardOutput(t *testing.T) {
 		body, _ := ioutil.ReadAll(req.Body)
 		received <- body
 	}))
+	defer srv.Close()
 
 	cfg := NewForwardOutputConfig("test")
 	memoryCfg := buffer.NewMemoryBufferConfig()
@@ -67,6 +68,7 @@ func TestFlushBufferOnClose(t *testing.T) {
 		body, _ := ioutil.ReadAll(req.Body)
 		received <- body
 	}))
+	defer srv.Close()
 
 	cfg.Address = srv.URL
 	ops, err := cfg.Build((testutil.NewBuildContext(t)))
