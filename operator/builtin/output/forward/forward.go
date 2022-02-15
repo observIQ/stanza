@@ -103,7 +103,7 @@ func (f *ForwardOutput) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.flusher.Stop()
-	// TODO handle buffer close entries
+
 	entries, err := f.buffer.Close()
 	if err != nil {
 		f.Errorf("Failed to retreive entries")
