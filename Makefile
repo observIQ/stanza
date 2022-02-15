@@ -1,3 +1,13 @@
+GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
+GOFLAGS=-mod=mod
+
+GIT_SHA=$(shell git rev-parse --short HEAD)
+GIT_COMMIT=$(shell git rev-parse HEAD)
+TAGS=-tags timetzdata
+
+PROJECT_ROOT = $(shell pwd)
+ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 FIELDALIGNMENT_DIRS := ./...
 
@@ -90,19 +100,43 @@ generate:
 	go generate ./...
 
 .PHONY: build
-build: install-tools
-	goreleaser build --single-target --skip-validate --snapshot --rm-dist
+build:
+	(cd ./cmd/stanza && \
+		CGO_ENABLED=0 \
+		go build \
+		-ldflags "-X github.com/observiq/stanza/version.GitTag=${GIT_TAG} -X github.com/observiq/stanza/version.GitCommit=${GIT_COMMIT}" \
+		-o ../../artifacts/stanza_$(GOOS)_$(GOARCH) \
+		$(TAGS) .)
 
 .PHONY: install
 install:
 	(cd ./cmd/stanza && CGO_ENABLED=0 go install .)
 
 .PHONY: build-all
-build-all:
-	goreleaser build --skip-validate --snapshot --rm-dist
+build-all: build-darwin-amd64 build-darwin-arm64 build-linux-amd64 build-linux-arm64 build-windows-amd64
+
+.PHONY: build-darwin-amd64
+build-darwin-amd64:
+	@GOOS=darwin GOARCH=amd64 $(MAKE) build
+
+.PHONY: build-darwin-amd64
+build-darwin-arm64:
+	@GOOS=darwin GOARCH=arm64 $(MAKE) build
+
+.PHONY: build-linux-amd64
+build-linux-amd64:
+	@GOOS=linux GOARCH=amd64 $(MAKE) build
+
+.PHONY: build-linux-arm64
+build-linux-arm64:
+	@GOOS=linux GOARCH=arm64 $(MAKE) build
+
+.PHONY: build-windows-amd64
+build-windows-amd64:
+	@GOOS=windows GOARCH=amd64 $(MAKE) build
 
 .PHONY: release-test
-release-test:
+release-test: install-tools
 	goreleaser release --rm-dist --skip-publish --skip-announce --skip-validate
 
 .PHONY: for-all
