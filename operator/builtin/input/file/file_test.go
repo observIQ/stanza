@@ -970,6 +970,12 @@ func TestEncodings(t *testing.T) {
 			"big5",
 			[][]byte{{230, 138, 152}},
 		},
+		{
+			"JapaneseCharacterShiftJIS",
+			[]byte{144, 220, 130, 232, 10}, // 折り\n
+			"shift-jis",
+			[][]byte{{230, 138, 152, 227, 130, 138}},
+		},
 	}
 
 	for _, tc := range cases {

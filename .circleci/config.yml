@@ -27,8 +27,6 @@ jobs:
             export GIT_TAG="$CIRCLE_TAG"
             make install-tools
             make build-all
-            sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/unix-install.sh > ./artifacts/unix-install.sh
-            sed "s|/releases/latest/download|/releases/download/$VERSION|g" < ./scripts/windows-install.ps1 > ./artifacts/windows-install.ps1
       - persist_to_workspace:
           root: ./artifacts
           paths:
@@ -116,17 +114,6 @@ jobs:
     resource_class: small
     steps:
       - run: echo 'Validation Jobs Complete'
-
-  publish-github-release:
-    docker:
-      - image: cibuilds/github:0.10
-    steps:
-      - attach_workspace:
-          at: ./artifacts
-      - run:
-          name: "Publish Release on GitHub"
-          command: |
-            ghr -t ${GHI_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/
 
   publish-docker-release:
     # building amd64 + arm64 is compute intensive
@@ -556,14 +543,6 @@ workflows:
             - test-windows
             - build
             - fetch-plugins
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v\d+\.\d+\.\d+.*/
-      - publish-github-release:
-          requires:
-            - wait-for-validation
           filters:
             branches:
               ignore: /.*/
