@@ -285,7 +285,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
 			name:            "Fast/NoDeletion",
@@ -293,7 +293,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
 			name:            "Fast/Deletion",
@@ -301,7 +301,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -310,7 +310,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -319,7 +319,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
 			name:            "Slow/NoDeletion",
@@ -327,7 +327,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion",
@@ -335,7 +335,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion/ExceedFingerprint",
@@ -343,7 +343,7 @@ func TestRotation(t *testing.T) {
 			maxLinesPerFile: 25, // ~20 is just enough to exceed 1000 bytes fingerprint at 50 chars per line
 			maxBackupFiles:  2,
 			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 	}
 
