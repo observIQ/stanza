@@ -132,3 +132,37 @@ func TestElastic(t *testing.T) {
 		require.Equal(t, "test", entry["body"])
 	}
 }
+
+func TestFlushBufferOnClose(t *testing.T) {
+	received := make(chan []byte, 1)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
+		received <- body
+		w.WriteHeader(200)
+	}))
+	defer ts.Close()
+
+	cfg := NewElasticOutputConfig("test")
+	cfg.Addresses = []string{ts.URL}
+
+	ops, err := cfg.Build(testutil.NewBuildContext(t))
+	require.NoError(t, err)
+	op := ops[0]
+	e := entry.New()
+	e.Body = "test"
+
+	op.Process(context.Background(), e)
+
+	err = op.Stop()
+	require.NoError(t, err)
+
+	select {
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Timed out waiting for request")
+	case response := <-received:
+		require.Contains(t, string(response), `"body":"test"`)
+	}
+}
