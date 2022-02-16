@@ -106,7 +106,7 @@ func (f *ForwardOutput) Stop() error {
 
 	entries, err := f.buffer.Close()
 	if err != nil {
-		f.Errorf("Failed to retreive entries")
+		f.Error("Failed to retreive entries")
 		return err
 	}
 
