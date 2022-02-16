@@ -48,7 +48,7 @@ func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, conte
 		return nil, context.TODO(), err
 	}
 
-	return newAgentService(ctx, logAgent, persister, persisterShutdownFunc)
+	return newAgentService(ctx, logAgent, persister, persisterShutdownFunc, *b.config.PProf)
 }
 
 func (b *AgentServiceBuilder) buildAgent() (*agent.LogAgent, error) {

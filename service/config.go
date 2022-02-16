@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Pipeline pipeline.Config `yaml:"pipeline"`
 	Logging  *LoggingConfig  `yaml:"logging,omitempty"`
+	PProf    *PProfConfig    `yaml:"pprof,omitempty"`
 }
 
 // LoadConfig loads the plugins from the given directory and the config from the given file path.
@@ -32,9 +33,10 @@ func LoadConfig(pluginDir, file string) (*Config, error) {
 		return nil, fmt.Errorf("could not read config file: %w", err)
 	}
 
-	// initialize logging defaults here, so unmarshalling "overrides" them
+	// initialize defaults here, so unmarshalling "overrides" them
 	config := Config{
 		Logging: DefaultLoggingConfig(),
+		PProf:   DefaultPProfConfig(),
 	}
 
 	if err := yaml.UnmarshalStrict(contents, &config); err != nil {

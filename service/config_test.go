@@ -43,6 +43,7 @@ pipeline:
 					},
 				},
 				Logging: DefaultLoggingConfig(),
+				PProf:   DefaultPProfConfig(),
 			},
 		},
 		{
@@ -50,6 +51,7 @@ pipeline:
 			yaml: `pipeline:`,
 			expected: Config{
 				Logging: DefaultLoggingConfig(),
+				PProf:   DefaultPProfConfig(),
 			},
 		},
 		{
@@ -60,6 +62,7 @@ logging:
     output: stdout`,
 			expected: Config{
 				Logging: DefaultLoggingConfig(),
+				PProf:   DefaultPProfConfig(),
 			},
 		},
 		{
@@ -74,6 +77,7 @@ logging:
 					lc.Output = fileOutput
 					return lc
 				}(),
+				PProf: DefaultPProfConfig(),
 			},
 		},
 		{
@@ -97,6 +101,7 @@ logging:
 					lc.File.MaxAge = 17
 					return lc
 				}(),
+				PProf: DefaultPProfConfig(),
 			},
 		},
 		{
@@ -113,6 +118,7 @@ logging:
 					lc.Level = zapcore.InfoLevel
 					return lc
 				}(),
+				PProf: DefaultPProfConfig(),
 			},
 		},
 		{
@@ -129,6 +135,7 @@ logging:
 					lc.Level = zapcore.DebugLevel
 					return lc
 				}(),
+				PProf: DefaultPProfConfig(),
 			},
 		},
 		{
@@ -145,6 +152,7 @@ logging:
 					lc.Level = zapcore.ErrorLevel
 					return lc
 				}(),
+				PProf: DefaultPProfConfig(),
 			},
 		},
 		{
