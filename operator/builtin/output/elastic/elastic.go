@@ -129,7 +129,7 @@ func (e *ElasticOutput) Stop() error {
 
 	entries, err := e.buffer.Close()
 	if err != nil {
-		e.Errorf("Failed to retreive entries")
+		e.Error("Failed to retreive entries")
 		return err
 	}
 
