@@ -3,7 +3,11 @@ package googlecloud
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/googleapis/gax-go/v2"
 	"github.com/observiq/stanza/v2/testutil"
@@ -150,7 +154,7 @@ func TestStopBufferFailure(t *testing.T) {
 
 	err := operator.Stop()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to close buffer")
+	require.Contains(t, err.Error(), "Failed to retreive entries:")
 }
 
 // Client is a mock type for the Client interface
@@ -282,4 +286,40 @@ func createTestOperator(t *testing.T) *GoogleCloudOutput {
 	require.True(t, ok)
 
 	return googleOperator
+}
+
+func TestFlushBufferOnClose(t *testing.T) {
+	config := NewGoogleCloudOutputConfig("test")
+	config.Credentials = `{"type": "service_account", "project_id": "test"}`
+	received := make(chan []byte, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		body, _ := ioutil.ReadAll(req.Body)
+		received <- body
+	}))
+	defer srv.Close()
+
+	buildContext := testutil.NewBuildContext(t)
+	operators, err := config.Build(buildContext)
+
+	require.NoError(t, err)
+	require.Len(t, operators, 1)
+
+	googleOperator, ok := operators[0].(*GoogleCloudOutput)
+	require.True(t, ok)
+
+	newEntry := entry.New()
+	newEntry.Body = "test"
+	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
+	err = googleOperator.Process(context.Background(), newEntry)
+	require.NoError(t, err)
+
+	err = googleOperator.Stop()
+	require.NoError(t, err)
+
+	select {
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Timed out waiting for request")
+	case response := <-received:
+		require.Contains(t, string(response), `"body":"test"`)
+	}
 }
