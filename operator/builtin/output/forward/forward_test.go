@@ -86,6 +86,10 @@ func TestFlushBufferOnClose(t *testing.T) {
 	err = forwardOutput.Stop()
 	require.NoError(t, err)
 
-	response := <-received
-	require.Contains(t, string(response), `"body":"test"`)
+	select {
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Timed out waiting for request")
+	case response := <-received:
+		require.Contains(t, string(response), `"body":"test"`)
+	}
 }
