@@ -21,6 +21,6 @@ jobs:
       - name: Upload Codecov
         # Only submit code coverage if OS is Linux
         if: matrix.os == 'ubuntu-20.04'
-        uses: codecov/codecov-actions@v2
+        uses: codecov/codecov-action@v2.1.0
         with:
           files: ./coverage.txt

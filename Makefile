@@ -113,10 +113,10 @@ install:
 build-linux: build-linux-amd64 build-linux-arm64
 
 .PHONY: build-darwin
-build-linux: build-darwin-amd64 build-darwin-arm64
+build-darwin: build-darwin-amd64 build-darwin-arm64
 
 .PHONY: build-windows
-build-linux: build-windows-amd64
+build-windows: build-windows-amd64
 
 .PHONY: build-all
 build-all: build-darwin-amd64 build-darwin-arm64 build-linux-amd64 build-linux-arm64 build-windows-amd64
