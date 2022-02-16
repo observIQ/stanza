@@ -19,6 +19,7 @@ jobs:
       - name: Run Tests
         run: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
       - name: Upload Codecov
+        # Only submit code coverage if OS is Linux
         if: matrix.os == 'ubuntu-20.04'
         uses: codecov/codecov-actions@v2
         with:
