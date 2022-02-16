@@ -29,11 +29,8 @@ scan-license: build-all
 	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_darwin_amd64"
 
 .PHONY: test
-test: vet test-only
+test: $(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
-.PHONY: test-only
-test-only:
-	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
 .PHONY: test-integration
 test-integration:
@@ -111,6 +108,15 @@ build:
 .PHONY: install
 install:
 	(cd ./cmd/stanza && CGO_ENABLED=0 go install .)
+
+.PHONY: build-linux
+build-linux: build-linux-amd64 build-linux-arm64
+
+.PHONY: build-darwin
+build-darwin: build-darwin-amd64 build-darwin-arm64
+
+.PHONY: build-windows
+build-windows: build-windows-amd64
 
 .PHONY: build-all
 build-all: build-darwin-amd64 build-darwin-arm64 build-linux-amd64 build-linux-arm64 build-windows-amd64

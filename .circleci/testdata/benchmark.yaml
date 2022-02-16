@@ -1,8 +1,0 @@
----
-pipeline:
-  - type: file_input
-    include: ["stream*.log"]
-
-  - type: google_cloud_output
-    # credentials found automatically on gce instance
-    # project_id taken from credentials by default
