@@ -19,13 +19,21 @@ type AgentService struct {
 	agent                 *agent.LogAgent
 	persister             operator.Persister
 	persisterShutdownFunc persist.PersisterShutdownFunc
+	pprofProfiler         *pprofProfiler
 }
 
 // Start will start the stanza agent.
 func (a *AgentService) Start(s service.Service) error {
 	a.agent.Info("Starting stanza agent")
 	if err := a.agent.Start(a.persister); err != nil {
-		a.agent.Errorw("Failed to start stanza agent", zap.Any("error", err))
+		a.agent.Errorw("Failed to start stanza agent", zap.Error(err))
+		a.cancel()
+		return nil
+	}
+
+	// This will start the profiler, if it was enabled in the user config
+	if err := a.pprofProfiler.Start(); err != nil {
+		a.agent.Errorw("Failed to start pprof service", zap.Error(err))
 		a.cancel()
 		return nil
 	}
@@ -40,9 +48,10 @@ func (a *AgentService) Stop(s service.Service) error {
 	defer a.persisterShutdownFunc()
 	a.agent.Info("Stopping stanza agent")
 	if err := a.agent.Stop(); err != nil {
-		a.agent.Errorw("Failed to stop stanza agent gracefully", zap.Any("error", err))
-		return nil
+		a.agent.Errorw("Failed to stop stanza agent gracefully", zap.Error(err))
 	}
+
+	a.pprofProfiler.Stop()
 
 	a.agent.Info("Stanza agent stopped")
 	return nil
@@ -50,7 +59,7 @@ func (a *AgentService) Stop(s service.Service) error {
 
 // newAgentService creates a new agent service with the provided agent.
 func newAgentService(ctx context.Context, agent *agent.LogAgent,
-	persister operator.Persister, persisterShutdownFunc persist.PersisterShutdownFunc) (service.Service, context.Context, error) {
+	persister operator.Persister, persisterShutdownFunc persist.PersisterShutdownFunc, pprofConfig PProfConfig) (service.Service, error) {
 	// Create a context for this service based on the passed in context
 	serviceCtx, serviceCancel := context.WithCancel(ctx)
 
@@ -59,6 +68,7 @@ func newAgentService(ctx context.Context, agent *agent.LogAgent,
 		agent:                 agent,
 		persister:             persister,
 		persisterShutdownFunc: persisterShutdownFunc,
+		pprofProfiler:         newPProfProfiler(serviceCtx, agent.SugaredLogger, pprofConfig),
 	}
 	config := &service.Config{
 		Name:        "stanza",
@@ -76,8 +86,8 @@ func newAgentService(ctx context.Context, agent *agent.LogAgent,
 
 	service, err := service.New(agentService, config)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return service, serviceCtx, nil
+	return service, nil
 }
