@@ -5,6 +5,7 @@ on:
 jobs:
   unit-tests:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-20.04, macos-11, windows-2019]
     runs-on: ${{ matrix.os }}
