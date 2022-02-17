@@ -88,6 +88,8 @@ func newPProfProfiler(ctx context.Context, logger *zap.SugaredLogger, config PPr
 	}
 }
 
+// Start the profiler; Conditionally starts parts depending on user config.
+// With the default config, no component is started, and this function is effectively a noop.
 func (p *pprofProfiler) Start() error {
 	if p.config.HTTP.Enabled {
 		p.startHttp()

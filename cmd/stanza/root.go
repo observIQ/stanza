@@ -55,7 +55,7 @@ func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
 	}()
 
 	// Build agent service
-	service, _, err := service.NewBuilder().
+	service, err := service.NewBuilder().
 		WithConfig(conf).
 		WithDatabaseFile(flags.DatabaseFile).
 		WithLogger(logger).

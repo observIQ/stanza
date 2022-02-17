@@ -37,15 +37,15 @@ func (b *AgentServiceBuilder) WithDatabaseFile(datbaseFile string) *AgentService
 	return b
 }
 
-func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, context.Context, error) {
+func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, error) {
 	logAgent, err := b.buildAgent()
 	if err != nil {
-		return nil, context.TODO(), err
+		return nil, err
 	}
 
 	persister, persisterShutdownFunc, err := b.buildPersister()
 	if err != nil {
-		return nil, context.TODO(), err
+		return nil, err
 	}
 
 	return newAgentService(ctx, logAgent, persister, persisterShutdownFunc, *b.config.PProf)

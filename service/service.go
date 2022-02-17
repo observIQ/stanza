@@ -31,6 +31,7 @@ func (a *AgentService) Start(s service.Service) error {
 		return nil
 	}
 
+	// This will start the profiler, if it was enabled in the user config
 	if err := a.pprofProfiler.Start(); err != nil {
 		a.agent.Errorw("Failed to start pprof service", zap.Error(err))
 		a.cancel()
@@ -58,7 +59,7 @@ func (a *AgentService) Stop(s service.Service) error {
 
 // newAgentService creates a new agent service with the provided agent.
 func newAgentService(ctx context.Context, agent *agent.LogAgent,
-	persister operator.Persister, persisterShutdownFunc persist.PersisterShutdownFunc, pprofConfig PProfConfig) (service.Service, context.Context, error) {
+	persister operator.Persister, persisterShutdownFunc persist.PersisterShutdownFunc, pprofConfig PProfConfig) (service.Service, error) {
 	// Create a context for this service based on the passed in context
 	serviceCtx, serviceCancel := context.WithCancel(ctx)
 
@@ -85,8 +86,8 @@ func newAgentService(ctx context.Context, agent *agent.LogAgent,
 
 	service, err := service.New(agentService, config)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return service, serviceCtx, nil
+	return service, nil
 }
