@@ -73,7 +73,6 @@ func (g *GoogleCloudOutput) Stop() error {
 	g.flusher.Stop()
 	g.Debug("Stopped flusher")
 
-	// TODO handle buffer close entries
 	entries, err := g.buffer.Close()
 	if err != nil {
 		g.Errorf("Failed to retreive entries: %w", err)
@@ -81,12 +80,15 @@ func (g *GoogleCloudOutput) Stop() error {
 	}
 	g.Debug("Closed buffer")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	//checks if buffer was empty, if not send requests
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
 
-	err = g.sendEntries(ctx, entries)
-	if err != nil {
-		return err
+		err = g.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
 	}
 
 	switch g.client {
@@ -118,7 +120,7 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 	return nil
 }
 
-// sendEntries sends entries using the configured client
+// sendEntries formats entries into requests and then sends them to the operators client
 func (g *GoogleCloudOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
 	chunkID := uuid.New()
 	g.Debugw("Read entries from buffer", "entries", len(entries), "chunk_id", chunkID)

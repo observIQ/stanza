@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -290,43 +287,39 @@ func createTestOperator(t *testing.T) *GoogleCloudOutput {
 }
 
 func TestFlushBufferOnClose(t *testing.T) {
-	config := NewGoogleCloudOutputConfig("test")
-	config.Credentials = `{"type": "service_account", "project_id": "test"}`
-	received := make(chan []byte, 1)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		body, _ := ioutil.ReadAll(req.Body)
-		received <- body
-	}))
-	defer srv.Close()
+	writeChan := make(chan interface{}, 1)
+	writeFunc := func(args mock.Arguments) { writeChan <- args[1] }
 
-	buildContext := testutil.NewBuildContext(t)
-	operators, err := config.Build(buildContext)
+	client := &MockClient{}
+	client.On("WriteLogEntries", mock.Anything, mock.Anything).Run(writeFunc).Return(nil, nil).Once()
+	client.On("Close").Return(nil)
 
-	require.NoError(t, err)
-	require.Len(t, operators, 1)
+	g := createTestOperator(t)
+	g.buildClient = func(ctx context.Context, opts ...option.ClientOption) (Client, error) {
+		return client, nil
+	}
 
-	googleOperator, ok := operators[0].(*GoogleCloudOutput)
-	require.True(t, ok)
+	ctx, cancel := context.WithTimeout(context.Background(), g.timeout)
+	defer cancel()
 
-	client, err := googleOperator.buildClient(googleOperator.ctx, googleOperator.clientOptions...)
+	tmp, err := g.buildClient(ctx, g.clientOptions...)
 	if err != nil {
 		fmt.Errorf("failed to create client: %w", err)
 	}
-	googleOperator.client = client
+	g.client = tmp
 
-	newEntry := entry.New()
-	newEntry.Body = "test"
-	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
-	err = googleOperator.Process(context.Background(), newEntry)
-	require.NoError(t, err)
+	testEntry := &entry.Entry{Body: "test record"}
+	g.Process(context.Background(), testEntry)
 
-	err = googleOperator.Stop()
+	err = g.Stop()
 	require.NoError(t, err)
 
 	select {
 	case <-time.After(5 * time.Second):
 		require.FailNow(t, "Timed out waiting for request")
-	case response := <-received:
-		require.Contains(t, string(response), `"body":"test"`)
+	case request := <-writeChan:
+		logRequest, ok := request.(*logging.WriteLogEntriesRequest)
+		require.True(t, ok)
+		require.Equal(t, logRequest.Entries[0].GetTextPayload(), "test record")
 	}
 }
