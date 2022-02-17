@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/nanojack"
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/operator/helper"
 	"github.com/observiq/stanza/testutil"
@@ -253,6 +254,9 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 			logger.Println(message)
 			time.Sleep(tc.writeInterval)
 		}
+
+		// Close the logger's writer to force a sync to disk
+		require.NoError(t, logger.Writer().(*nanojack.Logger).Close())
 
 		received := make([]string, 0, tc.totalLines)
 	LOOP:
