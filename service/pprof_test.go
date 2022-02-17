@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -34,7 +33,7 @@ func TestHTTPPProfProfiler(t *testing.T) {
 
 	prof := newPProfProfiler(context.Background(), zaptest.NewLogger(t).Sugar(), conf)
 
-	srv := &testHttpServer{}
+	srv := newTestHttpServer()
 
 	prof.newServer = func(port int) httpServer {
 		assert.Equal(t, 0, port)
@@ -44,10 +43,15 @@ func TestHTTPPProfProfiler(t *testing.T) {
 	require.NoError(t, prof.Start())
 	defer prof.Stop()
 
-	time.Sleep(time.Second)
+	var port int
+	select {
+	case port = <-srv.port:
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Timed out waiting for http server to start!")
+	}
 
 	// server should be started, see if we can GET /debug/pprof
-	resp, err := http.DefaultClient.Get(fmt.Sprintf("http://localhost:%d/debug/pprof", srv.port.Load()))
+	resp, err := http.DefaultClient.Get(fmt.Sprintf("http://localhost:%d/debug/pprof", port))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -105,8 +109,14 @@ func TestCPUPprofProfiler(t *testing.T) {
 	require.True(t, fi.Size() > 0, "cpu profile size was not greater than 0!")
 }
 
+func newTestHttpServer() *testHttpServer {
+	return &testHttpServer{
+		port: make(chan int),
+	}
+}
+
 type testHttpServer struct {
-	port atomic.Int64 // If this isn't atomic, the race detector will throw a fit
+	port chan int // If this isn't atomic, the race detector will throw a fit
 	srv  http.Server
 }
 
@@ -116,7 +126,7 @@ func (t *testHttpServer) ListenAndServe() error {
 		return err
 	}
 
-	t.port.Store(int64(listener.Addr().(*net.TCPAddr).Port))
+	t.port <- listener.Addr().(*net.TCPAddr).Port
 	return t.srv.Serve(listener)
 }
 
