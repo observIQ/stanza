@@ -85,6 +85,9 @@ func (g *GoogleCloudOutput) Stop() error {
 	defer cancel()
 
 	err = g.sendEntries(ctx, entries)
+	if err != nil {
+		return err
+	}
 
 	switch g.client {
 	case nil:
