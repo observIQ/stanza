@@ -29,7 +29,8 @@ scan-license: build-all
 	$$GOPATH/bin/lichen --config=./license.yaml "./artifacts/stanza_darwin_amd64"
 
 .PHONY: test
-test: $(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
+test: 
+	$(MAKE) for-all CMD="go test -race -coverprofile coverage.txt -coverpkg ./... ./..."
 
 
 .PHONY: test-integration
