@@ -3,6 +3,7 @@ package googlecloud
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -306,6 +307,12 @@ func TestFlushBufferOnClose(t *testing.T) {
 
 	googleOperator, ok := operators[0].(*GoogleCloudOutput)
 	require.True(t, ok)
+
+	client, err := googleOperator.buildClient(googleOperator.ctx, googleOperator.clientOptions...)
+	if err != nil {
+		fmt.Errorf("failed to create client: %w", err)
+	}
+	googleOperator.client = client
 
 	newEntry := entry.New()
 	newEntry.Body = "test"
