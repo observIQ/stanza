@@ -190,6 +190,7 @@ type rotationTest struct {
 	writeInterval   time.Duration
 	pollInterval    time.Duration
 	ephemeralLines  bool
+	waitInterval    time.Duration
 }
 
 /*
@@ -259,7 +260,7 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 			select {
 			case e := <-logReceived:
 				received = append(received, e.Record.(string))
-			case <-time.After(100 * time.Millisecond):
+			case <-time.After(tc.waitInterval):
 				break LOOP
 			}
 		}
@@ -286,6 +287,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 		},
 		{
 			name:            "Fast/NoDeletion",
@@ -294,6 +296,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 		},
 		{
 			name:            "Fast/Deletion",
@@ -302,6 +305,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -311,6 +315,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
@@ -320,6 +325,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   3 * time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 		},
 		{
 			name:            "Slow/NoDeletion",
@@ -328,6 +334,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   3 * time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion",
@@ -336,6 +343,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  1,
 			writeInterval:   3 * time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 		},
 		{
 			name:            "Slow/Deletion/ExceedFingerprint",
@@ -344,6 +352,7 @@ func TestRotation(t *testing.T) {
 			maxBackupFiles:  2,
 			writeInterval:   3 * time.Millisecond,
 			pollInterval:    10 * time.Millisecond,
+			waitInterval:    500 * time.Millisecond,
 		},
 	}
 
