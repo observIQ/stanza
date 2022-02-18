@@ -31,13 +31,13 @@ func newGreedyCountingSemaphore(initialVal int64) *greedyCountingSemaphore {
 // Increment will Increment the internal value of the semephore.
 // If the first waiting thread can be released (acquire all n of its requested resource), then it will be released,
 // and the internal value will be decremented accordingly.
-func (rs *greedyCountingSemaphore) Increment() {
-	rs.mux.Lock()
-	defer rs.mux.Unlock()
+func (cs *greedyCountingSemaphore) Increment() {
+	cs.mux.Lock()
+	defer cs.mux.Unlock()
 
-	rs.val += 1
+	cs.val++
 
-	next := rs.waitList.Front()
+	next := cs.waitList.Front()
 	if next == nil {
 		// No reader to notify
 		return
@@ -45,13 +45,13 @@ func (rs *greedyCountingSemaphore) Increment() {
 
 	item := next.Value.(waitListItem)
 
-	if item.n > rs.val {
+	if item.n > cs.val {
 		// Cannot wake up waiting thread yet, we haven't hit the amount they are requesting
 		return
 	}
 
-	rs.val -= item.n
-	rs.waitList.Remove(next)
+	cs.val -= item.n
+	cs.waitList.Remove(next)
 	// signal the waiting thread that they are clear to take n resource(s)
 	close(item.signal)
 }

@@ -508,7 +508,7 @@ func TestDiskBufferConcurrency(t *testing.T) {
 			timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 			errGrp, ctx := errgroup.WithContext(timeoutCtx)
-			var readCnt int64 = 0
+			readCnt := int64(0)
 			// Spin off readers
 			for i := 0; i < testCase.readers; i++ {
 				errGrp.Go(
