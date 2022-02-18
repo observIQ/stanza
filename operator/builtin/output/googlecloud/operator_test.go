@@ -3,7 +3,9 @@ package googlecloud
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/googleapis/gax-go/v2"
 	"github.com/observiq/stanza/v2/testutil"
@@ -150,7 +152,7 @@ func TestStopBufferFailure(t *testing.T) {
 
 	err := operator.Stop()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to close buffer")
+	require.Contains(t, err.Error(), "failed to close buffer:")
 }
 
 // Client is a mock type for the Client interface
@@ -282,4 +284,42 @@ func createTestOperator(t *testing.T) *GoogleCloudOutput {
 	require.True(t, ok)
 
 	return googleOperator
+}
+
+func TestFlushBufferOnClose(t *testing.T) {
+	writeChan := make(chan interface{}, 1)
+	writeFunc := func(args mock.Arguments) { writeChan <- args[1] }
+
+	client := &MockClient{}
+	client.On("WriteLogEntries", mock.Anything, mock.Anything).Run(writeFunc).Return(nil, nil).Once()
+	client.On("Close").Return(nil)
+
+	g := createTestOperator(t)
+	g.buildClient = func(ctx context.Context, opts ...option.ClientOption) (Client, error) {
+		return client, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), g.timeout)
+	defer cancel()
+
+	tmp, err := g.buildClient(ctx, g.clientOptions...)
+	if err != nil {
+		fmt.Errorf("failed to create client: %w", err)
+	}
+	g.client = tmp
+
+	testEntry := &entry.Entry{Body: "test record"}
+	g.Process(context.Background(), testEntry)
+
+	err = g.Stop()
+	require.NoError(t, err)
+
+	select {
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Timed out waiting for request")
+	case request := <-writeChan:
+		logRequest, ok := request.(*logging.WriteLogEntriesRequest)
+		require.True(t, ok)
+		require.Equal(t, logRequest.Entries[0].GetTextPayload(), "test record")
+	}
 }
