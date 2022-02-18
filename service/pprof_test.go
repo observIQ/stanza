@@ -33,7 +33,7 @@ func TestHTTPPProfProfiler(t *testing.T) {
 
 	prof := newPProfProfiler(context.Background(), zaptest.NewLogger(t).Sugar(), conf)
 
-	srv := newTestHttpServer()
+	srv := newTestHTTPServer()
 
 	prof.newServer = func(port int) httpServer {
 		assert.Equal(t, 0, port)
@@ -109,18 +109,18 @@ func TestCPUPprofProfiler(t *testing.T) {
 	require.True(t, fi.Size() > 0, "cpu profile size was not greater than 0!")
 }
 
-func newTestHttpServer() *testHttpServer {
-	return &testHttpServer{
+func newTestHTTPServer() *testHTTPServer {
+	return &testHTTPServer{
 		port: make(chan int),
 	}
 }
 
-type testHttpServer struct {
+type testHTTPServer struct {
 	port chan int // If this isn't atomic, the race detector will throw a fit
 	srv  http.Server
 }
 
-func (t *testHttpServer) ListenAndServe() error {
+func (t *testHTTPServer) ListenAndServe() error {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func (t *testHttpServer) ListenAndServe() error {
 	return t.srv.Serve(listener)
 }
 
-func (t *testHttpServer) Shutdown(ctx context.Context) error {
+func (t *testHTTPServer) Shutdown(ctx context.Context) error {
 	t.srv.Shutdown(ctx)
 	return nil
 }

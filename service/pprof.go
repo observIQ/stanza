@@ -92,7 +92,7 @@ func newPProfProfiler(ctx context.Context, logger *zap.SugaredLogger, config PPr
 // With the default config, no component is started, and this function is effectively a noop.
 func (p *pprofProfiler) Start() error {
 	if p.config.HTTP.Enabled {
-		p.startHttp()
+		p.startHTTP()
 	}
 
 	if p.config.CPU.Enabled {
@@ -113,7 +113,7 @@ func (p *pprofProfiler) Stop() {
 	p.wg.Wait()
 }
 
-func (p pprofProfiler) startHttp() {
+func (p pprofProfiler) startHTTP() {
 	p.logger.Debugw("Starting pprof http server", zap.Int("port", p.config.HTTP.Port))
 
 	// pprof endpoints registered by importing net/pprof
