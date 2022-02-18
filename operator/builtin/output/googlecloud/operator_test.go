@@ -152,7 +152,7 @@ func TestStopBufferFailure(t *testing.T) {
 
 	err := operator.Stop()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Failed to retreive entries:")
+	require.Contains(t, err.Error(), "failed to close buffer:")
 }
 
 // Client is a mock type for the Client interface

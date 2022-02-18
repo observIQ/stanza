@@ -75,8 +75,7 @@ func (g *GoogleCloudOutput) Stop() error {
 
 	entries, err := g.buffer.Close()
 	if err != nil {
-		g.Errorf("Failed to retreive entries: %w", err)
-		return err
+		return fmt.Errorf("failed to close buffer: %w", err)
 	}
 	g.Debug("Closed buffer")
 
