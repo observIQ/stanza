@@ -106,7 +106,7 @@ func (f *ForwardOutput) Stop() error {
 
 	entries, err := f.buffer.Close()
 	if err != nil {
-		f.Errorf("Failed to retreive entries")
+		f.Error("Failed to retrieve entries")
 		return err
 	}
 
@@ -130,11 +130,7 @@ func (f *ForwardOutput) sendEntries(ctx context.Context, entries []*entry.Entry)
 		return otelerrors.Wrap(err, "send request")
 	}
 
-	if err := f.handleResponse(res); err != nil {
-		return err
-	}
-
-	return nil
+	return f.handleResponse(res)
 }
 
 // Process adds an entry to the outputs buffer
@@ -172,16 +168,19 @@ func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 }
 
 func (f *ForwardOutput) handleResponse(res *http.Response) error {
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			f.Errorf(err.Error())
+		}
+	}()
+
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
-		} else {
-			if err := res.Body.Close(); err != nil {
-				f.Errorf(err.Error())
-			}
-			return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
+
+		return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 	}
-	return res.Body.Close()
+	return nil
 }

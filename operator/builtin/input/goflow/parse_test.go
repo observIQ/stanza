@@ -377,7 +377,7 @@ func TestParse(t *testing.T) {
 				require.Equal(t, tc.expectTime, outputTime, "expected field timereceived to be promoted to timestamp")
 			}
 
-			for k, _ := range output {
+			for k := range output {
 				require.Equal(t, strings.ToLower(k), k, "expected all keys to be lowercase")
 			}
 		})

@@ -23,7 +23,7 @@ type AgentService struct {
 }
 
 // Start will start the stanza agent.
-func (a *AgentService) Start(s service.Service) error {
+func (a *AgentService) Start(_ service.Service) error {
 	a.agent.Info("Starting stanza agent")
 	if err := a.agent.Start(a.persister); err != nil {
 		a.agent.Errorw("Failed to start stanza agent", zap.Error(err))
@@ -43,7 +43,7 @@ func (a *AgentService) Start(s service.Service) error {
 }
 
 // Stop will stop the stanza agent.
-func (a *AgentService) Stop(s service.Service) error {
+func (a *AgentService) Stop(_ service.Service) error {
 	defer a.cancel()
 	defer a.persisterShutdownFunc()
 	a.agent.Info("Stopping stanza agent")

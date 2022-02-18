@@ -141,7 +141,7 @@ func (d *DiskBuffer) Add(ctx context.Context, e *entry.Entry) error {
 	}
 
 	// Update metadata with current buffer state
-	d.metadata.Entries += 1
+	d.metadata.Entries++
 	d.cf.SyncToMetadata(d.metadata)
 	err = d.metadata.SyncToDisk()
 	if err != nil {

@@ -197,11 +197,7 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 				return err
 			}
 
-			if err := nro.handleResponse(res); err != nil {
-				return err
-			}
-
-			return nil
+			return nro.handleResponse(res)
 		})
 	}
 }
@@ -230,16 +226,18 @@ func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entr
 }
 
 func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			nro.Errorf(err.Error())
+		}
+	}()
+
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
-		} else {
-			if err := res.Body.Close(); err != nil {
-				nro.Errorf(err.Error())
-			}
-			return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
+		return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 	}
-	return res.Body.Close()
+	return nil
 }

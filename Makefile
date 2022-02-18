@@ -15,13 +15,13 @@ FIELDALIGNMENT_DIRS := ./...
 TOOLS_MOD_DIR := ./internal/tools
 .PHONY: install-tools
 install-tools:
-	cd $(TOOLS_MOD_DIR) && go install github.com/golangci/golangci-lint/cmd/golangci-lint
 	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/cmd/mockery
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
 	cd $(TOOLS_MOD_DIR) && go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench
 	cd $(TOOLS_MOD_DIR) && go install github.com/goreleaser/goreleaser
 	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec@v2.8.1
+	cd $(TOOLS_MOD_DIR) && go install github.com/mgechev/revive
 
 .PHONY: scan-license
 scan-license: build-all
@@ -61,10 +61,6 @@ listmod:
 	@set -e; for dir in $(ALL_MODULES); do \
 		(echo "$${dir}"); \
 	done
-
-.PHONY: lint
-lint:
-	$$GOPATH/bin/golangci-lint run --timeout 2m0s --allow-parallel-runners ./...
 
 .PHONY: fieldalignment
 fieldalignment:
@@ -146,6 +142,10 @@ build-windows-amd64:
 .PHONY: release-test
 release-test: install-tools
 	goreleaser release --rm-dist --skip-publish --skip-announce --skip-validate
+
+.PHONY: lint
+lint:
+	revive -config revive/config.toml -formatter friendly ./...
 
 .PHONY: for-all
 for-all:

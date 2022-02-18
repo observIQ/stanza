@@ -23,8 +23,8 @@ package tools
 // This ensures that all systems use the same version of tools in addition to regular dependencies.
 
 import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/goreleaser/goreleaser"
+	_ "github.com/mgechev/revive"
 	_ "github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench"
 	_ "github.com/uw-labs/lichen"
 	_ "github.com/vektra/mockery"
