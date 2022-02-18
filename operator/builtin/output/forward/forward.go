@@ -130,11 +130,7 @@ func (f *ForwardOutput) sendEntries(ctx context.Context, entries []*entry.Entry)
 		return otelerrors.Wrap(err, "send request")
 	}
 
-	if err := f.handleResponse(res); err != nil {
-		return err
-	}
-
-	return nil
+	return f.handleResponse(res)
 }
 
 // Process adds an entry to the outputs buffer
