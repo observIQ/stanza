@@ -234,9 +234,8 @@ func (cf *circularFile) len() int64 {
 
 	if cf.start <= cf.end {
 		return cf.end - cf.start
-	} else {
-		return cf.end + (cf.size - cf.start)
 	}
+	return cf.end + (cf.size - cf.start)
 }
 
 // readBytesLeft returns the number of bytes available to read
@@ -248,10 +247,10 @@ func (cf *circularFile) readBytesLeft() int64 {
 
 	if cf.readPtr <= cf.end {
 		return cf.end - cf.readPtr
-	} else {
-		// Account for wrap around
-		return cf.end + (cf.size - cf.readPtr)
 	}
+
+	// Account for wrap around
+	return cf.end + (cf.size - cf.readPtr)
 }
 
 // writeBytesLeft returns the space in bytes that is available for writing
