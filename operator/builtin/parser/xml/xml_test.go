@@ -12,7 +12,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	var strictDisabled bool = false
+	strictDisabled := false
 
 	testCases := []struct {
 		name           string

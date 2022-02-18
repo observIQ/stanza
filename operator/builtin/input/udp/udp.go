@@ -133,9 +133,11 @@ func (u *UDPInput) readMessage() (string, net.Addr, error) {
 		return "", nil, err
 	}
 
+	//revive:disable:empty-block
 	// Remove trailing characters and NULs
 	for ; (n > 0) && (u.buffer[n-1] < 32); n-- {
 	}
+	//revive:enable:empty-block
 
 	return string(u.buffer[:n]), addr, nil
 }

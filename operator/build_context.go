@@ -47,7 +47,7 @@ func (bc BuildContext) WithDefaultOutputIDs(ids []string) BuildContext {
 // plugin depth
 func (bc BuildContext) WithIncrementedDepth() BuildContext {
 	newBuildContext := bc.Copy()
-	newBuildContext.PluginDepth += 1
+	newBuildContext.PluginDepth++
 	return newBuildContext
 }
 

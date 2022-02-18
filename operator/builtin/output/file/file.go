@@ -94,7 +94,7 @@ func (fo *FileOutput) Stop() error {
 }
 
 // Process will write an entry to the output file.
-func (fo *FileOutput) Process(ctx context.Context, entry *entry.Entry) error {
+func (fo *FileOutput) Process(_ context.Context, entry *entry.Entry) error {
 	fo.mux.Lock()
 	defer fo.mux.Unlock()
 

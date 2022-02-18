@@ -53,7 +53,7 @@ type StdoutOperator struct {
 }
 
 // Process will log entries received.
-func (o *StdoutOperator) Process(ctx context.Context, entry *entry.Entry) error {
+func (o *StdoutOperator) Process(_ context.Context, entry *entry.Entry) error {
 	o.mux.Lock()
 	err := o.encoder.Encode(entry)
 	if err != nil {

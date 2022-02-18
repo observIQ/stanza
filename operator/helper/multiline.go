@@ -26,7 +26,7 @@ type MultilineConfig struct {
 }
 
 // Build will build a Multiline operator.
-func (c MultilineConfig) Build(context operator.BuildContext, encoding encoding.Encoding, flushAtEOF bool) (bufio.SplitFunc, error) {
+func (c MultilineConfig) Build(_ operator.BuildContext, encoding encoding.Encoding, flushAtEOF bool) (bufio.SplitFunc, error) {
 	return c.getSplitFunc(encoding, flushAtEOF)
 }
 

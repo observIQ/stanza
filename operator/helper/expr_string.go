@@ -38,9 +38,8 @@ func (e ExprStringConfig) Build() (*ExprString, error) {
 			// so treat the rest as a string literal
 			subStrings = append(subStrings, s[rangeStart:])
 			break
-		} else {
-			indexStart = rangeStart + indexStart
 		}
+		indexStart = rangeStart + indexStart
 
 		// Restrict our end token search range to the next instance of the start token
 		nextIndexStart := strings.Index(s[indexStart+len(exprStartToken):], exprStartToken)
@@ -58,9 +57,8 @@ func (e ExprStringConfig) Build() (*ExprString, error) {
 			// as a string literal
 			subStrings = append(subStrings, s[rangeStart:])
 			break
-		} else {
-			indexEnd = indexStart + indexEnd
 		}
+		indexEnd = indexStart + indexEnd
 
 		// Unscope the indexes and add the partitioned strings
 		subStrings = append(subStrings, s[rangeStart:indexStart])

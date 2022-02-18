@@ -61,10 +61,6 @@ listmod:
 		(echo "$${dir}"); \
 	done
 
-.PHONY: lint
-lint:
-	$$GOPATH/bin/golangci-lint run --timeout 2m0s --allow-parallel-runners ./...
-
 .PHONY: fieldalignment
 fieldalignment:
 	fieldalignment $(FIELDALIGNMENT_DIRS)
@@ -148,7 +144,7 @@ release-test: install-tools
 
 .PHONY: lint
 lint:
-	revive -config revive/config.toml ./...
+	revive -config revive/config.toml -formatter friendly ./...
 
 .PHONY: for-all
 for-all:

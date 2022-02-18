@@ -17,7 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//revive:disable:var-naming
 const WINDOWS_OS = "windows"
+
+//revive:enable:var-naming
 
 func TestMultiFileRotate(t *testing.T) {
 	if runtime.GOOS == WINDOWS_OS {

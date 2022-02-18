@@ -52,7 +52,7 @@ func (o *OutputOperator) Outputs() []operator.Operator {
 }
 
 // SetOutputs will return an error if called.
-func (o *OutputOperator) SetOutputs(operators []operator.Operator) error {
+func (o *OutputOperator) SetOutputs(_ []operator.Operator) error {
 	return errors.NewError(
 		"Operator can not output, but is attempting to set an output.",
 		"This is an unexpected internal error. Please submit a bug/issue.",

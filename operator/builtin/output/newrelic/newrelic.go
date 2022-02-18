@@ -232,16 +232,18 @@ func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entr
 }
 
 func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			nro.Errorf(err.Error())
+		}
+	}()
+
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return errors.NewError("unexpected status code", "", "status", res.Status)
-		} else {
-			if err := res.Body.Close(); err != nil {
-				nro.Errorf(err.Error())
-			}
-			return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 		}
+		return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 	}
-	return res.Body.Close()
+	return nil
 }

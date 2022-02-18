@@ -348,13 +348,13 @@ func TestSeverityParser(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Run("root", tc.run(t, rootField))
-			t.Run("non-root", tc.run(t, someField))
+			t.Run("root", tc.run(rootField))
+			t.Run("non-root", tc.run(someField))
 		})
 	}
 }
 
-func (tc severityTestCase) run(t *testing.T, parseFrom entry.Field) func(*testing.T) {
+func (tc severityTestCase) run(parseFrom entry.Field) func(*testing.T) {
 
 	return func(t *testing.T) {
 		t.Parallel()
