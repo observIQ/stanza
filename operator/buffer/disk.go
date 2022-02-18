@@ -48,7 +48,7 @@ func NewDiskBufferConfig() *DiskBufferConfig {
 }
 
 // Build creates a new Buffer from a DiskBufferConfig
-func (c DiskBufferConfig) Build(context operator.BuildContext, _ string) (Buffer, error) {
+func (c DiskBufferConfig) Build(_ operator.BuildContext, _ string) (Buffer, error) {
 	maxSize := c.MaxSize
 	if maxSize == 0 {
 		maxSize = 1 << 32
@@ -593,11 +593,7 @@ func (d *DiskBuffer) deleteDeadRange() error {
 
 	d.diskSizeSemaphore.Release(d.metadata.deadRangeLength)
 
-	if err = d.metadata.setDeadRange(0, 0); err != nil {
-		return err
-	}
-
-	return nil
+	return d.metadata.setDeadRange(0, 0)
 }
 
 // moveRange moves from length2 bytes starting from start2 into the space from start1
