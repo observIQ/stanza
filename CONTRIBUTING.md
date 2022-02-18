@@ -59,7 +59,7 @@ Open a pull request against the main `stanza` repo.
 
 A PR is considered to be **ready to merge** when:
 
-* It has received approval from at least one maintainer.
+* It has received approval from at two maintainers.
 * CI passes.
 * Major feedback is resolved.
 
