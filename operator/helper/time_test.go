@@ -305,16 +305,16 @@ func TestTimeParser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			gotimeRootCfg := parseTimeTestConfig(GotimeKey, tc.gotimeLayout, tc.location, rootField)
-			t.Run("gotime-root", runTimeParseTest(t, gotimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected))
+			t.Run("gotime-root", runTimeParseTest(gotimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected))
 
 			gotimeNonRootCfg := parseTimeTestConfig(GotimeKey, tc.gotimeLayout, tc.location, someField)
-			t.Run("gotime-non-root", runTimeParseTest(t, gotimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected))
+			t.Run("gotime-non-root", runTimeParseTest(gotimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected))
 
 			strptimeRootCfg := parseTimeTestConfig(StrptimeKey, tc.strptimeLayout, tc.location, rootField)
-			t.Run("strptime-root", runTimeParseTest(t, strptimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected))
+			t.Run("strptime-root", runTimeParseTest(strptimeRootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected))
 
 			strptimeNonRootCfg := parseTimeTestConfig(StrptimeKey, tc.strptimeLayout, tc.location, someField)
-			t.Run("strptime-non-root", runTimeParseTest(t, strptimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected))
+			t.Run("strptime-non-root", runTimeParseTest(strptimeNonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected))
 		})
 	}
 }
@@ -473,10 +473,10 @@ func TestTimeEpochs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootCfg := parseTimeTestConfig(EpochKey, tc.layout, "", rootField)
-			t.Run("epoch-root", runLossyTimeParseTest(t, rootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected, tc.maxLoss))
+			t.Run("epoch-root", runLossyTimeParseTest(rootCfg, makeTestEntry(rootField, tc.sample), false, false, tc.expected, tc.maxLoss))
 
 			nonRootCfg := parseTimeTestConfig(EpochKey, tc.layout, "", someField)
-			t.Run("epoch-non-root", runLossyTimeParseTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected, tc.maxLoss))
+			t.Run("epoch-non-root", runLossyTimeParseTest(nonRootCfg, makeTestEntry(someField, tc.sample), false, false, tc.expected, tc.maxLoss))
 		})
 	}
 }
@@ -549,19 +549,19 @@ func TestTimeErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootCfg := parseTimeTestConfig(tc.layoutType, tc.layout, tc.location, rootField)
-			t.Run("err-root", runTimeParseTest(t, rootCfg, makeTestEntry(rootField, tc.sample), tc.buildErr, tc.parseErr, time.Now()))
+			t.Run("err-root", runTimeParseTest(rootCfg, makeTestEntry(rootField, tc.sample), tc.buildErr, tc.parseErr, time.Now()))
 
 			nonRootCfg := parseTimeTestConfig(tc.layoutType, tc.layout, tc.location, someField)
-			t.Run("err-non-root", runTimeParseTest(t, nonRootCfg, makeTestEntry(someField, tc.sample), tc.buildErr, tc.parseErr, time.Now()))
+			t.Run("err-non-root", runTimeParseTest(nonRootCfg, makeTestEntry(someField, tc.sample), tc.buildErr, tc.parseErr, time.Now()))
 		})
 	}
 }
 
-func runTimeParseTest(t *testing.T, timeParser *TimeParser, ent *entry.Entry, buildErr bool, parseErr bool, expected time.Time) func(*testing.T) {
-	return runLossyTimeParseTest(t, timeParser, ent, buildErr, parseErr, expected, time.Duration(0))
+func runTimeParseTest(timeParser *TimeParser, ent *entry.Entry, buildErr bool, parseErr bool, expected time.Time) func(*testing.T) {
+	return runLossyTimeParseTest(timeParser, ent, buildErr, parseErr, expected, time.Duration(0))
 }
 
-func runLossyTimeParseTest(t *testing.T, timeParser *TimeParser, ent *entry.Entry, buildErr bool, parseErr bool, expected time.Time, maxLoss time.Duration) func(*testing.T) {
+func runLossyTimeParseTest(timeParser *TimeParser, ent *entry.Entry, buildErr bool, parseErr bool, expected time.Time, maxLoss time.Duration) func(*testing.T) {
 
 	return func(t *testing.T) {
 		buildContext := testutil.NewBuildContext(t)

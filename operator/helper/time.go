@@ -49,7 +49,7 @@ func (t *TimeParser) IsZero() bool {
 }
 
 // Validate validates a TimeParser, and reconfigures it if necessary
-func (t *TimeParser) Validate(context operator.BuildContext) error {
+func (t *TimeParser) Validate(_ operator.BuildContext) error {
 	if t.ParseFrom == nil {
 		return fmt.Errorf("missing required parameter 'parse_from'")
 	}

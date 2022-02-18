@@ -101,7 +101,7 @@ type SeverityParserConfig struct {
 }
 
 // Build builds a SeverityParser from a SeverityParserConfig
-func (c *SeverityParserConfig) Build(context operator.BuildContext) (SeverityParser, error) {
+func (c *SeverityParserConfig) Build(_ operator.BuildContext) (SeverityParser, error) {
 	operatorMapping := getBuiltinMapping(c.Preset)
 
 	for severity, unknown := range c.Mapping {

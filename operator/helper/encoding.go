@@ -16,8 +16,9 @@ package helper
 
 import (
 	"fmt"
-	"golang.org/x/text/encoding/japanese"
 	"strings"
+
+	"golang.org/x/text/encoding/japanese"
 
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/ianaindex"
@@ -27,7 +28,7 @@ import (
 	"github.com/observiq/stanza/operator"
 )
 
-// NewBasicConfig creates a new Encoding config
+// NewEncodingConfig creates a new Encoding config
 func NewEncodingConfig() EncodingConfig {
 	return EncodingConfig{
 		Encoding: "nop",
@@ -40,7 +41,7 @@ type EncodingConfig struct {
 }
 
 // Build will build an Encoding operator.
-func (c EncodingConfig) Build(context operator.BuildContext) (Encoding, error) {
+func (c EncodingConfig) Build(_ operator.BuildContext) (Encoding, error) {
 	enc, err := lookupEncoding(c.Encoding)
 	if err != nil {
 		return Encoding{}, err
@@ -55,7 +56,7 @@ type Encoding struct {
 	Encoding encoding.Encoding
 }
 
-// decode converts the bytes in msgBuf to utf-8 from the configured encoding
+// Decode converts the bytes in msgBuf to utf-8 from the configured encoding
 func (e *Encoding) Decode(msgBuf []byte) (string, error) {
 	decodeBuffer := make([]byte, 1<<12)
 	decoder := e.Encoding.NewDecoder()

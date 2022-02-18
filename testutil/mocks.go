@@ -51,7 +51,7 @@ func (f *FakeOutput) Logger() *zap.SugaredLogger { return f.SugaredLogger }
 func (f *FakeOutput) Outputs() []operator.Operator { return nil }
 
 // SetOutputs immediately returns nil for a fake output
-func (f *FakeOutput) SetOutputs(outputs []operator.Operator) error { return nil }
+func (f *FakeOutput) SetOutputs(_ []operator.Operator) error { return nil }
 
 // Start immediately returns nil for a fake output
 func (f *FakeOutput) Start() error { return nil }
@@ -63,7 +63,7 @@ func (f *FakeOutput) Stop() error { return nil }
 func (f *FakeOutput) Type() string { return "fake_output" }
 
 // Process will place all incoming entries on the Received channel of a fake output
-func (f *FakeOutput) Process(ctx context.Context, entry *entry.Entry) error {
+func (f *FakeOutput) Process(_ context.Context, entry *entry.Entry) error {
 	f.Received <- entry
 	return nil
 }

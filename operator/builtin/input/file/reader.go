@@ -152,7 +152,7 @@ func (f *Reader) readFile(ctx context.Context, consumer consumerFunc) {
 
 var errEndOfHeaders = fmt.Errorf("finished header parsing, no header found")
 
-func (f *Reader) readHeaders(ctx context.Context, msgBuf []byte) error {
+func (f *Reader) readHeaders(_ context.Context, msgBuf []byte) error {
 	byteMatches := f.fileInput.labelRegex.FindSubmatch(msgBuf)
 	if len(byteMatches) != 3 {
 		// return early, assume this failure means the file does not

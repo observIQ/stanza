@@ -11,12 +11,12 @@ import (
 
 func TestParseEvent(t *testing.T) {
 	var (
-		testPartitionID  int16     = 10
-		testPartitionKey string    = "1"
-		testSequenceNum  int64     = 600
-		testTime         time.Time = time.Now()
-		testOffset       int64     = 2000
-		testString       string    = "a test string"
+		testPartitionID  int16 = 10
+		testPartitionKey       = "1"
+		testSequenceNum  int64 = 600
+		testTime               = time.Now()
+		testOffset       int64 = 2000
+		testString             = "a test string"
 	)
 
 	cases := []struct {
@@ -77,7 +77,7 @@ func TestParseEvent(t *testing.T) {
 			&entry.Entry{
 				Timestamp: testTime,
 				Record: map[string]interface{}{
-					"message":    "hello world",
+					"message":       "hello world",
 					"partition_key": &testPartitionKey,
 					"properties": map[string]interface{}{
 						"user": "stanza",

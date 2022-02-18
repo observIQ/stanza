@@ -226,10 +226,7 @@ func (re readEntry) MarshalBinary(wr io.Writer) error {
 	if err := binary.Write(wr, binary.LittleEndian, re.length); err != nil {
 		return err
 	}
-	if err := binary.Write(wr, binary.LittleEndian, re.startOffset); err != nil {
-		return err
-	}
-	return nil
+	return binary.Write(wr, binary.LittleEndian, re.startOffset)
 }
 
 // UnmarshalBinary unmarshals a binary stream into a readEntry struct

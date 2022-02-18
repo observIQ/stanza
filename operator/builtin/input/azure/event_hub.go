@@ -54,10 +54,7 @@ func (e *EventHub) StopConsumers() error {
 		return err
 	}
 	e.Debugw(fmt.Sprintf("Closed all connections to Azure Event Hub '%s'", e.Name))
-	if err := e.Persist.DB.Sync(); err != nil {
-		return err
-	}
-	return nil
+	return e.Persist.DB.Sync()
 }
 
 // startConsumer starts polling an Azure Event Hub partition id for new events

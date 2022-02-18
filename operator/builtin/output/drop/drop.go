@@ -44,6 +44,6 @@ type DropOutput struct {
 }
 
 // Process will drop the incoming entry.
-func (p *DropOutput) Process(ctx context.Context, entry *entry.Entry) error {
+func (p *DropOutput) Process(_ context.Context, _ *entry.Entry) error {
 	return nil
 }

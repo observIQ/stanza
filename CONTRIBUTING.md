@@ -47,6 +47,14 @@ $ git push <YOUR_FORK> <YOUR_BRANCH_NAME>
 
 Open a pull request against the main `stanza` repo.
 
+#### Commands to run before submitting PR
+
+Our CI runs the following checks on each PR. You can run the following local commands to ensure your code is ready for PR:
+
+- Build (`make build`)
+- Test (`make test`)
+- Lint (`make lint`)
+
 
 ### How to Receive Comments
 

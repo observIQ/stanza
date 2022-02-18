@@ -41,7 +41,7 @@ func parse(event azhub.Event, e *entry.Entry) error {
 		if err := mapstructure.Decode(event.SystemProperties, &sysProp); err != nil {
 			return err
 		}
-		for key, _ := range sysProp {
+		for key := range sysProp {
 			if sysProp[key] == nil || reflect.ValueOf(sysProp[key]).IsNil() {
 				delete(sysProp, key)
 			}
