@@ -81,7 +81,7 @@ func (g *GoogleCloudOutput) Stop() error {
 
 	//checks if buffer was empty, if not send requests
 	if len(entries) != 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 
 		err = g.sendEntries(ctx, entries)
