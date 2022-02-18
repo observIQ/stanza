@@ -39,7 +39,7 @@ func NewMemoryBufferConfig() *MemoryBufferConfig {
 
 // Build builds a MemoryBufferConfig into a Buffer, loading any entries that were previously unflushed
 // back into memory
-func (c MemoryBufferConfig) Build(context operator.BuildContext, pluginID string) (Buffer, error) {
+func (c MemoryBufferConfig) Build(_ operator.BuildContext, pluginID string) (Buffer, error) {
 	mb := &MemoryBuffer{
 		// db:            context.Database,
 		pluginID:      pluginID,
