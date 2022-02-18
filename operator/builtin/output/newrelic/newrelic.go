@@ -197,11 +197,7 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 				return err
 			}
 
-			if err := nro.handleResponse(res); err != nil {
-				return err
-			}
-
-			return nil
+			return nro.handleResponse(res)
 		})
 	}
 }
