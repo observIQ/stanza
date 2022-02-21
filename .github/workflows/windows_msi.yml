@@ -1,0 +1,74 @@
+# WindowsMSI is responsible for building and testing a Windows MSI package.
+name: WindowsMSI
+on:
+  pull_request:
+
+jobs:
+  build_msi:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v2
+        
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.17"
+          check-latest: true
+      
+      - name: Cache Go Modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            %LocalAppData%\go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Build
+        run: |
+          make build-windows
+          artifacts/stanza_windows_amd64 build/windows/stanza.exe
+
+      - name: Get Latest stanza-plugins Release
+        id: pluginsrelease
+        run: |
+          echo "::set-output name=releasetag::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | sed 's/\"//g')"
+
+      - name: Clone and Checkout Latest Plugins
+        uses: actions/checkout@master
+        with:
+          name: observiq/stanza-plugins
+          ref: ${{ steps.pluginsrelease.outputs.releasetag }}
+
+      - name: Install Go-MSI
+        run: 	wget -O go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
+        working-directory: C:/tools
+
+      - name: Install Wix
+        run: |
+          wget -O wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
+	        unzip -o wix310-binaries.zip -d C:/wix310
+        working-directory: C:/tools
+
+      - name: Install Cinc (Inspec)
+        run: 	wget -O cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
+        working-directory: C:/tools
+
+      - name: Configure Path
+        run: setx PATH \"%PATH%;C:\\tools\"
+
+      # TODO(jsirianni): Get tag dynamic
+      - name: Build MSI
+        run: go-msi.exe make -m stanza-v0.0.1.msi --version v0.0.1 --arch amd64"
+        working-directory: build/windows/
+
+      # TODO(jsirianni): Get tag dynamic
+      - name: Install MSI
+        run: stanza-v0.0.1.msi
+        working-directory: build/windows/
+
+      - name: Run CINC (Inspec) Tests
+        run: cinc-auditor exec inspec.rb
+        working-directory: build/windows/test
