@@ -37,8 +37,7 @@ jobs:
         
       - name: Clone Plugins
         run: |
-          git clone --depth 1 --branch ${{ steps.pluginsrelease.outputs.releasetag }} \
-            https://github.com/observIQ/stanza-plugins.git stanza-plugins
+          git clone --depth 1 --branch ${{ steps.pluginsrelease.outputs.releasetag }} https://github.com/observIQ/stanza-plugins.git stanza-plugins
 
       - name: Copy Plugins to MSI Build Directory
         run: cp -r stanza-plugins/plugins build/windows/
