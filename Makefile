@@ -174,7 +174,7 @@ vagrant-prep:
 .PHONY: wix
 wix: workdir = "build/windows"
 wix:
-	cp artifacts/stanza_windows_amd64.exe $(workdir)/stanza.exe
+	cp artifacts/stanza_windows_amd64 $(workdir)/stanza.exe
 
 	cd $(workdir) && \
 		vagrant winrm -c \
@@ -185,4 +185,4 @@ wix-test: workdir = "build/windows"
 wix-test: vagrant-prep wix
 	cd $(workdir) && vagrant winrm -c "C:\\vagrant\\stanza-$${GIT_TAG}.msi"
 	sleep 10
-	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:\\vagrant\test\inspec.rb"
+	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:\\vagrant\test\install.rb"
