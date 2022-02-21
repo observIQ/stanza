@@ -29,7 +29,7 @@ jobs:
       - name: Build Windows Binary
         run: |
           make build-windows
-          artifacts/stanza_windows_amd64 build/windows/stanza.exe
+          cp artifacts/stanza_windows_amd64 build/windows/stanza.exe
 
       - name: Get Latest stanza-plugins Release
         id: pluginsrelease
