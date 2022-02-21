@@ -33,7 +33,7 @@ jobs:
 
       - name: Get Latest stanza-plugins Release
         id: pluginsrelease
-        run: echo "::set-output name=pluginsrelease::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | tr -d '"')"
+        run: echo "::set-output name=releasetag::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | tr -d '"')"
         
       - name: Clone Plugins
         run: |
