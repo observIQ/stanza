@@ -60,12 +60,12 @@ jobs:
       # TODO(jsirianni): Get tag dynamic
       - name: Build MSI
         run: go-msi.exe make -m stanza-v0.0.1.msi --version v0.0.1 --arch amd64
-        working-directory: C:/build
+        working-directory: C:/build/windows
 
       # TODO(jsirianni): Get tag dynamic
       - name: Install MSI
         run: stanza-v0.0.1.msi
-        working-directory: C:/build
+        working-directory: C:/build/windows
 
       - name: Run CINC (Inspec) Tests
         run: cinc-auditor exec inspec.rb
