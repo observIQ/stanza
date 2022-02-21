@@ -67,7 +67,7 @@ type CounterOperator struct {
 	size       int
 }
 
-func (co *CounterOperator) Process(ctx context.Context, e *entry.Entry) error {
+func (co *CounterOperator) Process(_ context.Context, _ *entry.Entry) error {
 	co.numEntries.Add(&co.numEntries, big.NewInt(1))
 	return nil
 }
