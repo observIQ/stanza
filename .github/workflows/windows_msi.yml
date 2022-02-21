@@ -31,16 +31,16 @@ jobs:
           make build-windows
           artifacts/stanza_windows_amd64 build/windows/stanza.exe
 
-      #- name: Get Latest stanza-plugins Release
-      #  id: pluginsrelease
-      #  run: |
-      #    echo "::set-output name=releasetag::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | sed 's/\"//g')"
+      - name: Get Latest stanza-plugins Release
+        id: pluginsrelease
+        run: |
+          echo "::set-output name=releasetag::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | tr -d '"')"
 
       - name: Clone and Checkout Latest Plugins
         uses: actions/checkout@master
         with:
           name: observiq/stanza-plugins
-      #    ref: ${{ steps.pluginsrelease.outputs.releasetag }}
+          ref: ${{ steps.pluginsrelease.outputs.releasetag }}
 
       - name: Copy Plugins to MSI Build Directory
         run: cp -r stanza-plugins/plugins build/windows/
