@@ -26,7 +26,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       
-      - name: Build
+      - name: Build Windows Binary
         run: |
           make build-windows
           artifacts/stanza_windows_amd64 build/windows/stanza.exe
@@ -42,22 +42,15 @@ jobs:
           name: observiq/stanza-plugins
           ref: ${{ steps.pluginsrelease.outputs.releasetag }}
 
-      - name: Install Go-MSI
-        run: 	wget -O go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
-        working-directory: C:/tools
-
-      - name: Install Wix
-        run: |
+      # Installs go-msi, wix, and cinc to C:/. The system PATH is updated to include this directory.
+      - name: Install Build and Test Tools
+        run: 	|
+          wget -O go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
           wget -O wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
-          unzip -o wix310-binaries.zip -d C:/wix310
-        working-directory: C:/tools
-
-      - name: Install Cinc (Inspec)
-        run: 	wget -O cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
-        working-directory: C:/tools
-
-      - name: Configure Path
-        run: setx PATH \"%PATH%;C:\\tools\"
+          unzip wix310-binaries.zip
+          wget -O cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
+          setx PATH \"%PATH%;C:\\"
+        working-directory: C:/
 
       # TODO(jsirianni): Get tag dynamic
       - name: Build MSI
