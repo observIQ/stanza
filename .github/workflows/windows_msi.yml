@@ -59,16 +59,44 @@ jobs:
           cp -r build C:/build
           echo "C:/build/windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      # TODO(jsirianni): Get tag dynamic
-      - name: Build MSI
-        run: go-msi.exe make -m stanza-v0.0.1.msi --version v0.0.1 --arch amd64
+      # If tagged build, set the tag as an output.
+      - name: Get Tag From Environment
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: get-tag
+        run: printf '::set-output name=tag::%s' "$(printf '%s' "${{ github.ref }}" | sed 's/refs\/tags\///')"
+
+      # If tagged build, use the release tag for the version.
+      - name: Build MSI from Tagged Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: go-msi.exe make -m stanza.msi --version ${{ steps.get-tag.outputs.tag }} --arch amd64
         working-directory: C:/build/windows
 
-      # TODO(jsirianni): Get tag dynamic
+      # When building for a PR, just use v0.0.1.
+      - name: Build MSI from Pull Request
+        if: github.event_name == 'pull_request'
+        run: go-msi.exe make -m stanza.msi --version v0.0.1 --arch amd64
+        working-directory: C:/build/windows
+
       - name: Install MSI
-        run: stanza-v0.0.1.msi
+        run: stanza.msi
         working-directory: C:/build/windows
 
       - name: Run CINC (Inspec) Tests
         run: cinc-auditor exec inspec.rb
-        working-directory: build/windows/test
+        working-directory: C:/build/windows/test
+
+      - name: Rename MSI to include version tag
+        #if: startsWith(github.ref, 'refs/tags/v')
+        #run: mv stanza.msi stanza-${{ steps.get-tag.outputs.tag }}.msi
+        run: mv stanza.msi stanza-v0.0.0.msi
+
+      - name: Archive code coverage results
+        #if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v2
+        with:
+          #name: stanza-${{ steps.get-tag.outputs.tag }}.msi
+          name: stanza-v0.0.0.msi
+          #path: C:/build/windows/stanza-${{ steps.get-tag.outputs.tag }}.msi
+          path: C:/build/windows/stanza-v0.0.0.msi
+          # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
+          retention-days: 2
