@@ -47,6 +47,7 @@ func (c CounterOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		cancel:         cancel,
 		interval:       c.Duration.Duration,
 		path:           c.Path,
+		numEntries:     big.NewInt(0),
 		wg:             sync.WaitGroup{},
 	}
 
@@ -63,12 +64,11 @@ type CounterOperator struct {
 	wg       sync.WaitGroup
 	cancel   context.CancelFunc
 
-	numEntries big.Int
-	size       int
+	numEntries *big.Int
 }
 
 func (co *CounterOperator) Process(_ context.Context, _ *entry.Entry) error {
-	co.numEntries.Add(&co.numEntries, big.NewInt(1))
+	co.numEntries = co.numEntries.Add(co.numEntries, big.NewInt(1))
 	return nil
 }
 
@@ -117,7 +117,6 @@ func (co *CounterOperator) logCount() error {
 	entriesPerMinute := float64(co.numEntries.Int64()) / elapsedMinutes
 	msg := map[string]interface{}{
 		"entries":        co.numEntries,
-		"size":           co.size,
 		"elapsedMinutes": elapsedMinutes,
 		"entries/minute": entriesPerMinute,
 	}
