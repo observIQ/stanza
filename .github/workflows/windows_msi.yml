@@ -49,6 +49,7 @@ jobs:
           curl -L -o wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
           unzip wix310-binaries.zip
           curl -L -o cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
+          cinc-auditor-4.17.7-1-x64.msi
         working-directory: build/windows/
 
       # HACK: Copy build directory to C drive to avoid this error:
