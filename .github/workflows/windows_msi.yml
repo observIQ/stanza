@@ -33,10 +33,12 @@ jobs:
 
       - name: Get Latest stanza-plugins Release
         id: pluginsrelease
+        run: echo "::set-output name=pluginsrelease::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | tr -d '"')"
+        
+      - name: Clone Plugins
         run: |
-          curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | tr -d '"' > plugin_version
-          set /p tag=<plugin_version
-          git clone --depth 1 --branch %tag% https://github.com/observIQ/stanza-plugins.git stanza-plugins
+          git clone --depth 1 --branch ${{ steps.pluginsrelease.outputs.releasetag }} \
+            https://github.com/observIQ/stanza-plugins.git stanza-plugins
 
       - name: Copy Plugins to MSI Build Directory
         run: cp -r stanza-plugins/plugins build/windows/
