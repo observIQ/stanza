@@ -49,7 +49,7 @@ jobs:
       - name: Install Wix
         run: |
           wget -O wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
-	        unzip -o wix310-binaries.zip -d C:/wix310
+          unzip -o wix310-binaries.zip -d C:/wix310
         working-directory: C:/tools
 
       - name: Install Cinc (Inspec)
