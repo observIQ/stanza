@@ -54,7 +54,7 @@ jobs:
 
       # TODO(jsirianni): Get tag dynamic
       - name: Build MSI
-        run: go-msi.exe make -m stanza-v0.0.1.msi --version v0.0.1 --arch amd64"
+        run: go-msi.exe make -m stanza-v0.0.1.msi --version v0.0.1 --arch amd64
         working-directory: build/windows/
 
       # TODO(jsirianni): Get tag dynamic
