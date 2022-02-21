@@ -52,15 +52,20 @@ jobs:
           echo "D:/a/stanza/stanza/build/windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         working-directory: build/windows/
 
+      # HACK: Copy build directory to C drive to avoid this error:
+      # "Rel: can't make D:/a/stanza/stanza/build/windows/stanza.exe relative to C:\Users\RUNNER~1\AppData\Local\Temp\go-msi502841497"
+      - name: Copy Build Dir
+        run: cp -r build C:/build
+
       # TODO(jsirianni): Get tag dynamic
       - name: Build MSI
         run: go-msi.exe make -m stanza-v0.0.1.msi --version v0.0.1 --arch amd64
-        working-directory: build/windows/
+        working-directory: C:/build
 
       # TODO(jsirianni): Get tag dynamic
       - name: Install MSI
         run: stanza-v0.0.1.msi
-        working-directory: build/windows/
+        working-directory: C:/build
 
       - name: Run CINC (Inspec) Tests
         run: cinc-auditor exec inspec.rb
