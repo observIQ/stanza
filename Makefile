@@ -151,3 +151,38 @@ for-all:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  (cd "$${dir}" && $${CMD} ); \
 	done
+
+# Prepare the vagrant system by installing go-msi, wix, inspec and configuring the path.
+# Assumes stanza-plugins has already been cloned and checked out with the correct tag.
+.PHONY: vagrant-prep
+vagrant-prep: workdir = "build/windows"
+vagrant-prep:
+	file $(workdir)/go-msi.exe >/dev/null || wget -O $(workdir)/go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
+	file $(workdir)/cinc-auditor.msi >/dev/null || wget -O $(workdir)/cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
+	
+	file wix310-binaries.zip >/dev/null || wget -O wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
+	mkdir -p $(workdir)/wix310
+	ls $(workdir)/wix310/sdk >/dev/null || unzip -o wix310-binaries.zip -d $(workdir)/wix310
+
+	cp -r stanza-plugins/plugins $(workdir)/plugins
+
+	cd $(workdir) && vagrant up
+	cd $(workdir) && vagrant winrm -c "setx PATH \"%PATH%;C:\\vagrant\\wix310\;C:\\vagrant\""
+	cd $(workdir) && vagrant winrm -c "C:\\vagrant\\cinc-auditor.msi"
+
+# Assumes $GIT_TAG exists in the env: v0.0.1
+.PHONY: wix
+wix: workdir = "build/windows"
+wix:
+	cp artifacts/stanza_windows_amd64.exe $(workdir)/stanza.exe
+
+	cd $(workdir) && \
+		vagrant winrm -c \
+		"cd C:\\vagrant; go-msi.exe make -m stanza-$${GIT_TAG}.msi --version $${GIT_TAG} --arch amd64"
+
+.PHONY: wix-test
+wix-test: workdir = "build/windows"
+wix-test: vagrant-prep wix
+	cd $(workdir) && vagrant winrm -c "C:\\vagrant\\stanza-$${GIT_TAG}.msi"
+	sleep 10
+	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:\\vagrant\test\inspec.rb"

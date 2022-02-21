@@ -19,6 +19,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	envStanzaLogFile      = "STANZA_LOG_FILE"
+	envStanzaDatabaseFile = "STANZA_DATABASE_FILE"
+)
+
 // RootFlags are the root level flags that be provided when invoking stanza from the command line
 type RootFlags struct {
 	DatabaseFile       string
@@ -87,6 +92,16 @@ func NewRootCmd() *cobra.Command {
 }
 
 func runRoot(command *cobra.Command, _ []string, flags *RootFlags) {
+	// If log file flag is not set, use environment if set.
+	if flags.LogFile == "" {
+		flags.LogFile = os.Getenv(envStanzaLogFile)
+	}
+
+	// If database flag is not set, use environment if set.
+	if flags.DatabaseFile == "" {
+		flags.DatabaseFile = os.Getenv(envStanzaDatabaseFile)
+	}
+
 	logger := newLogger(*flags).Sugar()
 	defer func() {
 		_ = logger.Sync()
