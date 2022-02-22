@@ -82,14 +82,16 @@ jobs:
         working-directory: C:/build/windows
 
       - name: Run CINC (Inspec) Install Tests
-        run: cinc-auditor exec install.rb
+        run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.exe exec install.rb
         working-directory: C:/build/windows/test
 
       - name: Uninstall MSI
-        run: msiexec.exe /x "C:/build/windows/stanza.msi"
+        run: |
+          msiexec.exe /x "C:/build/windows/stanza.msi"
+          sleep 5
 
       - name: Run CINC (Inspec) Uninstall Tests
-        run: cinc-auditor exec uninstall.rb
+        run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.exe exec uninstall.rb
         working-directory: C:/build/windows/test
 
       - name: Rename MSI to include version tag
