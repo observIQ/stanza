@@ -42,6 +42,13 @@ jobs:
       - name: Copy Plugins to MSI Build Directory
         run: cp -r stanza-plugins/plugins build/windows/
 
+      # HACK: Copy build directory to C drive to avoid this error:
+      # "Rel: can't make D:/a/stanza/stanza/build/windows/stanza.exe relative to C:\Users\RUNNER~1\AppData\Local\Temp\go-msi502841497"
+      - name: Copy Build Dir
+        run: |
+          cp -r build C:/build
+          echo "C:/build/windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       # Installs go-msi, wix, and cinc.
       - name: Install Build and Test Tools
         run: 	|
@@ -50,14 +57,7 @@ jobs:
           unzip wix310-binaries.zip
           curl -L -o cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
           cinc-auditor.msi
-        working-directory: build/windows/
-
-      # HACK: Copy build directory to C drive to avoid this error:
-      # "Rel: can't make D:/a/stanza/stanza/build/windows/stanza.exe relative to C:\Users\RUNNER~1\AppData\Local\Temp\go-msi502841497"
-      - name: Copy Build Dir
-        run: |
-          cp -r build C:/build
-          echo "C:/build/windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        working-directory: C:/build/windows
 
       # If tagged build, set the tag as an output.
       - name: Get Tag From Environment
@@ -81,8 +81,15 @@ jobs:
         run: stanza.msi
         working-directory: C:/build/windows
 
-      - name: Run CINC (Inspec) Tests
-        run: cinc-auditor exec inspec.rb
+      - name: Run CINC (Inspec) Install Tests
+        run: cinc-auditor exec install.rb
+        working-directory: C:/build/windows/test
+
+      - name: Uninstall MSI
+        run: msiexec.exe /x "C:/build/windows/stanza.msi"
+
+      - name: Run CINC (Inspec) Uninstall Tests
+        run: cinc-auditor exec uninstall.rb
         working-directory: C:/build/windows/test
 
       - name: Rename MSI to include version tag
