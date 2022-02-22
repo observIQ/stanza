@@ -42,7 +42,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/transformer/retain"
 	_ "github.com/observiq/stanza/operator/builtin/transformer/router"
 
-	_ "github.com/observiq/stanza/operator/builtin/output/counter"
+	_ "github.com/observiq/stanza/operator/builtin/output/count"
 	_ "github.com/observiq/stanza/operator/builtin/output/drop"
 	_ "github.com/observiq/stanza/operator/builtin/output/elastic"
 	_ "github.com/observiq/stanza/operator/builtin/output/file"
