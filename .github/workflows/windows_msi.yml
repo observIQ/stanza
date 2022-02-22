@@ -72,7 +72,7 @@ jobs:
       # When building for a PR, just use v0.0.1.
       - name: Build MSI from Pull Request
         if: github.event_name == 'pull_request'
-        run: go-msi.exe make -m stanza.msi --version v0.0.1 --arch amd64
+        run: go-msi.exe make -m C:/build/windows/stanza.msi --version v0.0.1 --arch amd64
         working-directory: C:/build/windows
 
       - name: Install MSI
