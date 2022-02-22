@@ -10,6 +10,7 @@ gen/
 **/testdata/*.log
 **/*.msi
 **/*.exe
+**/*zip
 **/wix
 **/.vagrant
 **/wix.dynamic.json
