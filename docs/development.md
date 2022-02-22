@@ -23,3 +23,19 @@ make build-darwin-amd64
 ## Running Tests
 
 Tests can be run with `make test`.
+
+## Building Windows MSI
+
+A Windows MSI installer can be built using the following tools:
+
+- [go-msi observiq fork](https://github.com/observIQ/go-msi/)
+- [Wix toolset](https://wixtoolset.org/)
+- A valid Microsoft Windows system
+
+Github actions is responsable for building and publishing MSI installers. If you wish to build an MSI
+on your machine, the Makefile has several targets that can help streamline the build process.
+
+- `vagrant-prep`: Will deploy a Windows system and prep it for building MSI package. **PLEASE NOTE** that valid Windows licensing is your repsonsability.
+- `wix`: Will build the MSI.
+- `wix-test`: Will prep, build, and test.
+- `wix-test-uninstall`: Will run an uninstall test against a system after **a manual uninstall**.
