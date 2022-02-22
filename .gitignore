@@ -10,7 +10,7 @@ gen/
 **/testdata/*.log
 **/*.msi
 **/*.exe
-**/wix310
+**/wix
 **/.vagrant
 **/wix.dynamic.json
 stanza-plugins/
