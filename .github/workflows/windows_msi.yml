@@ -76,8 +76,7 @@ jobs:
         working-directory: C:/build/windows
 
       - name: Install MSI
-        run: stanza.msi
-        working-directory: C:/build/windows
+        run: msiexec.exe /i "C:/build/windows/stanza.msi"
 
       - name: Install CINC (Inspec)
         run: . { iwr -useb https://omnitruck.cinc.sh/install.ps1 } | iex; install -project cinc-auditor -version 4
