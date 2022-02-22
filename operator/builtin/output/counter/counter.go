@@ -17,8 +17,8 @@ import (
 
 type CounterOutputConfig struct {
 	helper.OutputConfig `yaml:",inline"`
-	Path                string          `json:"path" yaml:"path"`
-	Duration            helper.Duration `yaml:"duration,omitempty"`
+	Path                string          `json:"path,omitempty" yaml:"path"`
+	Duration            helper.Duration `json:"duration,omitempty" yaml:"duration,omitempty"`
 }
 
 var defaultCounterDuration = helper.NewDuration(1 * time.Minute)
@@ -41,24 +41,27 @@ func (c CounterOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	counterOperator := &CounterOperator{
+	logChan := make(chan struct{}, 1)
+	counterOperator := &CounterOutput{
 		OutputOperator: outputOperator,
 		ctx:            ctx,
 		cancel:         cancel,
-		interval:       c.Duration.Duration,
+		interval:       c.Duration.Raw(),
 		path:           c.Path,
 		numEntries:     big.NewInt(0),
+		logChan:        logChan,
 		wg:             sync.WaitGroup{},
 	}
 
 	return []operator.Operator{counterOperator}, nil
 }
 
-type CounterOperator struct {
+type CounterOutput struct {
 	helper.OutputOperator
 	ctx      context.Context
 	interval time.Duration
 	start    time.Time
+	logChan  chan struct{}
 	encoder  *json.Encoder
 	path     string
 	wg       sync.WaitGroup
@@ -67,12 +70,12 @@ type CounterOperator struct {
 	numEntries *big.Int
 }
 
-func (co *CounterOperator) Process(_ context.Context, _ *entry.Entry) error {
+func (co *CounterOutput) Process(_ context.Context, _ *entry.Entry) error {
 	co.numEntries = co.numEntries.Add(co.numEntries, big.NewInt(1))
 	return nil
 }
 
-func (co *CounterOperator) Start() error {
+func (co *CounterOutput) Start() error {
 	err := co.determineOutput()
 	if err != nil {
 		return err
@@ -86,13 +89,13 @@ func (co *CounterOperator) Start() error {
 }
 
 // Stop tells the ForwardOutput to stop gracefully
-func (co *CounterOperator) Stop() error {
+func (co *CounterOutput) Stop() error {
 	co.cancel()
 	co.wg.Wait()
 	return nil
 }
 
-func (co *CounterOperator) startCounting() {
+func (co *CounterOutput) startCounting() {
 	defer co.wg.Done()
 
 	ticker := time.NewTicker(co.interval)
@@ -101,29 +104,37 @@ func (co *CounterOperator) startCounting() {
 	for {
 		select {
 		case <-ticker.C:
-			err := co.logCount()
-			if err != nil {
-				return
-			}
+		case <-co.logChan:
 		case <-co.ctx.Done():
+			return
+		}
+
+		err := co.logCount()
+		if err != nil {
 			return
 		}
 	}
 }
 
-func (co *CounterOperator) logCount() error {
+type countObject struct {
+	Entries          *big.Int `json:"entries"`
+	ElapsedMinutes   float64  `json:"elapsedMinutes"`
+	EntriesPerMinute float64  `json:"entries/minute"`
+}
+
+func (co *CounterOutput) logCount() error {
 	now := time.Now()
 	elapsedMinutes := math.Floor(now.Sub(co.start).Minutes())
-	entriesPerMinute := float64(co.numEntries.Int64()) / elapsedMinutes
-	msg := map[string]interface{}{
-		"entries":        co.numEntries,
-		"elapsedMinutes": elapsedMinutes,
-		"entries/minute": entriesPerMinute,
+	entriesPerMinute := float64(co.numEntries.Int64()) / math.Max(elapsedMinutes, 1)
+	msg := &countObject{
+		Entries:          co.numEntries,
+		ElapsedMinutes:   elapsedMinutes,
+		EntriesPerMinute: entriesPerMinute,
 	}
 	return co.encoder.Encode(msg)
 }
 
-func (co *CounterOperator) determineOutput() error {
+func (co *CounterOutput) determineOutput() error {
 	if co.path == "" {
 		co.encoder = json.NewEncoder(os.Stdout)
 		return nil
