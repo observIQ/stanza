@@ -55,8 +55,6 @@ jobs:
           curl -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
           curl -L -o wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
           unzip wix310-binaries.zip
-          curl -L -o cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
-          cinc-auditor.msi
         working-directory: C:/build/windows
 
       # If tagged build, set the tag as an output.
@@ -80,6 +78,9 @@ jobs:
       - name: Install MSI
         run: stanza.msi
         working-directory: C:/build/windows
+
+      - name: Install CINC (Inspec)
+        run: . { iwr -useb https://omnitruck.cinc.sh/install.ps1 } | iex; install -project cinc-auditor -version 4
 
       - name: Run CINC (Inspec) Install Tests
         run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.exe exec install.rb
