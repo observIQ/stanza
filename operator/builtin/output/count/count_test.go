@@ -20,7 +20,7 @@ func TestBuildValid(t *testing.T) {
 	ops, err := cfg.Build(ctx)
 	require.NoError(t, err)
 	op := ops[0]
-	require.IsType(t, &CounterOutput{}, op)
+	require.IsType(t, &CountOutput{}, op)
 }
 
 func TestBuildInvalid(t *testing.T) {
@@ -45,7 +45,7 @@ func TestFileCounterOutput(t *testing.T) {
 	ops, err := cfg.Build(ctx)
 	require.NoError(t, err)
 
-	counterOutput := ops[0].(*CounterOutput)
+	counterOutput := ops[0].(*CountOutput)
 
 	err = counterOutput.Start()
 	require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestStartStdout(t *testing.T) {
 	ops, err := cfg.Build(ctx)
 	require.NoError(t, err)
 
-	counterOutput := ops[0].(*CounterOutput)
+	counterOutput := ops[0].(*CountOutput)
 
 	err = counterOutput.Start()
 	defer func() {
@@ -99,7 +99,7 @@ func TestStartFailure(t *testing.T) {
 	ops, err := cfg.Build(ctx)
 	require.NoError(t, err)
 
-	counterOutput := ops[0].(*CounterOutput)
+	counterOutput := ops[0].(*CountOutput)
 
 	err = counterOutput.Start()
 	defer func() {
