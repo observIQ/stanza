@@ -10,6 +10,7 @@ agent_home="C:/Program Files/stanza"
 end
 
 [
+    "#{agent_home}/stanza.exe",
     "#{agent_home}/config.yaml",
     "#{agent_home}/stanza.log",
     "#{agent_home}/stanza.db",
