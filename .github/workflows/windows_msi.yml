@@ -83,7 +83,7 @@ jobs:
         run: . { iwr -useb https://omnitruck.cinc.sh/install.ps1 } | iex; install -project cinc-auditor -version 4
 
       - name: Run CINC (Inspec) Install Tests
-        run: C:/cinc-project/cinc-auditor/cinc-auditor.bat exec install.rb
+        run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.bat exec install.rb
         working-directory: C:/build/windows/test
 
       - name: Uninstall MSI
@@ -92,7 +92,7 @@ jobs:
           sleep 5
 
       - name: Run CINC (Inspec) Uninstall Tests
-        run: C:/cinc-project/cinc-auditor/cinc-auditor.bat exec uninstall.rb
+        run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.bat exec uninstall.rb
         working-directory: C:/build/windows/test
 
       - name: Rename MSI to include version tag
