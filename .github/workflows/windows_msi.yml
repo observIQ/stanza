@@ -56,13 +56,13 @@ jobs:
         working-directory: C:/build/windows
 
       # If tagged build, set the tag as an output.
-      - name: Get Tag From Environment
+      - name: "Release: Get Tag From Environment"
         if: startsWith(github.ref, 'refs/tags/v')
         id: get-tag
         run: printf '::set-output name=tag::%s' "$(printf '%s' "${{ github.ref }}" | sed 's/refs\/tags\///')"
 
       # If tagged build, use the release tag for the version.
-      - name: Build MSI from Tagged Release
+      - name: "Release: Build MSI from Tagged Release"
         if: startsWith(github.ref, 'refs/tags/v')
         run: go-msi.exe make -m stanza.msi --version ${{ steps.get-tag.outputs.tag }} --arch amd64
         working-directory: C:/build/windows
@@ -94,19 +94,16 @@ jobs:
         run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.bat exec uninstall.rb
         working-directory: C:/build/windows/test
 
-      - name: Rename MSI to include version tag
-        #if: startsWith(github.ref, 'refs/tags/v')
-        #run: mv stanza.msi stanza-${{ steps.get-tag.outputs.tag }}.msi
-        run: mv stanza.msi stanza-v0.0.0.msi
+      - name: "Release: Rename MSI to include version tag"
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: mv stanza.msi stanza-${{ steps.get-tag.outputs.tag }}.msi
         working-directory: C:/build/windows
 
-      - name: Archive code coverage results
-        #if: startsWith(github.ref, 'refs/tags/v')
+      - name: "Release: Archive code coverage results"
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v2
         with:
-          #name: stanza-${{ steps.get-tag.outputs.tag }}.msi
-          name: stanza-v0.0.0.msi
-          #path: C:/build/windows/stanza-${{ steps.get-tag.outputs.tag }}.msi
-          path: C:/build/windows/stanza-v0.0.0.msi
+          name: stanza-${{ steps.get-tag.outputs.tag }}.msi
+          path: C:/build/windows/stanza-${{ steps.get-tag.outputs.tag }}.msi
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
-          retention-days: 2
+          retention-days: 1
