@@ -126,6 +126,14 @@ jobs:
         with:
           go-version: 1.17
           check-latest: true
+      - name: "Get Tag From Environment"
+        id: get-tag
+        run: printf '::set-output name=tag::%s' "$(printf '%s' "${{ github.ref }}" | sed 's/refs\/tags\///')"
+      - name: Retrieve Windows MSI Installer
+        uses: actions/download-artifact@v2
+        with:
+          name: stanza-${{ steps.get-tag.outputs.tag }}.msi
+          path: stanza-${{ steps.get-tag.outputs.tag }}.msi
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
