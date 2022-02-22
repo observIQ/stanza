@@ -1,13 +1,120 @@
 name: release
 
 on:
+  pull_request:
   push:
     tags:
       - "v*"
 
 jobs:
+  build_msi:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v2
+        
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.17"
+          check-latest: true
+      
+      - name: Cache Go Modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            %LocalAppData%\go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      
+      - name: Build Windows Binary
+        run: |
+          make build-windows
+          cp artifacts/stanza_windows_amd64 build/windows/stanza.exe
+
+      - name: Get Latest stanza-plugins Release
+        id: pluginsrelease
+        run: echo "::set-output name=releasetag::$(curl -s https://api.github.com/repos/observiq/stanza-plugins/releases/latest | jq '.tag_name' | tr -d '"')"
+        
+      - name: Clone Plugins
+        run: |
+          git clone --depth 1 --branch ${{ steps.pluginsrelease.outputs.releasetag }} https://github.com/observIQ/stanza-plugins.git stanza-plugins
+
+      - name: Copy Plugins to MSI Build Directory
+        run: cp -r stanza-plugins/plugins build/windows/
+
+      # HACK: Copy build directory to C drive to avoid this error:
+      # "Rel: can't make D:/a/stanza/stanza/build/windows/stanza.exe relative to C:\Users\RUNNER~1\AppData\Local\Temp\go-msi502841497"
+      - name: Copy Build Dir
+        run: |
+          cp -r build C:/build
+          echo "C:/build/windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # Installs go-msi, wix, and cinc.
+      - name: Install Build and Test Tools
+        run: 	|
+          curl -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
+          curl -L -o wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
+          unzip wix310-binaries.zip
+        working-directory: C:/build/windows
+
+      # If tagged build, set the tag as an output.
+      - name: "Release: Get Tag From Environment"
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: get-tag
+        run: printf '::set-output name=tag::%s' "$(printf '%s' "${{ github.ref }}" | sed 's/refs\/tags\///')"
+
+      # If tagged build, use the release tag for the version.
+      - name: "Release: Build MSI from Tagged Release"
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: go-msi.exe make -m stanza.msi --version ${{ steps.get-tag.outputs.tag }} --arch amd64
+        working-directory: C:/build/windows
+
+      # When building for a PR, just use v0.0.1.
+      - name: Build MSI from Pull Request
+        if: github.event_name == 'pull_request'
+        run: go-msi.exe make -m C:/build/windows/stanza.msi --version v0.0.1 --arch amd64
+        working-directory: C:/build/windows
+
+      - name: Install MSI
+        run: msiexec.exe /qn /i stanza.msi
+        working-directory: C:/build/windows
+
+      - name: Install CINC (Inspec)
+        run: . { iwr -useb https://omnitruck.cinc.sh/install.ps1 } | iex; install -project cinc-auditor -version 4
+
+      - name: Run CINC (Inspec) Install Tests
+        run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.bat exec install.rb
+        working-directory: C:/build/windows/test
+
+      - name: Uninstall MSI
+        run: |
+          msiexec.exe /qn /x stanza.msi
+          sleep 5
+        working-directory: C:/build/windows
+
+      - name: Run CINC (Inspec) Uninstall Tests
+        run: C:/cinc-project/cinc-auditor/bin/cinc-auditor.bat exec uninstall.rb
+        working-directory: C:/build/windows/test
+
+      - name: "Release: Rename MSI to include version tag"
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: mv stanza.msi stanza-${{ steps.get-tag.outputs.tag }}.msi
+        working-directory: C:/build/windows
+
+      - name: "Release: Archive code coverage results"
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v2
+        with:
+          name: stanza-${{ steps.get-tag.outputs.tag }}.msi
+          path: C:/build/windows/stanza-${{ steps.get-tag.outputs.tag }}.msi
+          # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
+          retention-days: 1
+
   release:
     runs-on: "ubuntu-20.04"
+    needs: ["build_msi"]
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
         uses: actions/checkout@v2
