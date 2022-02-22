@@ -154,6 +154,7 @@ for-all:
 
 # Prepare the vagrant system by installing go-msi, wix, inspec and configuring the path.
 # Assumes stanza-plugins has already been cloned and checked out with the correct tag.
+# This make target is intended for local development and testing only, do not run within CI.
 .PHONY: vagrant-prep
 vagrant-prep: workdir = "build/windows"
 vagrant-prep:
@@ -167,10 +168,10 @@ vagrant-prep:
 	cp -r stanza-plugins/plugins $(workdir)/plugins
 
 	cd $(workdir) && vagrant up
-	cd $(workdir) && vagrant winrm -c "setx PATH \"%PATH%;C:\\vagrant\\wix310\;C:\\vagrant\""
-	cd $(workdir) && vagrant winrm -c "C:\\vagrant\\cinc-auditor.msi"
+	cd $(workdir) && vagrant winrm -c "setx PATH \"%PATH%;C:/vagrant/wix310\;C:/vagrant\""
+	cd $(workdir) && vagrant winrm -c "C:/vagrant/cinc-auditor.msi"
 
-# Assumes $GIT_TAG exists in the env: v0.0.1
+# This make target is intended for local development and testing only, do not run within CI.
 .PHONY: wix
 wix: workdir = "build/windows"
 wix:
@@ -178,11 +179,12 @@ wix:
 
 	cd $(workdir) && \
 		vagrant winrm -c \
-		"cd C:\\vagrant; go-msi.exe make -m stanza-$${GIT_TAG}.msi --version $${GIT_TAG} --arch amd64"
+		"cd C:/vagrant; go-msi.exe make -m stanza.msi --version v0.0.1 --arch amd64"
 
+# This make target is intended for local development and testing only, do not run within CI.
 .PHONY: wix-test
 wix-test: workdir = "build/windows"
 wix-test: vagrant-prep wix
-	cd $(workdir) && vagrant winrm -c "C:\\vagrant\\stanza-$${GIT_TAG}.msi"
+	cd $(workdir) && vagrant winrm -c "C:/vagrant/stanza.msi"
 	sleep 10
-	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:\\vagrant\test\install.rb"
+	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:/vagrant\test\install.rb"
