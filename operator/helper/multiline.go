@@ -11,7 +11,7 @@ import (
 	"golang.org/x/text/encoding"
 )
 
-// NewBasicConfig creates a new Multiline config
+// NewMultilineConfig creates a new Multiline config
 func NewMultilineConfig() MultilineConfig {
 	return MultilineConfig{
 		LineStartPattern: "",

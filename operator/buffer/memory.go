@@ -146,24 +146,28 @@ func (m *MemoryBuffer) ReadWait(ctx context.Context, dst []*entry.Entry) (Cleare
 	return m.newClearer(inFlightIDs[:i]), i, nil
 }
 
+// MaxChunkSize returns the max chunk size
 func (m *MemoryBuffer) MaxChunkSize() uint {
 	m.reconfigMutex.RLock()
 	defer m.reconfigMutex.RUnlock()
 	return m.maxChunkSize
 }
 
+// MaxChunkDelay returns the max chunk delay
 func (m *MemoryBuffer) MaxChunkDelay() time.Duration {
 	m.reconfigMutex.RLock()
 	defer m.reconfigMutex.RUnlock()
 	return m.maxChunkDelay
 }
 
+// SetMaxChunkSize sets the max chunk size
 func (m *MemoryBuffer) SetMaxChunkSize(size uint) {
 	m.reconfigMutex.Lock()
 	m.maxChunkSize = size
 	m.reconfigMutex.Unlock()
 }
 
+// SetMaxChunkDelay sets the max chunk delay
 func (m *MemoryBuffer) SetMaxChunkDelay(delay time.Duration) {
 	m.reconfigMutex.Lock()
 	m.maxChunkDelay = delay
