@@ -39,7 +39,7 @@ func TestFileCounterOutput(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 	cfg.Path = tmpFile.Name()
-	cfg.Duration = helper.NewDuration(2 * time.Second)
+	cfg.Duration = helper.NewDuration(1 * time.Second)
 
 	ctx := testutil.NewBuildContext(t)
 	ops, err := cfg.Build(ctx)
@@ -57,10 +57,9 @@ func TestFileCounterOutput(t *testing.T) {
 	e := entry.New()
 	err = counterOutput.Process(context.Background(), e)
 	require.NoError(t, err)
-	require.Equal(t, counterOutput.numEntries.Int64(), int64(1))
+	require.Equal(t, counterOutput.numEntries, uint64(1))
 
-	counterOutput.logChan <- struct{}{}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(cfg.Duration.Raw() + 200*time.Millisecond)
 
 	content, err := ioutil.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
@@ -69,7 +68,7 @@ func TestFileCounterOutput(t *testing.T) {
 	err = json.Unmarshal(content, &object)
 	require.NoError(t, err)
 
-	require.Equal(t, object.Entries.Int64(), int64(1))
+	require.Equal(t, object.Entries, uint64(1))
 	require.GreaterOrEqual(t, object.EntriesPerMinute, 0.0)
 	require.GreaterOrEqual(t, object.ElapsedMinutes, 0.0)
 }

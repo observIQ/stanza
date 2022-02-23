@@ -7,7 +7,8 @@ Count Information has this current JSON representation
 {
     "entries": <number of entries this operator has received>,
     "elapsedMinutes": <number of minutes stanza has been running since the start of this operator>,
-    "entries/minute": <number of entries per minute the output operator received>
+    "entries/minute": <number of entries per minute the output operator received>,
+    "timestamp": <current time that this message is being recorded>
 }
 ```
 
