@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/observiq/stanza/entry"
@@ -73,7 +74,7 @@ type CountOutput struct {
 
 // Process increments the counter of the output operator
 func (co *CountOutput) Process(_ context.Context, _ *entry.Entry) error {
-	co.numEntries++
+	atomic.AddUint64(&co.numEntries, 1)
 	return nil
 }
 
