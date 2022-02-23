@@ -73,7 +73,7 @@ type CountOutput struct {
 
 // Process increments the counter of the output operator
 func (co *CountOutput) Process(_ context.Context, _ *entry.Entry) error {
-	co.numEntries += 1
+	co.numEntries++
 	return nil
 }
 
