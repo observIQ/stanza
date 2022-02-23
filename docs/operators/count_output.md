@@ -72,6 +72,6 @@ Printing out results of specified file:
   "entries": 500,
   "elapsedMinutes": 2,
   "entries/minute": 250,
-  "timestamp": "2021-08-20T20:09:29.414-0400
+  "timestamp": "2021-08-20T20:09:29.414-0400"
 }
 ```
