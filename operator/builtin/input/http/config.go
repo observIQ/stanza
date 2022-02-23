@@ -14,8 +14,13 @@ import (
 )
 
 const (
-	DefaultTimeout     = time.Second * 20
+	// DefaultTimeout is the default timeout for reads and writes
+	DefaultTimeout = time.Second * 20
+
+	// DefaultIdleTimeout default timeout for idle
 	DefaultIdleTimeout = time.Second * 60
+
+	// DefaultMaxBodySize default maximum body size.
 	DefaultMaxBodySize = 10000000 // 10 megabyte
 )
 
