@@ -8,3 +8,4 @@
 pipeline:
   - type: noop
   - type: stdout
+
