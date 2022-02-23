@@ -132,7 +132,7 @@ type countObject struct {
 func (co *CountOutput) logCount() error {
 	now := time.Now()
 	elapsedMinutes := now.Sub(co.start).Minutes()
-	entriesPerMinute := float64(co.numEntries) / math.Max(elapsedMinutes, 1)
+	entriesPerMinute := float64(atomic.LoadUint64(&co.numEntries)) / math.Max(elapsedMinutes, 1)
 	msg := &countObject{
 		Entries:          co.numEntries,
 		ElapsedMinutes:   elapsedMinutes,
