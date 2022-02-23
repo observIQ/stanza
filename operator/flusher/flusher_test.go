@@ -44,7 +44,7 @@ func TestFlusher(t *testing.T) {
 func TestMaxElapsedTime(t *testing.T) {
 
 	// Override setting for test
-	maxElapsedTime = 100 * time.Millisecond
+	maxElapsedTime = 1 * time.Second
 
 	flusherCfg := NewConfig()
 	flusher := flusherCfg.Build(zaptest.NewLogger(t).Sugar())
