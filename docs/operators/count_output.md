@@ -66,7 +66,7 @@ Printing out results of specified file:
   "entries": 500,
   "elapsedMinutes": 1,
   "entries/minute": 500,
-  "timestamp": "2021-08-20T20:09:28.314-0400",
+  "timestamp": "2021-08-20T20:09:28.314-0400"
 },
 {
   "entries": 500,
