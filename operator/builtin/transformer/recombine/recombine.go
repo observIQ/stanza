@@ -109,10 +109,12 @@ type RecombineOperator struct {
 	batch []*entry.Entry
 }
 
+// Start will start the processing log entries
 func (r *RecombineOperator) Start() error {
 	return nil
 }
 
+// Stop will stop processing log entries
 func (r *RecombineOperator) Stop() error {
 	r.Lock()
 	defer r.Unlock()
@@ -123,6 +125,7 @@ func (r *RecombineOperator) Stop() error {
 	return nil
 }
 
+// Process processes a log entry to be combined
 func (r *RecombineOperator) Process(ctx context.Context, e *entry.Entry) error {
 	// Lock the recombine operator because process can't run concurrently
 	r.Lock()

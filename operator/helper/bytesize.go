@@ -8,14 +8,17 @@ import (
 	"strings"
 )
 
+// ByteSize type for modeling Byte sizes
 type ByteSize int64
 
+// UnmarshalJSON unmarshals JSON
 func (h *ByteSize) UnmarshalJSON(raw []byte) error {
 	return h.unmarshalShared(func(i interface{}) error {
 		return json.Unmarshal(raw, &i)
 	})
 }
 
+// UnmarshalYAML unmarshals YAML
 func (h *ByteSize) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return h.unmarshalShared(unmarshal)
 }

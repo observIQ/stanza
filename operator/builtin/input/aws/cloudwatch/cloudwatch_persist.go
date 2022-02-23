@@ -7,11 +7,12 @@ import (
 	"github.com/observiq/stanza/operator/helper"
 )
 
+// Persister ensures data is persisted across shutdowns
 type Persister struct {
 	DB helper.Persister
 }
 
-// Helper function to get persisted data
+// Read is a helper function to get persisted data
 func (p *Persister) Read(key string) (int64, error) {
 	var startTime int64
 	buffer := bytes.NewBuffer(p.DB.Get(key))
@@ -22,7 +23,7 @@ func (p *Persister) Read(key string) (int64, error) {
 	return startTime, nil
 }
 
-// Helper function to set persisted data
+// Write is a helper function to set persisted data
 func (p *Persister) Write(key string, value int64) {
 	var buf = make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(value))

@@ -108,6 +108,7 @@ func (w *WriterOperator) findOperator(operators []operator.Operator, operatorID 
 // OutputIDs is a collection of operator IDs used as outputs.
 type OutputIDs []string
 
+// WithNamespace adds namespace
 func (o OutputIDs) WithNamespace(bc operator.BuildContext) OutputIDs {
 	namespacedIDs := make([]string, 0, len(o))
 	for _, id := range o {

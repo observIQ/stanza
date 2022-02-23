@@ -76,6 +76,7 @@ func (p *ParserOperator) ProcessWith(ctx context.Context, entry *entry.Entry, pa
 	return p.ProcessWithCallback(ctx, entry, parse, nil)
 }
 
+// ProcessWithCallback processes and entry and executes the call back
 func (p *ParserOperator) ProcessWithCallback(ctx context.Context, entry *entry.Entry, parse ParseFunction, cb func(*entry.Entry) error) error {
 	// Short circuit if the "if" condition does not match
 	skip, err := p.Skip(ctx, entry)
