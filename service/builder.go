@@ -12,31 +12,37 @@ import (
 	"go.uber.org/zap"
 )
 
+// AgentServiceBuilder builder for AgentService
 type AgentServiceBuilder struct {
 	logger       *zap.SugaredLogger
 	config       *Config
 	databaseFile *string
 }
 
+// NewBuilder creates a new AgentServiceBuilder
 func NewBuilder() *AgentServiceBuilder {
 	return &AgentServiceBuilder{}
 }
 
+// WithLogger adds a logger
 func (b *AgentServiceBuilder) WithLogger(logger *zap.SugaredLogger) *AgentServiceBuilder {
 	b.logger = logger
 	return b
 }
 
+// WithConfig adds config
 func (b *AgentServiceBuilder) WithConfig(config *Config) *AgentServiceBuilder {
 	b.config = config
 	return b
 }
 
+// WithDatabaseFile adds a database file
 func (b *AgentServiceBuilder) WithDatabaseFile(datbaseFile string) *AgentServiceBuilder {
 	b.databaseFile = &datbaseFile
 	return b
 }
 
+// Build builds an Agent Service
 func (b *AgentServiceBuilder) Build(ctx context.Context) (service.Service, error) {
 	logAgent, err := b.buildAgent()
 	if err != nil {

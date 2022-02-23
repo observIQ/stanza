@@ -56,7 +56,7 @@ func DefaultLoggingConfig() *LoggingConfig {
 	}
 }
 
-// newLogger creates a logger from the supplied flags.
+// NewLogger creates a logger from the supplied flags.
 // If the flags do not specify a log file, the logger will default to stdout.
 func NewLogger(c LoggingConfig) *zap.Logger {
 	if c.Output == stdOutput {

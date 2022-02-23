@@ -24,6 +24,7 @@ type AzureConfig struct {
 	startAtBeginning bool
 }
 
+// Build will build an Azure EventHub input operator
 func (a *AzureConfig) Build(buildContext operator.BuildContext, input helper.InputConfig) error {
 	inputOperator, err := input.Build(buildContext)
 	if err != nil {

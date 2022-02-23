@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Config represents the config for stanza commands
 type Config struct {
 	Pipeline pipeline.Config `yaml:"pipeline"`
 	Logging  *LoggingConfig  `yaml:"logging,omitempty"`

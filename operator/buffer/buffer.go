@@ -71,14 +71,17 @@ func (bc *Config) unmarshal(unmarshal func(interface{}) error) error {
 	}
 }
 
+// MarshalYAML marshals YAML
 func (bc Config) MarshalYAML() (interface{}, error) {
 	return bc.Builder, nil
 }
 
+// MarshalJSON marshals JSON
 func (bc Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(bc.Builder)
 }
 
+// Clearer is an interface that is responsible for clearing entries from a buffer
 type Clearer interface {
 	MarkAllAsFlushed() error
 	MarkRangeAsFlushed(uint, uint) error

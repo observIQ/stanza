@@ -316,24 +316,28 @@ func (d *DiskBuffer) Read(dst []*entry.Entry) (f Clearer, i int, err error) {
 	return d.newClearer(newRead), readCount, nil
 }
 
+// MaxChunkSize returns the max chunk size
 func (d *DiskBuffer) MaxChunkSize() uint {
 	d.reconfigMutex.RLock()
 	defer d.reconfigMutex.RUnlock()
 	return d.maxChunkSize
 }
 
+// MaxChunkDelay returns the max chunk delay
 func (d *DiskBuffer) MaxChunkDelay() time.Duration {
 	d.reconfigMutex.RLock()
 	defer d.reconfigMutex.RUnlock()
 	return d.maxChunkDelay
 }
 
+// SetMaxChunkSize sets the max chunk size
 func (d *DiskBuffer) SetMaxChunkSize(size uint) {
 	d.reconfigMutex.Lock()
 	d.maxChunkSize = size
 	d.reconfigMutex.Unlock()
 }
 
+// SetMaxChunkDelay sets the max chunk delay
 func (d *DiskBuffer) SetMaxChunkDelay(delay time.Duration) {
 	d.reconfigMutex.Lock()
 	d.maxChunkDelay = delay

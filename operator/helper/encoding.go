@@ -16,7 +16,7 @@ type StanzaEncodingConfig struct {
 	otelhelper.EncodingConfig `mapstructure:",squash,omitempty" json:",inline,omitempty" yaml:",inline,omitempty"`
 }
 
-// NewBasicConfig creates a new Stanza Encoding config
+// NewEncodingConfig creates a new Stanza Encoding config
 func NewEncodingConfig() StanzaEncodingConfig {
 	return StanzaEncodingConfig{
 		EncodingConfig: otelhelper.NewEncodingConfig(),

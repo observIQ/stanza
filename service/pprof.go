@@ -15,29 +15,34 @@ import (
 	"go.uber.org/zap"
 )
 
+// PProfConfig config for pprof setup
 type PProfConfig struct {
 	HTTP PProfHTTPConfig          `yaml:"http"`
 	CPU  PProfCPUProfileConfig    `yaml:"cpu"`
 	Mem  PProfMemoryProfileConfig `yaml:"mem"`
 }
 
+// PProfHTTPConfig is config for the http server for pprof
 type PProfHTTPConfig struct {
 	Enabled bool `yaml:"enabled"`
 	Port    int  `yaml:"port"`
 }
 
+// PProfCPUProfileConfig cpu profiling config
 type PProfCPUProfileConfig struct {
 	Enabled  bool          `yaml:"enabled"`
 	Path     string        `yaml:"path"`
 	Duration time.Duration `yaml:"duration"`
 }
 
+// PProfMemoryProfileConfig memory profiling config
 type PProfMemoryProfileConfig struct {
 	Enabled bool          `yaml:"enabled"`
 	Path    string        `yaml:"path"`
 	Delay   time.Duration `yaml:"delay"`
 }
 
+// DefaultPProfConfig default PProfConfig
 func DefaultPProfConfig() *PProfConfig {
 	return &PProfConfig{
 		HTTP: PProfHTTPConfig{
