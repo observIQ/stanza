@@ -59,7 +59,26 @@ func TestFileCounterOutput(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, counterOutput.numEntries, uint64(1))
 
-	time.Sleep(cfg.Duration.Raw() + 200*time.Millisecond)
+	stat, err := os.Stat(tmpFile.Name())
+	require.NoError(t, err)
+
+	intialSize := stat.Size()
+
+	to, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	for {
+		select {
+		case <-to.Done():
+			require.FailNow(t, "timed out waiting for file to be written to")
+		case <-ticker.C:
+		}
+		size, err := os.Stat(tmpFile.Name())
+		require.NoError(t, err)
+		if size.Size() != intialSize {
+			break
+		}
+	}
 
 	content, err := ioutil.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
