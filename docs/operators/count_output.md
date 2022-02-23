@@ -8,7 +8,7 @@ Count Information has this current JSON representation
     "entries": <number of entries this operator has received>,
     "elapsedMinutes": <number of minutes stanza has been running since the start of this operator>,
     "entries/minute": <number of entries per minute the output operator received>,
-    "timestamp": <current time that this message is being recorded>
+    "timestamp": <current time that this message is being recorded formatted in RFC 3339>
 }
 ```
 
@@ -38,7 +38,7 @@ pipeline:
 ```json
 {"level":"info","timestamp":"2021-08-20T20:09:55.057-0400","message":"Starting stanza agent"}
 {"level":"info","timestamp":"2021-08-20T20:09:55.057-0400","message":"Stanza agent started"}
-{"entries":500,"elapsedMinutes":2,"entries/minute":250}
+{"entries":500,"elapsedMinutes":2,"entries/minute":250, "timestamp":"2021-08-20T20:09:55.057-0400"}
 ```
 
 #### Configuration going to file:
@@ -65,11 +65,13 @@ Printing out results of specified file:
 {
   "entries": 500,
   "elapsedMinutes": 1,
-  "entries/minute": 500
+  "entries/minute": 500,
+  "timestamp": "2021-08-20T20:09:28.314-0400",
 },
 {
   "entries": 500,
   "elapsedMinutes": 2,
-  "entries/minute": 250
+  "entries/minute": 250,
+  "timestamp": "2021-08-20T20:09:29.414-0400
 }
 ```
