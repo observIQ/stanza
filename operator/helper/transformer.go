@@ -100,6 +100,7 @@ func (t *TransformerOperator) HandleEntryError(ctx context.Context, entry *entry
 	return err
 }
 
+// Skip if entry doesn't match expression
 func (t *TransformerOperator) Skip(_ context.Context, entry *entry.Entry) (bool, error) {
 	if t.IfExpr == nil {
 		return false, nil

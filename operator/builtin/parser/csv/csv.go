@@ -116,6 +116,7 @@ func (r *CSVParser) Process(ctx context.Context, e *entry.Entry) error {
 	return r.ParserOperator.ProcessWith(ctx, e, r.parse)
 }
 
+// ParseFunc is the function that will parse the log entry by CSV
 type ParseFunc func(interface{}) (interface{}, error)
 
 // generateParseFunc returns a parse function for a given header, allowing
