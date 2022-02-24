@@ -18,6 +18,7 @@ import (
 	"github.com/bmatcuk/doublestar/v3"
 )
 
+// Finder is responsible for find files according to the include and exclude rules
 type Finder struct {
 	Include []string `mapstructure:"include,omitempty" json:"include,omitempty" yaml:"include,omitempty"`
 	Exclude []string `mapstructure:"exclude,omitempty" json:"exclude,omitempty" yaml:"exclude,omitempty"`
