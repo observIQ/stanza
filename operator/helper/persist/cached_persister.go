@@ -65,6 +65,7 @@ func (p *CachedPersister) Set(ctx context.Context, key string, value []byte) err
 	return nil
 }
 
+// Delete removes a key from the persister
 func (p *CachedPersister) Delete(ctx context.Context, key string) error {
 	p.cacheMux.Lock()
 	defer p.cacheMux.Unlock()

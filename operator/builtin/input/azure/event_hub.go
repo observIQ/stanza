@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Eventhub provides methods for reading events from Azure Event Hub.
+// EventHub provides methods for reading events from Azure Event Hub.
 type EventHub struct {
 	AzureConfig
 	Persist *Persister

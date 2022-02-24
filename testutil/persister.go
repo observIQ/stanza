@@ -11,10 +11,12 @@ import (
 
 var _ (operator.Persister) = (*MockPersister)(nil)
 
+// MockPersister mock for persister uses
 type MockPersister struct {
 	mock.Mock
 }
 
+// Get mocks out get for persister
 func (m *MockPersister) Get(ctx context.Context, key string) ([]byte, error) {
 	args := m.Called(ctx, key)
 
@@ -25,11 +27,13 @@ func (m *MockPersister) Get(ctx context.Context, key string) ([]byte, error) {
 	return args.Get(0).([]byte), args.Error(1)
 }
 
+// Set mocks out set for persister
 func (m *MockPersister) Set(ctx context.Context, key string, value []byte) error {
 	args := m.Called(ctx, key, value)
 	return args.Error(0)
 }
 
+// Delete mocks out deleted for persister
 func (m *MockPersister) Delete(ctx context.Context, key string) error {
 	args := m.Called(ctx, key)
 	return args.Error(0)

@@ -10,11 +10,12 @@ import (
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 )
 
+// Persister ensures data is persisted across shutdowns
 type Persister struct {
 	base operator.Persister
 }
 
-// Helper function to get persisted data
+// Read helper function to get persisted data
 func (p *Persister) Read(ctx context.Context, key string) (int64, error) {
 	val, err := p.base.Get(ctx, key)
 	if err != nil {
@@ -30,7 +31,7 @@ func (p *Persister) Read(ctx context.Context, key string) (int64, error) {
 	return startTime, nil
 }
 
-// Helper function to set persisted data
+// Write helper function to set persisted data
 func (p *Persister) Write(ctx context.Context, key string, value int64) error {
 	var buf = make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(value))

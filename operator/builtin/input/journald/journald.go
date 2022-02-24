@@ -26,6 +26,7 @@ func init() {
 	operator.Register("journald_input", func() operator.Builder { return NewJournaldInputConfig("") })
 }
 
+// NewJournaldInputConfig creates a new config for Journald Input
 func NewJournaldInputConfig(operatorID string) *JournaldInputConfig {
 	return &JournaldInputConfig{
 		InputConfig:  helper.NewInputConfig(operatorID, "journald_input"),
