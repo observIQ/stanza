@@ -52,6 +52,7 @@ func (c EncodingConfig) Build(_ operator.BuildContext) (Encoding, error) {
 	}, nil
 }
 
+// Encoding represents an text encoding
 type Encoding struct {
 	Encoding encoding.Encoding
 }

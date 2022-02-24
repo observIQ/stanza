@@ -3,8 +3,11 @@ package version
 import "fmt"
 
 var (
+	// GitCommit set externally of the git commit this was built on
 	GitCommit string
-	GitTag    string
+
+	// GitTag set externally of the git tag this was built on
+	GitTag string
 )
 
 // GetVersion returns the version of the stanza library

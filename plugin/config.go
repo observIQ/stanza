@@ -22,7 +22,7 @@ type Config struct {
 	Parameters map[string]interface{} `json:",squash" yaml:",squash"`
 }
 
-// BuildMulti implements operator.MultiBuilder
+// Build implements operator.MultiBuilder
 func (c *Config) Build(bc operator.BuildContext) ([]operator.Operator, error) {
 	if bc.PluginDepth > 10 {
 		return nil, errors.NewError("reached max plugin depth", "ensure that there are no recursive dependencies in plugins")
@@ -71,6 +71,7 @@ func (c *Config) yamlOutputs(bc operator.BuildContext) string {
 	return fmt.Sprintf("[%s]", strings.Join(namespacedOutputs, ","))
 }
 
+// UnmarshalJSON unmarshals JSON
 func (c *Config) UnmarshalJSON(raw []byte) error {
 	var m map[string]interface{}
 	if err := json.Unmarshal(raw, &m); err != nil {
