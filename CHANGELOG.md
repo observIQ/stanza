@@ -6,18 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- Added Native compiled artifact for Darwin amd64 [PR505]
-
 ### Added
-
-- Added agent log file rotation [PR488](https://github.com/observIQ/stanza/pull/488)
-- Added flags `--max_log_size`, `--max_log_age`, and `--max_log_backups` [PR488](https://github.com/observIQ/stanza/pull/488)
 
 ### Changed
 
-- Deprecated the `--debug` flag in favor of the `--log_level` flag [PR488](https://github.com/observIQ/stanza/pull/488)
-- Renamed record to body on a log entry [PR471](https://github.com/observIQ/stanza/pull/471)
-- Renamed labels to attributes on a log entry [PR471](https://github.com/observIQ/stanza/pull/471)
+## 1.6.0
+
+### Added 
+
+- Adds `count_output` operator [PR570](https://github.com/observIQ/stanza/pull/570)
+- Add ShiftJIS to supported encodings [PR546](https://github.com/observIQ/stanza/pull/546)
 
 ## 1.3.0
 

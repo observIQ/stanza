@@ -143,7 +143,7 @@ LOOP:
 		select {
 		case e := <-c:
 			receivedMessages = append(receivedMessages, e.Body.(string))
-		case <-time.After(time.Second):
+		case <-time.After(3 * time.Second):
 			break LOOP
 		}
 	}
@@ -152,7 +152,7 @@ LOOP:
 }
 
 func expectNoMessages(t *testing.T, c chan *entry.Entry) {
-	expectNoMessagesUntil(t, c, 200*time.Millisecond)
+	expectNoMessagesUntil(t, c, 3*time.Second)
 }
 
 func expectNoMessagesUntil(t *testing.T, c chan *entry.Entry, d time.Duration) {

@@ -273,7 +273,7 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 			select {
 			case e := <-logReceived:
 				received = append(received, e.Body.(string))
-			case <-time.After(100 * time.Millisecond):
+			case <-time.After(3 * time.Second):
 				break LOOP
 			}
 		}
@@ -291,73 +291,40 @@ func (rt rotationTest) run(tc rotationTest, copyTruncate, sequential bool) func(
 }
 
 func TestRotation(t *testing.T) {
-
 	cases := []rotationTest{
 		{
-			name:            "Fast/NoRotation",
+			name:            "NoRotation",
 			totalLines:      10,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
-			name:            "Fast/NoDeletion",
+			name:            "NoDeletion",
 			totalLines:      20,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 		},
 		{
-			name:            "Fast/Deletion",
+			name:            "Deletion",
 			totalLines:      30,
 			maxLinesPerFile: 10,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 			ephemeralLines:  true,
 		},
 		{
-			name:            "Fast/Deletion/ExceedFingerprint",
+			name:            "Deletion/ExceedFingerprint",
 			totalLines:      300,
 			maxLinesPerFile: 100,
 			maxBackupFiles:  1,
 			writeInterval:   time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
+			pollInterval:    10 * time.Millisecond,
 			ephemeralLines:  true,
-		},
-		{
-			name:            "Slow/NoRotation",
-			totalLines:      10,
-			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
-			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
-		},
-		{
-			name:            "Slow/NoDeletion",
-			totalLines:      20,
-			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
-			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
-		},
-		{
-			name:            "Slow/Deletion",
-			totalLines:      30,
-			maxLinesPerFile: 10,
-			maxBackupFiles:  1,
-			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
-		},
-		{
-			name:            "Slow/Deletion/ExceedFingerprint",
-			totalLines:      100,
-			maxLinesPerFile: 25, // ~20 is just enough to exceed 1000 bytes fingerprint at 50 chars per line
-			maxBackupFiles:  2,
-			writeInterval:   3 * time.Millisecond,
-			pollInterval:    20 * time.Millisecond,
 		},
 	}
 

@@ -9,6 +9,7 @@ import (
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/forward"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/goflow"
 	_ "github.com/observiq/stanza/v2/operator/builtin/input/http"
+	_ "github.com/observiq/stanza/v2/operator/builtin/output/count"
 	_ "github.com/observiq/stanza/v2/operator/builtin/output/elastic"
 	_ "github.com/observiq/stanza/v2/operator/builtin/output/forward"
 	_ "github.com/observiq/stanza/v2/operator/builtin/output/googlecloud"
