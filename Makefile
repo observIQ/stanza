@@ -167,14 +167,14 @@ vagrant-prep:
 
 	cp -r stanza-plugins/plugins $(workdir)/
 
-	cd $(workdir) && vagrant up
+	cd $(workdir) && vagrant up --provider virtualbox
 	cd $(workdir) && vagrant winrm -c "setx PATH \"%PATH%;C:/vagrant/wix\;C:/vagrant\""
 	cd $(workdir) && vagrant winrm -c "C:/vagrant/cinc-auditor.msi"
 
 # This make target is intended for local development and testing only, do not run within CI.
 .PHONY: wix
 wix: workdir = "build/windows"
-wix:
+wix: build-windows
 	cp artifacts/stanza_windows_amd64 $(workdir)/stanza.exe
 
 	cd $(workdir) && \
