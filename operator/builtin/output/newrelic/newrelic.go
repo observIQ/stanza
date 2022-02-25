@@ -1,13 +1,9 @@
 package newrelic
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -80,9 +76,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		OutputOperator: outputOperator,
 		buffer:         buffer,
 		flusher:        flusher,
-		client:         &http.Client{},
-		headers:        headers,
-		url:            url,
+		client:         NewClient(url, headers),
 		timeout:        c.Timeout.Raw(),
 		messageField:   c.MessageField,
 		ctx:            ctx,
@@ -115,9 +109,7 @@ type NewRelicOutput struct {
 	buffer  buffer.Buffer
 	flusher *flusher.Flusher
 
-	client       *http.Client
-	url          *url.URL
-	headers      http.Header
+	client       Client
 	timeout      time.Duration
 	messageField entry.Field
 
@@ -147,7 +139,21 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.wg.Wait()
 	nro.flusher.Stop()
 	// TODO deal with buffer Drain
-	_, err := nro.buffer.Close()
+	entries, err := nro.buffer.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close buffer: %w", err)
+	}
+
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		err = nro.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
@@ -156,21 +162,21 @@ func (nro *NewRelicOutput) Process(ctx context.Context, entry *entry.Entry) erro
 	return nro.buffer.Add(ctx, entry)
 }
 
+func (nro *NewRelicOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
+	payload := LogPayloadFromEntries(entries, nro.messageField)
+	err := nro.client.SendPayload(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("Failed to send entries: %s", err)
+	}
+
+	return nil
+}
+
 func (nro *NewRelicOutput) testConnection() error {
-	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	req, err := nro.newRequest(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	res, err := nro.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	return nro.handleResponse(res)
+	return nro.client.TestConnection(ctx)
 }
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
@@ -180,64 +186,12 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 		case errors.Is(err, context.Canceled):
 			return
 		case err != nil:
-			nro.Errorf("Failed to read chunk", zap.Error(err))
+			nro.flusher.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
 
 		nro.flusher.Do(ctx, func(flushCtx context.Context) error {
-			req, err := nro.newRequest(flushCtx, entries)
-			if err != nil {
-				// drop these logs because we couldn't creat a request and a retry won't help
-				nro.Errorw("Failed to create request from payload", zap.Error(err))
-				return nil
-			}
-
-			res, err := nro.client.Do(req)
-			if err != nil {
-				return err
-			}
-
-			return nro.handleResponse(res)
+			return nro.sendEntries(flushCtx, entries)
 		})
 	}
-}
-
-// newRequest creates a new http.Request with the given context and entries
-func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entry) (*http.Request, error) {
-	payload := LogPayloadFromEntries(entries, nro.messageField)
-
-	var buf bytes.Buffer
-	wr := gzip.NewWriter(&buf)
-	enc := json.NewEncoder(wr)
-	if err := enc.Encode(payload); err != nil {
-		return nil, otelerrors.Wrap(err, "encode payload")
-	}
-	if err := wr.Close(); err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", nro.url.String(), &buf)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = nro.headers
-
-	return req, nil
-}
-
-func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
-	defer func() {
-		if err := res.Body.Close(); err != nil {
-			nro.Errorf(err.Error())
-		}
-	}()
-
-	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
-		}
-		return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
-	}
-	return nil
 }
