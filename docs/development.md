@@ -32,10 +32,10 @@ A Windows MSI installer can be built using the following tools:
 - [Wix toolset](https://wixtoolset.org/)
 - A valid Microsoft Windows system
 
-Github actions is responsable for building and publishing MSI installers. If you wish to build an MSI
+Github actions is responsible for building and publishing MSI installers. If you wish to build an MSI
 on your machine, the Makefile has several targets that can help streamline the build process.
 
-- `vagrant-prep`: Will deploy a Windows system and prep it for building MSI package. **PLEASE NOTE** that valid Windows licensing is your repsonsability.
+- `vagrant-prep`: Will deploy a Windows system and prep it for building MSI package. **PLEASE NOTE** that valid Windows licensing is your responsibility.
 - `wix`: Will build the MSI.
 - `wix-test`: Will prep, build, and test.
 - `wix-test-uninstall`: Will run an uninstall test against a system after **a manual uninstall**.
