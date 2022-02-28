@@ -76,7 +76,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		OutputOperator: outputOperator,
 		buffer:         buffer,
 		flusher:        flusher,
-		client:         NewClient(url, headers),
+		client:         newClient(url, headers),
 		timeout:        c.Timeout.Raw(),
 		messageField:   c.MessageField,
 		ctx:            ctx,
@@ -109,7 +109,7 @@ type NewRelicOutput struct {
 	buffer  buffer.Buffer
 	flusher *flusher.Flusher
 
-	client       Client
+	client       client
 	timeout      time.Duration
 	messageField entry.Field
 

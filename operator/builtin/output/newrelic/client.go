@@ -15,21 +15,21 @@ import (
 )
 
 // Client is an interface for sending a log payload to new relic
-type Client interface {
+type client interface {
 	SendPayload(context.Context, LogPayload) error
 	TestConnection(context.Context) error
 }
 
 // client is the standard implementation of the Client interface
-type client struct {
+type nroClient struct {
 	endpoint   *url.URL
 	headers    http.Header
 	httpClient *http.Client
 }
 
 // NewClient creates a standard client for sending logs to new relic
-func NewClient(endpoint *url.URL, headers http.Header) Client {
-	return &client{
+func newClient(endpoint *url.URL, headers http.Header) client {
+	return &nroClient{
 		endpoint:   endpoint,
 		headers:    headers,
 		httpClient: &http.Client{},
@@ -37,7 +37,7 @@ func NewClient(endpoint *url.URL, headers http.Header) Client {
 }
 
 // SendPayload creates an http request from a log payload and sends it to new relic
-func (c *client) SendPayload(ctx context.Context, payload LogPayload) error {
+func (c *nroClient) SendPayload(ctx context.Context, payload LogPayload) error {
 	req, err := c.createRequest(ctx, payload)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -52,7 +52,7 @@ func (c *client) SendPayload(ctx context.Context, payload LogPayload) error {
 }
 
 // TestConnection tests the connection to the new relic api
-func (c *client) TestConnection(ctx context.Context) error {
+func (c *nroClient) TestConnection(ctx context.Context) error {
 	logs := make([]*LogMessage, 0, 0)
 	payload := LogPayload{{
 		Common: LogPayloadCommon{
@@ -75,7 +75,7 @@ func (c *client) TestConnection(ctx context.Context) error {
 }
 
 // createRequest creates a new http.Request with the given context and log payload
-func (c *client) createRequest(ctx context.Context, payload LogPayload) (*http.Request, error) {
+func (c *nroClient) createRequest(ctx context.Context, payload LogPayload) (*http.Request, error) {
 	var buf bytes.Buffer
 	wr := gzip.NewWriter(&buf)
 	enc := json.NewEncoder(wr)
@@ -96,7 +96,7 @@ func (c *client) createRequest(ctx context.Context, payload LogPayload) (*http.R
 }
 
 // checkResponse checks a response from the new relic api
-func (c *client) checkResponse(res *http.Response) error {
+func (c *nroClient) checkResponse(res *http.Response) error {
 	defer func() {
 		_ = res.Body.Close()
 	}()
