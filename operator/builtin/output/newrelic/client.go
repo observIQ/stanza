@@ -48,9 +48,7 @@ func (c *client) SendPayload(ctx context.Context, payload LogPayload) error {
 		return err
 	}
 
-	err = c.checkResponse(res)
-
-	return err
+	return c.checkResponse(res)
 }
 
 // TestConnection tests the connection to the new relic api
