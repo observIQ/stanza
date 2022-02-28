@@ -34,7 +34,7 @@ archives:
       - stanza
     # skip archiving as tar.gz / zip
     format: binary
-    name_template: stanza_{{ .Os }}_{{ .Arch }}
+    name_template: "{{ .Binary }}"
 
 nfpms:
   - package_name: stanza
