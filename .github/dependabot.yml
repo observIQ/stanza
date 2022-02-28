@@ -4,7 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
   - package-ecosystem: "gomod"
     directory: "/internal/tools"
     schedule:
       interval: "monthly"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
