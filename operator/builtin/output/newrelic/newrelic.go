@@ -138,14 +138,14 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.cancel()
 	nro.wg.Wait()
 	nro.flusher.Stop()
-	// TODO deal with buffer Drain
+
 	entries, err := nro.buffer.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close buffer: %w", err)
 	}
 
 	if len(entries) != 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 
 		err = nro.sendEntries(ctx, entries)
@@ -173,7 +173,7 @@ func (nro *NewRelicOutput) sendEntries(ctx context.Context, entries []*entry.Ent
 }
 
 func (nro *NewRelicOutput) testConnection() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
 	defer cancel()
 
 	return nro.client.TestConnection(ctx)
@@ -186,7 +186,7 @@ func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 		case errors.Is(err, context.Canceled):
 			return
 		case err != nil:
-			nro.flusher.Errorf("Failed to read chunk", zap.Error(err))
+			nro.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
 
