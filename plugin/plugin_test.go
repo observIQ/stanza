@@ -681,6 +681,16 @@ func TestDefaultPluginFuncWithoutValue(t *testing.T) {
 	require.Equal(t, "default_value", result)
 }
 
+func TestMakeSlicePluginFuncWithString(t *testing.T) {
+	result := makeSlice("string1", "string2", "string3", "string4")
+	require.Equal(t, []interface{}{"string1", "string2", "string3", "string4"}, result)
+}
+
+func TestDefaultPluginFuncWithInteger(t *testing.T) {
+	result := makeSlice(1, 2, 3, 4, 5)
+	require.Equal(t, []interface{}{1, 2, 3, 4, 5}, result)
+}
+
 func TestSplitPluginFile(t *testing.T) {
 	cases := map[int]struct {
 		input            string

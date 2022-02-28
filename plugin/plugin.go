@@ -240,6 +240,7 @@ func RegisterPlugins(pluginDir string, registry *operator.Registry) []error {
 func pluginFuncs() template.FuncMap {
 	funcs := make(map[string]interface{})
 	funcs["default"] = defaultPluginFunc
+	funcs["makeSlice"] = makeSlice
 	return funcs
 }
 
@@ -249,4 +250,9 @@ func defaultPluginFunc(def interface{}, val interface{}) interface{} {
 		return def
 	}
 	return val
+}
+
+// makeSlice is a plugin function returns a slice of all the given arguements
+func makeSlice(args ...interface{}) []interface{} {
+	return args
 }

@@ -59,3 +59,10 @@ pipeline:
 Writing a plugin is as easy as pulling out a set of operators in a working configuration file, then templatizing it with any parts of the config that need to be treated as variable. In the example of the Tomcat access log plugin above, that just means adding variables for `path` and `output`.
 
 Plugins use Go's [`text/template`](https://golang.org/pkg/text/template/) package for template rendering. All fields from the plugin configuration are available as variables in the templates except the `type` field.
+
+### Additional Template Functions
+
+| Function Key | Argument(s)      | Description |
+| ---          | ---              | ---         |
+| `makeSlice`  | `...Interface{}` | Takes any amount of interfaces and adds them into a slice and returns it. |
+| `default`    | `default interface{}`, `value interface{}` | Returns the default if the value is nil. |
