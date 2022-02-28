@@ -151,12 +151,6 @@ func TestBBoltPersisterSet(t *testing.T) {
 			expectError: true,
 		},
 		{
-			desc:        "Value to large",
-			key:         "key",
-			data:        make([]byte, bbolt.MaxValueSize+1),
-			expectError: true,
-		},
-		{
 			desc:        "Key to large",
 			key:         string(make([]byte, bbolt.MaxKeySize+1)),
 			data:        []byte("data"),
