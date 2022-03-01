@@ -453,7 +453,7 @@ func TestDiskBufferClose(t *testing.T) {
 func TestDiskBufferConcurrency(t *testing.T) {
 	var (
 		numEntries = 10000
-		timeout    = 15 * time.Second
+		timeout    = 150 * time.Second
 	)
 
 	testCases := []struct {
