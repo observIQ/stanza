@@ -1,12 +1,9 @@
 package newrelic
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -15,7 +12,7 @@ import (
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	otelerrors "github.com/open-telemetry/opentelemetry-log-collection/errors"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
@@ -62,14 +59,14 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	url, err := url.Parse(c.BaseURI)
 	if err != nil {
-		return nil, errors.Wrap(err, "'base_uri' is not a valid URL")
+		return nil, otelerrors.Wrap(err, "'base_uri' is not a valid URL")
 	}
 
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
@@ -79,9 +76,7 @@ func (c NewRelicOutputConfig) Build(bc operator.BuildContext) ([]operator.Operat
 		OutputOperator: outputOperator,
 		buffer:         buffer,
 		flusher:        flusher,
-		client:         &http.Client{},
-		headers:        headers,
-		url:            url,
+		client:         newClient(url, headers),
 		timeout:        c.Timeout.Raw(),
 		messageField:   c.MessageField,
 		ctx:            ctx,
@@ -114,9 +109,7 @@ type NewRelicOutput struct {
 	buffer  buffer.Buffer
 	flusher *flusher.Flusher
 
-	client       *http.Client
-	url          *url.URL
-	headers      http.Header
+	client       client
 	timeout      time.Duration
 	messageField entry.Field
 
@@ -145,7 +138,23 @@ func (nro *NewRelicOutput) Stop() error {
 	nro.cancel()
 	nro.wg.Wait()
 	nro.flusher.Stop()
-	return nro.buffer.Close()
+
+	entries, err := nro.buffer.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close buffer: %w", err)
+	}
+
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		err = nro.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }
 
 // Process adds an entry to the output's buffer
@@ -153,97 +162,36 @@ func (nro *NewRelicOutput) Process(ctx context.Context, entry *entry.Entry) erro
 	return nro.buffer.Add(ctx, entry)
 }
 
+func (nro *NewRelicOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
+	payload := LogPayloadFromEntries(entries, nro.messageField)
+	err := nro.client.SendPayload(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("Failed to send entries: %s", err)
+	}
+
+	return nil
+}
+
 func (nro *NewRelicOutput) testConnection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), nro.timeout)
 	defer cancel()
 
-	req, err := nro.newRequest(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	res, err := nro.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	return nro.handleResponse(res)
+	return nro.client.TestConnection(ctx)
 }
 
 func (nro *NewRelicOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := nro.buffer.ReadChunk(ctx)
-		if err != nil && err == context.Canceled {
+		entries, err := nro.buffer.Read(ctx)
+		switch {
+		case errors.Is(err, context.Canceled):
 			return
-		} else if err != nil {
+		case err != nil:
 			nro.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
 
-		nro.flusher.Do(func(ctx context.Context) error {
-			req, err := nro.newRequest(ctx, entries)
-			if err != nil {
-				nro.Errorw("Failed to create request from payload", zap.Error(err))
-				// drop these logs because we couldn't creat a request and a retry won't help
-				if err := clearer.MarkAllAsFlushed(); err != nil {
-					nro.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
-				}
-				return nil
-			}
-
-			res, err := nro.client.Do(req)
-			if err != nil {
-				return err
-			}
-
-			if err := nro.handleResponse(res); err != nil {
-				return err
-			}
-
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				nro.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
-			return nil
+		nro.flusher.Do(ctx, func(flushCtx context.Context) error {
+			return nro.sendEntries(flushCtx, entries)
 		})
 	}
-}
-
-// newRequest creates a new http.Request with the given context and entries
-func (nro *NewRelicOutput) newRequest(ctx context.Context, entries []*entry.Entry) (*http.Request, error) {
-	payload := LogPayloadFromEntries(entries, nro.messageField)
-
-	var buf bytes.Buffer
-	wr := gzip.NewWriter(&buf)
-	enc := json.NewEncoder(wr)
-	if err := enc.Encode(payload); err != nil {
-		return nil, errors.Wrap(err, "encode payload")
-	}
-	if err := wr.Close(); err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", nro.url.String(), &buf)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = nro.headers
-
-	return req, nil
-}
-
-func (nro *NewRelicOutput) handleResponse(res *http.Response) error {
-	defer func() {
-		if err := res.Body.Close(); err != nil {
-			nro.Errorf(err.Error())
-		}
-	}()
-
-	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return errors.NewError("unexpected status code", "", "status", res.Status)
-		}
-		return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
-	}
-	return nil
 }

@@ -72,7 +72,7 @@ func (c GoogleCloudOutputConfig) Build(bc operator.BuildContext) ([]operator.Ope
 		return nil, fmt.Errorf("failed to build output operator: %w", err)
 	}
 
-	newBuffer, err := c.BufferConfig.Build(bc, c.ID())
+	newBuffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build buffer: %w", err)
 	}

@@ -73,10 +73,22 @@ func (g *GoogleCloudOutput) Stop() error {
 	g.flusher.Stop()
 	g.Debug("Stopped flusher")
 
-	if err := g.buffer.Close(); err != nil {
+	entries, err := g.buffer.Close()
+	if err != nil {
 		return fmt.Errorf("failed to close buffer: %w", err)
 	}
 	g.Debug("Closed buffer")
+
+	//checks if buffer was empty, if not send requests
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		err = g.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
+	}
 
 	switch g.client {
 	case nil:
@@ -105,6 +117,24 @@ func (g *GoogleCloudOutput) testConnection(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// sendEntries formats entries into requests and then sends them to the operators client
+func (g *GoogleCloudOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
+	chunkID := uuid.New()
+	g.Debugw("Read entries from buffer", "entries", len(entries), "chunk_id", chunkID)
+
+	requests := g.requestBuilder.Build(entries)
+	g.Debugw("Created write requests", "requests", len(requests), "chunk_id", chunkID)
+
+	err := g.send(ctx, requests)
+
+	if err != nil {
+		g.Debugw("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
+	}
+	g.Debugw("Submitted requests to the flusher", "requests", len(requests))
+	return err
+
 }
 
 // createTestRequest creates a test request for testing permissions
@@ -153,30 +183,14 @@ func (g *GoogleCloudOutput) startFlusher() {
 
 // flushChunk flushes a chunk of entries from the buffer
 func (g *GoogleCloudOutput) flushChunk(ctx context.Context) error {
-	entries, clearer, err := g.buffer.ReadChunk(ctx)
+	entries, err := g.buffer.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read entries from buffer: %w", err)
 	}
 
-	chunkID := uuid.New()
-	g.Debugw("Read entries from buffer", "entries", len(entries), "chunk_id", chunkID)
-
-	requests := g.requestBuilder.Build(entries)
-	g.Debugw("Created write requests", "requests", len(requests), "chunk_id", chunkID)
-
-	flushFunc := func(ctx context.Context) error {
-		err := g.send(ctx, requests)
-		if err != nil {
-			g.Debugw("Failed to send requests", "chunk_id", chunkID, zap.Error(err))
-			return err
-		}
-
-		g.Debugw("Marking entries as flushed", "chunk_id", chunkID)
-		return clearer.MarkAllAsFlushed()
-	}
-
-	g.flusher.Do(flushFunc)
-	g.Debugw("Submitted requests to the flusher", "requests", len(requests))
+	g.flusher.Do(ctx, func(flushCtx context.Context) error {
+		return g.sendEntries(flushCtx, entries)
+	})
 
 	return nil
 }

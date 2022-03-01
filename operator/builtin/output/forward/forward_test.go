@@ -23,6 +23,7 @@ func TestForwardOutput(t *testing.T) {
 		body, _ := ioutil.ReadAll(req.Body)
 		received <- body
 	}))
+	defer srv.Close()
 
 	cfg := NewForwardOutputConfig("test")
 	memoryCfg := buffer.NewMemoryBufferConfig()
@@ -57,5 +58,38 @@ func TestForwardOutput(t *testing.T) {
 		require.Equal(t, newEntry.SeverityText, e.SeverityText)
 		require.Equal(t, newEntry.Attributes, e.Attributes)
 		require.Equal(t, newEntry.Resource, e.Resource)
+	}
+}
+
+func TestFlushBufferOnClose(t *testing.T) {
+	cfg := NewForwardOutputConfig("test")
+	received := make(chan []byte, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		body, _ := ioutil.ReadAll(req.Body)
+		received <- body
+	}))
+	defer srv.Close()
+
+	cfg.Address = srv.URL
+	ops, err := cfg.Build((testutil.NewBuildContext(t)))
+	require.NoError(t, err)
+
+	forwardOutput, ok := ops[0].(*ForwardOutput)
+	require.True(t, ok)
+
+	newEntry := entry.New()
+	newEntry.Body = "test"
+	newEntry.Timestamp = newEntry.Timestamp.Round(time.Second)
+	err = forwardOutput.Process(forwardOutput.ctx, newEntry)
+	require.NoError(t, err)
+
+	err = forwardOutput.Stop()
+	require.NoError(t, err)
+
+	select {
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "Timed out waiting for request")
+	case response := <-received:
+		require.Contains(t, string(response), `"body":"test"`)
 	}
 }

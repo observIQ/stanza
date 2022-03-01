@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/observiq/stanza/v2/operator/buffer"
 	"github.com/observiq/stanza/v2/operator/flusher"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
-	"github.com/open-telemetry/opentelemetry-log-collection/errors"
+	otelerrors "github.com/open-telemetry/opentelemetry-log-collection/errors"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 	"go.uber.org/zap"
@@ -45,13 +47,13 @@ func (c ForwardOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		return nil, err
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	if c.Address == "" {
-		return nil, errors.NewError("missing required parameter 'address'", "")
+		return nil, otelerrors.NewError("missing required parameter 'address'", "")
 	}
 
 	flusher := c.FlusherConfig.Build(bc.Logger.SugaredLogger)
@@ -101,7 +103,40 @@ func (f *ForwardOutput) Stop() error {
 	f.cancel()
 	f.wg.Wait()
 	f.flusher.Stop()
-	return f.buffer.Close()
+
+	entries, err := f.buffer.Close()
+	if err != nil {
+		f.Error("Failed to retrieve entries")
+		return err
+	}
+
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		err = f.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// sendEntries sends entries using the configured client
+func (f *ForwardOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
+	req, err := f.createRequest(ctx, entries)
+	if err != nil {
+		f.Errorf("Failed to create request", zap.Error(err))
+		return err
+	}
+
+	res, err := f.client.Do(req)
+	if err != nil {
+		return otelerrors.Wrap(err, "send request")
+	}
+
+	return f.handleResponse(res)
 }
 
 // Process adds an entry to the outputs buffer
@@ -123,38 +158,17 @@ func (f *ForwardOutput) createRequest(ctx context.Context, entries []*entry.Entr
 
 func (f *ForwardOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := f.buffer.ReadChunk(ctx)
-		if err != nil && err == context.Canceled {
+		entries, err := f.buffer.Read(ctx)
+		switch {
+		case errors.Is(err, context.Canceled):
 			return
-		} else if err != nil {
+		case err != nil:
 			f.Errorf("Failed to read chunk", zap.Error(err))
 			continue
 		}
 
-		f.flusher.Do(func(ctx context.Context) error {
-			req, err := f.createRequest(ctx, entries)
-			if err != nil {
-				f.Errorf("Failed to create request", zap.Error(err))
-				// drop these logs because we couldn't creat a request and a retry won't help
-				if err := clearer.MarkAllAsFlushed(); err != nil {
-					f.Errorf("Failed to mark entries as flushed after failing to create a request", zap.Error(err))
-				}
-				return nil
-			}
-
-			res, err := f.client.Do(req)
-			if err != nil {
-				return errors.Wrap(err, "send request")
-			}
-
-			if err := f.handleResponse(res); err != nil {
-				return err
-			}
-
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				f.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
-			return nil
+		f.flusher.Do(ctx, func(flushCtx context.Context) error {
+			return f.sendEntries(flushCtx, entries)
 		})
 	}
 }
@@ -169,10 +183,10 @@ func (f *ForwardOutput) handleResponse(res *http.Response) error {
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return errors.NewError("unexpected status code", "", "status", res.Status)
+			return otelerrors.NewError("unexpected status code", "", "status", res.Status)
 		}
 
-		return errors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
+		return otelerrors.NewError("unexpected status code", "", "status", res.Status, "body", string(body))
 	}
 	return nil
 }

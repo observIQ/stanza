@@ -2,256 +2,131 @@ package buffer
 
 import (
 	"bytes"
-	"encoding/binary"
-	"fmt"
+	"encoding/json"
 	"io"
 	"os"
 )
 
-// Metadata is a representation of the on-disk metadata file. It contains
-// information about the layout, location, and flushed status of entries
-// stored in the data file
-type Metadata struct {
-	// File is a handle to the on-disk metadata store
-	//
-	// The layout of the file is as follows:
-	// - 8 byte DatabaseVersion as LittleEndian int64
-	// - 8 byte DeadRangeStartOffset as LittleEndian int64
-	// - 8 byte DeadRangeLength as LittleEndian int64
-	// - 8 byte UnreadStartOffset as LittleEndian int64
-	// - 8 byte UnreadCount as LittleEndian int64
-	// - 8 byte ReadCount as LittleEndian int64
-	// - Repeated ReadCount times:
-	//     - 1 byte Flushed bool LittleEndian
-	//     - 8 byte Length as LittleEndian int64
-	//     - 8 byte StartOffset as LittleEndian int64
-	file *os.File
-
-	// read is the collection of entries that have been read
-	read []*readEntry
-
-	// unreadStartOffset is the offset on disk where the contiguous
-	// range of unread entries start
-	unreadStartOffset int64
-
-	// unreadCount is the number of unread entries on disk
-	unreadCount int64
-
-	// deadRangeStart is file offset of the beginning of the dead range.
-	// The dead range is a range of the file that contains unused information
-	// and should only exist during a compaction. If this exists on startup,
-	// it should be removed as part of the startup compaction.
-	deadRangeStart int64
-
-	// deadRangeLength is the length of the dead range
-	deadRangeLength int64
+type fileLike interface {
+	io.ReadWriteSeeker
+	io.Closer
+	Truncate(int64) error
 }
 
-// OpenMetadata opens and parses the metadata
-func OpenMetadata(path string, sync bool) (*Metadata, error) {
-	m := &Metadata{}
+// diskBufferMetadata holds metadata relating to the disk buffer,
+// that isn't the entry data itself.
+type diskBufferMetadata struct {
+	// Version is a number indicating the version of the disk buffer file.
+	// Currently, only 0 is valid.
+	Version uint8 `json:"version"`
+	// StartOffset is a number indicating the read offset in the file, such that File.Seek(StartOffset, io.SeekStart)
+	// should put the file cursor in the correct position for reading.
+	StartOffset int64 `json:"start"`
+	// EndOffset is a number indicating the write offset in the file, such that File.Seek(EndOffset, io.SeekStart)
+	// should put the file cursor in the correct position for writing.
+	EndOffset int64 `json:"end"`
+	// Full indicates whether the buffer is full or not
+	Full bool `json:"full"`
+	// Entries is the number of entries in the buffer
+	Entries int64 `json:"entries"`
+	// f is the internal file for reading and writing
+	f fileLike
+	// closed indicates whether the DiskBufferMetadata is closed
+	closed bool
+	// buf is the buffer used to write
+	buf *bytes.Buffer
+}
 
-	var err error
-	flags := os.O_CREATE | os.O_RDWR
+func openDiskBufferMetadata(baseFilePath string, sync bool) (*diskBufferMetadata, error) {
+	fileFlags := os.O_CREATE | os.O_RDWR
 	if sync {
-		flags |= os.O_SYNC
-	}
-	// #nosec - configs load based on user specified directory
-	if m.file, err = os.OpenFile(path, flags, 0600); err != nil {
-		return &Metadata{}, err
+		fileFlags |= os.O_SYNC
 	}
 
-	info, err := m.file.Stat()
+	f, err := os.OpenFile(baseFilePath, fileFlags, 0600)
 	if err != nil {
-		return &Metadata{}, err
+		return nil, err
 	}
 
-	if info.Size() > 0 {
-		err = m.UnmarshalBinary(m.file)
+	bufBytes := make([]byte, 0, metadataBufferSize)
+	dbm := &diskBufferMetadata{
+		Version:     0,
+		StartOffset: 0,
+		EndOffset:   0,
+		f:           f,
+		buf:         bytes.NewBuffer(bufBytes),
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+
+	if fi.Size() > 0 {
+		err = dbm.ReadFromDisk()
 		if err != nil {
-			return &Metadata{}, fmt.Errorf("read metadata file: %s", err)
+			f.Close()
+			return nil, err
 		}
 	} else {
-		m.read = make([]*readEntry, 0, 1000)
-	}
-
-	return m, nil
-}
-
-// Sync persists the metadata to disk
-func (m *Metadata) Sync() error {
-	// Serialize to a buffer first so we write all at once
-	var buf bytes.Buffer
-	if err := m.MarshalBinary(&buf); err != nil {
-		return err
-	}
-
-	// Write the whole thing to the file
-	n, err := m.file.WriteAt(buf.Bytes(), 0)
-	if err != nil {
-		return err
-	}
-
-	// Since our on-disk format for metadata self-describes length,
-	// it's okay to truncate as a separate operation because an un-truncated
-	// file is still readable
-	err = m.file.Truncate(int64(n))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Close syncs metadata to disk and closes the underlying file descriptor
-func (m *Metadata) Close() error {
-	err := m.Sync()
-	if err != nil {
-		return err
-	}
-	return m.file.Close()
-}
-
-// setDeadRange sets the dead range start and length, then persists it to disk
-// without rewriting the whole file
-func (m *Metadata) setDeadRange(start, length int64) error {
-	m.deadRangeStart = start
-	m.deadRangeLength = length
-	var buf bytes.Buffer
-	if err := binary.Write(&buf, binary.LittleEndian, m.deadRangeStart); err != nil {
-		return err
-	}
-	if err := binary.Write(&buf, binary.LittleEndian, m.deadRangeLength); err != nil {
-		return err
-	}
-	_, err := m.file.WriteAt(buf.Bytes(), 8)
-	return err
-}
-
-// MarshalBinary marshals a metadata struct to a binary stream
-func (m *Metadata) MarshalBinary(wr io.Writer) (err error) {
-	// Version (currently unused)
-	if err = binary.Write(wr, binary.LittleEndian, int64(1)); err != nil {
-		return
-	}
-
-	// Dead Range info
-	if err = binary.Write(wr, binary.LittleEndian, m.deadRangeStart); err != nil {
-		return
-	}
-	if err = binary.Write(wr, binary.LittleEndian, m.deadRangeLength); err != nil {
-		return
-	}
-
-	// Unread range info
-	if err = binary.Write(wr, binary.LittleEndian, m.unreadStartOffset); err != nil {
-		return
-	}
-	if err = binary.Write(wr, binary.LittleEndian, m.unreadCount); err != nil {
-		return
-	}
-
-	// Read entries offsets
-	if err = binary.Write(wr, binary.LittleEndian, int64(len(m.read))); err != nil {
-		return
-	}
-	for _, readEntry := range m.read {
-		if err = readEntry.MarshalBinary(wr); err != nil {
-			return
+		err = dbm.SyncToDisk()
+		if err != nil {
+			f.Close()
+			return nil, err
 		}
 	}
-	return nil
+
+	return dbm, nil
 }
 
-// UnmarshalBinary unmarshals metadata from a binary stream (usually a file)
-func (m *Metadata) UnmarshalBinary(r io.Reader) error {
-	// Read version
-	var version int64
-	if err := binary.Read(r, binary.LittleEndian, &version); err != nil {
-		return fmt.Errorf("failed to read version: %s", err)
-	}
+// metadataBufferSize is the initial size of the underlying buffer for disk metadata
+const metadataBufferSize = 1 << 10 // 1KiB
 
-	// Read dead range
-	if err := binary.Read(r, binary.LittleEndian, &m.deadRangeStart); err != nil {
-		return err
-	}
-	if err := binary.Read(r, binary.LittleEndian, &m.deadRangeLength); err != nil {
+// SyncToDisk syncs the diskBufferMetadata to the underlying file.
+func (d *diskBufferMetadata) SyncToDisk() error {
+	_, err := d.f.Seek(0, io.SeekStart)
+	if err != nil {
 		return err
 	}
 
-	// Read unread info
-	if err := binary.Read(r, binary.LittleEndian, &m.unreadStartOffset); err != nil {
-		return fmt.Errorf("read unread start offset: %s", err)
-	}
-	if err := binary.Read(r, binary.LittleEndian, &m.unreadCount); err != nil {
-		return fmt.Errorf("read contiguous count: %s", err)
-	}
-
-	// Read read info
-	var readCount int64
-	if err := binary.Read(r, binary.LittleEndian, &readCount); err != nil {
-		return fmt.Errorf("read read count: %s", err)
-	}
-	m.read = make([]*readEntry, readCount)
-	for i := 0; i < int(readCount); i++ {
-		newEntry := &readEntry{}
-		if err := newEntry.UnmarshalBinary(r); err != nil {
-			return err
-		}
-
-		m.read[i] = newEntry
-	}
-
-	return nil
-}
-
-// readEntry is a struct holding metadata about read entries
-type readEntry struct {
-	// A flushed entry is one that has been flushed and is ready
-	// to be removed from disk
-	flushed bool
-
-	// The number of bytes the entry takes on disk
-	length int64
-
-	// The offset in the file where the entry starts
-	startOffset int64
-}
-
-// MarshalBinary marshals a readEntry struct to a binary stream
-func (re readEntry) MarshalBinary(wr io.Writer) error {
-	if err := binary.Write(wr, binary.LittleEndian, re.flushed); err != nil {
+	d.buf.Reset()
+	enc := json.NewEncoder(d.buf)
+	err = enc.Encode(d)
+	if err != nil {
 		return err
 	}
-	if err := binary.Write(wr, binary.LittleEndian, re.length); err != nil {
+
+	_, err = d.f.Write(d.buf.Bytes())
+	if err != nil {
 		return err
-	}
-	return binary.Write(wr, binary.LittleEndian, re.startOffset)
-}
-
-// UnmarshalBinary unmarshals a binary stream into a readEntry struct
-func (re *readEntry) UnmarshalBinary(r io.Reader) error {
-	if err := binary.Read(r, binary.LittleEndian, &re.flushed); err != nil {
-		return fmt.Errorf("read disk entry flushed: %s", err)
-	}
-
-	if err := binary.Read(r, binary.LittleEndian, &re.length); err != nil {
-		return fmt.Errorf("read disk entry length: %s", err)
-	}
-
-	if err := binary.Read(r, binary.LittleEndian, &re.startOffset); err != nil {
-		return fmt.Errorf("read disk entry start offset: %s", err)
 	}
 	return nil
 }
 
-// onDiskSize calculates the size in bytes on disk for a contiguous
-// range of diskEntries
-func onDiskSize(entries []*readEntry) int64 {
-	if len(entries) == 0 {
-		return 0
+func (d *diskBufferMetadata) ReadFromDisk() error {
+	_, err := d.f.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
 	}
 
-	last := entries[len(entries)-1]
-	return last.startOffset + last.length - entries[0].startOffset
+	enc := json.NewDecoder(d.f)
+	return enc.Decode(d)
+}
+
+func (d *diskBufferMetadata) Close() error {
+	if d.closed {
+		return nil
+	}
+
+	d.closed = true
+
+	err := d.SyncToDisk()
+	if err != nil {
+		d.f.Close()
+		return err
+	}
+
+	return d.f.Close()
+
 }

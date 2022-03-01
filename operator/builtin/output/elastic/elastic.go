@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
+	"time"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -71,7 +72,7 @@ func (c ElasticOutputConfig) Build(bc operator.BuildContext) ([]operator.Operato
 		)
 	}
 
-	buffer, err := c.BufferConfig.Build(bc, c.ID())
+	buffer, err := c.BufferConfig.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +126,47 @@ func (e *ElasticOutput) Stop() error {
 	e.cancel()
 	e.wg.Wait()
 	e.flusher.Stop()
-	return e.buffer.Close()
+
+	entries, err := e.buffer.Close()
+	if err != nil {
+		e.Error("Failed to retreive entries")
+		return err
+	}
+
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		err = e.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// sendEntries sends entries using the configured client
+func (e *ElasticOutput) sendEntries(ctx context.Context, entries []*entry.Entry) error {
+	req := e.createRequest(entries)
+	res, err := req.Do(ctx, e.client)
+	if err != nil {
+		return errors.NewError(
+			"Client failed to submit request to elasticsearch.",
+			"Review the underlying error message to troubleshoot the issue",
+			"underlying_error", err.Error(),
+		)
+	}
+
+	if res.IsError() {
+		return errors.NewError(
+			"Request to elasticsearch returned a failure code.",
+			"Review status and status code for further details.",
+			"status_code", strconv.Itoa(res.StatusCode),
+			"status", res.Status(),
+		)
+	}
+
+	return nil
 }
 
 // Process adds an entry to the outputs buffer
@@ -188,7 +229,7 @@ func (e *ElasticOutput) createRequest(entries []*entry.Entry) *esapi.BulkRequest
 
 func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 	for {
-		entries, clearer, err := e.buffer.ReadChunk(ctx)
+		entries, err := e.buffer.Read(ctx)
 		if err != nil && err == context.Canceled {
 			return
 		} else if err != nil {
@@ -196,30 +237,8 @@ func (e *ElasticOutput) feedFlusher(ctx context.Context) {
 			continue
 		}
 
-		e.flusher.Do(func(ctx context.Context) error {
-			req := e.createRequest(entries)
-			res, err := req.Do(ctx, e.client)
-			if err != nil {
-				return errors.NewError(
-					"Client failed to submit request to elasticsearch.",
-					"Review the underlying error message to troubleshoot the issue",
-					"underlying_error", err.Error(),
-				)
-			}
-
-			if res.IsError() {
-				return errors.NewError(
-					"Request to elasticsearch returned a failure code.",
-					"Review status and status code for further details.",
-					"status_code", strconv.Itoa(res.StatusCode),
-					"status", res.Status(),
-				)
-			}
-
-			if err = clearer.MarkAllAsFlushed(); err != nil {
-				e.Errorw("Failed to mark entries as flushed", zap.Error(err))
-			}
-			return nil
+		e.flusher.Do(ctx, func(flushCtx context.Context) error {
+			return e.sendEntries(flushCtx, entries)
 		})
 	}
 }

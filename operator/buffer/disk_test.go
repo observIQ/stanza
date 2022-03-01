@@ -4,306 +4,602 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"strconv"
+	"os"
 	"sync"
+	"sync/atomic"
+	"testing"
 	"time"
 
-	"testing"
-
-	"github.com/observiq/stanza/v2/testutil"
 	"github.com/open-telemetry/opentelemetry-log-collection/entry"
+	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
-func openBuffer(t testing.TB) *DiskBuffer {
-	buffer := NewDiskBuffer(1 << 20)
-	dir := testutil.NewTempDir(t)
-	err := buffer.Open(dir, false)
-	require.NoError(t, err)
-	t.Cleanup(func() { buffer.Close() })
-	return buffer
+func TestDiskBufferBuild(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Fails if path is empty",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				_, err := cfg.Build()
+
+				require.ErrorIs(t, err, os.ErrNotExist)
+			},
+		},
+		{
+			desc: "Builds with empty directory",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "uncreated-file")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+
+				db.Close()
+			},
+		},
+		{
+			desc: "Builds with same path twice",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "builds-twice")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db1, err := cfg.Build()
+				require.NoError(t, err)
+
+				db1.Close()
+
+				db2, err := cfg.Build()
+				require.NoError(t, err)
+
+				db2.Close()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
+	}
 }
 
-func compact(t testing.TB, b *DiskBuffer) {
-	err := b.Compact()
-	require.NoError(t, err)
-}
+func TestDiskBufferAdd(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Can add entry to buffer",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "add-entry")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
 
-func TestDiskBuffer(t *testing.T) {
-	t.Run("Simple", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 1, 0)
-		readN(t, b, 1, 0)
-	})
+				db, err := cfg.Build()
+				require.NoError(t, err)
 
-	t.Run("Write2Read1Read1", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 2, 0)
-		readN(t, b, 1, 0)
-		readN(t, b, 1, 1)
-	})
+				entry := entry.New()
+				err = db.Add(context.Background(), entry)
 
-	t.Run("Write20Read10Read10", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 20, 0)
-		readN(t, b, 10, 0)
-		readN(t, b, 10, 10)
-	})
+				require.NoError(t, err)
 
-	t.Run("SingleReadWaitMultipleWrites", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 10, 0)
-		readyDone := make(chan struct{})
-		go func() {
-			readyDone <- struct{}{}
-			readWaitN(t, b, 20, 0)
-			readyDone <- struct{}{}
-		}()
-		<-readyDone
-		time.Sleep(100 * time.Millisecond)
-		writeN(t, b, 10, 10)
-		<-readyDone
-	})
+				db.Close()
+			},
+		},
+		{
+			desc: "Returns err if entry cannot fit within maxDiskSize",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "zero-max-disk-size")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
 
-	t.Run("ReadWaitOnlyWaitForPartialWrite", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 10, 0)
-		readyDone := make(chan struct{})
-		go func() {
-			readyDone <- struct{}{}
-			readWaitN(t, b, 15, 0)
-			readyDone <- struct{}{}
-		}()
-		<-readyDone
-		writeN(t, b, 10, 10)
-		<-readyDone
-		readN(t, b, 5, 15)
-	})
+				cfg.MaxSize = 0
 
-	t.Run("Write10Read10Read0", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 10, 0)
-		readN(t, b, 10, 0)
-		dst := make([]*entry.Entry, 10)
-		_, n, err := b.Read(dst)
-		require.NoError(t, err)
-		require.Equal(t, 0, n)
-	})
+				db, err := cfg.Build()
+				require.NoError(t, err)
 
-	t.Run("Write20Read10Read10Unfull", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 20, 0)
-		readN(t, b, 10, 0)
-		dst := make([]*entry.Entry, 20)
-		_, n, err := b.Read(dst)
-		require.NoError(t, err)
-		require.Equal(t, 10, n)
-	})
+				entry := entry.New()
+				err = db.Add(context.Background(), entry)
+				require.ErrorIs(t, err, ErrEntryTooLarge)
 
-	t.Run("Write20Read10CompactRead10", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 20, 0)
-		flushN(t, b, 10, 0)
-		compact(t, b)
-		readN(t, b, 10, 10)
-	})
+				db.Close()
+			},
+		},
+		{
+			desc: "Blocks if buffer is full, can be cancelled by context",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "block-if-full")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
 
-	t.Run("Write10Read2Flush2Read2Compact", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		writeN(t, b, 10, 0)
-		readN(t, b, 2, 0)
-		flushN(t, b, 2, 2)
-		readN(t, b, 2, 4)
-		require.NoError(t, b.Compact())
-	})
+				entry := entry.New()
 
-	t.Run("Write20Read10CloseRead20", func(t *testing.T) {
-		t.Parallel()
-		b := NewDiskBuffer(1 << 30)
-		dir := testutil.NewTempDir(t)
-		err := b.Open(dir, false)
-		require.NoError(t, err)
+				buf, err := marshalEntry(entry)
+				require.NoError(t, err)
 
-		writeN(t, b, 20, 0)
-		readN(t, b, 10, 0)
-		err = b.Close()
-		require.NoError(t, err)
+				cfg.MaxSize = helper.ByteSize(len(buf))
 
-		b2 := NewDiskBuffer(1 << 30)
-		err = b2.Open(dir, false)
-		require.NoError(t, err)
-		readN(t, b2, 20, 0)
-		err = b2.Close()
-		require.NoError(t, err)
-	})
+				db, err := cfg.Build()
+				require.NoError(t, err)
+				defer db.Close()
 
-	t.Run("Write20Flush10CloseRead20", func(t *testing.T) {
-		t.Parallel()
-		b := NewDiskBuffer(1 << 30)
-		dir := testutil.NewTempDir(t)
-		err := b.Open(dir, false)
-		require.NoError(t, err)
+				err = db.Add(context.Background(), entry)
+				require.NoError(t, err)
 
-		writeN(t, b, 20, 0)
-		flushN(t, b, 10, 0)
-		err = b.Close()
-		require.NoError(t, err)
+				done := make(chan struct{})
+				ctx, cancel := context.WithCancel(context.Background())
 
-		b2 := NewDiskBuffer(1 << 30)
-		err = b2.Open(dir, false)
-		require.NoError(t, err)
-		readN(t, b2, 10, 10)
-		err = b2.Close()
-		require.NoError(t, err)
-	})
+				go func() {
+					err = db.Add(ctx, entry)
+					assert.ErrorIs(t, err, context.Canceled)
+					done <- struct{}{}
+				}()
 
-	t.Run("ReadWaitTimesOut", func(t *testing.T) {
-		t.Parallel()
-		b := openBuffer(t)
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		defer cancel()
-		dst := make([]*entry.Entry, 10)
-		_, n, err := b.ReadWait(ctx, dst)
-		require.NoError(t, err)
-		require.Equal(t, 0, n)
-	})
+				<-time.After(250 * time.Millisecond)
+				cancel()
 
-	t.Run("AddTimesOut", func(t *testing.T) {
-		t.Parallel()
-		b := NewDiskBuffer(100) // Enough space for 1, but not 2 entries
-		dir := testutil.NewTempDir(t)
-		err := b.Open(dir, false)
-		defer func() {
-			if err := b.Close(); err != nil {
-				t.Error(err.Error())
-			}
-		}()
-		require.NoError(t, err)
-
-		// Add a first entry
-		err = b.Add(context.Background(), entry.New())
-		require.NoError(t, err)
-
-		// Second entry should block and be cancelled
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		err = b.Add(ctx, entry.New())
-		require.Error(t, err)
-		cancel()
-
-		// Read, flush, and compact
-		dst := make([]*entry.Entry, 1)
-		c, n, err := b.Read(dst)
-		require.NoError(t, err)
-		require.Equal(t, 1, n)
-		c.MarkAllAsFlushed()
-		require.NoError(t, b.Compact())
-
-		// Now there should be space for another entry
-		err = b.Add(context.Background(), entry.New())
-		require.NoError(t, err)
-	})
-
-	t.Run("Write1kRandomFlushReadCompact", func(t *testing.T) {
-		t.Parallel()
-		rand.Seed(time.Now().Unix())
-		seed := rand.Int63()
-		t.Run(strconv.Itoa(int(seed)), func(t *testing.T) {
-			t.Parallel()
-			r := rand.New(rand.NewSource(seed))
-
-			b := NewDiskBuffer(1 << 30)
-			dir := testutil.NewTempDir(t)
-			err := b.Open(dir, false)
-			defer func() {
-				if err := b.Close(); err != nil {
-					t.Error(err.Error())
+				select {
+				case <-done:
+				case <-time.After(250 * time.Millisecond):
+					t.Error("Timed out while waiting for ctx cancel to return")
 				}
-			}()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
+	}
+}
+
+func TestDiskBufferRead(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Can read entry from buffer",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "read-entry")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+				defer db.Close()
+
+				e := entry.New()
+				// Set timestamp; Serializing this doesn't capture monotonic time component,
+				// so it'll fail to equal the output timestamp exactly if we use time.Now().
+				// This is expected.
+				e.Timestamp = time.Date(2012, 1, 23, 14, 2, 1, 21, time.UTC)
+
+				err = db.Add(context.Background(), e)
+				require.NoError(t, err)
+
+				rEntries, err := db.Read(context.Background())
+				require.NoError(t, err)
+				require.Len(t, rEntries, 1)
+				require.Equal(t, *e, *rEntries[0])
+			},
+		},
+		{
+			desc: "Can read multiple entries from buffer",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "read-multiple-entries")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+				defer db.Close()
+
+				e1 := entry.New()
+				e2 := entry.New()
+				e3 := entry.New()
+				// Set timestamp; Serializing this doesn't capture monotonic time component,
+				// so it'll fail to equal the output timestamp exactly if we use time.Now().
+				// This is expected.
+				e1.Timestamp = time.Date(2012, 1, 23, 14, 2, 1, 21, time.UTC)
+				e2.Timestamp = time.Date(2012, 2, 23, 14, 2, 1, 21, time.UTC)
+				e3.Timestamp = time.Date(2012, 3, 23, 14, 2, 1, 21, time.UTC)
+
+				err = db.Add(context.Background(), e1)
+				require.NoError(t, err)
+
+				err = db.Add(context.Background(), e2)
+				require.NoError(t, err)
+
+				err = db.Add(context.Background(), e3)
+				require.NoError(t, err)
+
+				rEntries, err := db.Read(context.Background())
+				require.NoError(t, err)
+				require.Len(t, rEntries, 3)
+				require.Equal(t, *e1, *rEntries[0])
+				require.Equal(t, *e2, *rEntries[1])
+				require.Equal(t, *e3, *rEntries[2])
+			},
+		},
+		{
+			desc: "Write happens after read",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "write-after-read")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+				defer db.Close()
+
+				e := entry.New()
+				// Set timestamp; Serializing this doesn't capture monotonic time component,
+				// so it'll fail to equal the output timestamp exactly if we use time.Now().
+				// This is expected.
+				e.Timestamp = time.Date(2012, 1, 23, 14, 2, 1, 21, time.UTC)
+
+				var entryChan = make(chan []*entry.Entry)
+				go func() {
+					rEntries, err := db.Read(context.Background())
+					assert.NoError(t, err)
+					entryChan <- rEntries
+				}()
+
+				<-time.After(100 * time.Millisecond)
+
+				err = db.Add(context.Background(), e)
+				require.NoError(t, err)
+
+				rEntries := <-entryChan
+				require.NoError(t, err)
+				require.Len(t, rEntries, 1)
+				require.Equal(t, *e, *rEntries[0])
+			},
+		},
+		{
+			desc: "Context gets cancelled",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "read-context-cancelled")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+				defer db.Close()
+
+				e := entry.New()
+				// Set timestamp; Serializing this doesn't capture monotonic time component,
+				// so it'll fail to equal the output timestamp exactly if we use time.Now().
+				// This is expected.
+				e.Timestamp = time.Date(2012, 1, 23, 14, 2, 1, 21, time.UTC)
+
+				done := make(chan struct{})
+				ctx, cancel := context.WithCancel(context.Background())
+
+				go func() {
+					_, err = db.Read(ctx)
+					assert.ErrorIs(t, err, context.Canceled)
+					done <- struct{}{}
+				}()
+
+				<-time.After(250 * time.Millisecond)
+				cancel()
+
+				select {
+				case <-done:
+				case <-time.After(250 * time.Millisecond):
+					t.Error("Timed out while waiting for ctx cancel to return")
+				}
+			},
+		},
+		{
+			desc: "Entries persist to disk",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "read-multiple-entries-persistence")
+				require.NoError(t, err)
+				cfg.Path = path
+				cfg.MaxChunkSize = 1
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+
+				e1 := entry.New()
+				e2 := entry.New()
+				// Set timestamp; Serializing this doesn't capture monotonic time component,
+				// so it'll fail to equal the output timestamp exactly if we use time.Now().
+				// This is expected.
+				e1.Timestamp = time.Date(2012, 1, 23, 14, 2, 1, 21, time.UTC)
+				e1.Body = "Message 1"
+				e2.Timestamp = time.Date(2012, 2, 23, 14, 2, 1, 21, time.UTC)
+				e2.Body = "Message 2"
+
+				err = db.Add(context.Background(), e1)
+				require.NoError(t, err)
+
+				err = db.Add(context.Background(), e2)
+				require.NoError(t, err)
+
+				rEntries, err := db.Read(context.Background())
+				require.NoError(t, err)
+				require.Len(t, rEntries, 1)
+				require.Equal(t, *e1, *rEntries[0])
+
+				_, err = db.Close()
+				require.NoError(t, err)
+
+				db, err = cfg.Build()
+				require.NoError(t, err)
+				defer db.Close()
+
+				rEntries, err = db.Read(context.Background())
+				require.NoError(t, err)
+				require.Len(t, rEntries, 1)
+				require.Equal(t, *e2, *rEntries[0])
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
+	}
+}
+
+func TestDiskBufferClose(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Cannot Add or Read after Close",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "operate-after-close")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+
+				_, err = db.Close()
+				require.NoError(t, err)
+
+				e := entry.New()
+				err = db.Add(context.Background(), e)
+				require.ErrorIs(t, err, ErrBufferClosed)
+
+				_, err = db.Read(context.Background())
+				require.ErrorIs(t, err, ErrBufferClosed)
+			},
+		},
+		{
+			desc: "Multiple Closes Return No Error",
+			testFunc: func(t *testing.T) {
+				t.Parallel()
+				cfg := NewDiskBufferConfig()
+				cfg.MaxSize = 1 << 10
+				path, err := os.MkdirTemp("", "close-after-close")
+				require.NoError(t, err)
+				cfg.Path = path
+				defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+				db, err := cfg.Build()
+				require.NoError(t, err)
+
+				_, err = db.Close()
+				require.NoError(t, err)
+
+				_, err = db.Close()
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
+	}
+}
+
+func TestDiskBufferConcurrency(t *testing.T) {
+	var (
+		numEntries = 10000
+		timeout    = 150 * time.Second
+	)
+
+	testCases := []struct {
+		writers int
+		readers int
+	}{
+		{
+			readers: 1,
+			writers: 1,
+		},
+		{
+			readers: 3,
+			writers: 1,
+		},
+		{
+			readers: 1,
+			writers: 3,
+		},
+		{
+			readers: 3,
+			writers: 3,
+		},
+		{
+			readers: 12,
+			writers: 1,
+		},
+		{
+			readers: 1,
+			writers: 12,
+		},
+		{
+			readers: 12,
+			writers: 12,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(fmt.Sprintf("%d-Readers-%d-Writers", testCase.readers, testCase.writers), func(t *testing.T) {
+			t.Parallel()
+			cfg := NewDiskBufferConfig()
+			path, err := os.MkdirTemp("", fmt.Sprintf("concurrency-test-%d-%d", testCase.readers, testCase.writers))
+			require.NoError(t, err)
+			cfg.Path = path
+			cfg.MaxSize = 1 << 20 // 1 meg
+			cfg.MaxChunkDelay.Duration = 25 * time.Millisecond
+			t.Logf(`Using path %s`, cfg.Path)
+			defer func() { _ = os.RemoveAll(cfg.Path) }()
+
+			buf, err := cfg.Build()
 			require.NoError(t, err)
 
-			writes := 0
-			reads := 0
+			timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			errGrp, ctx := errgroup.WithContext(timeoutCtx)
+			readCnt := int64(0)
+			// Spin off readers
+			for i := 0; i < testCase.readers; i++ {
+				errGrp.Go(
+					func() error {
+						for {
+							entries, err := buf.Read(ctx)
+							if err != nil {
+								return err
+							}
 
-			for i := 0; i < 1000; i++ {
-				j := r.Int() % 1000
-				switch {
-				case j < 900:
-					writeN(t, b, 1, writes)
-					writes++
-				case j < 990:
-					readCount := (writes - reads) / 2
-					c := readN(t, b, readCount, reads)
-					if j%2 == 0 {
-						c.MarkAllAsFlushed()
-					}
-					reads += readCount
-				default:
-					err := b.Compact()
-					require.NoError(t, err)
+							updatedCnt := atomic.AddInt64(&readCnt, int64(len(entries)))
+							if updatedCnt == int64(numEntries) {
+								return nil
+							}
+						}
+					},
+				)
+			}
+
+			// Spin off writers
+			entriesPerWriter := numEntries / testCase.writers
+			for i := 0; i < testCase.writers; i++ {
+				if i == testCase.writers-1 {
+					entriesPerWriter = entriesPerWriter + (numEntries % testCase.writers)
 				}
-			}
-		})
-	})
-}
 
-func TestDiskBufferBuild(t *testing.T) {
-	t.Run("Default", func(t *testing.T) {
-		cfg := NewDiskBufferConfig()
-		cfg.Path = testutil.NewTempDir(t)
-		b, err := cfg.Build(testutil.NewBuildContext(t), "test")
-		require.NoError(t, err)
-		defer func() {
-			if err := b.Close(); err != nil {
-				t.Error(err.Error())
+				entries := randomEntries(entriesPerWriter)
+				errGrp.Go(
+					func() error {
+						for _, e := range entries {
+							err := buf.Add(ctx, e)
+							if err != nil {
+								return err
+							}
+						}
+						return nil
+					},
+				)
 			}
-		}()
-		diskBuffer := b.(*DiskBuffer)
-		require.Equal(t, diskBuffer.atEnd, false)
-		require.Len(t, diskBuffer.entryAdded, 1)
-		require.Equal(t, diskBuffer.maxBytes, int64(1<<32))
-		require.Equal(t, diskBuffer.flushedBytes, int64(0))
-		require.Len(t, diskBuffer.copyBuffer, 1<<16)
-	})
+
+			err = errGrp.Wait()
+			require.NoError(t, err)
+		})
+	}
 }
 
 func BenchmarkDiskBuffer(b *testing.B) {
 	b.Run("NoSync", func(b *testing.B) {
-		buffer := openBuffer(b)
+		cfg := NewDiskBufferConfig()
+		path, err := os.MkdirTemp("", "concurrency-benchmark-no-sync")
+		require.NoError(b, err)
+		cfg.MaxChunkDelay = helper.Duration{
+			Duration: 50 * time.Millisecond,
+		}
+		cfg.MaxSize = helper.ByteSize(1 << 20)
+		cfg.Path = path
+		cfg.Sync = false
+		buffer, err := cfg.Build()
+		require.NoError(b, err)
+
+		b.Cleanup(func() {
+			buffer.Close()
+			os.RemoveAll(path)
+		})
+
 		var wg sync.WaitGroup
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			fmt.Printf("Benchmark: %d\n", b.N)
 			e := entry.New()
 			e.Body = "test log"
 			ctx := context.Background()
 			for i := 0; i < b.N; i++ {
-				panicOnErr(buffer.Add(ctx, e))
+				err := buffer.Add(ctx, e)
+				if err != nil {
+					panic(err.Error())
+				}
 			}
 		}()
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			dst := make([]*entry.Entry, 1000)
 			ctx := context.Background()
 			for i := 0; i < b.N; {
-				ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-				c, n, err := buffer.ReadWait(ctx, dst)
-				cancel()
-				panicOnErr(err)
-				i += n
-				c.MarkAllAsFlushed()
+				c, err := buffer.Read(ctx)
+				if err != nil {
+					panic(err.Error())
+				}
+				i += len(c)
 			}
 		}()
 
@@ -311,40 +607,73 @@ func BenchmarkDiskBuffer(b *testing.B) {
 	})
 
 	b.Run("Sync", func(b *testing.B) {
-		buffer := NewDiskBuffer(1 << 20)
-		dir := testutil.NewTempDir(b)
-		err := buffer.Open(dir, true)
+		cfg := NewDiskBufferConfig()
+		path, err := os.MkdirTemp("", "concurrency-benchmark-sync")
 		require.NoError(b, err)
-		b.Cleanup(func() { buffer.Close() })
+		cfg.MaxChunkDelay = helper.Duration{
+			Duration: 50 * time.Millisecond,
+		}
+		cfg.MaxSize = helper.ByteSize(1 << 20)
+		cfg.Path = path
+		cfg.Sync = true
+		buffer, err := cfg.Build()
+		require.NoError(b, err)
+
+		b.Cleanup(func() {
+			buffer.Close()
+			os.RemoveAll(path)
+		})
+
 		var wg sync.WaitGroup
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			fmt.Printf("Benchmark: %d\n", b.N)
 			e := entry.New()
 			e.Body = "test log"
 			ctx := context.Background()
 			for i := 0; i < b.N; i++ {
-				panicOnErr(buffer.Add(ctx, e))
+				err := buffer.Add(ctx, e)
+				if err != nil {
+					panic(err.Error())
+				}
 			}
 		}()
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			dst := make([]*entry.Entry, 1000)
 			ctx := context.Background()
 			for i := 0; i < b.N; {
-				ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-				c, n, err := buffer.ReadWait(ctx, dst)
-				cancel()
-				panicOnErr(err)
-				i += n
-				c.MarkAllAsFlushed()
+				c, err := buffer.Read(ctx)
+				if err != nil {
+					panic(err.Error())
+				}
+				i += len(c)
 			}
 		}()
 
 		wg.Wait()
 	})
+}
+
+func randomEntries(n int) []*entry.Entry {
+	entries := make([]*entry.Entry, 0, n)
+	for i := 0; i < n; i++ {
+		entries = append(entries, randomEntry())
+	}
+	return entries
+}
+
+func randomEntry() *entry.Entry {
+	e := entry.New()
+	e.Timestamp = time.Unix(rand.Int63n(1638884759), rand.Int63n(1e9)).UTC()
+	e.Body = map[string]interface{}{
+		"msg": randomString(16),
+	}
+	e.Attributes = map[string]string{
+		"file": randomString(19),
+	}
+
+	return e
 }

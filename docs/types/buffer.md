@@ -6,9 +6,7 @@ There are two types of buffers: `memory` buffers and `disk` buffers.
 
 ## Memory Buffers
 
-Memory buffers keep log entries in memory until they are flushed, which makes them very fast. However, because
-entries are only stored in memory, they will be lost if the agent is shut down uncleanly. If the agent is shut down
-cleanly, they will be saved to the agent's database.
+Memory buffers store log entries in memory, which makes them very fast. On a clean shutdown, the buffer will dump any remaining entries to the operator to finish processing.
 
 ### Memory Buffer Configuration
 
@@ -49,13 +47,13 @@ be logs that are lost or a corruption of the database.
 
 Disk buffers are configured by setting the `type` field of the `buffer` block on an output to `disk`. Other fields are described below:
 
-| Field             | Default  | Description                                                                                                                              |
-| ---               | ---      | ---                                                                                                                                      |
-| `max_size`        | `4GiB`   | The maximum size of the disk buffer file in bytes. See [ByteSize](/docs/types/bytesize.md) for details on allowed values.                |
-| `max_chunk_size`  | 1000     | The maximum number of entries that are read from the buffer by default                                                                   |
-| `max_delay` | 1s       | The maximum amount of time that a reader will wait to batch entries into a chunk                                                         |
-| `path`            | required | The path to the directory which will contain the disk buffer data                                                                        |
-| `sync`            | `true`   | Whether to open the database files with the O_SYNC flag. Disabling this improves performance, but relaxes guarantees about log delivery. |
+| Field            | Default  | Description                                                                                                                                                                                     |
+|------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `max_size`       | `4GiB`   | The maximum size of the disk buffer file in bytes. See [ByteSize](/docs/types/bytesize.md) for details on allowed values. This value cannot be reconfigured after the disk buffer is allocated. |
+| `max_chunk_size` | 1000     | The maximum number of entries that are read from the buffer by default                                                                                                                          |
+| `max_delay`      | 1s       | The maximum amount of time that a reader will wait to batch entries into a chunk                                                                                                                |
+| `path`           | required | The path to the folder which will contain the disk buffer data                                                                                                                                  |
+| `sync`           | `true`   | Whether to open the buffer file with O_SYNC flag. Disabling this improves performance, but relaxes guarantees about log delivery.                                                               |
 
 Example:
 ```yaml

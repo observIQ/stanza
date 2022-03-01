@@ -3,55 +3,184 @@ package flusher
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
-func TestFlusher(t *testing.T) {
-
-	// Override setting for test
-	maxElapsedTime = 5 * time.Second
-
-	outChan := make(chan struct{}, 100)
-	flusherCfg := NewConfig()
-	flusher := flusherCfg.Build(zaptest.NewLogger(t).Sugar())
-
-	failed := errors.New("test failure")
-	for i := 0; i < 100; i++ {
-		flusher.Do(func(_ context.Context) error {
-			// Fail randomly but still expect the entries to come through
-			if rand.Int()%5 == 0 {
-				return failed
-			}
-			outChan <- struct{}{}
-			return nil
-		})
+func TestConfigBuild(t *testing.T) {
+	noopLogger := zap.NewNop().Sugar()
+	testCases := []struct {
+		desc     string
+		config   Config
+		expected *Flusher
+	}{
+		{
+			desc:   "Blank config",
+			config: Config{},
+			expected: &Flusher{
+				SugaredLogger:    noopLogger,
+				maxElapsedTime:   maxElapsedTime,
+				maxRetryInterval: maxRetryInterval,
+			},
+		},
+		{
+			desc:   "NewConfig()",
+			config: NewConfig(),
+			expected: &Flusher{
+				SugaredLogger:    noopLogger,
+				maxElapsedTime:   maxElapsedTime,
+				maxRetryInterval: maxRetryInterval,
+			},
+		},
+		{
+			desc: "Valid non-default values",
+			config: Config{
+				MaxConcurrent:    1,
+				MaxRetryTime:     2 * time.Minute,
+				MaxRetryInterval: 3 * time.Second,
+			},
+			expected: &Flusher{
+				SugaredLogger:    noopLogger,
+				maxElapsedTime:   2 * time.Minute,
+				maxRetryInterval: 3 * time.Second,
+			},
+		},
+		{
+			desc: "To large non-default values",
+			config: Config{
+				MaxConcurrent:    maxConcurrency + 1,
+				MaxRetryTime:     maxElapsedTime * 2,
+				MaxRetryInterval: maxRetryInterval * 3,
+			},
+			expected: &Flusher{
+				SugaredLogger:    noopLogger,
+				maxElapsedTime:   maxElapsedTime,
+				maxRetryInterval: maxRetryInterval,
+			},
+		},
 	}
 
-	for i := 0; i < 100; i++ {
-		select {
-		case <-time.After(5 * time.Second):
-			require.FailNow(t, "timed out")
-		case <-outChan:
-		}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+			flusher := tc.config.Build(noopLogger)
+
+			// Only check some of the fields as others don't equal during an equality check
+			assert.Equal(t, tc.expected.maxElapsedTime, flusher.maxElapsedTime)
+			assert.Equal(t, tc.expected.maxRetryInterval, flusher.maxRetryInterval)
+			assert.Equal(t, noopLogger, flusher.SugaredLogger)
+		})
 	}
 }
 
-func TestMaxElapsedTime(t *testing.T) {
+func TestFlusher_flushWithRetry(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		testFunc func(*testing.T)
+	}{
+		{
+			desc: "Context Canceled",
+			testFunc: func(t *testing.T) {
+				flusher := NewConfig().Build(zap.NewNop().Sugar())
 
-	// Override setting for test
-	maxElapsedTime = 1 * time.Second
+				doneChan := make(chan struct{})
+				flush := func(ctx context.Context) error {
+					<-doneChan
+					return nil
+				}
 
-	flusherCfg := NewConfig()
-	flusher := flusherCfg.Build(zaptest.NewLogger(t).Sugar())
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
 
-	start := time.Now()
-	flusher.flushWithRetry(context.Background(), func(_ context.Context) error {
-		return errors.New("never flushes")
-	})
-	require.WithinDuration(t, start.Add(maxElapsedTime), time.Now(), maxElapsedTime)
+				go func() {
+					flusher.flushWithRetry(ctx, flush)
+					close(doneChan)
+				}()
+
+				select {
+				case <-doneChan:
+				case <-time.After(5 * time.Second):
+					assert.Fail(t, "test timed out")
+				}
+			},
+		},
+		{
+			desc: "Flusher Closed",
+			testFunc: func(t *testing.T) {
+				flusher := NewConfig().Build(zap.NewNop().Sugar())
+
+				doneChan := make(chan struct{})
+				flush := func(ctx context.Context) error {
+					<-doneChan
+					return nil
+				}
+
+				// Call stop to close doneChan
+				flusher.Stop()
+				go func() {
+					flusher.flushWithRetry(context.Background(), flush)
+					close(doneChan)
+				}()
+
+				select {
+				case <-doneChan:
+				case <-time.After(5 * time.Second):
+					assert.Fail(t, "test timed out")
+				}
+			},
+		},
+		{
+			desc: "Hit max amount of retries",
+			testFunc: func(t *testing.T) {
+				config := NewConfig()
+				config.MaxRetryTime = 1 * time.Second
+				flusher := config.Build(zap.NewNop().Sugar())
+
+				doneChan := make(chan struct{})
+				flush := func(ctx context.Context) error {
+					return errors.New("bad")
+				}
+
+				go func() {
+					flusher.flushWithRetry(context.Background(), flush)
+					close(doneChan)
+				}()
+
+				select {
+				case <-doneChan:
+				case <-time.After(5 * time.Second):
+					assert.Fail(t, "test timed out")
+				}
+			},
+		},
+		{
+			desc: "No retry needed",
+			testFunc: func(t *testing.T) {
+				flusher := NewConfig().Build(zap.NewNop().Sugar())
+
+				doneChan := make(chan struct{})
+				flush := func(ctx context.Context) error {
+					return nil
+				}
+
+				go func() {
+					flusher.flushWithRetry(context.Background(), flush)
+					close(doneChan)
+				}()
+
+				select {
+				case <-doneChan:
+				case <-time.After(5 * time.Second):
+					assert.Fail(t, "test timed out")
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, tc.testFunc)
+	}
 }
