@@ -110,11 +110,17 @@ func (f *ForwardOutput) Stop() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+	if len(entries) != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 
-	err = f.sendEntries(ctx, entries)
-	return err
+		err = f.sendEntries(ctx, entries)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // sendEntries sends entries using the configured client
