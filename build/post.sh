@@ -1,6 +1,6 @@
 #!/bin/sh
 # This script is the post-build script for goreleaser.
-# Because it is run for each bbinary built, and global post-release hooks are 
+# Because it is run for each binary built, and global post-release hooks are 
 # not available in the OSS version, we check for file existence to avoid multiple downloads/copies.
 
 if [ ! -f ./artifacts/stanza-plugins.tar.gz ]; then

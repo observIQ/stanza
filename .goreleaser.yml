@@ -37,6 +37,9 @@ release:
   github:
     owner: observIQ
     name: stanza
+  extra_files:
+  - glob: scripts/*install*
+  - glob: stanza*.msi
 
 changelog:
   skip: false
