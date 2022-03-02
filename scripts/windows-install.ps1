@@ -288,16 +288,73 @@ new-module -name LogAgentInstall -scriptblock {
     Show-ColorText 'Configuring download urls...'
     Add-Indent
     if ( !$script:version ) {
-      $script:agent_download_url = "$DOWNLOAD_BASE/latest/download/stanza_windows_amd64"
+      $script:agent_download_url = "$DOWNLOAD_BASE/latest/download/stanza_windows_amd64.exe"
       $script:plugins_download_url = "$DOWNLOAD_BASE/latest/download/stanza-plugins.zip"
     }
     else {
-      $script:agent_download_url = "$DOWNLOAD_BASE/download/$script:version/stanza_windows_amd64"
+
+      if (Get-BinaryShouldHaveSuffix -version $script:version) {
+        $script:agent_download_url = "$DOWNLOAD_BASE/download/$script:version/stanza_windows_amd64.exe"  
+      } else {
+        $script:agent_download_url = "$DOWNLOAD_BASE/download/$script:version/stanza_windows_amd64"
+      }
+
       $script:plugins_download_url = "$DOWNLOAD_BASE/download/$script:version/stanza-plugins.zip"
     }
     Show-ColorText "Using agent download url: " '' "$script:agent_download_url" DarkCyan
     Show-ColorText "Using plugins download url: " '' "$script:plugins_download_url" DarkCyan
     Remove-Indent
+  }
+
+  # Determines whether the binary should have the .exe suffix or not.
+  # It should have the prefix if the version specified is after v1.6.0; v1.6.0 and before should not have this prefix.
+  function Get-BinaryShouldHaveSuffix {
+    param (
+      [string]$version
+    )
+    if ($version -match "^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)") {
+      $major = [int]$matches['major']
+      $minor = [int]$matches['minor']
+      $patch = [int]$matches['patch']
+
+      if ($major -gt 1) { 
+        # version is 2+.x.x
+        Write-Output $true
+        return
+      }
+
+      if ($major -lt 1) {
+        # version is 0.x.x
+        Write-Output $false
+        return
+      }
+
+      if ($minor -gt 6) {
+        # version is 1.7+.x
+        Write-Output $true
+        return
+      }
+
+      if ($minor -lt 6) {
+        # version is 1.5-.x
+        Write-Output $false
+        return
+      }
+
+      if ($patch -gt 0) {
+        # version is 1.6.1+
+        Write-Output $true
+        return
+      }
+
+      # version is 1.6.0, which is the last release with no suffix for windows binaries
+      Write-Output $false
+      return
+    }
+
+    # Version doesn't match the semantic version convention; We'll assume that we should have the suffix.
+    Write-Output $true
+    return
   }
 
   # This will set the home directory of the agent based on

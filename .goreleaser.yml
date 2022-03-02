@@ -1,3 +1,11 @@
+before:
+  hooks:
+    - mkdir -p ./tmp
+    - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./tmp/stanza-plugins.tar.gz
+    - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.zip -o ./tmp/stanza-plugins.zip
+    - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/version.json -o ./tmp/version.json
+    - tar -xf ./tmp/stanza-plugins.tar.gz -C ./tmp
+
 builds:
   - id: stanza
     binary: stanza
@@ -20,14 +28,13 @@ builds:
       - -X github.com/observiq/stanza/version.GitTag={{ .Tag }}
       - -X github.com/observiq/stanza/version.GitCommit={{ .FullCommit }}
     no_unique_dist_dir: false
-    hooks:
-      post: ./build/post.sh
 
 archives:
   - builds:
       - stanza
     # skip archiving as tar.gz / zip
     format: binary
+    name_template: "stanza_{{ .Os }}_{{ .Arch }}"
 
 nfpms:
   - package_name: stanza
@@ -39,7 +46,7 @@ nfpms:
       - rpm
       - deb
     contents:
-      - src: artifacts/plugins
+      - src: tmp/plugins
         dst: /opt/observiq/stanza/plugins
       - src: build/package/config.yaml
         dst: /opt/observiq/stanza/config.yaml
@@ -58,8 +65,10 @@ release:
     owner: observIQ
     name: stanza
   extra_files:
-  - glob: scripts/*install*
-  - glob: stanza*.msi
+    - glob: scripts/*install*
+    - glob: stanza*.msi
+    - glob: ./tmp/stanza-plugins.*
+    - glob: ./tmp/version.json
 
 changelog:
   skip: false
