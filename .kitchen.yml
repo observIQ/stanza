@@ -12,14 +12,12 @@ platforms:
   - name: centos-7
   - name: almalinux-8.5 # Alma should be used instead of centos 8, as centos 8 is end of life
   - name: oracle-8.5
-  - name: fedora-35
+  - name: fedora-34
   # Debian based
   - name: debian-10
   - name: ubuntu-16.04
   - name: ubuntu-18.04
   - name: ubuntu-20.04
-  # Suse
-  - name: opensuse-leap-15
 
 driver:
   name: vagrant
