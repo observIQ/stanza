@@ -4,7 +4,7 @@ before:
     - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./tmp/stanza-plugins.tar.gz
     - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.zip -o ./tmp/stanza-plugins.zip
     - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/version.json -o ./tmp/version.json
-    - tar -xf ./tmp/stanza-plugins.tar.gz -C ./artifacts
+    - tar -xf ./tmp/stanza-plugins.tar.gz -C ./tmp
 
 builds:
   - id: stanza
@@ -34,7 +34,7 @@ archives:
       - stanza
     # skip archiving as tar.gz / zip
     format: binary
-    name_template: "{{ .Binary }}"
+    name_template: "stanza_{{ .Os }}_{{ .Arch }}"
 
 nfpms:
   - package_name: stanza
@@ -46,7 +46,7 @@ nfpms:
       - rpm
       - deb
     contents:
-      - src: artifacts/plugins
+      - src: tmp/plugins
         dst: /opt/observiq/stanza/plugins
       - src: build/package/config.yaml
         dst: /opt/observiq/stanza/config.yaml
