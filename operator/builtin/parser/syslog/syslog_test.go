@@ -48,6 +48,66 @@ func TestSyslogParser(t *testing.T) {
 		expectedSeverityText string
 	}{
 		{
+			"Priority Range",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			`<200>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 UserHostAddress="192.168.2.132" Realm="SecureAuth0" UserID="Tester2" PEN="27389"] Found the user for retrieving user's profile`,
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 25,
+				"hostname": "192.168.2.132",
+				"message":  "Found the user for retrieving user's profile",
+				"msg_id":   "ID52020",
+				"priority": 200,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"PEN":             "27389",
+						"Realm":           "SecureAuth0",
+						"UserHostAddress": "192.168.2.132",
+						"UserID":          "Tester2",
+					},
+				},
+				"version": 1,
+			},
+			entry.Emergency,
+			"emerg",
+		},
+		{
+			"Version Range",
+			func() *SyslogParserConfig {
+				cfg := basicConfig()
+				cfg.Protocol = "rfc5424"
+				return cfg
+			}(),
+			`<86>65535 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 UserHostAddress="192.168.2.132" Realm="SecureAuth0" UserID="Tester2" PEN="27389"] Found the user for retrieving user's profile`,
+			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
+			map[string]interface{}{
+				"appname":  "SecureAuth0",
+				"facility": 10,
+				"hostname": "192.168.2.132",
+				"message":  "Found the user for retrieving user's profile",
+				"msg_id":   "ID52020",
+				"priority": 86,
+				"proc_id":  "23108",
+				"structured_data": map[string]map[string]string{
+					"SecureAuth@27389": {
+						"PEN":             "27389",
+						"Realm":           "SecureAuth0",
+						"UserHostAddress": "192.168.2.132",
+						"UserID":          "Tester2",
+					},
+				},
+				"version": 65535,
+			},
+			entry.Info,
+			"info",
+		},
+		{
 			"RFC3164",
 			func() *SyslogParserConfig {
 				cfg := basicConfig()
@@ -125,36 +185,6 @@ func TestSyslogParser(t *testing.T) {
 			},
 			entry.Critical,
 			"crit",
-		},
-		{
-			"RFC5424",
-			func() *SyslogParserConfig {
-				cfg := basicConfig()
-				cfg.Protocol = "rfc5424"
-				return cfg
-			}(),
-			`<86>1 2015-08-05T21:58:59.693Z 192.168.2.132 SecureAuth0 23108 ID52020 [SecureAuth@27389 UserHostAddress="192.168.2.132" Realm="SecureAuth0" UserID="Tester2" PEN="27389"] Found the user for retrieving user's profile`,
-			time.Date(2015, 8, 5, 21, 58, 59, 693000000, time.UTC),
-			map[string]interface{}{
-				"appname":  "SecureAuth0",
-				"facility": 10,
-				"hostname": "192.168.2.132",
-				"message":  "Found the user for retrieving user's profile",
-				"msg_id":   "ID52020",
-				"priority": 86,
-				"proc_id":  "23108",
-				"structured_data": map[string]map[string]string{
-					"SecureAuth@27389": {
-						"PEN":             "27389",
-						"Realm":           "SecureAuth0",
-						"UserHostAddress": "192.168.2.132",
-						"UserID":          "Tester2",
-					},
-				},
-				"version": 1,
-			},
-			entry.Info,
-			"info",
 		},
 		{
 			"RFC5424-escaped-r",
