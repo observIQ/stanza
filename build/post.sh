@@ -18,3 +18,5 @@ fi
 if [ ! -f ./artifacts/windows-install.ps1 ]; then
     cp ./scripts/windows-install.ps1 ./artifacts/windows-install.ps1
 fi
+
+tar -xf ./artifacts/stanza-plugins.tar.gz -C ./artifacts

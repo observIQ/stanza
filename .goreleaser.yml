@@ -1,6 +1,6 @@
 builds:
   - id: stanza
-    binary: stanza_{{ .Os }}_{{ .Arch }}
+    binary: stanza
     main: ./cmd/stanza
     env:
       - CGO_ENABLED=0
@@ -19,7 +19,7 @@ builds:
     ldflags:
       - -X github.com/observiq/stanza/version.GitTag={{ .Tag }}
       - -X github.com/observiq/stanza/version.GitCommit={{ .FullCommit }}
-    no_unique_dist_dir: true
+    no_unique_dist_dir: false
     hooks:
       post: ./build/post.sh
 
@@ -28,6 +28,26 @@ archives:
       - stanza
     # skip archiving as tar.gz / zip
     format: binary
+
+nfpms:
+  - package_name: stanza
+    vendor: observIQ, Inc
+    maintainer: observIQ <support@observiq.com>
+    license: Apache 2.0
+    bindir: /usr/bin
+    formats:
+      - rpm
+      - deb
+    contents:
+      - src: artifacts/plugins
+        dst: /opt/observiq/stanza/plugins
+      - src: build/package/config.yaml
+        dst: /opt/observiq/stanza/config.yaml
+        file_info:
+          mode: 0640
+    scripts:
+      preinstall: './build/package/pre.sh'
+      postinstall: ./build/package/post.sh
 
 checksum:
   name_template: "{{ .ProjectName }}-v{{ .Version }}-SHA256SUMS"
