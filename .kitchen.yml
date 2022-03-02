@@ -1,0 +1,38 @@
+provisioner:
+  name: shell
+  script:    'build/package/test/provision.sh'
+  root_path: '/home/vagrant/'
+
+verifier:
+  # cinc
+  name: inspec
+
+platforms:
+  # RHEL based
+  - name: centos-7
+  - name: almalinux-8.5 # Alma should be used instead of centos 8, as centos 8 is end of life
+  - name: oracle-8.5
+  - name: fedora-35
+  # Debian based
+  - name: debian-10
+  - name: ubuntu-16.04
+  - name: ubuntu-18.04
+  - name: ubuntu-20.04
+  # Suse
+  - name: opensuse-leap-15
+
+driver:
+  name: vagrant
+  provider: virtualbox
+  synced_folders:
+    - ["./artifacts", "/home/vagrant/dist"]
+  customize:
+    memory: 1024
+  vagrantfiles:
+    - build/package/test/Vagrantfile
+
+suites:
+  - name: default
+    verifier:
+      inspec_tests:
+        - build/package/test/
