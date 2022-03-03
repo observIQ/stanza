@@ -20,7 +20,7 @@ require (
 	github.com/kardianos/service v1.2.0
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/observiq/ctimefmt v1.0.0
-	github.com/observiq/go-syslog/v3 v3.0.2
+	github.com/observiq/go-syslog/v3 v3.1.0
 	github.com/observiq/goflow/v3 v3.4.4
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
 	github.com/spf13/cobra v1.2.1
