@@ -29,13 +29,13 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.17.0
-	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	golang.org/x/text v0.3.7
 	gonum.org/v1/gonum v0.9.3
-	google.golang.org/api v0.52.0
-	google.golang.org/genproto v0.0.0-20220210181026-6fee9acbd336
+	google.golang.org/api v0.70.0
+	google.golang.org/genproto v0.0.0-20220218161850-94dd64e39d7c
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -47,12 +47,12 @@ require (
 
 require (
 	github.com/google/uuid v1.3.0
-	github.com/googleapis/gax-go/v2 v2.0.5
+	github.com/googleapis/gax-go/v2 v2.1.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
 require (
-	cloud.google.com/go v0.88.0 // indirect
+	cloud.google.com/go/compute v1.3.0 // indirect
 	github.com/Azure/azure-amqp-common-go/v3 v3.0.1 // indirect
 	github.com/Azure/azure-sdk-for-go v51.1.0+incompatible // indirect
 	github.com/Azure/go-amqp v0.13.12 // indirect
@@ -83,7 +83,7 @@ require (
 	github.com/go-logr/logr v1.2.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
