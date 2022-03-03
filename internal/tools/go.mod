@@ -4,11 +4,11 @@ go 1.17
 
 require (
 	github.com/goreleaser/goreleaser v1.5.0
-	github.com/mgechev/revive v1.1.3
+	github.com/mgechev/revive v1.1.4
 	github.com/observiq/amazon-log-agent-benchmark-tool v0.0.0-20200707160647-ecfeca6c7554
 	github.com/uw-labs/lichen v0.1.4
 	github.com/vektra/mockery v1.1.2
-	golang.org/x/tools v0.1.9-0.20211228192929-ee1ca4ffc4da
+	golang.org/x/tools v0.1.9
 )
 
 require (
