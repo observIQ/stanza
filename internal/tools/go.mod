@@ -6,7 +6,7 @@ require (
 	github.com/goreleaser/goreleaser v1.5.0
 	github.com/mgechev/revive v1.1.3
 	github.com/observiq/amazon-log-agent-benchmark-tool v0.0.0-20200707160647-ecfeca6c7554
-	github.com/uw-labs/lichen v0.1.4
+	github.com/uw-labs/lichen v0.1.5
 	github.com/vektra/mockery v1.1.2
 	golang.org/x/tools v0.1.9-0.20211228192929-ee1ca4ffc4da
 )
@@ -113,11 +113,11 @@ require (
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
-	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
+	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -127,9 +127,10 @@ require (
 	github.com/muesli/mango-coral v1.0.1 // indirect
 	github.com/muesli/mango-pflag v0.1.0 // indirect
 	github.com/muesli/roff v0.1.0 // indirect
-	github.com/muesli/termenv v0.7.4 // indirect
+	github.com/muesli/termenv v0.11.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
