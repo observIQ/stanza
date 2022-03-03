@@ -1,0 +1,41 @@
+provisioner:
+  name: shell
+  script:    'build/package/test/provision.sh'
+  root_path: '/home/vagrant/'
+
+verifier:
+  # cinc
+  name: inspec
+
+platforms:
+  # RHEL based
+  - name: centos-7
+  - name: rockylinux-8.5
+  - name: almalinux-8.5
+  - name: oracle-8.5
+  - name: fedora-30
+  - name: fedora-34
+  # Debian based
+  - name: debian-9
+  - name: debian-10
+  - name: debian-11
+  - name: ubuntu-16.04
+  - name: ubuntu-18.04
+  - name: ubuntu-20.04
+  - name: ubuntu-20.10
+
+driver:
+  name: vagrant
+  provider: virtualbox
+  synced_folders:
+    - ["./artifacts", "/home/vagrant/dist"]
+  customize:
+    memory: 1024
+  vagrantfiles:
+    - build/package/test/Vagrantfile
+
+suites:
+  - name: default
+    verifier:
+      inspec_tests:
+        - build/package/test/

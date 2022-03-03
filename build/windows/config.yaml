@@ -1,0 +1,11 @@
+# Default pipeline does nothing, please see the docs:
+#
+# Stanza Docs: https://github.com/observIQ/stanza/tree/master/docs
+# Plugins: https://github.com/observIQ/stanza-plugins/tree/master/docs
+# Windows events operator: https://github.com/observIQ/stanza/blob/master/docs/operators/windows_eventlog_input.md
+# Windows events plugin: https://github.com/observIQ/stanza-plugins/blob/master/docs/plugins/windows_event.md
+#
+pipeline:
+  - type: noop
+  - type: stdout
+

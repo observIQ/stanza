@@ -45,18 +45,62 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 
 ## Installation
 
-To install Stanza, we recommend using our single-line installer provided with each release. Stanza will automatically be running as a service upon completion. 
+### Linux Package Manager
 
-### Linux/macOS
+Linux packages are available for the following Linux Distributions:
+- RHEL 7 and 8
+- Alma, Rocky Linux 8
+- Oracle Linux 8
+- Fedora 30 and newer
+- Debian 9 and newer
+- Ubuntu LTS 16.04 and newer
+
+Once installed, Stanza will be running under a systemd server named `stanza` as the user `stanza`.
+
+#### RPM Install
+
+1. Copy the download link for the `rpm` package for your architecture from the [releases page](https://github.com/observIQ/stanza/releases).
+2. Install with `sudo yum install <paste link here>`
+3. Enable and start the service: `sudo systemctl enable --now stanza`
+
+#### DEB Install
+
+1. Copy the download link for the `deb` package for your architecture from the [releases page](https://github.com/observIQ/stanza/releases).
+2. Install with `sudo apt-get install <paste link here>`
+3. Enable and start the service: `sudo systemctl enable --now stanza`
+
+#### Changing the Runtime User
+
+Sometimes it may be nessisary to have Stanza run as `root`. This can be
+accomplished by creating a systemd override.
+
+Run `sudo systemctl edit stanza` and paste:
+```
+[Service]
+User=root
+Group=root
+```
+
+Restart Stanza: `sudo systemctl restart stanza`.
+
+### Linux / Macos Script
+
+- Single command install, requires the `curl` command
+- Stanza will automatically be running as a service
+- On Linux, Stanza will be running as the `root` user. On Macos, Stanza will be running as your current user.
+
 ```shell
 sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download/unix-install.sh)" unix-install.sh
 ```
-### Windows
+
+### Windows Script
+
 ```pwsh
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; Invoke-Expression ((New-Object net.webclient).DownloadString('https://github.com/observiq/stanza/releases/latest/download/windows-install.ps1')); Log-Agent-Install
 ```
 
 ### Kubernetes
+
 To deploy Stanza to Kubernetes, AKS, EKS, GKE or Openshift check out the installation guides [here](/docs/examples/k8s).
 
 ## Configuration

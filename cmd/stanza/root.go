@@ -12,6 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	envStanzaLogFile      = "STANZA_LOG_FILE"
+	envStanzaDatabaseFile = "STANZA_DATABASE_FILE"
+)
+
 // RootFlags are the root level flags that be provided when invoking stanza from the command line
 type RootFlags struct {
 	DatabaseFile string
