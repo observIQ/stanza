@@ -10,9 +10,10 @@ export HTTPS_PROXY=http://user:password@myproxy:3128
 stanza -c ./config.yaml
 ```
 
-To set this for the Stanza service on Linux, the service file can be modified with `systemctl edit --full stanza`, and add the following lines in the `[Service]` section.
+To set this for the Stanza service on Linux, the service file can be modified with `systemctl edit stanza`, and add the following lines in the `[Service]` section.
 
 ```service
+[Service]
 Environment=HTTP_PROXY=http://user:password@myproxy:3128
 Environment=HTTPS_PROXY=http://user:password@myproxy:3128
 ```
