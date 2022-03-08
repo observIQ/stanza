@@ -239,7 +239,8 @@ OUTER:
 			// Empty file, don't read it until we can compare its fingerprint
 			fps = append(fps[:i], fps[i+1:]...)
 			files = append(files[:i], files[i+1:]...)
-
+			i--
+			continue
 		}
 
 		for j := i + 1; j < len(fps); j++ {
@@ -248,6 +249,7 @@ OUTER:
 				// Exclude
 				fps = append(fps[:i], fps[i+1:]...)
 				files = append(files[:i], files[i+1:]...)
+				i--
 				continue OUTER
 			}
 		}

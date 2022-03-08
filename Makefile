@@ -20,7 +20,7 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
 	cd $(TOOLS_MOD_DIR) && go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench
 	cd $(TOOLS_MOD_DIR) && go install github.com/goreleaser/goreleaser
-	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec@v2.8.1
+	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec
 	cd $(TOOLS_MOD_DIR) && go install github.com/mgechev/revive
 
 .PHONY: scan-license
