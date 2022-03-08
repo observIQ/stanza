@@ -26,6 +26,7 @@ import (
 	_ "github.com/goreleaser/goreleaser"
 	_ "github.com/mgechev/revive"
 	_ "github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench"
+	_ "github.com/securego/gosec/v2/cmd/gosec"
 	_ "github.com/uw-labs/lichen"
 	_ "github.com/vektra/mockery"
 	_ "golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment"
