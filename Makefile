@@ -151,3 +151,48 @@ for-all:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  (cd "$${dir}" && $${CMD} ); \
 	done
+
+# Prepare the vagrant system by installing go-msi, wix, inspec and configuring the path.
+# Assumes stanza-plugins has already been cloned and checked out with the correct tag.
+# This make target is intended for local development and testing only, do not run within CI.
+.PHONY: vagrant-prep
+vagrant-prep: workdir = "build/windows"
+vagrant-prep:
+	file $(workdir)/go-msi.exe >/dev/null || curl -L -o $(workdir)/go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.0.0/go-msi.exe
+	file $(workdir)/cinc-auditor.msi >/dev/null || curl -L -o $(workdir)/cinc-auditor.msi http://downloads.cinc.sh/files/stable/cinc-auditor/4.17.7/windows/2012r2/cinc-auditor-4.17.7-1-x64.msi
+	
+	file wix-binaries.zip >/dev/null || curl -L -o wix-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip
+	mkdir -p $(workdir)/wix
+	ls $(workdir)/wix/sdk >/dev/null || unzip -o wix-binaries.zip -d $(workdir)/wix
+
+	cp -r stanza-plugins/plugins $(workdir)/
+
+	cd $(workdir) && vagrant up --provider virtualbox
+	cd $(workdir) && vagrant winrm -c "setx PATH \"%PATH%;C:/vagrant/wix\;C:/vagrant\""
+	cd $(workdir) && vagrant winrm -c "C:/vagrant/cinc-auditor.msi"
+
+# This make target is intended for local development and testing only, do not run within CI.
+.PHONY: wix
+wix: workdir = "build/windows"
+wix: build-windows
+	cp artifacts/stanza_windows_amd64 $(workdir)/stanza.exe
+
+	cd $(workdir) && \
+		vagrant winrm -c \
+		"cd C:/vagrant; go-msi.exe make -m stanza.msi --version v0.0.1 --arch amd64"
+
+# This make target is intended for local development and testing only, do not run within CI.
+.PHONY: wix-test
+wix-test: workdir = "build/windows"
+wix-test: vagrant-prep wix
+	cd $(workdir) && vagrant winrm -c "C:/vagrant/stanza.msi"
+	sleep 10
+	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:/vagrant\test\install.rb"
+
+# Run after manually uninstalling stanza.
+# This make target is intended for local development and testing only, do not run within CI.
+.PHONY: wix-test-uninstall
+wix-test-uninstall: workdir = "build/windows"
+wix-test-uninstall:
+	cd $(workdir) && vagrant winrm -c "cinc-auditor exec C:/vagrant\test\uninstall.rb"
+

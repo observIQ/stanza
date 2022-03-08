@@ -1,0 +1,81 @@
+{
+    "product": "stanza",
+    "company": "observiq",
+    "info": {
+      "help-link": "https://observiq.com/contact/",
+      "support-link": "https://observiq.com/contact/"
+    },
+    "upgrade-code": "",
+    "files": [
+      {
+        "path": "stanza.exe",
+        "service": {
+          "name": "stanza",
+          "start": "delayed",
+          "display-name": "stanza",
+          "description": "stanza"
+        }
+      },
+      {
+          "path": "config.yaml"
+      }
+    ],
+    "directories": [
+      {
+        "name": "plugins"
+      }
+    ],
+    "environments": [
+      {
+        "name": "STANZA_HOME",
+        "value": "C:\\Program Files\\stanza",
+        "permanent": "yes",
+        "system": "yes",
+        "action": "set",
+        "part": "last"
+      },
+      {
+        "name": "STANZA_DATABASE_FILE",
+        "value": "C:\\Program Files\\stanza\\stanza.db",
+        "permanent": "yes",
+        "system": "yes",
+        "action": "set",
+        "part": "last"
+      },
+      {
+        "name": "STANZA_LOG_FILE",
+        "value": "C:\\Program Files\\stanza\\stanza.log",
+        "permanent": "yes",
+        "system": "yes",
+        "action": "set",
+        "part": "last"
+      }
+    ],
+    "registries": [
+      {
+        "path": "HKCU\\Software\\observiq\\stanza",
+        "values": [
+          {
+            "name": "Version",
+            "value": "[SOME_VERSION]"
+          },
+          {
+            "name": "InstallDir",
+            "value": "[INSTALLDIR]"
+          }
+        ]
+      }
+    ],
+    "hooks": [
+      {
+        "command": "net stop stanza",
+        "when": "uninstall",
+        "execute": "immediate"
+      },
+      {
+        "command": "sc delete stanza",
+        "when": "uninstall",
+        "execute": "deferred"
+      }
+    ]
+  }

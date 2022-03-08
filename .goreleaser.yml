@@ -1,46 +1,90 @@
-builds:
-- id: stanza
-  binary: stanza_{{ .Os }}_{{ .Arch }}
-  main: ./cmd/stanza
-  env:
-  - CGO_ENABLED=0
-  flags:
-    -tags=timetzdata
-  mod_timestamp: '{{ .CommitTimestamp }}'
-  goos:
-  - windows
-  - linux
-  - darwin
-  goarch:
-  - amd64
-  - arm64
-  ignore:
-  - goos: windows
-    goarch: arm64
-  ldflags:
-  - -X github.com/observiq/stanza/version.GitTag={{ .Tag }}
-  - -X github.com/observiq/stanza/version.GitCommit={{ .FullCommit }}
-  no_unique_dist_dir: true
+before:
   hooks:
-    post: ./build/post.sh
+    - mkdir -p ./tmp
+    - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.tar.gz -o ./tmp/stanza-plugins.tar.gz
+    - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/stanza-plugins.zip -o ./tmp/stanza-plugins.zip
+    - curl -fL https://github.com/observiq/stanza-plugins/releases/latest/download/version.json -o ./tmp/version.json
+    - tar -xf ./tmp/stanza-plugins.tar.gz -C ./tmp
+
+builds:
+  - id: stanza
+    binary: stanza
+    main: ./cmd/stanza
+    env:
+      - CGO_ENABLED=0
+    flags: -tags=timetzdata
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos:
+      - windows
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -X github.com/observiq/stanza/version.GitTag={{ .Tag }}
+      - -X github.com/observiq/stanza/version.GitCommit={{ .FullCommit }}
+    no_unique_dist_dir: false
 
 archives:
-- builds:
-  - stanza
-  # skip archiving as tar.gz / zip
-  format: binary
+  - builds:
+      - stanza
+    # skip archiving as tar.gz / zip
+    format: binary
+    name_template: "stanza_{{ .Os }}_{{ .Arch }}"
+
+nfpms:
+  - package_name: stanza
+    vendor: observIQ, Inc
+    maintainer: observIQ <support@observiq.com>
+    license: Apache 2.0
+    bindir: /usr/bin
+    formats:
+      - rpm
+      - deb
+    contents:
+      - src: tmp/plugins
+        dst: /opt/observiq/stanza/plugins
+      - src: build/package/config.yaml
+        dst: /opt/observiq/stanza/config.yaml
+        file_info:
+          mode: 0640
+    scripts:
+      preinstall: './build/package/pre.sh'
+      postinstall: ./build/package/post.sh
 
 checksum:
-  name_template: '{{ .ProjectName }}-v{{ .Version }}-SHA256SUMS'
+  name_template: "{{ .ProjectName }}-v{{ .Version }}-SHA256SUMS"
   algorithm: sha256
 
 release:
   github:
     owner: observIQ
     name: stanza
+  extra_files:
+    - glob: scripts/*install*
+    - glob: stanza*.msi
+    - glob: ./tmp/stanza-plugins.*
+    - glob: ./tmp/version.json
 
 changelog:
   skip: false
   use: github
+  sort: asc
+  groups:
+    - title: "New Features"
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: "Bug Fixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: "Dependencies"
+      regexp: "^.*deps[(\\w)]*:+.*$"
+      order: 30
+    - title: Other
+      order: 999
 
 dist: artifacts
