@@ -48,26 +48,42 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 ### Linux Package Manager
 
 Linux packages are available for the following Linux Distributions:
-- RHEL 7 and 8
-- Alma, Rocky Linux 8
-- Oracle Linux 8
+- RHEL / Centos 7 and 8
+- Oracle Linux 7 and 8
+- Alma, Rocky Linux
 - Fedora 30 and newer
 - Debian 9 and newer
 - Ubuntu LTS 16.04 and newer
 
-Once installed, Stanza will be running under a systemd server named `stanza` as the user `stanza`.
+Once installed, Stanza will be running under a systemd service named `stanza` as the user `stanza`.
 
 #### RPM Install
 
-1. Copy the download link for the `rpm` package for your architecture from the [releases page](https://github.com/observIQ/stanza/releases).
-2. Install with `sudo yum install <paste link here>`
-3. Enable and start the service: `sudo systemctl enable --now stanza`
+On Red Hat based platforms, Stanza can be installed with:
+```bash
+sudo dnf install https://github.com/observIQ/stanza/releases/download/v1.6.1/stanza_1.6.1_linux_amd64.rpm
+sudo systemctl enable --now stanza
+```
+
+On RHEL / Centos 7, use `yum` instead of `dns`.
+
+On Suse based platforms, Stanza can be installed with:
+```bash
+sudo zypper install https://github.com/observIQ/stanza/releases/download/v1.6.1/stanza_1.6.1_linux_amd64.rpm
+sudo systemctl enable --now stanza
+```
+
+Be sure to replace the URL with the version you require. You can find Stanza versions [here](https://github.com/observIQ/stanza/releases).
 
 #### DEB Install
 
-1. Copy the download link for the `deb` package for your architecture from the [releases page](https://github.com/observIQ/stanza/releases).
-2. Install with `sudo apt-get install <paste link here>`
-3. Enable and start the service: `sudo systemctl enable --now stanza`
+On Debian / Ubuntu based platforms, Stanza can be installed with:
+
+```bash
+curl -L -o stanza.deb https://github.com/observIQ/stanza/releases/download/v1.6.1/stanza_1.6.1_linux_amd64.deb
+sudo apt-get install -f ./stanza.deb
+sudo systemctl enable --now stanza
+```
 
 #### Changing the Runtime User
 
