@@ -3,7 +3,7 @@ module github.com/bluemedora/bpagent/internal/tools
 go 1.17
 
 require (
-	github.com/goreleaser/goreleaser v1.6.1
+	github.com/goreleaser/goreleaser v1.6.3
 	github.com/mgechev/revive v1.1.4
 	github.com/observiq/amazon-log-agent-benchmark-tool v0.0.0-20200707160647-ecfeca6c7554
 	github.com/securego/gosec/v2 v2.8.1
