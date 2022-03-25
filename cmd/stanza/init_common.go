@@ -49,5 +49,6 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/output/forward"
 	_ "github.com/observiq/stanza/operator/builtin/output/googlecloud"
 	_ "github.com/observiq/stanza/operator/builtin/output/newrelic"
+	_ "github.com/observiq/stanza/operator/builtin/output/otlp"
 	_ "github.com/observiq/stanza/operator/builtin/output/stdout"
 )
