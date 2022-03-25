@@ -26,7 +26,7 @@ func NewOTLPConfig(operatorID string) *OtlpConfig {
 	}
 }
 
-// Build will build a file output operator.
+// Build will build a otlp output operator.
 func (c OtlpConfig) Build(context operator.BuildContext) ([]operator.Operator, error) {
 	outputOperator, err := c.OutputConfig.Build(context)
 	if err != nil {
@@ -45,7 +45,7 @@ func (c OtlpConfig) Build(context operator.BuildContext) ([]operator.Operator, e
 	return []operator.Operator{otlpOutput}, nil
 }
 
-// OtlpOutput is an operator that writes logs to a file.
+// OtlpOutput is an operator that writes logs to a service.
 type OtlpOutput struct {
 	helper.OutputOperator
 	config     OtlpConfig
