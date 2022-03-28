@@ -104,6 +104,7 @@ Restart Stanza: `sudo systemctl restart stanza`.
 - Single command install, requires the `curl` command
 - Stanza will automatically be running as a service
 - On Linux, Stanza will be running as the `root` user. On Macos, Stanza will be running as your current user.
+- `sudo` may be required if user running installer needs permission to write to installation locations and linking to `/usr/local/bin`.
 
 ```shell
 sh -c "$(curl -fsSlL https://github.com/observiq/stanza/releases/latest/download/unix-install.sh)" unix-install.sh
