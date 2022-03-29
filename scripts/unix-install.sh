@@ -481,8 +481,12 @@ install_package()
 
   info "Setting permissions..."
   chmod +x "$agent_binary"
-  ln -sf "$agent_binary" "/usr/local/bin/$BINARY_NAME"
   succeeded
+
+  info "Linking binary $agent_binary => /usr/local/bin/$BINARY_NAME"
+  mkdir -p /usr/local/bin
+  ln -sf "$agent_binary" "/usr/local/bin/$BINARY_NAME"
+  succeeded  
 
   info "Downloading plugins..."
   mkdir -p "$agent_home/tmp"
