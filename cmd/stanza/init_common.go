@@ -10,6 +10,7 @@ import (
 	_ "github.com/observiq/stanza/operator/builtin/input/generate"
 	_ "github.com/observiq/stanza/operator/builtin/input/goflow"
 	_ "github.com/observiq/stanza/operator/builtin/input/http"
+	_ "github.com/observiq/stanza/operator/builtin/input/journald"
 	_ "github.com/observiq/stanza/operator/builtin/input/k8sevent"
 	_ "github.com/observiq/stanza/operator/builtin/input/stanza"
 	_ "github.com/observiq/stanza/operator/builtin/input/stdin"

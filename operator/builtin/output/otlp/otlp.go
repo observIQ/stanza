@@ -86,7 +86,7 @@ func (o *OtlpOutput) Stop() error {
 func (o *OtlpOutput) Process(ctx context.Context, entry *entry.Entry) error {
 	md := metadata.New(map[string]string{authorization: o.config.Authorization})
 	ctx = metadata.NewOutgoingContext(ctx, md)
-
+	
 	logRequest := otlpgrpc.NewLogsRequest()
 	logRequest.SetLogs(convert(entry))
 	_, err := o.logsClient.Export(ctx, logRequest)
