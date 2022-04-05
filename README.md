@@ -56,6 +56,7 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 - Alma, Rocky 8
 - Red Hat 7, 8
 - Suse 12, 15
+- CentOS 7, 8 Stream
 
 ### MacOS
 - 12 (Monterey)
@@ -70,7 +71,7 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 ### Linux Package Manager
 
 Linux packages are available for the following Linux Distributions:
-- RHEL / Centos 7 and 8
+- RHEL / CentOS 7 and 8
 - Oracle Linux 7 and 8
 - Alma, Rocky Linux
 - Fedora 30 and newer
