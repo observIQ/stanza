@@ -6,7 +6,7 @@ require (
 	github.com/goreleaser/goreleaser v1.6.1
 	github.com/mgechev/revive v1.2.0
 	github.com/observiq/amazon-log-agent-benchmark-tool v0.0.0-20200707160647-ecfeca6c7554
-	github.com/securego/gosec/v2 v2.8.1
+	github.com/securego/gosec/v2 v2.11.0
 	github.com/uw-labs/lichen v0.1.5
 	github.com/vektra/mockery v1.1.2
 	golang.org/x/tools v0.1.10
@@ -96,7 +96,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
-	github.com/gookit/color v1.4.2 // indirect
+	github.com/gookit/color v1.5.0 // indirect
 	github.com/goreleaser/chglog v0.1.2 // indirect
 	github.com/goreleaser/fileglob v1.3.0 // indirect
 	github.com/goreleaser/nfpm/v2 v2.14.0 // indirect
@@ -149,7 +149,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	gocloud.dev v0.24.0 // indirect
-	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
+	golang.org/x/crypto v0.0.0-20220313003712-b769efc7c000 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
