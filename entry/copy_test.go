@@ -8,68 +8,68 @@ import (
 
 func TestCopyValueString(t *testing.T) {
 	value := "test"
-	copy := copyValue(value)
-	require.Equal(t, "test", copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, "test", valueCopy)
 }
 
 func TestCopyValueBool(t *testing.T) {
 	value := true
-	copy := copyValue(value)
-	require.Equal(t, true, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, true, valueCopy)
 }
 
 func TestCopyValueInt(t *testing.T) {
 	value := 5
-	copy := copyValue(value)
-	require.Equal(t, 5, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, 5, valueCopy)
 }
 
 func TestCopyValueByte(t *testing.T) {
 	value := []byte("test")[0]
-	copy := copyValue(value)
-	require.Equal(t, []byte("test")[0], copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, []byte("test")[0], valueCopy)
 }
 
 func TestCopyValueNil(t *testing.T) {
 	var value interface{}
-	copy := copyValue(value)
-	require.Equal(t, nil, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, nil, valueCopy)
 }
 
 func TestCopyValueStringArray(t *testing.T) {
 	value := []string{"test"}
-	copy := copyValue(value)
-	require.Equal(t, value, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, value, valueCopy)
 }
 
 func TestCopyValueIntArray(t *testing.T) {
 	value := []int{5}
-	copy := copyValue(value)
-	require.Equal(t, value, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, value, valueCopy)
 }
 
 func TestCopyValueByteArray(t *testing.T) {
 	value := []byte("x")
-	copy := copyValue(value)
-	require.Equal(t, value, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, value, valueCopy)
 }
 
 func TestCopyValueInterfaceArray(t *testing.T) {
 	value := []interface{}{"test", true, 5}
-	copy := copyValue(value)
-	require.Equal(t, value, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, value, valueCopy)
 }
 
 func TestCopyValueStringMap(t *testing.T) {
 	value := map[string]string{"test": "value"}
-	copy := copyValue(value)
-	require.Equal(t, value, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, value, valueCopy)
 }
 
 func TestCopyValueInterfaceMap(t *testing.T) {
 	value := map[string]interface{}{"test": 5}
-	copy := copyValue(value)
-	require.Equal(t, value, copy)
+	valueCopy := copyValue(value)
+	require.Equal(t, value, valueCopy)
 }
 
 func TestCopyValueUnknown(t *testing.T) {

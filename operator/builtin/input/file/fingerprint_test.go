@@ -143,22 +143,22 @@ func TestFingerprintCopy(t *testing.T) {
 	for _, tc := range cases {
 		fp := &Fingerprint{FirstBytes: []byte(tc)}
 
-		copy := fp.Copy()
+		fpCopy := fp.Copy()
 
 		// Did not change original
 		require.Equal(t, tc, string(fp.FirstBytes))
 
 		// Copy is also good
-		require.Equal(t, tc, string(copy.FirstBytes))
+		require.Equal(t, tc, string(fpCopy.FirstBytes))
 
 		// Modify copy
-		copy.FirstBytes = append(copy.FirstBytes, []byte("also")...)
+		fpCopy.FirstBytes = append(fpCopy.FirstBytes, []byte("also")...)
 
 		// Still did not change original
 		require.Equal(t, tc, string(fp.FirstBytes))
 
 		// Copy is modified
-		require.Equal(t, tc+"also", string(copy.FirstBytes))
+		require.Equal(t, tc+"also", string(fpCopy.FirstBytes))
 	}
 }
 

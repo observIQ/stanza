@@ -33,7 +33,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	golang.org/x/text v0.3.7
-	gonum.org/v1/gonum v0.9.3
+	gonum.org/v1/gonum v0.11.0
 	google.golang.org/api v0.70.0
 	google.golang.org/genproto v0.0.0-20220218161850-94dd64e39d7c
 	google.golang.org/grpc v1.44.0
