@@ -3,7 +3,7 @@ module github.com/bluemedora/bpagent/internal/tools
 go 1.17
 
 require (
-	github.com/goreleaser/goreleaser v1.6.1
+	github.com/goreleaser/goreleaser v1.7.0
 	github.com/mgechev/revive v1.2.0
 	github.com/observiq/amazon-log-agent-benchmark-tool v0.0.0-20200707160647-ecfeca6c7554
 	github.com/securego/gosec/v2 v2.8.1
@@ -92,14 +92,14 @@ require (
 	github.com/google/go-github/v43 v43.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20201113175434-78a70215ca36 // indirect
-	github.com/google/rpmpack v0.0.0-20211125064518-d0ed9b1b61b9 // indirect
+	github.com/google/rpmpack v0.0.0-20220314092521-38642b5e571e // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	github.com/gookit/color v1.4.2 // indirect
 	github.com/goreleaser/chglog v0.1.2 // indirect
 	github.com/goreleaser/fileglob v1.3.0 // indirect
-	github.com/goreleaser/nfpm/v2 v2.14.0 // indirect
+	github.com/goreleaser/nfpm/v2 v2.15.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -144,7 +144,7 @@ require (
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/urfave/cli/v2 v2.3.0 // indirect
-	github.com/xanzy/go-gitlab v0.56.0 // indirect
+	github.com/xanzy/go-gitlab v0.59.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	go.opencensus.io v0.23.0 // indirect
