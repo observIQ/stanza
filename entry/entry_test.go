@@ -127,7 +127,7 @@ func TestCopy(t *testing.T) {
 	entry.Record = "test"
 	entry.Labels = map[string]string{"label": "value"}
 	entry.Resource = map[string]string{"resource": "value"}
-	copy := entry.Copy()
+	entryCopy := entry.Copy()
 
 	entry.Severity = Severity(1)
 	entry.SeverityText = "1"
@@ -136,12 +136,12 @@ func TestCopy(t *testing.T) {
 	entry.Labels = map[string]string{"label": "new value"}
 	entry.Resource = map[string]string{"resource": "new value"}
 
-	require.Equal(t, time.Time{}, copy.Timestamp)
-	require.Equal(t, Severity(0), copy.Severity)
-	require.Equal(t, "ok", copy.SeverityText)
-	require.Equal(t, map[string]string{"label": "value"}, copy.Labels)
-	require.Equal(t, map[string]string{"resource": "value"}, copy.Resource)
-	require.Equal(t, "test", copy.Record)
+	require.Equal(t, time.Time{}, entryCopy.Timestamp)
+	require.Equal(t, Severity(0), entryCopy.Severity)
+	require.Equal(t, "ok", entryCopy.SeverityText)
+	require.Equal(t, map[string]string{"label": "value"}, entryCopy.Labels)
+	require.Equal(t, map[string]string{"resource": "value"}, entryCopy.Resource)
+	require.Equal(t, "test", entryCopy.Record)
 }
 
 func TestFieldFromString(t *testing.T) {
