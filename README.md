@@ -41,6 +41,29 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 
  These are many of the Plugins supported by Stanza, with more being developed all the time. View a full list of Plugins [here](https://github.com/observIQ/stanza-plugins/tree/master/plugins).
 
+## Supported Operating Systems
+
+### Windows
+- 2012
+- 2012 r2
+- 2016
+- 2019
+- 2022
+
+### Linux
+- Ubuntu 16.04, 18.04, 20.04
+- Debian 9, 10, 11
+- Alma, Rocky 8
+- Red Hat 7, 8
+- Suse 12, 15
+- CentOS 7, 8 Stream
+
+### MacOS
+- 12 (Monterey)
+- 11 (Big Sur)
+- 10.15 (Catalina)
+- 10.14 (Mojave)
+
 # Quick Start
 
 ## Installation
@@ -48,7 +71,7 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 ### Linux Package Manager
 
 Linux packages are available for the following Linux Distributions:
-- RHEL / Centos 7 and 8
+- RHEL / CentOS 7 and 8
 - Oracle Linux 7 and 8
 - Alma, Rocky Linux
 - Fedora 30 and newer
