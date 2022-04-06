@@ -11,16 +11,15 @@ ARTIFACTS = ${PROJECT_ROOT}/artifacts
 ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
 FIELDALIGNMENT_DIRS := ./...
 
-TOOLS_MOD_DIR := ./internal/tools
 .PHONY: install-tools
 install-tools:
-	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/cmd/mockery
-	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
-	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
-	cd $(TOOLS_MOD_DIR) && go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench
-	cd $(TOOLS_MOD_DIR) && go install github.com/goreleaser/goreleaser
-	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec
-	cd $(TOOLS_MOD_DIR) && go install github.com/mgechev/revive
+	go install github.com/vektra/mockery/cmd/mockery@v1.1.2
+	go install github.com/uw-labs/lichen@v0.1.5
+	go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
+	go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench@latest
+	go install github.com/goreleaser/goreleaser@v1.6.3
+	go install github.com/securego/gosec/v2/cmd/gosec@v2.10.0
+	go install github.com/mgechev/revive@v1.2.0
 
 .PHONY: scan-license
 scan-license: build-all
