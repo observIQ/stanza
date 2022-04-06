@@ -16,7 +16,7 @@ install-tools:
 	go install github.com/vektra/mockery/cmd/mockery@v1.1.2
 	go install github.com/uw-labs/lichen@v0.1.5
 	go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
-	go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench@latest
+	go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench@ecfeca6c7554
 	go install github.com/goreleaser/goreleaser@v1.6.3
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.10.0
 	go install github.com/mgechev/revive@v1.2.0
