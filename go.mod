@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.43.13
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
-	github.com/cenkalti/backoff/v4 v4.1.1
+	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/elastic/go-elasticsearch/v7 v7.17.1
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.8.0
