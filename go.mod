@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.43.13
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
-	github.com/cenkalti/backoff/v4 v4.1.1
+	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/elastic/go-elasticsearch/v7 v7.13.0
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.8.0
@@ -24,7 +24,7 @@ require (
 	github.com/observiq/goflow/v3 v3.4.4
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
 	github.com/spf13/cobra v1.3.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/testcontainers/testcontainers-go v0.12.0
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/multierr v1.7.0 // indirect
@@ -40,9 +40,9 @@ require (
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 	// k8s.io modules should be the same version
-	k8s.io/api v0.23.3
-	k8s.io/apimachinery v0.23.3
-	k8s.io/client-go v0.22.2
+	k8s.io/api v0.23.5
+	k8s.io/apimachinery v0.23.5
+	k8s.io/client-go v0.23.5
 )
 
 require (
