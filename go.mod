@@ -42,7 +42,7 @@ require (
 	// k8s.io modules should be the same version
 	k8s.io/api v0.23.5
 	k8s.io/apimachinery v0.23.5
-	k8s.io/client-go v0.22.2
+	k8s.io/client-go v0.23.5
 )
 
 require (
