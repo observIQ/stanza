@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/logging v1.4.2
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.13
 	github.com/antonmedv/expr v1.9.0
-	github.com/aws/aws-sdk-go v1.43.13
+	github.com/aws/aws-sdk-go v1.43.36
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/cenkalti/backoff/v4 v4.1.2
