@@ -197,7 +197,7 @@ pipeline:
     credentials_file: /tmp/credentials.json
 ```
 
-Alternatively, you can use a plugin for log monitoring. This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml).
+Alternatively, you can use a plugin for log monitoring. This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/main/plugins/mysql.yaml).
 
 ```yaml
 pipeline:

@@ -25,7 +25,7 @@ This is an example config file that can be used in the Stanza install directory,
 
 ```yaml
 pipeline:
-  # To see the Windows Events plugin, go to: https://github.com/observIQ/stanza-plugins/blob/master/plugins/windows_event.yaml
+  # To see the Windows Events plugin, go to: https://github.com/observIQ/stanza-plugins/blob/main/plugins/windows_event.yaml
   - type: windows_event
     enable_system_events: true
     enable_application_events: true
@@ -40,7 +40,7 @@ With custom channels enabled, the `custom_channels` field can be populated with 
 
 ```yaml
 pipeline:
-  # To see the Windows Events plugin, go to: https://github.com/observIQ/stanza-plugins/blob/master/plugins/windows_event.yaml
+  # To see the Windows Events plugin, go to: https://github.com/observIQ/stanza-plugins/blob/main/plugins/windows_event.yaml
   - type: windows_event
     enable_system_events: true
     enable_application_events: true
