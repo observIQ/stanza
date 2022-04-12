@@ -39,7 +39,7 @@ Utilize Plugins to get up and running quickly. Here's a quick list of Stanza's m
 
 <p align="center"><img src="docs/images/stanza_plugins.png?raw=true"></p>
 
- These are many of the Plugins supported by Stanza, with more being developed all the time. View a full list of Plugins [here](https://github.com/observIQ/stanza-plugins/tree/master/plugins).
+ These are many of the Plugins supported by Stanza, with more being developed all the time. View a full list of Plugins [here](https://github.com/observIQ/stanza-plugins/tree/main/plugins).
 
 ## Supported Operating Systems
 
@@ -179,7 +179,7 @@ pipeline:
 ```
 
 ### Plugins
-This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml). A full list of available plugins can be found [here](https://github.com/observIQ/stanza-plugins/blob/master/plugins/).
+This `config.yaml` collects logs from MySQL via a plugin and sends them to Google Cloud. By default, MySQL plugin collects general, slow query, and error logs. More details of the MySQL plugin can be viewed [here](https://github.com/observIQ/stanza-plugins/blob/main/plugins/mysql.yaml). A full list of available plugins can be found [here](https://github.com/observIQ/stanza-plugins/blob/main/plugins/).
 
 ```yaml
 pipeline:

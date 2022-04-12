@@ -42,7 +42,7 @@ This is an example config file that can be used in the Stanza install directory,
 
 ```yaml
 pipeline:
-  # To see the MySQL plugin, go to: https://github.com/observIQ/stanza-plugins/blob/master/plugins/mysql.yaml
+  # To see the MySQL plugin, go to: https://github.com/observIQ/stanza-plugins/blob/main/plugins/mysql.yaml
   - type: mysql
     enable_general_log: true
     general_log_path: "/var/log/mysql/general.log"

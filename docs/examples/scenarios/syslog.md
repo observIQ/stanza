@@ -45,7 +45,7 @@ This is an example config file that can be used in the Stanza install directory,
 
 ```yaml
 pipeline:
-  # To see the Syslog plugin, go to: https://github.com/observIQ/stanza-plugins/blob/master/plugins/syslog.yaml
+  # To see the Syslog plugin, go to: https://github.com/observIQ/stanza-plugins/blob/main/plugins/syslog.yaml
   - type: syslog
     listen_port: 514
     listen_ip: "0.0.0.0"
@@ -59,7 +59,7 @@ This is an example that uses TCP with TLS.
 
 ```yaml
 pipeline:
-  # To see the Syslog plugin, go to: https://github.com/observIQ/stanza-plugins/blob/master/plugins/syslog.yaml
+  # To see the Syslog plugin, go to: https://github.com/observIQ/stanza-plugins/blob/main/plugins/syslog.yaml
   - type: syslog
     listen_port: 514
     listen_ip: "0.0.0.0"
