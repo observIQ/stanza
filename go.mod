@@ -23,7 +23,7 @@ require (
 	github.com/observiq/go-syslog/v3 v3.1.0
 	github.com/observiq/goflow/v3 v3.4.4
 	github.com/observiq/nanojack v0.0.0-20201106172433-343928847ebc
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.12.0
 	go.etcd.io/bbolt v1.3.6
