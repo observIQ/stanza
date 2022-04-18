@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # AWS we want to ignore nightly patch releases
+      - dependency-name: "github.com/aws/aws-sdk-go"
+        update-types: ["version-update:semver-patch"]
     commit-message:
       prefix: "deps"
       include: "scope"
