@@ -18,7 +18,7 @@ require (
 	github.com/jpillora/backoff v1.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kardianos/service v1.2.1
-	github.com/mitchellh/mapstructure v1.4.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/observiq/ctimefmt v1.0.0
 	github.com/observiq/go-syslog/v3 v3.1.0
 	github.com/observiq/goflow/v3 v3.4.4
