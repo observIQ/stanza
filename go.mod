@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	cloud.google.com/go/logging v1.4.2
-	github.com/Azure/azure-event-hubs-go/v3 v3.3.13
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.18
 	github.com/antonmedv/expr v1.9.0
 	github.com/aws/aws-sdk-go v1.44.4
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -53,9 +53,9 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
-	github.com/Azure/azure-amqp-common-go/v3 v3.0.1 // indirect
+	github.com/Azure/azure-amqp-common-go/v3 v3.2.3 // indirect
 	github.com/Azure/azure-sdk-for-go v51.1.0+incompatible // indirect
-	github.com/Azure/go-amqp v0.13.12 // indirect
+	github.com/Azure/go-amqp v0.17.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
