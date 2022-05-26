@@ -34,7 +34,7 @@ require (
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6
 	golang.org/x/text v0.3.7
 	gonum.org/v1/gonum v0.11.0
-	google.golang.org/api v0.79.0
+	google.golang.org/api v0.80.0
 	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
