@@ -47,7 +47,7 @@ require (
 
 require (
 	github.com/google/uuid v1.3.0
-	github.com/googleapis/gax-go/v2 v2.3.0
+	github.com/googleapis/gax-go/v2 v2.4.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
