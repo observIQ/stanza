@@ -56,6 +56,10 @@ func (c *ForwardInputConfig) Build(context operator.BuildContext) ([]operator.Op
 		Addr:        c.ListenAddress,
 		Handler:     forwardInput,
 		ReadTimeout: c.ReadTimeout.Duration,
+		// ReadHeaderTimeout defaults to ReadTimeout, but Gosec fails
+		// if this value is not set. For simplicity, only ReadTimeout
+		// is exposed to the user.
+		ReadHeaderTimeout: c.ReadTimeout.Duration,
 	}
 
 	return []operator.Operator{forwardInput}, nil
