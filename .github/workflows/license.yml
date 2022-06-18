@@ -1,11 +1,7 @@
 name: license
 on:
   pull_request:
-    branches:
-      - master
-  push:
-    branches:
-      - master
+
 jobs:
   build:
     name: Scan Licenses
