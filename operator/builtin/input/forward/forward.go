@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -21,14 +22,16 @@ func init() {
 func NewForwardInputConfig(operatorID string) *ForwardInputConfig {
 	return &ForwardInputConfig{
 		InputConfig: helper.NewInputConfig(operatorID, "stdin"),
+		ReadTimeout: helper.NewDuration(time.Second * 5),
 	}
 }
 
 // ForwardInputConfig is the configuration of a forward input operator
 type ForwardInputConfig struct {
 	helper.InputConfig `yaml:",inline"`
-	ListenAddress      string     `json:"listen_address" yaml:"listen_address"`
-	TLS                *TLSConfig `json:"tls"            yaml:"tls"`
+	ListenAddress      string          `json:"listen_address" yaml:"listen_address"`
+	TLS                *TLSConfig      `json:"tls"            yaml:"tls"`
+	ReadTimeout        helper.Duration `json:"read_timeout"   yaml:"read_timeout"`
 }
 
 // TLSConfig is a configuration struct for forward input TLS
@@ -50,8 +53,9 @@ func (c *ForwardInputConfig) Build(context operator.BuildContext) ([]operator.Op
 	}
 
 	forwardInput.srv = &http.Server{
-		Addr:    c.ListenAddress,
-		Handler: forwardInput,
+		Addr:        c.ListenAddress,
+		Handler:     forwardInput,
+		ReadTimeout: c.ReadTimeout.Duration,
 	}
 
 	return []operator.Operator{forwardInput}, nil

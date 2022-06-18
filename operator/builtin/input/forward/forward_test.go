@@ -23,6 +23,7 @@ func TestForwardInput(t *testing.T) {
 	cfg := NewForwardInputConfig("test")
 	cfg.ListenAddress = "0.0.0.0:0"
 	cfg.OutputIDs = []string{"fake"}
+	require.Equal(t, time.Second*5, cfg.ReadTimeout.Duration)
 
 	ops, err := cfg.Build(testutil.NewBuildContext(t))
 	require.NoError(t, err)
