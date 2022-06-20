@@ -9,6 +9,7 @@ The `foward_input` operator receives logs from another Stanza instance running `
 | `id`             | `forward_output` | A unique identifier for the operator                  |
 | `listen_address` | `:80`            | The IP address and port to listen on                  |
 | `tls`            |                  | A block for configuring the server to listen with TLS |
+| `read_timeout`   | `5s`             | Maximum duration for reading the entire request, including the body. |
 
 #### TLS block configuration
 
