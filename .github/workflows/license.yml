@@ -13,7 +13,7 @@ jobs:
           go-version: "1.21"
 
       - name: Install License Scanner
-        run: go install github.com/uw-labs/lichen@v0.1.4
+        run: go install github.com/uw-labs/lichen@v0.1.7
 
       - name: Check out source code
         uses: actions/checkout@v1
