@@ -2,10 +2,10 @@ package k8smetadata
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
-	"net/url"
-	"net/http"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -83,7 +83,6 @@ type K8sMetadataDecorator struct {
 
 // MetadataCacheEntry is an entry in the metadata cache
 type MetadataCacheEntry struct {
-	ClusterName    string
 	UID            string
 	ExpirationTime time.Time
 	Labels         map[string]string
@@ -121,8 +120,8 @@ func (k *K8sMetadataDecorator) Start() error {
 		)
 	}
 
-	if ! k.allowProxy {
-		config.Proxy = func (*http.Request) (*url.URL, error) {
+	if !k.allowProxy {
+		config.Proxy = func(*http.Request) (*url.URL, error) {
 			return nil, nil
 		}
 	}
@@ -226,7 +225,6 @@ func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, nam
 
 	// Cache the results
 	cacheEntry := MetadataCacheEntry{
-		ClusterName:    namespaceResponse.ClusterName,
 		ExpirationTime: time.Now().Add(k.cacheTTL),
 		UID:            string(namespaceResponse.UID),
 		Labels:         namespaceResponse.Labels,
@@ -259,7 +257,6 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 
 	// Create the cache entry
 	cacheEntry := MetadataCacheEntry{
-		ClusterName:    podResponse.ClusterName,
 		UID:            string(podResponse.UID),
 		ExpirationTime: time.Now().Add(k.cacheTTL),
 		Labels:         podResponse.Labels,
@@ -319,9 +316,6 @@ func (k *K8sMetadataDecorator) decorateEntryWithNamespaceMetadata(nsMeta Metadat
 	}
 
 	entry.Resource["k8s.namespace.uid"] = nsMeta.UID
-	if nsMeta.ClusterName != "" {
-		entry.Resource["k8s.cluster.name"] = nsMeta.ClusterName
-	}
 }
 
 func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(podMeta MetadataCacheEntry, entry *entry.Entry) {
@@ -338,9 +332,6 @@ func (k *K8sMetadataDecorator) decorateEntryWithPodMetadata(podMeta MetadataCach
 	}
 
 	entry.Resource["k8s.pod.uid"] = podMeta.UID
-	if podMeta.ClusterName != "" {
-		entry.Resource["k8s.cluster.name"] = podMeta.ClusterName
-	}
 
 	for key, value := range podMeta.AdditionalResourceValues {
 		if value != "" {
