@@ -50,8 +50,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      # Run darwin and linux tests
       - name: Run Tests
-        run: CGO_ENABLED=0 go test -race -coverprofile coverage.txt -coverpkg ./... ./...
+        if: matrix.os != 'windows-2019'
+        run: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
+
+      # Run windows tests without cgo, race flag (requires cgo), or coverage
+      - name: Run Windows Tests
+        if: matrix.os == 'windows-2019'
+        run: CGO_ENABLED=0 go test ./...
+
       - name: Upload Codecov
         # Only submit code coverage if OS is Linux
         if: matrix.os == 'ubuntu-20.04'
