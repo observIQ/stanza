@@ -2,10 +2,10 @@ package k8smetadata
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
-	"net/url"
-	"net/http"
 
 	"github.com/observiq/stanza/entry"
 	"github.com/observiq/stanza/errors"
@@ -121,8 +121,8 @@ func (k *K8sMetadataDecorator) Start() error {
 		)
 	}
 
-	if ! k.allowProxy {
-		config.Proxy = func (*http.Request) (*url.URL, error) {
+	if !k.allowProxy {
+		config.Proxy = func(*http.Request) (*url.URL, error) {
 			return nil, nil
 		}
 	}
@@ -226,7 +226,6 @@ func (k *K8sMetadataDecorator) refreshNamespaceMetadata(ctx context.Context, nam
 
 	// Cache the results
 	cacheEntry := MetadataCacheEntry{
-		ClusterName:    namespaceResponse.ClusterName,
 		ExpirationTime: time.Now().Add(k.cacheTTL),
 		UID:            string(namespaceResponse.UID),
 		Labels:         namespaceResponse.Labels,
@@ -259,7 +258,6 @@ func (k *K8sMetadataDecorator) refreshPodMetadata(ctx context.Context, namespace
 
 	// Create the cache entry
 	cacheEntry := MetadataCacheEntry{
-		ClusterName:    podResponse.ClusterName,
 		UID:            string(podResponse.UID),
 		ExpirationTime: time.Now().Add(k.cacheTTL),
 		Labels:         podResponse.Labels,
