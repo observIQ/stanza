@@ -14,7 +14,7 @@ FIELDALIGNMENT_DIRS := ./...
 .PHONY: install-tools
 install-tools:
 	go install github.com/vektra/mockery/cmd/mockery@v1.1.2
-	go install github.com/uw-labs/lichen@v0.1.5
+	go install github.com/uw-labs/lichen@v0.1.7
 	go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
 	go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench@ecfeca6c7554
 	go install github.com/goreleaser/goreleaser@v1.6.3
