@@ -39,16 +39,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Windows Cache Go Modules
-        if: matrix.os == 'windows-2019'
-        uses: actions/cache@v2
-        with:
-          path: |
-            %LocalAppData%\go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
       - name: Run Tests
         run: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
