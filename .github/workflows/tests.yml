@@ -51,7 +51,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Run Tests
-        run: go test -race -coverprofile coverage.txt -coverpkg ./... ./...
+        run: CGO_ENABLED=0 go test -race -coverprofile coverage.txt -coverpkg ./... ./...
       - name: Upload Codecov
         # Only submit code coverage if OS is Linux
         if: matrix.os == 'ubuntu-20.04'
