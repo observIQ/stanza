@@ -1,14 +1,16 @@
 version: 2
-updates: []
+updates:
   - package-ecosystem: "gomod"
+    # Setting the limit to zero should limit
+    # Dependabot to security updates only.
     open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: "monthly"
-    ignore:
-      # AWS we want to ignore nightly patch releases
-      - dependency-name: "github.com/aws/aws-sdk-go"
-        update-types: ["version-update:semver-patch"]
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "security"
     commit-message:
       prefix: "deps"
       include: "scope"
