@@ -82,7 +82,6 @@ func TestK8sMetadataDecoratorCachedMetadata(t *testing.T) {
 		Labels: map[string]string{
 			"label1": "lab1",
 		},
-		ClusterName: "testcluster",
 		Annotations: map[string]string{
 			"annotation1": "ann1",
 		},
