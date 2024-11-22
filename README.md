@@ -17,7 +17,7 @@ Stanza is a fast and lightweight log transport and processing agent. It's design
 
 ## OpenTelemetry
 
-Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) project and will be intergrated into the [OpenTelemetry collector](https://github.com/open-telemetry/opentelemetry-collector). 
+Stanza has been contributed to the [OpenTelemetry](https://opentelemetry.io/) project has been integrated into [OpenTelemetry collector contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/README.md). 
 
 # Features
 
