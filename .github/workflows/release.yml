@@ -7,7 +7,7 @@ on:
 
 jobs:
   build_msi:
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v2
@@ -81,7 +81,7 @@ jobs:
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
   release:
-    runs-on: "ubuntu-20.04"
+    runs-on: ubuntu-latest
     needs: ["build_msi"]
     steps:
       - name: Checkout
@@ -112,7 +112,7 @@ jobs:
           # Default github token should have enough permissions to make a release
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-and-push-container-image:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
