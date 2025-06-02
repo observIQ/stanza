@@ -14,6 +14,7 @@ import (
 func Parse(message *flowmessage.FlowMessage) (map[string]interface{}, time.Time, error) {
 	m := make(map[string]interface{})
 
+	// #nosec G115 - TimeReceived will not exceed int64
 	timestamp := time.Unix(int64(message.TimeReceived), 0)
 
 	if t := message.Type.String(); t != "" {
@@ -23,14 +24,17 @@ func Parse(message *flowmessage.FlowMessage) (map[string]interface{}, time.Time,
 	}
 
 	if message.SequenceNum > 0 {
+		// #nosec G115 - Mac address size will not exceed int
 		m["sequencenum"] = int(message.SequenceNum)
 	}
 
 	if message.SamplingRate > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["samplingrate"] = int64(message.SamplingRate)
 	}
 
 	if message.HasFlowDirection {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["flowdirection"] = int(message.FlowDirection)
 	}
 
@@ -44,18 +48,22 @@ func Parse(message *flowmessage.FlowMessage) (map[string]interface{}, time.Time,
 	}
 
 	if message.TimeFlowStart > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["timeflowstart"] = int64(message.TimeFlowStart)
 	}
 
 	if message.TimeFlowEnd > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["timeflowend"] = int64(message.TimeFlowEnd)
 	}
 
 	if message.Bytes > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["bytes"] = int64(message.Bytes)
 	}
 
 	if message.Packets > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["packets"] = int64(message.Packets)
 	}
 
@@ -110,10 +118,12 @@ func Parse(message *flowmessage.FlowMessage) (map[string]interface{}, time.Time,
 	m["outif"] = int(message.OutIf)
 
 	if message.SrcMac > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["srcmac"] = int64(message.SrcMac)
 	}
 
 	if message.DstMac > 0 {
+		// #nosec G115 - Mac address size will not exceed int64
 		m["dstmac"] = int64(message.DstMac)
 	}
 

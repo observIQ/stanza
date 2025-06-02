@@ -190,6 +190,7 @@ func (mc *memoryClearer) MarkAllAsFlushed() error {
 }
 
 func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
+	// #nosec G115 - Value will not be negative
 	if int(end) > len(mc.ids) || int(start) > len(mc.ids) {
 		return fmt.Errorf("invalid range")
 	}
@@ -199,6 +200,7 @@ func (mc *memoryClearer) MarkRangeAsFlushed(start, end uint) error {
 		delete(mc.buffer.inFlight, id)
 	}
 	mc.buffer.inFlightMux.Unlock()
+	// #nosec G115 - Value will not be negative
 	mc.buffer.sem.Release(int64(end - start))
 	return nil
 }

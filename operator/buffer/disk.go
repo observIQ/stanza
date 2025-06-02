@@ -368,6 +368,7 @@ func (dc *diskClearer) MarkAllAsFlushed() error {
 }
 
 func (dc *diskClearer) MarkRangeAsFlushed(start, end uint) error {
+	// #nosec G115 - Value will not be negative
 	if int(end) > len(dc.readEntries) || int(start) > len(dc.readEntries) {
 		return fmt.Errorf("invalid range")
 	}

@@ -26,6 +26,7 @@ func (p *Persister) Read(key string) (int64, error) {
 // Write is a helper function to set persisted data
 func (p *Persister) Write(key string, value int64) {
 	var buf = make([]byte, 8)
+	// #nosec G115 - Value will not be negative
 	binary.BigEndian.PutUint64(buf, uint64(value))
 	p.DB.Set(key, buf)
 }
