@@ -4,10 +4,10 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Run Revive Action by pulling pre-built image
         uses: docker://morphy/revive-action:v2
         with:

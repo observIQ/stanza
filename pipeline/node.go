@@ -49,5 +49,7 @@ func createOperatorNode(operator operator.Operator) OperatorNode {
 func createNodeID(operatorID string) int64 {
 	hash := fnv.New64a()
 	_, _ = hash.Write([]byte(operatorID))
+
+	// #nosec G115 - Hash will not exceed int64
 	return int64(hash.Sum64())
 }

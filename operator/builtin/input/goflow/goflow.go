@@ -77,7 +77,7 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 		return nil, fmt.Errorf("unexpected error closing udp connection while validating Goflow parameters: %w", err)
 	}
 
-	if c.Workers == 0 {
+	if c.Workers < 1 {
 		c.Workers = 1
 	}
 
@@ -86,7 +86,8 @@ func (c *GoflowInputConfig) Build(context operator.BuildContext) ([]operator.Ope
 		mode:          c.Mode,
 		address:       addr.IP.String(),
 		port:          addr.Port,
-		workers:       int(c.Workers),
+		// #nosec G115 - Value will not be negative
+		workers: int(c.Workers),
 	}
 	return []operator.Operator{goflowInput}, nil
 }
