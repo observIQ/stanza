@@ -10,7 +10,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
@@ -85,7 +85,7 @@ jobs:
     needs: ["build_msi"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           # Required for goreleaser changelog to work properly
           fetch-depth: 0
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
