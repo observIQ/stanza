@@ -18,13 +18,13 @@ import (
 func NewTempDir(t testing.TB) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Errorf("%v", err)
 		t.FailNow()
 	}
 
 	t.Cleanup(func() {
 		if err := os.RemoveAll(tempDir); err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("%v", err)
 		}
 	})
 
@@ -35,25 +35,25 @@ func NewTempDir(t testing.TB) string {
 func NewTestDatabase(t testing.TB) *bbolt.DB {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Errorf("%v", err)
 		t.FailNow()
 	}
 
 	t.Cleanup(func() {
 		if err := os.RemoveAll(tempDir); err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("%v", err)
 		}
 	})
 
 	db, err := bbolt.Open(filepath.Join(tempDir, "test.db"), 0666, nil)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Errorf("%v", err)
 		t.FailNow()
 	}
 
 	t.Cleanup(func() {
 		if err := db.Close(); err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("%v", err)
 		}
 	})
 
