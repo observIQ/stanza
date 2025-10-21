@@ -1,6 +1,6 @@
 module github.com/observiq/stanza
 
-go 1.21
+go 1.24
 
 require (
 	cloud.google.com/go/logging v1.8.1
