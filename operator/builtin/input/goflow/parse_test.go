@@ -455,7 +455,7 @@ func BenchmarkParse(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		_, _, err := Parse(m)
 		if err != nil {
-			b.Errorf(err.Error())
+			b.Errorf("%v", err)
 			b.FailNow()
 		}
 	}
