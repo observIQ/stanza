@@ -14,7 +14,7 @@ import (
 func NewTempDir(t testing.TB) string {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Errorf("%v", err)
 		t.FailNow()
 	}
 

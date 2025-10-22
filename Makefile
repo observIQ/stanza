@@ -18,7 +18,7 @@ install-tools:
 	go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
 	go install github.com/observiq/amazon-log-agent-benchmark-tool/cmd/logbench@ecfeca6c7554
 	go install github.com/goreleaser/goreleaser@v1.6.3
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.10.0
+	go install github.com/securego/gosec/v2/cmd/gosec@v2.22.10
 	go install github.com/mgechev/revive@v1.2.0
 
 .PHONY: scan-license

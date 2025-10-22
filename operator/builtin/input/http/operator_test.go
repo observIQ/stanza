@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 	}
 	defer func() {
 		if err := op.Stop(); err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("%v", err)
 		}
 	}()
 
@@ -171,7 +171,7 @@ func TestServerBasicAuth(t *testing.T) {
 	}
 	defer func() {
 		if err := op.Stop(); err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("%v", err)
 		}
 	}()
 
@@ -298,7 +298,7 @@ func TestServerTokenAuth(t *testing.T) {
 	}
 	defer func() {
 		if err := op.Stop(); err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("%v", err)
 		}
 	}()
 
